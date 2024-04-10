@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "condition_variable": "cpp",
+        "algorithm": "cpp",
+        "format": "cpp",
+        "unordered_map": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "cmath": "cpp",
+        "atomic": "cpp",
+        "mutex": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}

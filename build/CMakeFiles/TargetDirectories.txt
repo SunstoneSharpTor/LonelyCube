@@ -1,0 +1,5 @@
+/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles/Minecraft.dir
+/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles/package.dir
+/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles/package_source.dir
+/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles/edit_cache.dir
+/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles/rebuild_cache.dir
