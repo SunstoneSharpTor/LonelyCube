@@ -1,8 +1,6 @@
 #include "vertexArray.h"
 #include "renderer.h"
 
-using namespace std;
-
 vertexArray::vertexArray(bool empty) {
 	if (empty) {
 		m_rendererID = 0;

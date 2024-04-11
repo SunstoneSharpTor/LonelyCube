@@ -6,8 +6,6 @@
 
 #include "constants.h"
 
-using namespace std;
-
 class chunk;
 
 struct worldInfo {
@@ -29,9 +27,9 @@ private:
 	int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
 	worldInfo m_worldInfo;
 	bool m_calculatingSkylight;
-	mutex m_accessingSkylightMtx;
-	condition_variable m_accessingSkylightCV;
-	static mutex s_checkingNeighbouringRelights;
+	std::mutex m_accessingSkylightMtx;
+	std::condition_variable m_accessingSkylightCV;
+	static std::mutex s_checkingNeighbouringRelights;
 
 	static const short m_neighbouringBlocks[6];
 	static const short m_neighbouringBlocksX[6];

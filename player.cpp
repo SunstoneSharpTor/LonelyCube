@@ -4,8 +4,6 @@
 #include <iostream>
 #include <cmath>
 
-using namespace std;
-
 const float player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.6f,
@@ -155,8 +153,8 @@ void player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
                 sprintSpeed = 58.0f;
                 sprint = true;
             }
-            movementSpeed = max(abs(m_velocity[1] * 1.5f), movementSpeed - min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
-            sprintSpeed = max(abs(m_velocity[1] * 1.5f), sprintSpeed - min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
+            movementSpeed = std::max(abs(m_velocity[1] * 1.5f), movementSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
+            sprintSpeed = std::max(std::abs(m_velocity[1] * 1.5f), sprintSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
         }
         //keyboard input
         if (m_keyboardState[SDL_SCANCODE_W]) {

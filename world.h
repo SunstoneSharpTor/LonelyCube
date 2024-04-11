@@ -18,8 +18,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-using namespace std;
-
 class world {
 private:
 	unsigned short m_renderDistance;
@@ -49,7 +47,7 @@ private:
 	double m_timeByDTs;
 
 	//mouse polling info
-	chrono::time_point<chrono::_V2::steady_clock, chrono::_V2::steady_clock::duration> m_startTime;
+	std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::_V2::steady_clock::duration> m_startTime;
 	double* m_lastMousePoll;
 	bool* m_playing;
 	bool* m_lastPlaying;
@@ -60,19 +58,19 @@ private:
 	SDL_Window* m_window;
 	int* m_windowDimensions;
 
-	vector<vertexArray*> m_chunkVertexArrays;
-	vector<vertexBuffer*> m_chunkVertexBuffers;
-	vector<indexBuffer*> m_chunkIndexBuffers;
-	vector<vertexArray*> m_chunkWaterVertexArrays;
-	vector<vertexBuffer*> m_chunkWaterVertexBuffers;
-	vector<indexBuffer*> m_chunkWaterIndexBuffers;
+	std::vector<vertexArray*> m_chunkVertexArrays;
+	std::vector<vertexBuffer*> m_chunkVertexBuffers;
+	std::vector<indexBuffer*> m_chunkIndexBuffers;
+	std::vector<vertexArray*> m_chunkWaterVertexArrays;
+	std::vector<vertexBuffer*> m_chunkWaterVertexBuffers;
+	std::vector<indexBuffer*> m_chunkWaterIndexBuffers;
 	vertexBuffer* m_emptyVertexBuffer;
 	indexBuffer* m_emptyIndexBuffer;
 	vertexArray* m_emptyVertexArray;
 	//stores the positions of the loaded chunks in the array m_chunks
-	vector<unsigned int> m_meshedChunkArrayIndices;
-	vector<unsigned int> m_unmeshedChunkArrayIndices;
-	vector<unsigned int> m_beingMeshedChunkArrayIndices;
+	std::vector<unsigned int> m_meshedChunkArrayIndices;
+	std::vector<unsigned int> m_unmeshedChunkArrayIndices;
+	std::vector<unsigned int> m_beingMeshedChunkArrayIndices;
 
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
@@ -87,12 +85,12 @@ private:
 	unsigned int** m_chunkWaterIndices; //2d array to allow for each mesh-building thread to have its own array
 
 	//communication
-	mutex* m_chunkMeshReadyMtx;
-	condition_variable* m_chunkMeshReadyCV;
-	mutex m_relableNeededMtx;
-	condition_variable m_relableNeededCV;
-	mutex m_accessingArrIndicesVectorsMtx;
-	mutex m_renderThreadWaitingForArrIndicesVectorsMtx;
+	std::mutex* m_chunkMeshReadyMtx;
+	std::condition_variable* m_chunkMeshReadyCV;
+	std::mutex m_relableNeededMtx;
+	std::condition_variable m_relableNeededCV;
+	std::mutex m_accessingArrIndicesVectorsMtx;
+	std::mutex m_renderThreadWaitingForArrIndicesVectorsMtx;
 	bool m_renderThreadWaitingForArrIndicesVectors;
 	bool* m_chunkMeshReady;
 	bool m_relableNeeded;
@@ -113,7 +111,7 @@ private:
 	void addChunkMesh(unsigned int chunkVectorIndex, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unloadAndRelableChunks();
-	void relightChunksAroundBlock(const int* blockCoords, vector<unsigned int>* relitChunks);
+	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
 	world(unsigned short renderDistance);

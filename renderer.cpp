@@ -2,15 +2,13 @@
 
 #include <iostream>
 
-using namespace std;
-
 void GLClearError() {
     while (glGetError() != GL_NO_ERROR);
 }
 
 void GLPrintErrors() {
     while (GLenum error = glGetError()) {
-        cout << "OpenGL error: " << error << endl;
+        std::cout << "OpenGL error: " << error << std::endl;
     }
 }
 

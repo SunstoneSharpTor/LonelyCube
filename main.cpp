@@ -24,8 +24,6 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
-using namespace std;
-
 void chunkLoaderThread(world* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
@@ -58,10 +56,10 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
     bool VSYNC = false;
     if ((!VSYNC) || SDL_GL_SetSwapInterval(-1) != 0) {
         SDL_GL_SetSwapInterval(0);
-        cout << "vsync not enabled\n";
+        std::cout << "vsync not enabled\n";
     }
     else {
-        cout << "vsync enabled\n";
+        std::cout << "vsync enabled\n";
     }
 
     bool windowMaximised = false;
@@ -145,9 +143,9 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
     cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
     mainWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
     
-    auto start = chrono::steady_clock::now();
-    auto end = chrono::steady_clock::now();
-    double time = (double)chrono::duration_cast<chrono::microseconds>(end - start).count() / 1000;
+    auto start = std::chrono::steady_clock::now();
+    auto end = std::chrono::steady_clock::now();
+    double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
     mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time);
     mainWorld->doRenderThreadJobs();
 
@@ -158,8 +156,8 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
     double DT = 1.0 / FPS_CAP;
     long frames = 0;
     long lastFrameRateFrames = 0;
-    end = chrono::steady_clock::now();
-    time = (double)chrono::duration_cast<chrono::microseconds>(end - start).count() / 1000000;
+    end = std::chrono::steady_clock::now();
+    time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
     double frameStart = time - DT;
     bool windowevent_resized = false;
     float lastFrameRateTime = frameStart + DT;
@@ -227,13 +225,13 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
         lastWindowFullScreen = windowFullScreen;
 
         //render if a frame is needed
-        end = chrono::steady_clock::now();
-        double currentTime = (double)chrono::duration_cast<chrono::microseconds>(end - start).count() / 1000000;
+        end = std::chrono::steady_clock::now();
+        double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         if (currentTime > frameStart + DT) {
             double actualDT = currentTime - frameStart;
             if (currentTime - lastFrameRateTime > 1) {
-                cout << (frames - lastFrameRateFrames) / (1.0) << " FPS\n";
-                cout << mainPlayer->viewCamera.position[0] + mainPlayer->cameraBlockPosition[0] << ", " << mainPlayer->viewCamera.position[1] + mainPlayer->cameraBlockPosition[1] << ", " << mainPlayer->viewCamera.position[2] + mainPlayer->cameraBlockPosition[2] << "\n";
+                std::cout << (frames - lastFrameRateFrames) / (1.0) << " FPS\n";
+                std::cout << mainPlayer->viewCamera.position[0] + mainPlayer->cameraBlockPosition[0] << ", " << mainPlayer->viewCamera.position[1] + mainPlayer->cameraBlockPosition[1] << ", " << mainPlayer->viewCamera.position[2] + mainPlayer->cameraBlockPosition[2] << "\n";
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = frames;
             }
@@ -281,10 +279,10 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
             //draw background
             mainRenderer.clear();
 
-            //auto tp1 = chrono::high_resolution_clock::now();
+            //auto tp1 = std::chrono::high_resolution_clock::now();
             mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
-            //auto tp2 = chrono::high_resolution_clock::now();
-            //cout << chrono::duration_cast<chrono::microseconds>(tp2 - tp1).count() << "us\n";
+            //auto tp2 = std::chrono::high_resolution_clock::now();
+            //cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
@@ -319,11 +317,11 @@ int main(int argc, char* argv[]) {
 
     bool running = true;
 
-    thread renderWorker(renderThread, &mainWorld, &running, &mainPlayer);
+    std::thread renderWorker(renderThread, &mainWorld, &running, &mainPlayer);
 
-    thread* chunkLoaderThreads = new thread[mainWorld.getNumChunkLoaderThreads() - 1];
+    std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        chunkLoaderThreads[threadNum - 1] = thread(chunkLoaderThread, &mainWorld, &running, threadNum);
+        chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
     }
 
     while (running) {

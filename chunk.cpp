@@ -9,9 +9,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/noise.hpp"
 
-using namespace std;
-
-mutex chunk::s_checkingNeighbouringRelights;
+std::mutex chunk::s_checkingNeighbouringRelights;
 
 //define the face positions constant:
 const float chunk::m_cubeTextureCoordinates[48] = { 0, 0,
@@ -249,7 +247,7 @@ void chunk::generateTerrain() {
 						}
 						else {
 							m_blocks[blockNum] = 4;
-							m_skyLight[blockNum / 2] |= ((15 + max(y - 1, -15)) << (4 * (blockNum % 2)));
+							m_skyLight[blockNum / 2] |= ((15 + std::max(y - 1, -15)) << (4 * (blockNum % 2)));
 						}
 					}
 					else if (y == height) {
@@ -671,7 +669,7 @@ void chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* 
 			for (unsigned int i = 0; i < 6; i++) {
 				neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
 			}
-			this_thread::sleep_for(100us);
+			std::this_thread::sleep_for(std::operator""us(100));
 		}
 		m_calculatingSkylight = true;
 		clearSkyLight();
@@ -859,7 +857,7 @@ void chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			for (unsigned int i = 0; i < 6; i++) {
 				neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
 			}
-			this_thread::sleep_for(100us);
+			std::this_thread::sleep_for(std::operator""us(100));
 		}
 	}
 	s_checkingNeighbouringRelights.unlock();
@@ -878,7 +876,7 @@ void chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 		tempBlocks = temp;
 	}
 
-	queue<unsigned int> lightQueue;
+	std::queue<unsigned int> lightQueue;
 	//add the light values from chunk borders to the light queue
 	unsigned int blockNum = 0;
 	for (unsigned int z = 0; z < constants::CHUNK_SIZE; z++) {
@@ -1104,6 +1102,6 @@ void chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 	m_skyLightUpToDate = true;
 	m_calculatingSkylight = false;
 	// lock release
-	lock_guard<mutex> lock(m_accessingSkylightMtx);
+	std::lock_guard<std::mutex> lock(m_accessingSkylightMtx);
 	m_accessingSkylightCV.notify_all();
 }

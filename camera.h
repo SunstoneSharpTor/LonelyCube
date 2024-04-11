@@ -3,6 +3,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+
 #include "constants.h"
 
 struct plane {
@@ -50,8 +51,8 @@ struct AABB {
 
 	bool isOnOrForwardPlane(const plane& plane) const {
 		//Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-		const float r = extents.x * abs(plane.normal.x) +
-			extents.y * abs(plane.normal.y) + extents.z * abs(plane.normal.z);
+		const float r = extents.x * std::abs(plane.normal.x) +
+			extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
 
 		return -r <= plane.getSignedDistanceToPlane(centre);
 	}

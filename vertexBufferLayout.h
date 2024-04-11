@@ -3,8 +3,6 @@
 #include <GL/glew.h>
 #include <vector>
 
-using namespace std;
-
 struct vertexBufferElement {
 	unsigned int type;
 	unsigned int count;
@@ -25,7 +23,7 @@ struct vertexBufferElement {
 
 class vertexBufferLayout {
 private:
-	vector<vertexBufferElement> m_elements;
+	std::vector<vertexBufferElement> m_elements;
 	unsigned int m_stride;
 public:
 	vertexBufferLayout() : m_stride(0) {}
@@ -35,7 +33,7 @@ public:
 		//static_assert(false);
 	}
 
-	inline const vector<vertexBufferElement> getElements() const { return m_elements; }
+	inline const std::vector<vertexBufferElement> getElements() const { return m_elements; }
 	inline unsigned int getStride() const { return m_stride; }
 };
 
