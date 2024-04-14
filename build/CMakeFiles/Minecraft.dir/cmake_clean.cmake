@@ -11,6 +11,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/Minecraft.dir/main.cpp.o.d"
   "CMakeFiles/Minecraft.dir/player.cpp.o"
   "CMakeFiles/Minecraft.dir/player.cpp.o.d"
+  "CMakeFiles/Minecraft.dir/random.cpp.o"
+  "CMakeFiles/Minecraft.dir/random.cpp.o.d"
   "CMakeFiles/Minecraft.dir/renderer.cpp.o"
   "CMakeFiles/Minecraft.dir/renderer.cpp.o.d"
   "CMakeFiles/Minecraft.dir/shader.cpp.o"

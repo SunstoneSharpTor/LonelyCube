@@ -139,10 +139,24 @@ CMakeFiles/Minecraft.dir/player.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/Minecraft.dir/player.cpp.s"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/player.cpp" -o CMakeFiles/Minecraft.dir/player.cpp.s
 
+CMakeFiles/Minecraft.dir/random.cpp.o: CMakeFiles/Minecraft.dir/flags.make
+CMakeFiles/Minecraft.dir/random.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/random.cpp
+CMakeFiles/Minecraft.dir/random.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/Minecraft.dir/random.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/random.cpp.o -MF CMakeFiles/Minecraft.dir/random.cpp.o.d -o CMakeFiles/Minecraft.dir/random.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/random.cpp"
+
+CMakeFiles/Minecraft.dir/random.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/Minecraft.dir/random.cpp.i"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/random.cpp" > CMakeFiles/Minecraft.dir/random.cpp.i
+
+CMakeFiles/Minecraft.dir/random.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/Minecraft.dir/random.cpp.s"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/random.cpp" -o CMakeFiles/Minecraft.dir/random.cpp.s
+
 CMakeFiles/Minecraft.dir/renderer.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/renderer.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/renderer.cpp
 CMakeFiles/Minecraft.dir/renderer.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/Minecraft.dir/renderer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/Minecraft.dir/renderer.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/renderer.cpp.o -MF CMakeFiles/Minecraft.dir/renderer.cpp.o.d -o CMakeFiles/Minecraft.dir/renderer.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/renderer.cpp"
 
 CMakeFiles/Minecraft.dir/renderer.cpp.i: cmake_force
@@ -156,7 +170,7 @@ CMakeFiles/Minecraft.dir/renderer.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/shader.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/shader.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/shader.cpp
 CMakeFiles/Minecraft.dir/shader.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/Minecraft.dir/shader.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/Minecraft.dir/shader.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/shader.cpp.o -MF CMakeFiles/Minecraft.dir/shader.cpp.o.d -o CMakeFiles/Minecraft.dir/shader.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/shader.cpp"
 
 CMakeFiles/Minecraft.dir/shader.cpp.i: cmake_force
@@ -170,7 +184,7 @@ CMakeFiles/Minecraft.dir/shader.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/stb_image.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/stb_image.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/stb_image.cpp
 CMakeFiles/Minecraft.dir/stb_image.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/Minecraft.dir/stb_image.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/Minecraft.dir/stb_image.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/stb_image.cpp.o -MF CMakeFiles/Minecraft.dir/stb_image.cpp.o.d -o CMakeFiles/Minecraft.dir/stb_image.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/stb_image.cpp"
 
 CMakeFiles/Minecraft.dir/stb_image.cpp.i: cmake_force
@@ -184,7 +198,7 @@ CMakeFiles/Minecraft.dir/stb_image.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/texture.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/texture.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/texture.cpp
 CMakeFiles/Minecraft.dir/texture.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/Minecraft.dir/texture.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/Minecraft.dir/texture.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/texture.cpp.o -MF CMakeFiles/Minecraft.dir/texture.cpp.o.d -o CMakeFiles/Minecraft.dir/texture.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/texture.cpp"
 
 CMakeFiles/Minecraft.dir/texture.cpp.i: cmake_force
@@ -198,7 +212,7 @@ CMakeFiles/Minecraft.dir/texture.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/vertexArray.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/vertexArray.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.cpp
 CMakeFiles/Minecraft.dir/vertexArray.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/Minecraft.dir/vertexArray.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/Minecraft.dir/vertexArray.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/vertexArray.cpp.o -MF CMakeFiles/Minecraft.dir/vertexArray.cpp.o.d -o CMakeFiles/Minecraft.dir/vertexArray.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/vertexArray.cpp"
 
 CMakeFiles/Minecraft.dir/vertexArray.cpp.i: cmake_force
@@ -212,7 +226,7 @@ CMakeFiles/Minecraft.dir/vertexArray.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.cpp
 CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o -MF CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o.d -o CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/vertexBuffer.cpp"
 
 CMakeFiles/Minecraft.dir/vertexBuffer.cpp.i: cmake_force
@@ -226,7 +240,7 @@ CMakeFiles/Minecraft.dir/vertexBuffer.cpp.s: cmake_force
 CMakeFiles/Minecraft.dir/world.cpp.o: CMakeFiles/Minecraft.dir/flags.make
 CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.cpp
 CMakeFiles/Minecraft.dir/world.cpp.o: CMakeFiles/Minecraft.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/Minecraft.dir/world.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/Minecraft.dir/world.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Minecraft.dir/world.cpp.o -MF CMakeFiles/Minecraft.dir/world.cpp.o.d -o CMakeFiles/Minecraft.dir/world.cpp.o -c "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/world.cpp"
 
 CMakeFiles/Minecraft.dir/world.cpp.i: cmake_force
@@ -244,6 +258,7 @@ Minecraft_OBJECTS = \
 "CMakeFiles/Minecraft.dir/indexBuffer.cpp.o" \
 "CMakeFiles/Minecraft.dir/main.cpp.o" \
 "CMakeFiles/Minecraft.dir/player.cpp.o" \
+"CMakeFiles/Minecraft.dir/random.cpp.o" \
 "CMakeFiles/Minecraft.dir/renderer.cpp.o" \
 "CMakeFiles/Minecraft.dir/shader.cpp.o" \
 "CMakeFiles/Minecraft.dir/stb_image.cpp.o" \
@@ -260,6 +275,7 @@ Minecraft_EXTERNAL_OBJECTS =
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/indexBuffer.cpp.o
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/main.cpp.o
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/player.cpp.o
+/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/random.cpp.o
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/renderer.cpp.o
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/shader.cpp.o
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/stb_image.cpp.o
@@ -274,7 +290,7 @@ Minecraft_EXTERNAL_OBJECTS =
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: /usr/lib/x86_64-linux-gnu/libGLX.so
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: /usr/lib/x86_64-linux-gnu/libGLU.so
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/bin/Linux/Release/Minecraft: CMakeFiles/Minecraft.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_13) "Linking CXX executable \"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/bin/Linux/Release/Minecraft\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_14) "Linking CXX executable \"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/bin/Linux/Release/Minecraft\""
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Minecraft.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

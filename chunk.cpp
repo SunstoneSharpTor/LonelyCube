@@ -215,7 +215,20 @@ void chunk::generateTerrain() {
 	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
 		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
 			//generate height map for terrain using simplex noise
-			float continentalness = glm::simplex(glm::vec2(m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE, m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) * (1.0f / 3000.0f));
+			float continentalness = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 3000.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 3000.0f);
+			float continentalnessHeight = getTerrainHeight(continentalness, m_continentalnessNoiseVals, m_continentalnessTerrainHeights);
+			float erosion = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1600.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1600.0f);
+			float erosionHeight = getTerrainHeight(erosion * (continentalnessHeight + 88.0f) / 112.0f, m_erosionNoiseVals, m_erosionTerrainHeights);
+			float smallErosion = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 800.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 800.0f);
+			float smallErosionHeight = getTerrainHeight(smallErosion, m_smallErosionNoiseVals, m_smallErosionTerrainHeights);
+			float totalErosionHeight = erosionHeight + smallErosionHeight;
+			float peaksAndValleys = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1200.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1200.0f);
+			float peaksAndValleysHeight = getTerrainHeight(peaksAndValleys * ((totalErosionHeight + 120.0f) / 165.0f), m_peaksAndValleysNoiseVals, m_peaksAndValleysTerrainHeights) * (continentalnessHeight + 88.0f) / 112.0f;
+			peaksAndValleysHeight *= peaksAndValleysHeight * peaksAndValleysHeight * -(smallErosion - 1.0f) / 2.0f;
+			
+			float bumps = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 80.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 80.0f);
+
+			/*float continentalness = glm::simplex(glm::vec2(m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE, m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) * (1.0f / 3000.0f));
 			float continentalnessHeight = getTerrainHeight(continentalness, m_continentalnessNoiseVals, m_continentalnessTerrainHeights);
 			float erosion = glm::simplex(glm::vec2(m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE, m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) * (1.0f / 1600.0f));
 			float erosionHeight = getTerrainHeight(erosion * (continentalnessHeight + 88.0f) / 112.0f, m_erosionNoiseVals, m_erosionTerrainHeights);
@@ -227,7 +240,7 @@ void chunk::generateTerrain() {
 			peaksAndValleysHeight *= peaksAndValleysHeight * peaksAndValleysHeight * -(smallErosion - 1.0f) / 2.0f;
 			
 			float bumps = glm::simplex(glm::vec2(m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE, m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) * (1.0f / 80.0f));
-
+*/
 			float workingHeight = continentalnessHeight + totalErosionHeight + peaksAndValleysHeight;
 
 			float bumpsHeight = getTerrainHeight(bumps * ((erosion + 0.65f) * (getTerrainHeight(workingHeight, m_beachTerrainHeights, m_beachNoiseVals) * 5.0f) + (peaksAndValleysHeight / 15.0f)) / 40.0f, m_bumpsNoiseVals, m_bumpsTerrainHeights);
@@ -235,6 +248,7 @@ void chunk::generateTerrain() {
 			workingHeight += bumpsHeight;
 
 			int height = workingHeight;
+			//int height = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 3000.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 3000.0f) * 10;
 			heightMap[(z + 2) * (constants::CHUNK_SIZE + 4) + (x + 2)] = height;
 
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {

@@ -269,6 +269,30 @@ player.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/player.cpp.s
 .PHONY : player.cpp.s
 
+random.o: random.cpp.o
+.PHONY : random.o
+
+# target to build an object file
+random.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.o
+.PHONY : random.cpp.o
+
+random.i: random.cpp.i
+.PHONY : random.i
+
+# target to preprocess a source file
+random.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.i
+.PHONY : random.cpp.i
+
+random.s: random.cpp.s
+.PHONY : random.s
+
+# target to generate assembly for a file
+random.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.s
+.PHONY : random.cpp.s
+
 renderer.o: renderer.cpp.o
 .PHONY : renderer.o
 
@@ -463,6 +487,9 @@ help:
 	@echo "... player.o"
 	@echo "... player.i"
 	@echo "... player.s"
+	@echo "... random.o"
+	@echo "... random.i"
+	@echo "... random.s"
 	@echo "... renderer.o"
 	@echo "... renderer.i"
 	@echo "... renderer.s"

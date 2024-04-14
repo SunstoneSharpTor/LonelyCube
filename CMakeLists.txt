@@ -21,6 +21,7 @@ set(SOURCE_FILES
     indexBuffer.cpp
     main.cpp
     player.cpp
+    random.cpp
     renderer.cpp
     shader.cpp
     stb_image.cpp
