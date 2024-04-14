@@ -2383,6 +2383,7 @@ CMakeFiles/Minecraft.dir/random.cpp.o
  /usr/include/c++/13/bits/stl_pair.h
  /usr/include/c++/13/bits/utility.h
  /usr/include/c++/13/cmath
+ /usr/include/c++/13/cstdint
  /usr/include/c++/13/debug/assertions.h
  /usr/include/c++/13/debug/debug.h
  /usr/include/c++/13/ext/numeric_traits.h
@@ -2407,6 +2408,7 @@ CMakeFiles/Minecraft.dir/random.cpp.o
  /usr/include/features.h
  /usr/include/math.h
  /usr/include/stdc-predef.h
+ /usr/include/stdint.h
  /usr/include/stdlib.h
  /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h
  /usr/include/x86_64-linux-gnu/bits/byteswap.h
@@ -2431,6 +2433,7 @@ CMakeFiles/Minecraft.dir/random.cpp.o
  /usr/include/x86_64-linux-gnu/bits/select.h
  /usr/include/x86_64-linux-gnu/bits/select2.h
  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h
+ /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h
  /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h
  /usr/include/x86_64-linux-gnu/bits/stdlib.h
@@ -2454,6 +2457,7 @@ CMakeFiles/Minecraft.dir/random.cpp.o
  /usr/include/x86_64-linux-gnu/bits/uintn-identity.h
  /usr/include/x86_64-linux-gnu/bits/waitflags.h
  /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+ /usr/include/x86_64-linux-gnu/bits/wchar.h
  /usr/include/x86_64-linux-gnu/bits/wordsize.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/cpu_defines.h
@@ -2464,6 +2468,7 @@ CMakeFiles/Minecraft.dir/random.cpp.o
  /usr/include/x86_64-linux-gnu/sys/select.h
  /usr/include/x86_64-linux-gnu/sys/types.h
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
 
 CMakeFiles/Minecraft.dir/renderer.cpp.o
  /media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/renderer.cpp

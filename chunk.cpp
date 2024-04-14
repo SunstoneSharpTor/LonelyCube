@@ -215,18 +215,18 @@ void chunk::generateTerrain() {
 	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
 		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
 			//generate height map for terrain using simplex noise
-			float continentalness = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 3000.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 3000.0f);
+			float continentalness = simplexNoise2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 3000.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 3000.0f);
 			float continentalnessHeight = getTerrainHeight(continentalness, m_continentalnessNoiseVals, m_continentalnessTerrainHeights);
-			float erosion = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1600.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1600.0f);
+			float erosion = simplexNoise2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1600.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1600.0f);
 			float erosionHeight = getTerrainHeight(erosion * (continentalnessHeight + 88.0f) / 112.0f, m_erosionNoiseVals, m_erosionTerrainHeights);
-			float smallErosion = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 800.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 800.0f);
+			float smallErosion = simplexNoise2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 800.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 800.0f);
 			float smallErosionHeight = getTerrainHeight(smallErosion, m_smallErosionNoiseVals, m_smallErosionTerrainHeights);
 			float totalErosionHeight = erosionHeight + smallErosionHeight;
-			float peaksAndValleys = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1200.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1200.0f);
+			float peaksAndValleys = simplexNoise2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1200.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1200.0f);
 			float peaksAndValleysHeight = getTerrainHeight(peaksAndValleys * ((totalErosionHeight + 120.0f) / 165.0f), m_peaksAndValleysNoiseVals, m_peaksAndValleysTerrainHeights) * (continentalnessHeight + 88.0f) / 112.0f;
 			peaksAndValleysHeight *= peaksAndValleysHeight * peaksAndValleysHeight * -(smallErosion - 1.0f) / 2.0f;
 			
-			float bumps = simplex2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 80.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 80.0f);
+			float bumps = simplexNoise2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 80.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 80.0f);
 
 			/*float continentalness = glm::simplex(glm::vec2(m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE, m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) * (1.0f / 3000.0f));
 			float continentalnessHeight = getTerrainHeight(continentalness, m_continentalnessNoiseVals, m_continentalnessTerrainHeights);

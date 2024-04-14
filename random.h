@@ -2,4 +2,8 @@
 
 unsigned int PCG_Hash(unsigned int input);
 
-float simplex2d(const float x, const float y);
+//float simplexNoise1d(float x, float y);
+
+float simplexNoise2d(float x, float y);
+
+//float simplexNoise3d(float x, float y);

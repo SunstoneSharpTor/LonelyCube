@@ -312,13 +312,13 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
 
 int main(int argc, char* argv[]) {
     #include "random.h"
-    std::cout << "simplex: " << simplex2d(1.0f, 2.0f) << std::endl;
-    std::cout << "simplex: " << simplex2d(4.0f, 22.0f) << std::endl;
-    std::cout << "simplex: " << simplex2d(2.91f, 8.2f) << std::endl;
-    std::cout << "simplex: " << simplex2d(0.51f, 0.1f) << std::endl;
+    std::cout << "simplex: " << simplexNoise2d(1.0f, 2.0f) << std::endl;
+    std::cout << "simplex: " << simplexNoise2d(4.0f, 22.0f) << std::endl;
+    std::cout << "simplex: " << simplexNoise2d(2.91f, 8.2f) << std::endl;
+    std::cout << "simplex: " << simplexNoise2d(0.51f, 0.1f) << std::endl;
 
     world mainWorld(28);
-    int playerSpawnPoint[3] = { -2298, 7, 4168 };
+    int playerSpawnPoint[3] = { -2298, 20, 4168 };
     player mainPlayer(playerSpawnPoint, &mainWorld);
 
     bool running = true;
