@@ -72,7 +72,7 @@ private:
 
 	unsigned char getWorldSkyLight(int* blockCoords);
 
-	float getTerrainHeight(float noiseValue, const float* noisePoints, const float* terrainPoints);
+	void generateHeightMap(int* heightMap, int minX, int minZ, int size);
 
 	inline void setSkyLight(unsigned int block, unsigned char value) {
 		bool oddBlockNum = block % 2;

@@ -110,21 +110,6 @@ const short chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  1, 1, 1, 0, -1, -1, -1, 0 };
 
-//define the terrain heights constants
-const float chunk::m_continentalnessNoiseVals[10] = { -1.0f, -0.2f, 1.0f }; //{ -1.0f, -0.4f, -0.35f, -0.2f, -0.18f, -0.17f, -0.14f, 0.2f, 1.0f };
-const float chunk::m_continentalnessTerrainHeights[10] = { -200.0f, -10.0f, 24.0f }; //{ 0.0f, 0.0f, 40.0f, 40.0f, 90.0f, 90.0f, 92.0f, 96.0f, 100.0f };
-const float chunk::m_erosionNoiseVals[10] = { -1.0f, 0.0f, 1.0f };
-const float chunk::m_erosionTerrainHeights[10] = { 5.0f, -5.0f, -20.0f };
-const float chunk::m_smallErosionNoiseVals[10] = { -1.0f, 1.0f };
-const float chunk::m_smallErosionTerrainHeights[10] = { 10.0f, -50.0f };
-const float chunk::m_peaksAndValleysNoiseVals[10] = { -1.0f, 1.0f };
-const float chunk::m_peaksAndValleysTerrainHeights[10] = { -9.0f, 12.6f };
-const float chunk::m_bumpsNoiseVals[10] = { -1.0f, 1.0f };
-const float chunk::m_bumpsTerrainHeights[10] = { -30.0f, 100.0f };
-
-const float chunk::m_beachTerrainHeights[10] = { -1000, -75.0f, -40.0f, -10.0f , 1000.0f };
-const float chunk::m_beachNoiseVals[10] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f };
-
 chunk::chunk(int x, int y, int z, worldInfo wio) {
 	inUse = true;
 	m_singleBlockType = false;
@@ -208,108 +193,21 @@ void chunk::generateTerrain() {
 		chunkMaxCoords[i] = chunkMinCoords[i] + constants::CHUNK_SIZE;
 	}
 
-	//calculate the noise values for each position in the grid and for each octave
-	const int NUM_OCTAVES = 5;
-	const float SCALE = 768.0f;
-	const float HEIGHT = 192.0f;
-	const int MAX_STRUCTURE_RADIUS = 2;
-	const int noiseGridSize = constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS * 2 + 1;
-	float n[noiseGridSize * noiseGridSize * NUM_OCTAVES]; //noise value for the octaves
-	float d[noiseGridSize * noiseGridSize * NUM_OCTAVES]; //distance from simplex borders for the octaves
-	for (int z = -MAX_STRUCTURE_RADIUS; z < noiseGridSize - MAX_STRUCTURE_RADIUS; z++) {
-		for (int x = -MAX_STRUCTURE_RADIUS; x < noiseGridSize - MAX_STRUCTURE_RADIUS; x++) {
-			int noiseGridIndex = (z + MAX_STRUCTURE_RADIUS) * noiseGridSize + (x + MAX_STRUCTURE_RADIUS);
-			for (int octaveNum = 0; octaveNum < NUM_OCTAVES; octaveNum++) {
-				n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum] = 
-					simplexNoise2d((chunkMinCoords[0] + x + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)),
-								   (chunkMinCoords[2] + z + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)),
-								   d + (noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum));
-			}
-		}
-	}
-
-	//calculate the height map for the chunk
 	m_singleBlockType = true;
-	int heightMap[(constants::CHUNK_SIZE + 4) * (constants::CHUNK_SIZE + 4)];
+
+	const int MAX_STRUCTURE_RADIUS = 2;
+	const int HEIGHT_MAP_SIZE = constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS * 2;
+	int heightMap[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE];
+	generateHeightMap(heightMap,
+					  chunkMinCoords[0] - MAX_STRUCTURE_RADIUS,
+					  chunkMinCoords[2] - MAX_STRUCTURE_RADIUS,
+					  HEIGHT_MAP_SIZE);
+
 	int blockPos[3];
 	unsigned int lastBlockTypeInChunk = 0;
 	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
 		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
-			int peaksAndValleysHeight = 0.0f;
-			int noiseGridIndex = (z + MAX_STRUCTURE_RADIUS) * noiseGridSize + (x + MAX_STRUCTURE_RADIUS);
-			for (int octaveNum = 0; octaveNum < NUM_OCTAVES; octaveNum++) {
-				float gradx = 0.0f;
-				float gradz = 0.0f;
-				float tempGradx, tempGradz;
-				//if the coordinates of the point are close to the edge of a simplex, calculate the gradient
-				//at a point that is slightly offset, to avoid problems with the gradient near simplex edges
-				const float BORDER_ERROR = 2.0f; //controls how close blocks have to be to the border to be recalculated
-				if (d[noiseGridIndex] < BORDER_ERROR / (SCALE / std::pow(2, octaveNum))) {
-					float distanceFromError;
-					float d1, d2;
-					float offset;
-					int xDirections[4] = { 1, -1, 0, 0 };
-					int zDirections[4] = { 0, 0, 1, -1 };
-					float* gradDir = &tempGradx;
-					for (int i = 0; i < 2; i++) {
-						distanceFromError = 0.0f;
-						offset = 0.0f;
-						while (distanceFromError < BORDER_ERROR / (SCALE / std::pow(2, octaveNum))) {
-							offset += 0.25f;
-							int direction = 0;
-							while ((direction < 4) && (distanceFromError < BORDER_ERROR / (SCALE / std::pow(2, octaveNum)))) {
-								*gradDir = simplexNoise2d((chunkMinCoords[0] + x + offset * xDirections[direction] + !i + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)), (chunkMinCoords[2] + z + offset * zDirections[direction] + i + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)), &d1)
-								- simplexNoise2d((chunkMinCoords[0] + x + offset * xDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)), (chunkMinCoords[2] + z + offset * zDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (SCALE / std::pow(2, octaveNum)), &d2);
-								distanceFromError = std::min(d1, d2);
-								direction++;
-							}
-						}
-						gradDir = &tempGradz;
-					}
-					gradx += tempGradx;
-					gradz += tempGradz;
-				}
-				else {
-					gradx += n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum + 1] - n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum];
-					gradz += n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum + noiseGridSize] - n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum];
-				}
-				peaksAndValleysHeight += n[noiseGridIndex + noiseGridSize * noiseGridSize * octaveNum] * (1.0f / (64.0f / std::pow(2.0f, (float)octaveNum / 1.5f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f)) * HEIGHT / std::pow(2, octaveNum);
-			}
-			
-			peaksAndValleysHeight += 64;
-			
-			float peaksAndValleys = simplexNoise2d((chunkMinCoords[0] + x + constants::WORLD_BORDER_DISTANCE) / 512.0f,
-								   				   (chunkMinCoords[2] + z + constants::WORLD_BORDER_DISTANCE) / 512.0f);
-			peaksAndValleys = (peaksAndValleys + 1.0f) / 2.0f;
-			float continentalness = simplexNoise2d((chunkMinCoords[0] + x + constants::WORLD_BORDER_DISTANCE) / 512.0f,
-								   				   (chunkMinCoords[2] + z + constants::WORLD_BORDER_DISTANCE) / 512.0f);
-
-			int height = peaksAndValleysHeight *  peaksAndValleys;
-
-			heightMap[(z + 2) * (constants::CHUNK_SIZE + 4) + (x + 2)] = height;
-
-			/*//generate height map for terrain using simplex noise
-			float continentalness, erosion, smallErosion, peaksAndValleys, bumps;
-			float grad;
-			simplexNoiseGrad2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 3000.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 3000.0f, &continentalness, &grad);
-			float continentalnessHeight = getTerrainHeight(continentalness, m_continentalnessNoiseVals, m_continentalnessTerrainHeights);
-			simplexNoiseGrad2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1600.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1600.0f, &erosion, &grad);
-			float erosionHeight = getTerrainHeight(erosion * (continentalnessHeight + 88.0f) / 112.0f, m_erosionNoiseVals, m_erosionTerrainHeights);
-			simplexNoiseGrad2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 800.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 800.0f, &smallErosion, &grad);
-			float smallErosionHeight = getTerrainHeight(smallErosion, m_smallErosionNoiseVals, m_smallErosionTerrainHeights);
-			float totalErosionHeight = erosionHeight + smallErosionHeight;
-			simplexNoiseGrad2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 1200.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 1200.0f, &peaksAndValleys, &grad);
-			float peaksAndValleysHeight = getTerrainHeight(peaksAndValleys * ((totalErosionHeight + 120.0f) / 165.0f), m_peaksAndValleysNoiseVals, m_peaksAndValleysTerrainHeights) * (continentalnessHeight + 88.0f) / 112.0f;
-			peaksAndValleysHeight *= peaksAndValleysHeight * peaksAndValleysHeight * -(smallErosion - 1.0f) / 2.0f;
-			
-			simplexNoiseGrad2d((m_position[0] * constants::CHUNK_SIZE + x + constants::WORLD_BORDER_DISTANCE) / 80.0f, (m_position[2] * constants::CHUNK_SIZE + z + constants::WORLD_BORDER_DISTANCE) / 80.0f, &bumps, &grad);
-
-			float workingHeight = continentalnessHeight + totalErosionHeight + peaksAndValleysHeight;
-
-			float bumpsHeight = getTerrainHeight(bumps * ((erosion + 0.65f) * (getTerrainHeight(workingHeight, m_beachTerrainHeights, m_beachNoiseVals) * 5.0f) + (peaksAndValleysHeight / 15.0f)) / 40.0f, m_bumpsNoiseVals, m_bumpsTerrainHeights);
-
-			workingHeight += bumpsHeight;*/
-
+			int height = heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)];
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
 				unsigned int blockNum = z * constants::CHUNK_SIZE + x;
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
@@ -329,9 +227,9 @@ void chunk::generateTerrain() {
 						}
 						else {
 							m_blocks[blockNum] = 2;
-							if (d[noiseGridIndex] < 2.0f/512.0f) {
-								m_blocks[blockNum] = 3;
-							}
+							//if (d[noiseGridIndex] < 2.0f/512.0f) {
+							//	m_blocks[blockNum] = 3;
+							//}
 						}
 					}
 					else if (y > (height - 3)) {
@@ -486,6 +384,88 @@ void chunk::generateTerrain() {
 		delete[] m_blocks;
 		m_blocks = new unsigned char[1];
 		m_blocks[0] = blockType;
+	}
+}
+
+void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
+	//calculate the noise values for each position in the grid and for each octave
+	const int PV_NUM_OCTAVES = 5;
+	const float PV_SCALE = 768.0f;
+	const float PV_HEIGHT = 192.0f;
+	const int PV_noiseGridSize = size + 1;
+	float n[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //noise value for the octaves
+	float d[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //distance from simplex borders for the octaves
+	for (int z = 0; z < PV_noiseGridSize; z++) {
+		for (int x = 0; x < PV_noiseGridSize; x++) {
+			int noiseGridIndex = z * PV_noiseGridSize + x;
+			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
+				n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum] = 
+					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)),
+								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)),
+								   d + (noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum));
+			}
+		}
+	}
+
+	//calculate the mountain height
+	for (int z = 0; z < size; z++) {
+		for (int x = 0; x < size; x++) {
+			float peaksAndValleysHeight = 0.0f;
+			int noiseGridIndex = z * PV_noiseGridSize + x;
+			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
+				float gradx = 0.0f;
+				float gradz = 0.0f;
+				float tempGradx, tempGradz;
+				//if the coordinates of the point are close to the edge of a simplex, calculate the gradient
+				//at a point that is slightly offset, to avoid problems with the gradient near simplex edges
+				const float BORDER_ERROR = 2.0f; //controls how close blocks have to be to the border to be recalculated
+				if (d[noiseGridIndex] < BORDER_ERROR / (PV_SCALE / std::pow(2, octaveNum))) {
+					float distanceFromError;
+					float d1, d2;
+					float offset;
+					int xDirections[4] = { 1, -1, 0, 0 };
+					int zDirections[4] = { 0, 0, 1, -1 };
+					float* gradDir = &tempGradx;
+					for (int i = 0; i < 2; i++) {
+						distanceFromError = 0.0f;
+						offset = 0.0f;
+						while (distanceFromError < BORDER_ERROR / (PV_SCALE / std::pow(2, octaveNum))) {
+							offset += 0.25f;
+							int direction = 0;
+							while ((direction < 4) && (distanceFromError < BORDER_ERROR / (PV_SCALE / std::pow(2, octaveNum)))) {
+								*gradDir = simplexNoise2d((minX + x + offset * xDirections[direction] + !i + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)), (minZ + z + offset * zDirections[direction] + i + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)), &d1)
+								- simplexNoise2d((minX + x + offset * xDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)), (minZ + z + offset * zDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)), &d2);
+								distanceFromError = std::min(d1, d2);
+								direction++;
+							}
+						}
+						gradDir = &tempGradz;
+					}
+					gradx += tempGradx;
+					gradz += tempGradz;
+				}
+				else {
+					gradx += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + 1] - n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+					gradz += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+				}
+				peaksAndValleysHeight += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
+					* (1.0f / (80.0f / std::pow(2.0f, (float)octaveNum / 1.3f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
+					* PV_HEIGHT / std::pow(2, octaveNum);
+			}
+			
+			peaksAndValleysHeight += 64;
+			
+			float peaksAndValleys = simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / 1024.0f,
+								   				   (minZ + z + constants::WORLD_BORDER_DISTANCE) / 1024.0f);
+			peaksAndValleys = (peaksAndValleys + 1.0f) / 2.0f;
+			peaksAndValleys = std::pow(peaksAndValleys, 1.4f);
+			float continentalness = simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / 512.0f,
+								   				   (minZ + z + constants::WORLD_BORDER_DISTANCE) / 512.0f);
+
+			int PV_HEIGHT = peaksAndValleysHeight *  peaksAndValleys;
+
+			heightMap[z * size + x] = PV_HEIGHT;
+		}
 	}
 }
 
@@ -899,22 +879,6 @@ unsigned char chunk::getWorldSkyLight(int* blockCoords) {
 	unsigned int blockNumber = m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getBlockNumber(blockPosInChunk);
 
 	return m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getSkyLight(blockNumber);
-}
-
-float chunk::getTerrainHeight(float noiseValue, const float* noisePoints, const float* terrainPoints) {
-	int i = 0;
-	while (noisePoints[i + 1] < noiseValue) {
-		i++;
-	}
-	float frac;
-	float denominator = noisePoints[i + 1] - noisePoints[i];
-	if (denominator != 0.0) {
-		frac = (noiseValue - noisePoints[i]) / denominator;
-	}
-	else {
-		frac = 0;
-	}
-	return terrainPoints[i] + frac * (terrainPoints[i + 1] - terrainPoints[i]);
 }
 
 void chunk::clearSkyLight() {
