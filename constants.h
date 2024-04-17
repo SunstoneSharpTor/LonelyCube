@@ -7,7 +7,7 @@ namespace constants
 {
     constexpr unsigned short CHUNK_SIZE{ 32 };
 
-	constexpr unsigned int WORLD_BORDER_DISTANCE{ 2097152 };
+	constexpr unsigned int WORLD_BORDER_DISTANCE{ 0 };
 
 	constexpr unsigned int BORDER_DISTANCE_U_B{ (WORLD_BORDER_DISTANCE / CHUNK_SIZE + 1) * CHUNK_SIZE }; //upper bound for world border distance
 

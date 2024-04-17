@@ -299,6 +299,164 @@ float simplexNoise2d(float x, float y) {
     return 45.23065f * (n0 + n1 + n2);
 }
 
+float simplexNoise2d(float x, float y, float* borderDistance) {
+    float n0, n1, n2;   // Noise contributions from the three corners
+
+    // Skewing/Unskewing factors for 2D
+    static const float F2 = 0.366025403f;  // F2 = (sqrt(3) - 1) / 2
+    static const float G2 = 0.211324865f;  // G2 = (3 - sqrt(3)) / 6   = F2 / (1 + 2 * K)
+
+    // Skew the input space to determine which simplex cell we're in
+    const float s = (x + y) * F2;  // Hairy factor for 2D
+    const float xs = x + s;
+    const float ys = y + s;
+    const int32_t i = fastfloor(xs);
+    const int32_t j = fastfloor(ys);
+
+    *borderDistance = 1.0f - std::max(xs - i, ys - j);
+
+    // Unskew the cell origin back to (x,y) space
+    const float t = static_cast<float>(i + j) * G2;
+    const float X0 = i - t;
+    const float Y0 = j - t;
+    const float x0 = x - X0;  // The x,y distances from the cell origin
+    const float y0 = y - Y0;
+
+    // For the 2D case, the simplex shape is an equilateral triangle.
+    // Determine which simplex we are in.
+    int32_t i1, j1;  // Offsets for second (middle) corner of simplex in (i,j) coords
+    if (x0 > y0) {   // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        i1 = 1;
+        j1 = 0;
+    } else {   // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+        i1 = 0;
+        j1 = 1;
+    }
+
+    // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+    // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+    // c = (3-sqrt(3))/6
+
+    const float x1 = x0 - i1 + G2;            // Offsets for middle corner in (x,y) unskewed coords
+    const float y1 = y0 - j1 + G2;
+    const float x2 = x0 - 1.0f + 2.0f * G2;   // Offsets for last corner in (x,y) unskewed coords
+    const float y2 = y0 - 1.0f + 2.0f * G2;
+
+    // Work out the hashed gradient indices of the three simplex corners
+    const int gi0 = hash(i + hash(j));
+    const int gi1 = hash(i + i1 + hash(j + j1));
+    const int gi2 = hash(i + 1 + hash(j + 1));
+
+    // Calculate the contribution from the first corner
+    float t0 = 0.5f - x0*x0 - y0*y0;
+    if (t0 < 0.0f) {
+        n0 = 0.0f;
+    } else {
+        t0 *= t0;
+        n0 = t0 * t0 * grad(gi0, x0, y0);
+    }
+
+    // Calculate the contribution from the second corner
+    float t1 = 0.5f - x1*x1 - y1*y1;
+    if (t1 < 0.0f) {
+        n1 = 0.0f;
+    } else {
+        t1 *= t1;
+        n1 = t1 * t1 * grad(gi1, x1, y1);
+    }
+
+    // Calculate the contribution from the third corner
+    float t2 = 0.5f - x2*x2 - y2*y2;
+    if (t2 < 0.0f) {
+        n2 = 0.0f;
+    } else {
+        t2 *= t2;
+        n2 = t2 * t2 * grad(gi2, x2, y2);
+    }
+
+    // Add contributions from each corner to get the final noise value.
+    // The result is scaled to return values in the interval [-1,1].
+    return 45.23065f * (n0 + n1 + n2);
+}
+
+void  simplexNoiseGrad2d(float x, float y, float* value, float* gradient) {
+    // Skewing/Unskewing factors for 2D
+    static const float F2 = 0.366025403f;  // F2 = (sqrt(3) - 1) / 2
+    static const float G2 = 0.211324865f;  // G2 = (3 - sqrt(3)) / 6   = F2 / (1 + 2 * K)
+
+    // Skew the input space to determine which simplex cell we're in
+    const float s = (x + y) * F2;  // Hairy factor for 2D
+    const float xs = x + s;
+    const float ys = y + s;
+    const int32_t i = fastfloor(xs);
+    const int32_t j = fastfloor(ys);
+
+    // Unskew the cell origin back to (x,y) space
+    const float t = static_cast<float>(i + j) * G2;
+    const float Px0 = i - t;
+    const float Py0 = j - t;
+    const float vx0 = x - Px0;  // The x,y distances from the cell origin
+    const float vy0 = y - Py0;
+
+  // Pick (+x, +y) or (+y, +x) increment sequence
+  float ix1 = (vx0 > vy0) ? 1.0f : 0.0f;
+  float iy1 = (vx0 > vy0) ? 0.0f : 1.0f;
+
+  // Determine the offsets for the other two corners
+  float vx1 = vx0 - ix1 + G2;
+  float vy1 = vy0 - iy1 + G2;
+  float vx2 = vx0 - 1.0f + 2.0f * G2;
+  float vy2 = vy0 - 1.0f + 2.0f * G2;
+
+  // Wrap coordinates at 289 to avoid float precision problems
+  //Pi = mod(Pi, 289.0);
+
+  // Calculate the circularly symmetric part of each noise wiggle
+  float tx = std::max(0.5f - vx0 * vx0 - vy0 * vy0, 0.0f);
+  float ty = std::max(0.5f - vx1 * vx1 - vy1 * vy1, 0.0f);
+  float tz = std::max(0.5f - vx2 * vx2 - vy2 * vy2, 0.0f);
+  float tx2 = tx * tx;
+  float ty2 = ty * ty;
+  float tz2 = tz * tz;
+  float tx4 = tx2 * tx2;
+  float ty4 = ty2 * ty2;
+  float tz4 = tz2 * tz2;
+  
+  // Calculate the gradients for the three corners
+  float g0 = grad(hash(i + hash(j)), vx0, vy0);
+  float g1 = grad(hash(i + ix1 + hash(j + iy1)), vx1, vy1);
+  float g2 = grad(hash(i + 1 + hash(j + 1)), vx2, vy2);
+
+  // Compute noise contributions from each corner
+  float gvx = g0 * (vx0 + vy0);
+  float gvy = g1 * (vx1 + vy1);
+  float gvz = g2 * (vx2 + vy2);
+  float nx = tx4 * gvx;  // Circular kernel times linear ramp
+  float ny = ty4 * gvy;
+  float nz = tz4 * gvz;
+
+  // Compute partial derivatives in x and y
+  float tempx = tx2 * tx * gvx;
+  float tempy = ty2 * ty * gvy;
+  float tempz = tz2 * tz * gvz;
+  float gradxx = tempx * vx0;
+  float gradxy = tempy * vx1;
+  float gradxz = tempz * vx2;
+  float gradyx = tempx * vy0;
+  float gradyy = tempy * vy1;
+  float gradyz = tempz * vy2;
+  float gradx = -8.0f * (gradxx + gradxy + gradxz);
+  float grady = -8.0f * (gradyx + gradyy + gradyz);
+  gradx += tx4 * g0 + ty4 * g1 + tz4 * g2;
+  grady += tx4 * g0 + ty4 * g1 + tz4 * g2;
+  gradx *= 100.0f;
+  grady *= 100.0f;
+
+  // Add contributions from the three corners and return
+  *value = 200.0f * (nx + ny + nz);
+  *gradient = gradx + grady;
+}
+
 
 /**
  * 3D Perlin simplex noise
