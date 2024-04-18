@@ -388,30 +388,70 @@ void chunk::generateTerrain() {
 }
 
 void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
-	//calculate the noise values for each position in the grid and for each octave
+	//calculate the noise values for each position in the grid and for each octave for peaks and valleys
 	const int PV_NUM_OCTAVES = 5;
-	const float PV_SCALE = 768.0f;
-	const float PV_HEIGHT = 192.0f;
+	const float PV_SCALE = 576.0f;
+	const float PV_HEIGHT = 96.0f;
 	const int PV_noiseGridSize = size + 1;
-	float n[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //noise value for the octaves
-	float d[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //distance from simplex borders for the octaves
+	float PV_n[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //noise value for the octaves
+	float PV_d[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //distance from simplex borders for the octaves
 	for (int z = 0; z < PV_noiseGridSize; z++) {
 		for (int x = 0; x < PV_noiseGridSize; x++) {
 			int noiseGridIndex = z * PV_noiseGridSize + x;
 			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
-				n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum] = 
+				PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum] = 
 					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)),
 								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / std::pow(2, octaveNum)),
-								   d + (noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum));
+								   PV_d + (noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum));
+			}
+		}
+	}
+	
+	//calculate the noise values for each position in the grid and for each octave for smooth terrain
+	const int SMOOTH_NUM_OCTAVES = 4;
+	const float SMOOTH_SCALE = 512.0f;
+	const float SMOOTH_HEIGHT = 8.0f;
+	float SMOOTH_n[size * size * SMOOTH_NUM_OCTAVES]; //noise value for the octaves
+	calculateFractalNoiseOctaves(SMOOTH_n, minX, minZ, size, 4, 512.0f);
+
+	//calculate the noise values for each position in the grid and for each octave for continentalness
+	const int CONTINENTALNESS_NUM_OCTAVES = 3;
+	const float CONTINENTALNESS_SCALE = 1152.0f;
+	const float CONTINENTALNESS_HEIGHT = 1.0f;
+	float CONTINENTALNESS_n[size * size * CONTINENTALNESS_NUM_OCTAVES]; //noise value for the octaves
+	for (int z = 0; z < size; z++) {
+		for (int x = 0; x < size; x++) {
+			int noiseGridIndex = z * size + x;
+			for (int octaveNum = 0; octaveNum < CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
+				CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum] = 
+					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (CONTINENTALNESS_SCALE / std::pow(2, octaveNum)),
+								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (CONTINENTALNESS_SCALE / std::pow(2, octaveNum)));
 			}
 		}
 	}
 
-	//calculate the mountain height
+	//calculate the noise values for each position in the grid and for each octave for peaks and valleys locations
+	const int PVLOC_NUM_OCTAVES = 2;
+	const float PVLOC_SCALE = 768.0f;
+	const float PVLOC_HEIGHT = 1.0f;
+	float PVLOC_n[size * size * PVLOC_NUM_OCTAVES]; //noise value for the octaves
 	for (int z = 0; z < size; z++) {
 		for (int x = 0; x < size; x++) {
-			float peaksAndValleysHeight = 0.0f;
+			int noiseGridIndex = z * size + x;
+			for (int octaveNum = 0; octaveNum < PVLOC_NUM_OCTAVES; octaveNum++) {
+				PVLOC_n[noiseGridIndex + size * size * octaveNum] = 
+					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (PVLOC_SCALE / std::pow(2, octaveNum)),
+								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (PVLOC_SCALE / std::pow(2, octaveNum)));
+			}
+		}
+	}
+
+	//calculate the height map
+	for (int z = 0; z < size; z++) {
+		for (int x = 0; x < size; x++) {
+			//sum the peaks and valleys noises (including gradient trick)
 			int noiseGridIndex = z * PV_noiseGridSize + x;
+			float peaksAndValleysHeight = 0.0f;
 			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
 				float gradx = 0.0f;
 				float gradz = 0.0f;
@@ -419,7 +459,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 				//if the coordinates of the point are close to the edge of a simplex, calculate the gradient
 				//at a point that is slightly offset, to avoid problems with the gradient near simplex edges
 				const float BORDER_ERROR = 2.0f; //controls how close blocks have to be to the border to be recalculated
-				if (d[noiseGridIndex] < BORDER_ERROR / (PV_SCALE / std::pow(2, octaveNum))) {
+				if (PV_d[noiseGridIndex] < BORDER_ERROR / (PV_SCALE / std::pow(2, octaveNum))) {
 					float distanceFromError;
 					float d1, d2;
 					float offset;
@@ -445,26 +485,59 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 					gradz += tempGradz;
 				}
 				else {
-					gradx += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + 1] - n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
-					gradz += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+					gradx += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + 1] - PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+					gradz += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
 				}
-				peaksAndValleysHeight += n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
+				peaksAndValleysHeight += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
 					* (1.0f / (80.0f / std::pow(2.0f, (float)octaveNum / 1.3f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
 					* PV_HEIGHT / std::pow(2, octaveNum);
 			}
-			
-			peaksAndValleysHeight += 64;
-			
-			float peaksAndValleys = simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / 1024.0f,
-								   				   (minZ + z + constants::WORLD_BORDER_DISTANCE) / 1024.0f);
-			peaksAndValleys = (peaksAndValleys + 1.0f) / 2.0f;
-			peaksAndValleys = std::pow(peaksAndValleys, 1.4f);
-			float continentalness = simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / 512.0f,
-								   				   (minZ + z + constants::WORLD_BORDER_DISTANCE) / 512.0f);
 
-			int PV_HEIGHT = peaksAndValleysHeight *  peaksAndValleys;
+			noiseGridIndex = z * size + x;
 
-			heightMap[z * size + x] = PV_HEIGHT;
+			//sum the smooth terrain noises
+			float smoothHeight = 0.0f;
+			for (int octaveNum = 0; octaveNum < SMOOTH_NUM_OCTAVES; octaveNum++) {
+				smoothHeight += SMOOTH_n[noiseGridIndex + size * size * octaveNum]
+					* SMOOTH_HEIGHT / std::pow(2, octaveNum);
+			}
+
+			//sum the continentalness terrain noises
+			float continentalness = 0.0f;
+			for (int octaveNum = 0; octaveNum < CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
+				continentalness += CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum]
+					* CONTINENTALNESS_HEIGHT / std::pow(2, octaveNum);
+			}
+
+			//sum the peaks and valleys location terrain noises
+			float peaksAndValleysLocation = 0.0f;
+			for (int octaveNum = 0; octaveNum < PVLOC_NUM_OCTAVES; octaveNum++) {
+				peaksAndValleysLocation += PVLOC_n[noiseGridIndex + size * size * octaveNum]
+					* PVLOC_HEIGHT / std::pow(2, octaveNum);
+			}
+			
+			peaksAndValleysHeight += 96.0f;
+			peaksAndValleysLocation = (peaksAndValleysLocation + 1.5f) / 3.0f;
+			peaksAndValleysLocation = std::pow(peaksAndValleysLocation, 1.1f);
+			peaksAndValleysHeight *= peaksAndValleysLocation;
+
+			smoothHeight = (smoothHeight + 10.0f) * (1.0f - peaksAndValleysLocation);
+
+			heightMap[z * size + x] = continentalness * 12.0f + 2.0f + (peaksAndValleysHeight + smoothHeight) * (continentalness + 0.2f) / 1.2f;
+			//heightMap[z * size + x] = smoothHeight;
+		}
+	}
+}
+
+void chunk::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale) {
+	for (int z = 0; z < size; z++) {
+		for (int x = 0; x < size; x++) {
+			int noiseGridIndex = z * size + x;
+			for (int octaveNum = 0; octaveNum < numOctaves; octaveNum++) {
+				noiseArray[noiseGridIndex + size * size * octaveNum] = 
+					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (scale / std::pow(2, octaveNum)),
+								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (scale / std::pow(2, octaveNum)));
+			}
 		}
 	}
 }

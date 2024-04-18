@@ -74,6 +74,8 @@ private:
 
 	void generateHeightMap(int* heightMap, int minX, int minZ, int size);
 
+	void calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale);
+
 	inline void setSkyLight(unsigned int block, unsigned char value) {
 		bool oddBlockNum = block % 2;
 		bool evenBlockNum = !oddBlockNum;
