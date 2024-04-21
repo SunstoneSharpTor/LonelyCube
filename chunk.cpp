@@ -246,7 +246,7 @@ void chunk::generateTerrain() {
 		}
 	}
 
-	//add trees
+	/*//add trees
 	unsigned int blockNum = 0;
 	for (int z = chunkMinCoords[2] - 2; z < chunkMaxCoords[2] + 2; z++) {
 		for (int x = chunkMinCoords[0] - 2; x < chunkMaxCoords[0] + 2; x++) {
@@ -376,7 +376,7 @@ void chunk::generateTerrain() {
 			chunkX++;
 		}
 		chunkZ++;
-	}
+	}*/
 
 	//if the chunk is made up of a single block, compress it
 	if (m_singleBlockType) {
@@ -519,6 +519,23 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 			}
 
 			continentalness = (continentalness - 0.3f);
+			const float cliffTop = -0.4f;
+			const float cliffBase = -0.42f;
+			const float cliffHeight = 0.6f;
+			const float cliffDepth = -0.7f;
+			float cliffContinentalness;
+			if (continentalness > cliffTop) {
+				cliffContinentalness = (1.0f - cliffHeight) / (1.0f - cliffTop) * (continentalness - cliffTop) + cliffHeight;
+			}
+			else if (continentalness < cliffBase) {
+				cliffContinentalness = (-1.0f - cliffDepth) / (-1.0f - cliffBase) * (continentalness - cliffBase) + cliffDepth;
+			}
+			else {
+				cliffContinentalness = (cliffHeight - cliffDepth) / (cliffTop - cliffBase) * (continentalness - cliffTop) + cliffHeight;
+			}
+
+			float cliffFactor = std::max(std::min(std::abs(riversNoise) / 1.5f - 0.1f, 0.4f - (peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
+			continentalness = continentalness * (1.0f - cliffFactor) + cliffContinentalness * cliffFactor;
 
 			riversNoise += 0.1f;
 			riversNoise = std::pow(std::abs(riversNoise), (1.55f - std::min(continentalness + 0.4f, 0.5f)) * 1.15f);
@@ -538,7 +555,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 
 			smoothHeight = (smoothHeight + 2.0f) * (2.0f - (peaksAndValleysLocation + std::abs(continentalness)) / 2.0f);
 
-			float nonRiverHeight = continentalness * 10.0f + 2.0f + peaksAndValleysHeight + smoothHeight;
+			float nonRiverHeight = continentalness * 30.0f + 2.0f + peaksAndValleysHeight + smoothHeight;
 			float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
 			riverErrosion = riverErrosion * fac + 1.0f - fac;
 			fac = (std::min(std::max(nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
