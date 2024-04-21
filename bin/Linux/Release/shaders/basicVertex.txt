@@ -13,7 +13,7 @@ uniform mat4 u_proj;
 uniform float u_renderDistance;
 
 const float fogStart = 0.5f;
-const float density = 2.0f;
+const float density = 1.85f;
 
 void main() {
     vec4 positionRelativeToCam = u_modelView * position;
@@ -25,4 +25,5 @@ void main() {
     float normalisedDistance = clamp(distance - u_renderDistance * fogStart, 0.0f, u_renderDistance * (1.0f - fogStart)) / (u_renderDistance * (1.0f - fogStart));
     v_visibility = normalisedDistance * density;
     v_visibility = exp(-v_visibility * v_visibility);
+    v_visibility *= clamp((u_renderDistance - distance) / u_renderDistance, 0.0f, 0.04f) * 25.0f;
 };

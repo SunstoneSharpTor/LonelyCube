@@ -246,7 +246,7 @@ void chunk::generateTerrain() {
 		}
 	}
 
-	//add trees
+	/*//add trees
 	unsigned int blockNum = 0;
 	for (int z = chunkMinCoords[2] - 2; z < chunkMaxCoords[2] + 2; z++) {
 		for (int x = chunkMinCoords[0] - 2; x < chunkMaxCoords[0] + 2; x++) {
@@ -376,7 +376,7 @@ void chunk::generateTerrain() {
 			chunkX++;
 		}
 		chunkZ++;
-	}
+	}*/
 
 	//if the chunk is made up of a single block, compress it
 	if (m_singleBlockType) {
@@ -426,7 +426,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 	//calculate the noise values for each position in the grid and for each octave for rivers
 	const int RIVERS_NUM_OCTAVES = 2;
 	float RIVERS_n[size * size * RIVERS_NUM_OCTAVES]; //noise value for the octaves
-	calculateFractalNoiseOctaves(RIVERS_n, minX, minZ, size, RIVERS_NUM_OCTAVES, 1408.0f);
+	calculateFractalNoiseOctaves(RIVERS_n, minX, minZ, size, RIVERS_NUM_OCTAVES, 1600.0f);
 
 	//calculate the noise values for each position in the grid and for each octave for rivers
 	const int RIVER_BUMPS_NUM_OCTAVES = 2;
@@ -477,7 +477,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 					gradz += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
 				}
 				peaksAndValleysHeight += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
-					* (1.0f / (100.0f / std::pow(2.0f, (float)octaveNum / 1.3f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
+					* (1.0f / (100.0f / std::pow(2.0f, (float)octaveNum / 1.2f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
 					* PV_HEIGHT / (float)(1 << octaveNum);
 			}
 
@@ -521,37 +521,31 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 			continentalness = (continentalness - 0.3f);
 
 			riversNoise += 0.1f;
-			float riverErrosion = std::min(2.5f * std::abs(riversNoise), 1.0f);
+			riversNoise = std::pow(std::abs(riversNoise), (1.5f - std::min(continentalness + 0.4f, 0.5f)) * 1.15f);
+			float riverErrosion = 1.0f / (-4.0f * std::abs(riversNoise) - 1.0f) + 1.0f;
 			float invertedRiverErrosion = 1.0f - riverErrosion;
-			//float fac = std::pow(std::abs(continentalness / 2.0f), 0.01f) * continentalness / 2.0f;
-			//riverErrosion = fac * 1.0f + (1.0f - fac) * riverErrosion;
-			//riverErrosion += 1.0f * std::pow(std::abs(continentalness), 0.01f) * continentalness;
-			//invertedRiverErrosion *= std::pow(std::abs(continentalness), 0.01f) * continentalness;
 			float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;
 			riverBumpsNoiseMultiplier1 *= riverBumpsNoiseMultiplier1;
 			float riverBumpsNoiseMultiplier2 = riverBumpsNoiseMultiplier1 * riverBumpsNoiseMultiplier1;
-			riverBumpsNoiseMultiplier2 *= riverBumpsNoiseMultiplier1 * invertedRiverErrosion;
-			float riversHeight = -6.0f / (1.0f + 1000000.0f * riversNoise * riversNoise * riversNoise * riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
-			float riversMouthHeight = -6.0f / (1.0f + 1000.0f * riversNoise * riversNoise * riversNoise * riversNoise) + 0.5f * riverBumpsNoise * riverBumpsNoiseMultiplier2;
+			riverBumpsNoiseMultiplier2 *= riverBumpsNoiseMultiplier2;
+			riverBumpsNoiseMultiplier2 *= (1.1f - std::min(-continentalness + 0.4f, 1.0f)) * 0.9f;
+			float riversHeight = -6.0f / (1.0f + 1000000.0f * riversNoise * riversNoise * riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
 
 			peaksAndValleysHeight += 96.0f;
-			peaksAndValleysLocation = std::pow((peaksAndValleysLocation + 1.0f) * (peaksAndValleysLocation + 1.0f), 0.8f) / 2.5f;
-			//peaksAndValleysLocation = std::pow(peaksAndValleysLocation, 0.8f);
+			peaksAndValleysLocation = peaksAndValleysLocation + 1.5f / 1.2f;
+			peaksAndValleysLocation = peaksAndValleysLocation * peaksAndValleysLocation  / 2.5f;
 			peaksAndValleysHeight *= peaksAndValleysLocation;
 			peaksAndValleysHeight = peaksAndValleysHeight * (std::pow(std::abs(continentalness / 1.5f), 0.01f) * continentalness + 0.6f) / 1.6f;
 
 			smoothHeight = (smoothHeight + 2.0f) * (2.0f - (peaksAndValleysLocation + std::abs(continentalness)) / 2.0f);
 
 			float nonRiverHeight = continentalness * 10.0f + 2.0f + peaksAndValleysHeight + smoothHeight;
-			float fac = std::min(std::max(nonRiverHeight, 0.0f), 10.0f) / 10.0f;
+			float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
 			riverErrosion = riverErrosion * fac + 1.0f - fac;
-			fac = (std::min(std::max(nonRiverHeight, -5.0f), 5.0f) + 5) / 10.0f;
-			fac = 1.0f - std::abs(fac - 0.5f) * 2.0f;
-			riversMouthHeight *= fac;
-			fac = std::min(std::max(nonRiverHeight, 0.0f), 3.0f) / 3.0f;
+			fac = (std::min(std::max(nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
 			riversHeight = riversHeight * fac;
-			heightMap[z * size + x] = nonRiverHeight * riverErrosion + riversHeight + riversMouthHeight;
-			//heightMap[z * size + x] = riversHeight + riverErrosion * fac * 10.0f;
+			heightMap[z * size + x] = nonRiverHeight * riverErrosion + riversHeight;
+			//heightMap[z * size + x] = riversHeight + riverErrosion * 20.0f;
 		}
 	}
 }
