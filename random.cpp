@@ -1,12 +1,33 @@
 #include "random.h"
 
+#include <vector>
 #include <cmath>
-#include <cstdint>  // int32_t/uint8_t
+#include <cstdint>
 
-unsigned int PCG_Hash(unsigned int input) {
+static unsigned long long PCG_Ramdom32State = 0x4d595df4d0f33173;
+
+unsigned int PCG_Hash32(unsigned int input) {
 	unsigned int state = input * 747796405u + 2891336453u;
 	unsigned int word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
 	return (word >> 22u) ^ word;
+}
+
+static unsigned int rotr32(unsigned int x, unsigned r) {
+	return x >> r | x << (-r & 31);
+}
+
+unsigned int PCG_Random32() {
+	unsigned long long x = PCG_Ramdom32State;
+	unsigned count = (unsigned)(x >> 59);		// 59 = 64 - 5
+
+	PCG_Ramdom32State = x * 6364136223846793005u + 1442695040888963407u;
+	x ^= x >> 18;								// 18 = (64 - 27)/2
+	return rotr32((unsigned int)(x >> 27), count);	// 27 = 32 - 5
+}
+
+void PCG_SeedRandom32(unsigned long long seed) {
+	PCG_Ramdom32State = seed + 1442695040888963407u;
+	(void)PCG_Random32();
 }
 
 /**
@@ -78,7 +99,7 @@ static inline int32_t fastfloor(float fp) {
  * A vector-valued noise over 3D accesses it 96 times, and a
  * float-valued 4D noise 64 times. We want this to fit in the cache!
  */
-static const uint8_t perm[256] = {
+static uint8_t perm[256] = {
     151, 160, 137, 91, 90, 15,
     131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
     190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
@@ -561,4 +582,16 @@ float simplexNoise3d(float x, float y, float z) {
     // Add contributions from each corner to get the final noise value.
     // The result is scaled to stay just inside [-1,1]
     return 32.0f*(n0 + n1 + n2 + n3);
+}
+
+void seedNoise() {
+    std::vector<uint8_t> numbers(256);
+    for (int i = 0; i < 256; i++) {
+        numbers[i] = i;
+    }
+    for (int i = 0; i < 256; i++) {
+        unsigned int location = PCG_Random32() % 256;
+        perm[location] = numbers[location];
+        numbers.erase(numbers.begin() + location);
+    }
 }

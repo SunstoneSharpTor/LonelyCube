@@ -45,6 +45,7 @@ private:
 	float m_meshedChunksDistance;
 	float m_fogDistance;
 	double m_timeByDTs;
+	unsigned long long m_seed;
 
 	//mouse polling info
 	std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::_V2::steady_clock::duration> m_startTime;
@@ -114,7 +115,7 @@ private:
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
-	world(unsigned short renderDistance);
+	world(unsigned short renderDistance, unsigned long long seed);
 	void renderChunks(renderer mainRenderer, shader& blockShader, shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);

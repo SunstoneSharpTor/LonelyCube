@@ -1,5 +1,6 @@
 #include "world.h"
 #include "constants.h"
+#include "random.h"
 
 #include <thread>
 #include <cmath>
@@ -11,7 +12,12 @@
 bool chunkMeshUploaded[4] = { false, false, false, false };
 bool relableCompleted = false;
 
-world::world(unsigned short renderDistance) {
+world::world(unsigned short renderDistance, unsigned long long seed) {
+    //seed the random number generator and the simplex noise
+    m_seed = seed;
+    PCG_SeedRandom32(m_seed);
+    seedNoise();
+
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
     m_meshedChunksDistance = 0.0f;
@@ -55,6 +61,7 @@ world::world(unsigned short renderDistance) {
     m_worldInfo.renderDiameter = m_renderDiameter;
     m_numRelights = 0;
     m_worldInfo.numRelights = &m_numRelights;
+    m_worldInfo.seed = m_seed;
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk

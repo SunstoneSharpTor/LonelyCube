@@ -15,6 +15,7 @@ struct worldInfo {
 	unsigned int renderDistance;
 	unsigned int renderDiameter;
 	int* numRelights;
+	unsigned long long seed;
 };
 
 class chunk {

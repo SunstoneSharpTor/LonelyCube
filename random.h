@@ -1,6 +1,12 @@
 #pragma once
 
-unsigned int PCG_Hash(unsigned int input);
+unsigned int PCG_Hash32(unsigned int input);
+
+unsigned int PCG_Random32();
+
+void PCG_SeedRandom32(unsigned long long seed);
+
+void seedNoise();
 
 //float simplexNoise1d(float x, float y);
 

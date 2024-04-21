@@ -246,7 +246,7 @@ void chunk::generateTerrain() {
 		}
 	}
 
-	/*//add trees
+	//add trees
 	unsigned int blockNum = 0;
 	for (int z = chunkMinCoords[2] - 2; z < chunkMaxCoords[2] + 2; z++) {
 		for (int x = chunkMinCoords[0] - 2; x < chunkMaxCoords[0] + 2; x++) {
@@ -259,7 +259,7 @@ void chunk::generateTerrain() {
 				else {
 					blockNumberInWorld = (x + constants::WORLD_BORDER_DISTANCE) * (x + constants::WORLD_BORDER_DISTANCE) + (z + constants::WORLD_BORDER_DISTANCE);
 				}
-				int random = PCG_Hash(blockNumberInWorld) % 40u;
+				int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
 				if (random == 0) {
 					bool nearbyTree = false;
 					for (int checkZ = z - 2; checkZ <= z; checkZ++) {
@@ -270,7 +270,7 @@ void chunk::generateTerrain() {
 							else {
 								blockNumberInWorld = (checkX + constants::WORLD_BORDER_DISTANCE) * (checkX + constants::WORLD_BORDER_DISTANCE) + (checkZ + constants::WORLD_BORDER_DISTANCE);
 							}
-							int random = PCG_Hash(blockNumberInWorld) % 40u;
+							int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
 							if ((random == 0) && (!((checkX == x) && (checkZ == z)))) {
 								nearbyTree = true;
 								checkX = x + 3;
@@ -292,7 +292,7 @@ void chunk::generateTerrain() {
 						treeBlockPos[1] -= 1;
 						int treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 						//build the trunk
-						int trunkHeight = 3 + PCG_Hash(blockNumberInWorld) % 3;
+						int trunkHeight = 3 + PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 3;
 						for (int logHeight = -1; logHeight < trunkHeight + 2; logHeight++) {
 							//if the block is in the chunk
 							if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
@@ -362,7 +362,7 @@ void chunk::generateTerrain() {
 				else {
 					blockNumberInWorld = (x + constants::WORLD_BORDER_DISTANCE) * (x + constants::WORLD_BORDER_DISTANCE) + (z + constants::WORLD_BORDER_DISTANCE);
 				}
-				int random = PCG_Hash(blockNumberInWorld) % 3u;
+				int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 3u;
 				if (random == 0) {
 					blockNum = (x + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((heightMap[heightMapIndex] + 1 + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((z + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 					if (((heightMap[heightMapIndex] + 1 >= chunkMinCoords[1]) && (heightMap[heightMapIndex] + 1 < chunkMaxCoords[1])) && ((x >= chunkMinCoords[0]) && (x < chunkMaxCoords[0])) && ((z >= chunkMinCoords[2]) && (z < chunkMaxCoords[2]))) {
@@ -376,7 +376,7 @@ void chunk::generateTerrain() {
 			chunkX++;
 		}
 		chunkZ++;
-	}*/
+	}
 
 	//if the chunk is made up of a single block, compress it
 	if (m_singleBlockType) {
@@ -521,7 +521,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 			continentalness = (continentalness - 0.3f);
 
 			riversNoise += 0.1f;
-			riversNoise = std::pow(std::abs(riversNoise), (1.5f - std::min(continentalness + 0.4f, 0.5f)) * 1.15f);
+			riversNoise = std::pow(std::abs(riversNoise), (1.55f - std::min(continentalness + 0.4f, 0.5f)) * 1.15f);
 			float riverErrosion = 1.0f / (-4.0f * std::abs(riversNoise) - 1.0f) + 1.0f;
 			float invertedRiverErrosion = 1.0f - riverErrosion;
 			float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;
@@ -532,8 +532,7 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 			float riversHeight = -6.0f / (1.0f + 1000000.0f * riversNoise * riversNoise * riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
 
 			peaksAndValleysHeight += 96.0f;
-			peaksAndValleysLocation = peaksAndValleysLocation + 1.5f / 1.2f;
-			peaksAndValleysLocation = peaksAndValleysLocation * peaksAndValleysLocation  / 2.5f;
+			peaksAndValleysLocation = (peaksAndValleysLocation + 1.0f) / 1.2f;
 			peaksAndValleysHeight *= peaksAndValleysLocation;
 			peaksAndValleysHeight = peaksAndValleysHeight * (std::pow(std::abs(continentalness / 1.5f), 0.01f) * continentalness + 0.6f) / 1.6f;
 
