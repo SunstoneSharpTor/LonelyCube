@@ -225,7 +225,7 @@ void player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
         while (m_time < currentTime - DT) {
 
             //calculate friction
-            glm::vec3 friction = (m_velocity) * -10.0f * (m_touchWater * 0.8f + 1.0f);
+            glm::vec3 friction = (m_velocity) * -10.0f * (m_touchWater * (!m_fly) * 0.8f + 1.0f);
             friction[1] *= m_fly || m_touchWater;
             m_velocity += (force + friction) * DT;
 

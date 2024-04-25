@@ -7,6 +7,7 @@
 #include <time.h>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 #include "renderer.h"
 #include "vertexBuffer.h"
@@ -30,7 +31,7 @@ void chunkLoaderThread(world* mainWorld, bool* running, char threadNum) {
     }
 }
 
-void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
+void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, player* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -161,7 +162,8 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
     double frameStart = time - DT;
     bool windowevent_resized = false;
     float lastFrameRateTime = frameStart + DT;
-    while (*running) {
+    bool loopRunning = *running;
+    while (loopRunning) {
         //toggle fullscreen if F11 pressed
         if (keyboardState[SDL_SCANCODE_F11] && (!lastF11)) {
             if (windowFullScreen) {
@@ -304,6 +306,11 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
             frames++;
         }
         mainWorld->doRenderThreadJobs();
+
+        loopRunning = *running;
+        for (char i = 0; i < mainWorld->getNumChunkLoaderThreads(); i++) {
+            loopRunning |= chunkLoaderThreadsRunning[i];
+        }
     }
 
     SDL_DestroyWindow(sdl_window);
@@ -311,13 +318,16 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
 }
 
 int main(int argc, char* argv[]) {
-    world mainWorld(28, 837113);
+    world mainWorld(28, 3465131645656);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     player mainPlayer(playerSpawnPoint, &mainWorld);
 
     bool running = true;
 
-    std::thread renderWorker(renderThread, &mainWorld, &running, &mainPlayer);
+    bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
+    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
+
+    std::thread renderWorker(renderThread, &mainWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
 
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
@@ -327,11 +337,15 @@ int main(int argc, char* argv[]) {
     while (running) {
         mainWorld.loadChunksAroundPlayer(0);
     }
+    chunkLoaderThreadsRunning[0] = false;
 
-    renderWorker.join();
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         chunkLoaderThreads[threadNum - 1].join();
+        chunkLoaderThreadsRunning[threadNum] = false;
     }
+    renderWorker.join();
+
+    delete chunkLoaderThreadsRunning;
 
     return 0;
 }
