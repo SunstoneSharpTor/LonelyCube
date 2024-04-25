@@ -311,7 +311,7 @@ void renderThread(world* mainWorld, bool* running, player* mainPlayer) {
 }
 
 int main(int argc, char* argv[]) {
-    world mainWorld(28, 14074);
+    world mainWorld(28, 837113);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     player mainPlayer(playerSpawnPoint, &mainWorld);
 
