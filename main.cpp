@@ -318,7 +318,7 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
 }
 
 int main(int argc, char* argv[]) {
-    world mainWorld(28, 3465131645656);
+    world mainWorld(32, 3465131645656);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     player mainPlayer(playerSpawnPoint, &mainWorld);
 

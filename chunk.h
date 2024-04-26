@@ -32,6 +32,26 @@ private:
 	std::condition_variable m_accessingSkylightCV;
 	static std::mutex s_checkingNeighbouringRelights;
 
+	//world generation
+	static const int s_PV_NUM_OCTAVES;
+	static const int s_CONTINENTALNESS_NUM_OCTAVES;
+	static const int s_PVLOC_NUM_OCTAVES;
+	static const int s_RIVERS_NUM_OCTAVES;
+	static const int s_RIVER_BUMPS_NUM_OCTAVES;
+	float* m_PV_n;
+	float* m_PV_d;
+	float* m_CONTINENTALNESS_n;
+	float* m_PVLOC_n;
+	float* m_RIVERS_n;
+	float* m_RIVER_BUMPS_n;
+	static const float s_PV_SCALE;
+	static const float s_PV_HEIGHT;
+	static const float s_RIVER_BUMPS_HEIGHT;
+	float m_peaksAndValleysHeight;
+	float m_continentalness;
+	float m_peaksAndValleysLocation;
+	float m_riversNoise;
+
 	static const short m_neighbouringBlocks[6];
 	static const short m_neighbouringBlocksX[6];
 	static const short m_neighbouringBlocksY[6];
@@ -73,7 +93,9 @@ private:
 
 	unsigned char getWorldSkyLight(int* blockCoords);
 
-	void generateHeightMap(int* heightMap, int minX, int minZ, int size);
+	void calculateAllHeightMapNoise(int minX, int minZ, int size);
+
+	int sumNoisesAndCalculateHeight(int minX, int minZ, int noiseX, int noiseZ, int size);
 
 	void calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale);
 

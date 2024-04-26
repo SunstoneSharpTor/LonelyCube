@@ -197,17 +197,35 @@ void chunk::generateTerrain() {
 
 	const int MAX_STRUCTURE_RADIUS = 2;
 	const int HEIGHT_MAP_SIZE = constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS * 2;
+	const int PV_noiseGridSize = HEIGHT_MAP_SIZE + 1;
+	float PV_n[PV_noiseGridSize * PV_noiseGridSize * s_PV_NUM_OCTAVES]; //noise value for the octaves
+	float PV_d[PV_noiseGridSize * PV_noiseGridSize * s_PV_NUM_OCTAVES]; //distance from simplex borders for the octaves
+	float CONTINENTALNESS_n[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE * s_CONTINENTALNESS_NUM_OCTAVES];
+	float PVLOC_n[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE * s_PVLOC_NUM_OCTAVES];
+	float RIVERS_n[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE * s_RIVERS_NUM_OCTAVES];
+	float RIVER_BUMPS_n[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE * s_RIVER_BUMPS_NUM_OCTAVES];
+	m_PV_n = PV_n;
+	m_PV_d = PV_d;
+	m_CONTINENTALNESS_n = CONTINENTALNESS_n;
+	m_PVLOC_n = PVLOC_n;
+	m_RIVERS_n = RIVERS_n;
+	m_RIVER_BUMPS_n = RIVER_BUMPS_n;
+
+	calculateAllHeightMapNoise(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
+
 	int heightMap[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE];
-	generateHeightMap(heightMap,
-					  chunkMinCoords[0] - MAX_STRUCTURE_RADIUS,
-					  chunkMinCoords[2] - MAX_STRUCTURE_RADIUS,
-					  HEIGHT_MAP_SIZE);
+	// generateHeightMap(heightMap,
+	// 				  chunkMinCoords[0] - MAX_STRUCTURE_RADIUS,
+	// 				  chunkMinCoords[2] - MAX_STRUCTURE_RADIUS,
+	// 				  HEIGHT_MAP_SIZE);
 
 	int blockPos[3];
 	unsigned int lastBlockTypeInChunk = 0;
 	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
 		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
-			int height = heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)];
+			const int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
+			heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)] = height;
+			
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
 				unsigned int blockNum = z * constants::CHUNK_SIZE + x;
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
@@ -387,22 +405,27 @@ void chunk::generateTerrain() {
 	}
 }
 
-void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
+//define world generation constants
+const int chunk::s_PV_NUM_OCTAVES = 5;
+const int chunk::s_CONTINENTALNESS_NUM_OCTAVES = 7;
+const int chunk::s_PVLOC_NUM_OCTAVES = 2;
+const int chunk::s_RIVERS_NUM_OCTAVES = 2;
+const int chunk::s_RIVER_BUMPS_NUM_OCTAVES = 2;
+const float chunk::s_PV_SCALE = 576.0f;
+const float chunk::s_PV_HEIGHT = 128.0f;
+const float chunk::s_RIVER_BUMPS_HEIGHT = 1.5f;
+
+void chunk::calculateAllHeightMapNoise(int minX, int minZ, int size) {
 	//calculate the noise values for each position in the grid and for each octave for peaks and valleys
-	const int PV_NUM_OCTAVES = 5;
-	const float PV_SCALE = 576.0f;
-	const float PV_HEIGHT = 128.0f;
 	const int PV_noiseGridSize = size + 1;
-	float PV_n[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //noise value for the octaves
-	float PV_d[PV_noiseGridSize * PV_noiseGridSize * PV_NUM_OCTAVES]; //distance from simplex borders for the octaves
 	for (int z = 0; z < PV_noiseGridSize; z++) {
 		for (int x = 0; x < PV_noiseGridSize; x++) {
 			int noiseGridIndex = z * PV_noiseGridSize + x;
-			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
-				PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum] = 
-					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)),
-								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)),
-								   PV_d + (noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum));
+			for (int octaveNum = 0; octaveNum < s_PV_NUM_OCTAVES; octaveNum++) {
+				m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum] = 
+					simplexNoise2d((minX + x + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)),
+								   (minZ + z + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)),
+								   m_PV_d + (noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum));
 			}
 		}
 	}
@@ -413,180 +436,162 @@ void chunk::generateHeightMap(int* heightMap, int minX, int minZ, int size) {
 	// float SMOOTH_n[size * size * SMOOTH_NUM_OCTAVES]; //noise value for the octaves
 	// calculateFractalNoiseOctaves(SMOOTH_n, minX, minZ, size, SMOOTH_NUM_OCTAVES, 256.0f);
 
-	//calculate the noise values for each position in the grid and for each octave for continentalness
-	const int CONTINENTALNESS_NUM_OCTAVES = 7;
-	float CONTINENTALNESS_n[size * size * CONTINENTALNESS_NUM_OCTAVES]; //noise value for the octaves
-	calculateFractalNoiseOctaves(CONTINENTALNESS_n, minX, minZ, size, CONTINENTALNESS_NUM_OCTAVES, 2304.0f);
+	calculateFractalNoiseOctaves(m_CONTINENTALNESS_n, minX, minZ, size, s_CONTINENTALNESS_NUM_OCTAVES, 2304.0f);
+	calculateFractalNoiseOctaves(m_PVLOC_n, minX, minZ, size, s_PVLOC_NUM_OCTAVES, 768.0f);
+	calculateFractalNoiseOctaves(m_RIVERS_n, minX, minZ, size, s_RIVERS_NUM_OCTAVES, 1600.0f);
+	calculateFractalNoiseOctaves(m_RIVER_BUMPS_n, minX, minZ, size, s_RIVER_BUMPS_NUM_OCTAVES, 32.0f);
+}
 
-	//calculate the noise values for each position in the grid and for each octave for peaks and valleys locations
-	const int PVLOC_NUM_OCTAVES = 2;
-	float PVLOC_n[size * size * PVLOC_NUM_OCTAVES]; //noise value for the octaves
-	calculateFractalNoiseOctaves(PVLOC_n, minX, minZ, size, PVLOC_NUM_OCTAVES, 768.0f);
-
-	//calculate the noise values for each position in the grid and for each octave for rivers
-	const int RIVERS_NUM_OCTAVES = 2;
-	float RIVERS_n[size * size * RIVERS_NUM_OCTAVES]; //noise value for the octaves
-	calculateFractalNoiseOctaves(RIVERS_n, minX, minZ, size, RIVERS_NUM_OCTAVES, 1600.0f);
-
-	//calculate the noise values for each position in the grid and for each octave for rivers
-	const int RIVER_BUMPS_NUM_OCTAVES = 2;
-	const float RIVER_BUMPS_HEIGHT = 1.5f;
-	float RIVER_BUMPS_n[size * size * RIVER_BUMPS_NUM_OCTAVES]; //noise value for the octaves
-	calculateFractalNoiseOctaves(RIVER_BUMPS_n, minX, minZ, size, RIVER_BUMPS_NUM_OCTAVES, 32.0f);
-
-	//combine all the noise values to calculate the height map
-	for (int z = 0; z < size; z++) {
-		for (int x = 0; x < size; x++) {
-			//sum the peaks and valleys noises (including gradient trick)
-			int noiseGridIndex = z * PV_noiseGridSize + x;
-			float peaksAndValleysHeight = 0.0f;
-			for (int octaveNum = 0; octaveNum < PV_NUM_OCTAVES; octaveNum++) {
-				float gradx = 0.0f;
-				float gradz = 0.0f;
-				float tempGradx, tempGradz;
-				//if the coordinates of the point are close to the edge of a simplex, calculate the gradient
-				//at a point that is slightly offset, to avoid problems with the gradient near simplex edges
-				const float BORDER_ERROR = 2.0f; //controls how close blocks have to be to the border to be recalculated
-				if (PV_d[noiseGridIndex] < BORDER_ERROR / (PV_SCALE / (float)(1 << octaveNum))) {
-					float distanceFromError;
-					float d1, d2;
-					float offset;
-					int xDirections[4] = { 1, -1, 0, 0 };
-					int zDirections[4] = { 0, 0, 1, -1 };
-					float* gradDir = &tempGradx;
-					for (int i = 0; i < 2; i++) {
-						distanceFromError = 0.0f;
-						offset = 0.0f;
-						while (distanceFromError < BORDER_ERROR / (PV_SCALE / (float)(1 << octaveNum))) {
-							offset += 0.25f;
-							int direction = 0;
-							while ((direction < 4) && (distanceFromError < BORDER_ERROR / (PV_SCALE / (float)(1 << octaveNum)))) {
-								*gradDir = simplexNoise2d((minX + x + offset * xDirections[direction] + !i + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)), (minZ + z + offset * zDirections[direction] + i + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)), &d1)
-								- simplexNoise2d((minX + x + offset * xDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)), (minZ + z + offset * zDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (PV_SCALE / (float)(1 << octaveNum)), &d2);
-								distanceFromError = std::min(d1, d2);
-								direction++;
-							}
-						}
-						gradDir = &tempGradz;
+int chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int size) {
+	//sum the peaks and valleys noises (including gradient trick)
+	int PV_noiseGridSize = size + 1;
+	int noiseGridIndex = z * PV_noiseGridSize + x;
+	m_peaksAndValleysHeight = 0.0f;
+	for (int octaveNum = 0; octaveNum < s_PV_NUM_OCTAVES; octaveNum++) {
+		float gradx = 0.0f;
+		float gradz = 0.0f;
+		float tempGradx, tempGradz;
+		//if the coordinates of the point are close to the edge of a simplex, calculate the gradient
+		//at a point that is slightly offset, to avoid problems with the gradient near simplex edges
+		const float BORDER_ERROR = 2.0f; //controls how close blocks have to be to the border to be recalculated
+		if (m_PV_d[noiseGridIndex] < BORDER_ERROR / (s_PV_SCALE / (float)(1 << octaveNum))) {
+			float distanceFromError;
+			float d1, d2;
+			float offset;
+			int xDirections[4] = { 1, -1, 0, 0 };
+			int zDirections[4] = { 0, 0, 1, -1 };
+			float* gradDir = &tempGradx;
+			for (int i = 0; i < 2; i++) {
+				distanceFromError = 0.0f;
+				offset = 0.0f;
+				while (distanceFromError < BORDER_ERROR / (s_PV_SCALE / (float)(1 << octaveNum))) {
+					offset += 0.25f;
+					int direction = 0;
+					while ((direction < 4) && (distanceFromError < BORDER_ERROR / (s_PV_SCALE / (float)(1 << octaveNum)))) {
+						*gradDir = simplexNoise2d((minX + x + offset * xDirections[direction] + !i + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)), (minZ + z + offset * zDirections[direction] + i + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)), &d1)
+						- simplexNoise2d((minX + x + offset * xDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)), (minZ + z + offset * zDirections[direction] + constants::WORLD_BORDER_DISTANCE) / (s_PV_SCALE / (float)(1 << octaveNum)), &d2);
+						distanceFromError = std::min(d1, d2);
+						direction++;
 					}
-					gradx += tempGradx;
-					gradz += tempGradz;
 				}
-				else {
-					gradx += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + 1] - PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
-					gradz += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
-				}
-				peaksAndValleysHeight += PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
-					* (1.0f / (100.0f / std::pow(2.0f, (float)octaveNum / 1.2f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
-					* PV_HEIGHT / (float)(1 << octaveNum);
+				gradDir = &tempGradz;
 			}
-
-			noiseGridIndex = z * size + x;
-
-			// //sum the smooth terrain noises
-			// float smoothHeight = 0.0f;
-			// for (int octaveNum = 0; octaveNum < SMOOTH_NUM_OCTAVES; octaveNum++) {
-			// 	smoothHeight += SMOOTH_n[noiseGridIndex + size * size * octaveNum]
-			// 		* SMOOTH_HEIGHT / (float)(1 << octaveNum);
-			// }
-
-			//sum the continentalness terrain noises
-			float continentalness = 0.0f;
-			for (int octaveNum = 0; octaveNum < CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
-				continentalness += CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum]
-					* 1.0f / (float)(1 << octaveNum);
-			}
-
-			//sum the peaks and valleys location terrain noises
-			float peaksAndValleysLocation = 0.0f;
-			for (int octaveNum = 0; octaveNum < PVLOC_NUM_OCTAVES; octaveNum++) {
-				peaksAndValleysLocation += PVLOC_n[noiseGridIndex + size * size * octaveNum]
-					* 1.0f / (float)(1 << octaveNum);
-			}
-
-			//sum the rivers terrain noises
-			float riversNoise = 0.0f;
-			for (int octaveNum = 0; octaveNum < RIVERS_NUM_OCTAVES; octaveNum++) {
-				riversNoise += RIVERS_n[noiseGridIndex + size * size * octaveNum]
-					* 1.0f / (float)(1 << octaveNum);
-			}
-
-			//sum the river bumps terrain noises
-			float riverBumpsNoise = 0.0f;
-			for (int octaveNum = 0; octaveNum < RIVER_BUMPS_NUM_OCTAVES; octaveNum++) {
-				riverBumpsNoise += RIVER_BUMPS_n[noiseGridIndex + size * size * octaveNum]
-					* RIVER_BUMPS_HEIGHT / (float)(1 << octaveNum);
-			}
-
-			//reduce continentalness slightly to increase ocean size
-			continentalness = (continentalness - 0.3f);
-			//calculate the height of the cliff noise
-			const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
-			const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
-			const float cliffHeight = 0.6f; //the new value of continentalness that the tops of cliffs will be set to
-			const float cliffDepth = -0.7f; //the new value of continentalness that the bases of cliffs will be set to
-			float cliffContinentalness;
-			//use the y = mx + c formula to transform the original continentalness value to the cliffs value
-			if (continentalness > cliffTop) {
-				cliffContinentalness = (1.0f - cliffHeight) / (1.0f - cliffTop) * (continentalness - cliffTop) + cliffHeight;
-			}
-			else if (continentalness < cliffBase) {
-				cliffContinentalness = (-1.0f - cliffDepth) / (-1.0f - cliffBase) * (continentalness - cliffBase) + cliffDepth;
-			}
-			else {
-				cliffContinentalness = (cliffHeight - cliffDepth) / (cliffTop - cliffBase) * (continentalness - cliffTop) + cliffHeight;
-			}
-			//calculate how much of the cliffs noise to use and how much of the original continentalness noise to use
-			//this is done by reducing the cliffs near rivers and high peaks and valleys areas
-			float cliffFactor = std::max(std::min(std::abs(riversNoise) / 1.5f - 0.1f, 0.4f - (peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
-			//combine continentalness with the cliffs noise
-			continentalness = continentalness * (1.0f - cliffFactor) + cliffContinentalness * cliffFactor;
-
-			//calculate the height of the rivers
-			//increse the noise by 1 to try to avoid crossections of two rivers
-			riversNoise += 0.1f;
-			//modify the river noise value to be closer to 0 (promotes wider river) near continentalness of -0.4 to create river mouths
-			riversNoise = std::pow(std::abs(riversNoise), (1.55f - std::min(continentalness + 0.4f, 0.5f)) * 1.15f);
-			//calculate the river errosion using the equation 1 / (nx - 1) + 1
-			//this is the value that the rest of the terrain height will be multiplied by to create low terrain near rivers
-			float riverErrosion = 1.0f / (-4.0f * std::abs(riversNoise) - 1.0f) + 1.0f;
-			//calculate the value that determines where the extra bumps for the river bed will be added
-			float invertedRiverErrosion = 1.0f - riverErrosion;
-			float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;
-			riverBumpsNoiseMultiplier1 *= riverBumpsNoiseMultiplier1;
-			float riverBumpsNoiseMultiplier2 = riverBumpsNoiseMultiplier1 * riverBumpsNoiseMultiplier1;
-			riverBumpsNoiseMultiplier2 *= riverBumpsNoiseMultiplier2;
-			//reduce the multiplier near river mouths to give the look that the river is actually part of the ocean near river mouths
-			riverBumpsNoiseMultiplier2 *= (1.1f - std::min(-continentalness + 0.4f, 1.0f)) * 0.9f;
-			//calculate the heigt of the river using the equation m / (nx^p - 1) + 1
-			float riversHeight = -6.0f / (1.0f + 1000000.0f * riversNoise * riversNoise * riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
-
-			//scale the peaks and valleys location noise to be an S-shape and between the values of 0 and 1.4
-			//using equation -1 / (x^n + 1) + 1
-			peaksAndValleysLocation = -1.4f / ((peaksAndValleysLocation + 1.1f) * (peaksAndValleysLocation + 1.1f) + 1.0f) + 1.4f;
-			//scale the peaks and valleys location to be higher near coasts so that mountains can still generate near coasts
-			peaksAndValleysLocation = peaksAndValleysLocation * (std::pow(std::abs(continentalness / 1.5f), 0.01f) * continentalness + 0.6f) / 1.6f;
-			//scale the peaks and valleys height based on the peaks and valleys location noise
-			peaksAndValleysHeight += 96.0f; //promotes all areas with high peaks and valleys to have a high y-value
-			peaksAndValleysHeight *= peaksAndValleysLocation;
-
-			// //calculate the height of the smooth noise by having it higher when peaks and valleys height is lower.
-			// smoothHeight = (smoothHeight + 2.0f) * (2.0f - (peaksAndValleysLocation + std::abs(continentalness)) / 2.0f);
-
-			//calculate the height of the terrain before rivers are added
-			float nonRiverHeight = continentalness * 30.0f + 2.0f + peaksAndValleysHeight;// + smoothHeight;
-			//calculate how much of the river errosion needs to be applied
-			//without this step, rivers would not disapear at oceans
-			float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
-			riverErrosion = riverErrosion * fac + 1.0f - fac;
-			//calculate how much of the river height needs to be applied
-			//without this step, rivers would not disapear at oceans
-			fac = (std::min(std::max(nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
-			riversHeight = riversHeight * fac;
-			//add rivers to the terrain height
-			heightMap[z * size + x] = nonRiverHeight * riverErrosion + riversHeight;
+			gradx += tempGradx;
+			gradz += tempGradz;
 		}
+		else {
+			gradx += m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + 1] - m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+			gradz += m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum + PV_noiseGridSize] - m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum];
+		}
+		m_peaksAndValleysHeight += m_PV_n[noiseGridIndex + PV_noiseGridSize * PV_noiseGridSize * octaveNum]
+			* (1.0f / (100.0f / std::pow(2.0f, (float)octaveNum / 1.2f) * (std::abs(gradx) + std::abs(gradz)) + 1.0f))
+			* s_PV_HEIGHT / (float)(1 << octaveNum);
 	}
+
+	noiseGridIndex = z * size + x;
+
+	// //sum the smooth terrain noises
+	// float smoothHeight = 0.0f;
+	// for (int octaveNum = 0; octaveNum < SMOOTH_NUM_OCTAVES; octaveNum++) {
+	// 	smoothHeight += SMOOTH_n[noiseGridIndex + size * size * octaveNum]
+	// 		* SMOOTH_HEIGHT / (float)(1 << octaveNum);
+	// }
+
+	//sum the continentalness terrain noises
+	m_continentalness = 0.0f;
+	for (int octaveNum = 0; octaveNum < s_CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
+		m_continentalness += m_CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum]
+			* 1.0f / (float)(1 << octaveNum);
+	}
+
+	//sum the peaks and valleys location terrain noises
+	m_peaksAndValleysLocation = 0.0f;
+	for (int octaveNum = 0; octaveNum < s_PVLOC_NUM_OCTAVES; octaveNum++) {
+		m_peaksAndValleysLocation += m_PVLOC_n[noiseGridIndex + size * size * octaveNum]
+			* 1.0f / (float)(1 << octaveNum);
+	}
+
+	//sum the rivers terrain noises
+	m_riversNoise = 0.0f;
+	for (int octaveNum = 0; octaveNum < s_RIVERS_NUM_OCTAVES; octaveNum++) {
+		m_riversNoise += m_RIVERS_n[noiseGridIndex + size * size * octaveNum]
+			* 1.0f / (float)(1 << octaveNum);
+	}
+
+	//sum the river bumps terrain noises
+	float riverBumpsNoise = 0.0f;
+	for (int octaveNum = 0; octaveNum < s_RIVER_BUMPS_NUM_OCTAVES; octaveNum++) {
+		riverBumpsNoise += m_RIVER_BUMPS_n[noiseGridIndex + size * size * octaveNum]
+			* s_RIVER_BUMPS_HEIGHT / (float)(1 << octaveNum);
+	}
+
+	//reduce continentalness slightly to increase ocean size
+	m_continentalness = (m_continentalness - 0.3f);
+	//calculate the height of the cliff noise
+	const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
+	const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
+	const float cliffHeight = 0.6f; //the new value of continentalness that the tops of cliffs will be set to
+	const float cliffDepth = -0.7f; //the new value of continentalness that the bases of cliffs will be set to
+	float cliffContinentalness;
+	//use the y = mx + c formula to transform the original continentalness value to the cliffs value
+	if (m_continentalness > cliffTop) {
+		cliffContinentalness = (1.0f - cliffHeight) / (1.0f - cliffTop) * (m_continentalness - cliffTop) + cliffHeight;
+	}
+	else if (m_continentalness < cliffBase) {
+		cliffContinentalness = (-1.0f - cliffDepth) / (-1.0f - cliffBase) * (m_continentalness - cliffBase) + cliffDepth;
+	}
+	else {
+		cliffContinentalness = (cliffHeight - cliffDepth) / (cliffTop - cliffBase) * (m_continentalness - cliffTop) + cliffHeight;
+	}
+	//calculate how much of the cliffs noise to use and how much of the original continentalness noise to use
+	//this is done by reducing the cliffs near rivers and high peaks and valleys areas
+	float cliffFactor = std::max(std::min(std::abs(m_riversNoise) / 1.5f - 0.1f, 0.4f - (m_peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
+	//combine continentalness with the cliffs noise
+	m_continentalness = m_continentalness * (1.0f - cliffFactor) + cliffContinentalness * cliffFactor;
+
+	//calculate the height of the rivers
+	//increse the noise by 1 to try to avoid crossections of two rivers
+	m_riversNoise += 0.1f;
+	//modify the river noise value to be closer to 0 (promotes wider river) near continentalness of -0.4 to create river mouths
+	m_riversNoise = std::pow(std::abs(m_riversNoise), (1.55f - std::min(m_continentalness + 0.4f, 0.5f)) * 1.15f);
+	//calculate the river errosion using the equation 1 / (nx - 1) + 1
+	//this is the value that the rest of the terrain height will be multiplied by to create low terrain near rivers
+	float riverErrosion = 1.0f / (-4.0f * std::abs(m_riversNoise) - 1.0f) + 1.0f;
+	//calculate the value that determines where the extra bumps for the river bed will be added
+	float invertedRiverErrosion = 1.0f - riverErrosion;
+	float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;
+	riverBumpsNoiseMultiplier1 *= riverBumpsNoiseMultiplier1;
+	float riverBumpsNoiseMultiplier2 = riverBumpsNoiseMultiplier1 * riverBumpsNoiseMultiplier1;
+	riverBumpsNoiseMultiplier2 *= riverBumpsNoiseMultiplier2;
+	//reduce the multiplier near river mouths to give the look that the river is actually part of the ocean near river mouths
+	riverBumpsNoiseMultiplier2 *= (1.1f - std::min(-m_continentalness + 0.4f, 1.0f)) * 0.9f;
+	//calculate the heigt of the river using the equation m / (nx^p - 1) + 1
+	float riversHeight = -6.0f / (1.0f + 1000000.0f * m_riversNoise * m_riversNoise * m_riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
+
+	//scale the peaks and valleys location noise to be an S-shape and between the values of 0 and 1.4
+	//using equation -1 / (x^n + 1) + 1
+	m_peaksAndValleysLocation = -1.4f / ((m_peaksAndValleysLocation + 1.1f) * (m_peaksAndValleysLocation + 1.1f) + 1.0f) + 1.4f;
+	//scale the peaks and valleys location to be higher near coasts so that mountains can still generate near coasts
+	m_peaksAndValleysLocation *= (std::pow(std::abs(m_continentalness / 1.5f), 0.01f) * m_continentalness + 0.6f) / 1.6f;
+	//scale the peaks and valleys height based on the peaks and valleys location noise
+	m_peaksAndValleysHeight += 96.0f; //promotes all areas with high peaks and valleys to have a high y-value
+	m_peaksAndValleysHeight *= m_peaksAndValleysLocation;
+
+	// //calculate the height of the smooth noise by having it higher when peaks and valleys height is lower.
+	// smoothHeight = (smoothHeight + 2.0f) * (2.0f - (peaksAndValleysLocation + std::abs(continentalness)) / 2.0f);
+
+	//calculate the height of the terrain before rivers are added
+	float nonRiverHeight = m_continentalness * 30.0f + 2.0f + m_peaksAndValleysHeight;// + smoothHeight;
+	//calculate how much of the river errosion needs to be applied
+	//without this step, rivers would not disapear at oceans
+	float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
+	riverErrosion = riverErrosion * fac + 1.0f - fac;
+	//calculate how much of the river height needs to be applied
+	//without this step, rivers would not disapear at oceans
+	fac = (std::min(std::max(nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
+	riversHeight = riversHeight * fac;
+	//add rivers to the terrain height
+	return nonRiverHeight * riverErrosion + riversHeight;
 }
 
 void chunk::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale) {
