@@ -181,8 +181,9 @@ void chunk::setWorldInfo(worldInfo wio) {
 
 void chunk::generateTerrain() {
 	m_skyLightUpToDate = false;
-	for (unsigned int blockNum = 0; blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2; blockNum++) {
-		m_skyLight[blockNum] = 0;
+	for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE; blockNum++) {
+		m_blocks[blockNum] = 0;
+		m_skyLight[blockNum >> 1] = 0;
 	}
 
 	//calculate coordinates of the chunk
@@ -223,7 +224,7 @@ void chunk::generateTerrain() {
 	unsigned int lastBlockTypeInChunk = 0;
 	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
 		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
-			const int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
+			int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
 			heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)] = height;
 			
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
@@ -231,7 +232,7 @@ void chunk::generateTerrain() {
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
 					if (y > height) {
 						if (y > 0) {
-							m_blocks[blockNum] = 0;
+							//m_blocks[blockNum] = 0;
 							m_skyLight[blockNum / 2] |= (15 << (4 * (blockNum % 2)));
 						}
 						else {
@@ -245,9 +246,6 @@ void chunk::generateTerrain() {
 						}
 						else {
 							m_blocks[blockNum] = 2;
-							//if (d[noiseGridIndex] < 2.0f/512.0f) {
-							//	m_blocks[blockNum] = 3;
-							//}
 						}
 					}
 					else if (y > (height - 3)) {
@@ -261,27 +259,24 @@ void chunk::generateTerrain() {
 					blockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;
 				}
 			}
-		}
-	}
 
-	/*//add trees
-	unsigned int blockNum = 0;
-	for (int z = chunkMinCoords[2] - 2; z < chunkMaxCoords[2] + 2; z++) {
-		for (int x = chunkMinCoords[0] - 2; x < chunkMaxCoords[0] + 2; x++) {
-			if ((heightMap[blockNum] >= 0) && (chunkMinCoords[1] < (heightMap[blockNum] + 8)) && ((chunkMaxCoords[1]) > heightMap[blockNum])) {
+			int worldX = x + chunkMinCoords[0];
+			int worldZ = z + chunkMinCoords[2];
+			//add trees
+			if ((height >= 0) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
-				if (z > x) {
-					blockNumberInWorld = ((z + constants::WORLD_BORDER_DISTANCE) + 2) * (z + constants::WORLD_BORDER_DISTANCE) - (x + constants::WORLD_BORDER_DISTANCE);
+				if (worldZ > worldX) {
+					blockNumberInWorld = ((worldZ + constants::WORLD_BORDER_DISTANCE) + 2) * (worldZ + constants::WORLD_BORDER_DISTANCE) - (worldX + constants::WORLD_BORDER_DISTANCE);
 				}
 				else {
-					blockNumberInWorld = (x + constants::WORLD_BORDER_DISTANCE) * (x + constants::WORLD_BORDER_DISTANCE) + (z + constants::WORLD_BORDER_DISTANCE);
+					blockNumberInWorld = (worldX + constants::WORLD_BORDER_DISTANCE) * (worldX + constants::WORLD_BORDER_DISTANCE) + (worldZ + constants::WORLD_BORDER_DISTANCE);
 				}
 				int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
 				if (random == 0) {
 					bool nearbyTree = false;
-					for (int checkZ = z - 2; checkZ <= z; checkZ++) {
-						for (int checkX = x - 2; checkX <= x + 2; checkX++) {
+					for (int checkZ = worldZ - 2; checkZ <= worldZ; checkZ++) {
+						for (int checkX = worldX - 2; checkX <= worldX + 2; checkX++) {
 							if (checkZ > checkX) {
 								blockNumberInWorld = ((checkZ + constants::WORLD_BORDER_DISTANCE) + 2) * (checkZ + constants::WORLD_BORDER_DISTANCE) - (checkX + constants::WORLD_BORDER_DISTANCE);
 							}
@@ -289,25 +284,22 @@ void chunk::generateTerrain() {
 								blockNumberInWorld = (checkX + constants::WORLD_BORDER_DISTANCE) * (checkX + constants::WORLD_BORDER_DISTANCE) + (checkZ + constants::WORLD_BORDER_DISTANCE);
 							}
 							int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
-							if ((random == 0) && (!((checkX == x) && (checkZ == z)))) {
+							if ((random == 0) && (!((checkX == worldX) && (checkZ == worldZ)))) {
 								nearbyTree = true;
-								checkX = x + 3;
-								checkZ = z + 1;
+								checkX = worldX + 3;
+								checkZ = worldZ + 1;
 							}
 						}
 					}
 					if (!nearbyTree) {
 						//position has been selected for adding a tree
 						//set the blocks for the tree
-						int bottomOfTree[3];
-						bottomOfTree[1] = (heightMap[blockNum] + 1);
-						bottomOfTree[0] = x;
-						bottomOfTree[2] = z;
+						int treeBasePos[3];
 						int treeBlockPos[3];
-						for (unsigned char i = 0; i < 3; i++) {
-							treeBlockPos[i] = bottomOfTree[i];
-						}
-						treeBlockPos[1] -= 1;
+						treeBasePos[1] = height + 1;
+						treeBlockPos[1] = height;
+						treeBasePos[0] = treeBlockPos[0] = worldX;
+						treeBasePos[2] = treeBlockPos[2] = worldZ;
 						int treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 						//build the trunk
 						int trunkHeight = 3 + PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 3;
@@ -327,8 +319,8 @@ void chunk::generateTerrain() {
 						treeBlockPos[1] -= 2;
 						for (unsigned char i = 0; i < 4; i++) {
 							for (unsigned char ii = 0; ii < 2; ii++) {
-								treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 								if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
+								treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 									m_blocks[treeBlockNum] = 6;
 									m_singleBlockType = false;
 								}
@@ -341,12 +333,12 @@ void chunk::generateTerrain() {
 						//build the lower leaves
 						treeBlockPos[0] += 4;
 						treeBlockPos[1] -= 2;
-						for (treeBlockPos[2] = bottomOfTree[2] - 2; treeBlockPos[2] < bottomOfTree[2] + 3; treeBlockPos[2]++) {
-							for (treeBlockPos[0] = bottomOfTree[0] - 2; treeBlockPos[0] < bottomOfTree[0] + 3; treeBlockPos[0]++) {
+						for (treeBlockPos[2] = treeBasePos[2] - 2; treeBlockPos[2] < treeBasePos[2] + 3; treeBlockPos[2]++) {
+							for (treeBlockPos[0] = treeBasePos[0] - 2; treeBlockPos[0] < treeBasePos[0] + 3; treeBlockPos[0]++) {
 								for (unsigned char ii = 0; ii < 2; ii++) {
-									treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 									if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
-										if (m_blocks[treeBlockNum] == 0) {
+									treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+										if ((m_blocks[treeBlockNum] == 0) || (m_blocks[treeBlockNum] == 7)) {
 											m_blocks[treeBlockNum] = 6;
 											m_singleBlockType = false;
 										}
@@ -359,42 +351,31 @@ void chunk::generateTerrain() {
 					}
 				}
 			}
-			blockNum++;
-		}
-	}
 
-	//add grass
-	short heightMapIndex;
-	short chunkZ = 0;
-	short chunkX;
-	for (int z = chunkMinCoords[2]; z < chunkMaxCoords[2]; z++) {
-		chunkX = 0;
-		for (int x = chunkMinCoords[0]; x < chunkMaxCoords[0]; x++) {
-			heightMapIndex = (constants::CHUNK_SIZE + 4) * 2 + chunkZ * (constants::CHUNK_SIZE + 4) + chunkX + 2;
-			if ((heightMap[heightMapIndex] >= 0) && (chunkMinCoords[1] < (heightMap[heightMapIndex] + 2)) && ((chunkMaxCoords[1]) > heightMap[heightMapIndex])) {
+			//add grass
+			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z > 0) && (z < constants::CHUNK_SIZE)
+				&& (height >= 0) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
-				if (z > x) {
-					blockNumberInWorld = ((z + constants::WORLD_BORDER_DISTANCE) + 2) * (z + constants::WORLD_BORDER_DISTANCE) - (x + constants::WORLD_BORDER_DISTANCE);
+				if (worldZ > worldX) {
+					blockNumberInWorld = ((worldZ + constants::WORLD_BORDER_DISTANCE) + 2) * (worldZ + constants::WORLD_BORDER_DISTANCE) - (worldX + constants::WORLD_BORDER_DISTANCE);
 				}
 				else {
-					blockNumberInWorld = (x + constants::WORLD_BORDER_DISTANCE) * (x + constants::WORLD_BORDER_DISTANCE) + (z + constants::WORLD_BORDER_DISTANCE);
+					blockNumberInWorld = (worldX + constants::WORLD_BORDER_DISTANCE) * (worldX + constants::WORLD_BORDER_DISTANCE) + (worldZ + constants::WORLD_BORDER_DISTANCE);
 				}
 				int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 3u;
 				if (random == 0) {
-					blockNum = (x + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((heightMap[heightMapIndex] + 1 + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((z + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-					if (((heightMap[heightMapIndex] + 1 >= chunkMinCoords[1]) && (heightMap[heightMapIndex] + 1 < chunkMaxCoords[1])) && ((x >= chunkMinCoords[0]) && (x < chunkMaxCoords[0])) && ((z >= chunkMinCoords[2]) && (z < chunkMaxCoords[2]))) {
-						if (m_blocks[blockNum] == 0) {
-							m_blocks[blockNum] = 7;
-							m_singleBlockType = false;
-						}
+					int blockNum = x % constants::CHUNK_SIZE + (height + 1) % constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + z * constants::CHUNK_SIZE;
+					if (m_blocks[blockNum] == 0) {
+						m_blocks[blockNum] = 7;
+						m_singleBlockType = false;
 					}
 				}
 			}
-			chunkX++;
 		}
-		chunkZ++;
-	}*/
+	}
+
+
 
 	//if the chunk is made up of a single block, compress it
 	if (m_singleBlockType) {
