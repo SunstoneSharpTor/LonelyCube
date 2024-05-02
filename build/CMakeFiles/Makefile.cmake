@@ -8,12 +8,10 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
   "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/CMakeLists.txt"
-  "CMakeFiles/3.27.4/CMakeCCompiler.cmake"
   "CMakeFiles/3.27.4/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.27.4/CMakeSystem.cmake"
   "/usr/lib/x86_64-linux-gnu/cmake/SDL2/sdl2-config-version.cmake"
   "/usr/lib/x86_64-linux-gnu/cmake/SDL2/sdl2-config.cmake"
-  "/usr/share/cmake-3.27/Modules/CMakeCInformation.cmake"
   "/usr/share/cmake-3.27/Modules/CMakeCXXInformation.cmake"
   "/usr/share/cmake-3.27/Modules/CMakeCommonLanguageInclude.cmake"
   "/usr/share/cmake-3.27/Modules/CMakeGenericSystem.cmake"
@@ -21,10 +19,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/share/cmake-3.27/Modules/CMakeLanguageInformation.cmake"
   "/usr/share/cmake-3.27/Modules/CMakeSystemSpecificInformation.cmake"
   "/usr/share/cmake-3.27/Modules/CMakeSystemSpecificInitialize.cmake"
-  "/usr/share/cmake-3.27/Modules/CPack.cmake"
-  "/usr/share/cmake-3.27/Modules/CPackComponent.cmake"
   "/usr/share/cmake-3.27/Modules/Compiler/CMakeCommonCompilerMacros.cmake"
-  "/usr/share/cmake-3.27/Modules/Compiler/GNU-C.cmake"
   "/usr/share/cmake-3.27/Modules/Compiler/GNU-CXX.cmake"
   "/usr/share/cmake-3.27/Modules/Compiler/GNU.cmake"
   "/usr/share/cmake-3.27/Modules/FeatureSummary.cmake"
@@ -32,14 +27,12 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/share/cmake-3.27/Modules/FindOpenGL.cmake"
   "/usr/share/cmake-3.27/Modules/FindPackageHandleStandardArgs.cmake"
   "/usr/share/cmake-3.27/Modules/FindPackageMessage.cmake"
-  "/usr/share/cmake-3.27/Modules/Platform/Linux-GNU-C.cmake"
   "/usr/share/cmake-3.27/Modules/Platform/Linux-GNU-CXX.cmake"
   "/usr/share/cmake-3.27/Modules/Platform/Linux-GNU.cmake"
   "/usr/share/cmake-3.27/Modules/Platform/Linux-Initialize.cmake"
   "/usr/share/cmake-3.27/Modules/Platform/Linux.cmake"
   "/usr/share/cmake-3.27/Modules/Platform/UnixPaths.cmake"
   "/usr/share/cmake-3.27/Modules/SelectLibraryConfigurations.cmake"
-  "/usr/share/cmake-3.27/Templates/CPackConfig.cmake.in"
   )
 
 # The corresponding makefile is:
@@ -50,8 +43,6 @@ set(CMAKE_MAKEFILE_OUTPUTS
 
 # Byproducts of CMake generate step:
 set(CMAKE_MAKEFILE_PRODUCTS
-  "CPackConfig.cmake"
-  "CPackSourceConfig.cmake"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 

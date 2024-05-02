@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.27.4)
-project(Minecraft VERSION 0.8.2 LANGUAGES C CXX)
+project(Minecraft VERSION 0.8.2 LANGUAGES CXX)
 
 set(OSBitness 64)
 set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
@@ -32,8 +32,4 @@ set(SOURCE_FILES
 
 add_executable(Minecraft ${SOURCE_FILES})
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})
-
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+target_link_libraries(Minecraft ${SDL2_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})

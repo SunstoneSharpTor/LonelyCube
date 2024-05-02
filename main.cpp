@@ -318,7 +318,9 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
 }
 
 int main(int argc, char* argv[]) {
-    world mainWorld(32, 3465131645656);
+    unsigned int worldSeed = std::time(0);
+    world mainWorld(32, worldSeed);
+    std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     player mainPlayer(playerSpawnPoint, &mainWorld);
 

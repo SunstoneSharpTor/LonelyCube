@@ -196,7 +196,7 @@ void chunk::generateTerrain() {
 
 	m_singleBlockType = true;
 
-	const int MAX_STRUCTURE_RADIUS = 2;
+	const int MAX_STRUCTURE_RADIUS = 3;
 	const int HEIGHT_MAP_SIZE = constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS * 2;
 	const int PV_noiseGridSize = HEIGHT_MAP_SIZE + 1;
 	float PV_n[PV_noiseGridSize * PV_noiseGridSize * s_PV_NUM_OCTAVES]; //noise value for the octaves
@@ -222,8 +222,8 @@ void chunk::generateTerrain() {
 
 	int blockPos[3];
 	unsigned int lastBlockTypeInChunk = 0;
-	for (int z = -2; z < constants::CHUNK_SIZE + 2; z++) {
-		for (int x = -2; x < constants::CHUNK_SIZE + 2; x++) {
+	for (int z = -MAX_STRUCTURE_RADIUS; z < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; z++) {
+		for (int x = -MAX_STRUCTURE_RADIUS; x < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; x++) {
 			int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
 			heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)] = height;
 			
@@ -262,8 +262,9 @@ void chunk::generateTerrain() {
 
 			int worldX = x + chunkMinCoords[0];
 			int worldZ = z + chunkMinCoords[2];
+
 			//add trees
-			if ((height >= 0) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
+			if ((m_peaksAndValleysLocation > 0.23f) && (m_peaksAndValleysHeight < 120.0f) && (height >= 0) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
 				if (worldZ > worldX) {
@@ -275,8 +276,8 @@ void chunk::generateTerrain() {
 				int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
 				if (random == 0) {
 					bool nearbyTree = false;
-					for (int checkZ = worldZ - 2; checkZ <= worldZ; checkZ++) {
-						for (int checkX = worldX - 2; checkX <= worldX + 2; checkX++) {
+					for (int checkZ = worldZ - 3; checkZ <= worldZ; checkZ++) {
+						for (int checkX = worldX - 3; checkX <= worldX + 3; checkX++) {
 							if (checkZ > checkX) {
 								blockNumberInWorld = ((checkZ + constants::WORLD_BORDER_DISTANCE) + 2) * (checkZ + constants::WORLD_BORDER_DISTANCE) - (checkX + constants::WORLD_BORDER_DISTANCE);
 							}
@@ -286,8 +287,8 @@ void chunk::generateTerrain() {
 							int random = PCG_Hash32(blockNumberInWorld + m_worldInfo.seed) % 40u;
 							if ((random == 0) && (!((checkX == worldX) && (checkZ == worldZ)))) {
 								nearbyTree = true;
-								checkX = worldX + 3;
 								checkZ = worldZ + 1;
+								break;
 							}
 						}
 					}
@@ -353,7 +354,7 @@ void chunk::generateTerrain() {
 			}
 
 			//add grass
-			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z > 0) && (z < constants::CHUNK_SIZE)
+			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)
 				&& (height >= 0) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
