@@ -239,8 +239,8 @@ CMakeFiles/Minecraft.dir/player.cpp.o: \
  /usr/include/SDL2/SDL_misc.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/renderer.h \
- /usr/include/GL/glew.h /usr/include/c++/13/cstddef \
- /usr/include/c++/13/cstdint /usr/include/GL/glu.h /usr/include/GL/gl.h \
+ /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/./glad/glad.h \
+ /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/./KHR/khrplatform.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
@@ -263,7 +263,7 @@ CMakeFiles/Minecraft.dir/player.cpp.o: \
  /usr/include/c++/13/backward/binders.h \
  /usr/include/c++/13/bits/range_access.h \
  /usr/include/c++/13/bits/vector.tcc \
- /usr/include/c++/13/bits/memory_resource.h \
+ /usr/include/c++/13/bits/memory_resource.h /usr/include/c++/13/cstddef \
  /usr/include/c++/13/bits/uses_allocator.h \
  /usr/include/c++/13/bits/uses_allocator_args.h /usr/include/c++/13/tuple \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/indexBuffer.h \
@@ -300,7 +300,7 @@ CMakeFiles/Minecraft.dir/player.cpp.o: \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/setup.hpp \
  /usr/include/c++/13/cassert /usr/include/assert.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/../simd/platform.h \
- /usr/include/c++/13/climits \
+ /usr/include/c++/13/cstdint /usr/include/c++/13/climits \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h \
  /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \

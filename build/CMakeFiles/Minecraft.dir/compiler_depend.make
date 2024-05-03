@@ -736,7 +736,86 @@ CMakeFiles/Minecraft.dir/chunk.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h \
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
+CMakeFiles/Minecraft.dir/glad.c.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad.c \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
+  /usr/include/alloca.h \
+  /usr/include/dlfcn.h \
+  /usr/include/endian.h \
+  /usr/include/features-time64.h \
+  /usr/include/features.h \
+  /usr/include/stdc-predef.h \
+  /usr/include/stdint.h \
+  /usr/include/stdio.h \
+  /usr/include/stdlib.h \
+  /usr/include/string.h \
+  /usr/include/strings.h \
+  /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h \
+  /usr/include/x86_64-linux-gnu/bits/byteswap.h \
+  /usr/include/x86_64-linux-gnu/bits/dlfcn.h \
+  /usr/include/x86_64-linux-gnu/bits/endian.h \
+  /usr/include/x86_64-linux-gnu/bits/endianness.h \
+  /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
+  /usr/include/x86_64-linux-gnu/bits/floatn.h \
+  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+  /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
+  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
+  /usr/include/x86_64-linux-gnu/bits/select-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/select.h \
+  /usr/include/x86_64-linux-gnu/bits/select2.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio2.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
+  /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
+  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+  /usr/include/x86_64-linux-gnu/bits/stdlib.h \
+  /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
+  /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
+  /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
+  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h \
+  /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h \
+  /usr/include/x86_64-linux-gnu/bits/time64.h \
+  /usr/include/x86_64-linux-gnu/bits/timesize.h \
+  /usr/include/x86_64-linux-gnu/bits/types.h \
+  /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
+  /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
+  /usr/include/x86_64-linux-gnu/bits/types/time_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/timer_t.h \
+  /usr/include/x86_64-linux-gnu/bits/typesizes.h \
+  /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
+  /usr/include/x86_64-linux-gnu/bits/waitflags.h \
+  /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
+  /usr/include/x86_64-linux-gnu/bits/wchar.h \
+  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+  /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+  /usr/include/x86_64-linux-gnu/sys/select.h \
+  /usr/include/x86_64-linux-gnu/sys/types.h \
+  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h \
+  /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h \
+  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
+
 CMakeFiles/Minecraft.dir/indexBuffer.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/indexBuffer.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -883,9 +962,6 @@ CMakeFiles/Minecraft.dir/indexBuffer.cpp.o: /media/bertie-cartwright/External\ 4
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -1092,6 +1168,8 @@ CMakeFiles/Minecraft.dir/indexBuffer.cpp.o: /media/bertie-cartwright/External\ 4
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 CMakeFiles/Minecraft.dir/main.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/main.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/camera.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/chunk.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/constants.h \
@@ -1299,9 +1377,6 @@ CMakeFiles/Minecraft.dir/main.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/SDL2/SDL.h \
   /usr/include/SDL2/SDL_assert.h \
   /usr/include/SDL2/SDL_atomic.h \
@@ -1739,6 +1814,8 @@ CMakeFiles/Minecraft.dir/main.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD
   /usr/lib/gcc/x86_64-linux-gnu/13/include/xtestintrin.h
 
 CMakeFiles/Minecraft.dir/player.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/player.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/camera.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/chunk.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/constants.h \
@@ -1942,9 +2019,6 @@ CMakeFiles/Minecraft.dir/player.cpp.o: /media/bertie-cartwright/External\ 4TB\ H
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/SDL2/SDL.h \
   /usr/include/SDL2/SDL_assert.h \
   /usr/include/SDL2/SDL_atomic.h \
@@ -2499,6 +2573,8 @@ CMakeFiles/Minecraft.dir/random.cpp.o: /media/bertie-cartwright/External\ 4TB\ H
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
 
 CMakeFiles/Minecraft.dir/renderer.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/renderer.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -2645,9 +2721,6 @@ CMakeFiles/Minecraft.dir/renderer.cpp.o: /media/bertie-cartwright/External\ 4TB\
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -2900,6 +2973,8 @@ CMakeFiles/Minecraft.dir/renderer.cpp.o: /media/bertie-cartwright/External\ 4TB\
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 CMakeFiles/Minecraft.dir/shader.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/shader.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -3046,9 +3121,6 @@ CMakeFiles/Minecraft.dir/shader.cpp.o: /media/bertie-cartwright/External\ 4TB\ H
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -3450,6 +3522,8 @@ CMakeFiles/Minecraft.dir/stb_image.cpp.o: /media/bertie-cartwright/External\ 4TB
   /usr/lib/gcc/x86_64-linux-gnu/13/include/xmmintrin.h
 
 CMakeFiles/Minecraft.dir/texture.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/texture.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -3598,9 +3672,6 @@ CMakeFiles/Minecraft.dir/texture.cpp.o: /media/bertie-cartwright/External\ 4TB\ 
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -3808,6 +3879,8 @@ CMakeFiles/Minecraft.dir/texture.cpp.o: /media/bertie-cartwright/External\ 4TB\ 
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 CMakeFiles/Minecraft.dir/vertexArray.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -3954,9 +4027,6 @@ CMakeFiles/Minecraft.dir/vertexArray.cpp.o: /media/bertie-cartwright/External\ 4
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -4163,6 +4233,8 @@ CMakeFiles/Minecraft.dir/vertexArray.cpp.o: /media/bertie-cartwright/External\ 4
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.hpp \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x3.inl \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_mat2x4.hpp \
@@ -4309,9 +4381,6 @@ CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: /media/bertie-cartwright/External\ 
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -4518,6 +4587,8 @@ CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o: /media/bertie-cartwright/External\ 
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.cpp \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h \
+  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/camera.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/chunk.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/constants.h \
@@ -4721,9 +4792,6 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \
   /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/world.h \
-  /usr/include/GL/gl.h \
-  /usr/include/GL/glew.h \
-  /usr/include/GL/glu.h \
   /usr/include/SDL2/SDL.h \
   /usr/include/SDL2/SDL_assert.h \
   /usr/include/SDL2/SDL_atomic.h \
@@ -5287,8 +5355,6 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /usr/lib/gcc/x86_64-linux-gnu/13/include/avx2intrin.h:
 
-/usr/lib/gcc/x86_64-linux-gnu/13/include/amxtileintrin.h:
-
 /usr/lib/gcc/x86_64-linux-gnu/13/include/amxfp16intrin.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/13/include/amxcomplexintrin.h:
@@ -5310,6 +5376,8 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 /usr/include/c++/13/pstl/glue_algorithm_defs.h:
 
 /usr/include/c++/13/pstl/execution_defs.h:
+
+/usr/include/c++/13/fstream:
 
 /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h:
 
@@ -5465,8 +5533,6 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/vector_bool1.hpp:
 
-/usr/include/GL/gl.h:
-
 /usr/include/c++/13/cstddef:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/vector_float3_precision.hpp:
@@ -5584,6 +5650,10 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/matrix_float3x3.hpp:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/gtc/matrix_transform.inl:
+
+/usr/include/c++/13/chrono:
+
+/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/matrix_double3x2.hpp:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/matrix_double4x4_precision.hpp:
 
@@ -5854,6 +5924,10 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/geometric.hpp:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/mat3x2.hpp:
+
+/usr/lib/gcc/x86_64-linux-gnu/13/include/amxtileintrin.h:
+
+/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/KHR/khrplatform.h:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/compute_vector_relational.hpp:
 
@@ -6149,6 +6223,8 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /usr/include/c++/13/bits/cxxabi_init_exception.h:
 
+/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad/glad.h:
+
 /usr/include/SDL2/SDL_mutex.h:
 
 /usr/include/c++/13/bits/functional_hash.h:
@@ -6349,6 +6425,8 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h:
 
+/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glad.c:
+
 /usr/include/c++/13/bits/nested_exception.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h:
@@ -6379,6 +6457,10 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h:
 
+/usr/include/dlfcn.h:
+
+/usr/include/x86_64-linux-gnu/bits/dlfcn.h:
+
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/indexBuffer.h:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/vector_int2.hpp:
@@ -6386,10 +6468,6 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 /usr/include/c++/13/bits/unordered_map.h:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h:
-
-/usr/include/GL/glew.h:
-
-/usr/include/GL/glu.h:
 
 /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/type_vec1.inl:
 
@@ -6437,8 +6515,6 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 
 /usr/include/SDL2/SDL_mouse.h:
 
-/usr/include/c++/13/fstream:
-
 /usr/lib/gcc/x86_64-linux-gnu/13/include/cetintrin.h:
 
 /usr/include/SDL2/SDL_platform.h:
@@ -6478,7 +6554,3 @@ CMakeFiles/Minecraft.dir/world.cpp.o: /media/bertie-cartwright/External\ 4TB\ HD
 /usr/include/c++/13/bits/fstream.tcc:
 
 /usr/include/c++/13/bits/stl_tempbuf.h:
-
-/media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/ext/matrix_double3x2.hpp:
-
-/usr/include/c++/13/chrono:

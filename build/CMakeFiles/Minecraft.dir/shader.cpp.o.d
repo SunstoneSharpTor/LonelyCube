@@ -351,7 +351,8 @@ CMakeFiles/Minecraft.dir/shader.cpp.o: \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/integer.hpp \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/glm/detail/func_integer.inl \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/renderer.h \
- /usr/include/GL/glew.h /usr/include/GL/glu.h /usr/include/GL/gl.h \
+ /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/./glad/glad.h \
+ /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/./KHR/khrplatform.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexArray.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBuffer.h \
  /media/bertie-cartwright/External\ 4TB\ HDD/sunst/Documents/C++/Minecraft/Minecraft\ VS\ Code/vertexBufferLayout.h \

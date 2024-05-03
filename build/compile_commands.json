@@ -13,6 +13,12 @@
 },
 {
   "directory": "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build",
+  "command": "/usr/bin/gcc  -I\"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/.\" -isystem /usr/include/SDL2 -O3 -DNDEBUG -o CMakeFiles/Minecraft.dir/glad.c.o -c \"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/glad.c\"",
+  "file": "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/glad.c",
+  "output": "CMakeFiles/Minecraft.dir/glad.c.o"
+},
+{
+  "directory": "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build",
   "command": "/usr/bin/g++  -I\"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/.\" -isystem /usr/include/SDL2 -O3 -DNDEBUG -o CMakeFiles/Minecraft.dir/indexBuffer.cpp.o -c \"/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/indexBuffer.cpp\"",
   "file": "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/indexBuffer.cpp",
   "output": "CMakeFiles/Minecraft.dir/indexBuffer.cpp.o"

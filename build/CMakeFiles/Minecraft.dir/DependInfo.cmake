@@ -8,6 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/glad.c" "CMakeFiles/Minecraft.dir/glad.c.o" "gcc" "CMakeFiles/Minecraft.dir/glad.c.o.d"
   "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/camera.cpp" "CMakeFiles/Minecraft.dir/camera.cpp.o" "gcc" "CMakeFiles/Minecraft.dir/camera.cpp.o.d"
   "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/chunk.cpp" "CMakeFiles/Minecraft.dir/chunk.cpp.o" "gcc" "CMakeFiles/Minecraft.dir/chunk.cpp.o.d"
   "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/indexBuffer.cpp" "CMakeFiles/Minecraft.dir/indexBuffer.cpp.o" "gcc" "CMakeFiles/Minecraft.dir/indexBuffer.cpp.o.d"

@@ -1,5 +1,6 @@
 #include <iostream>
-#include <GL/glew.h>
+//#include <GL/glew.h>
+#include <glad/glad.h>
 #include <SDL2/SDL.h>
 #include <fstream>
 #include <string>
@@ -77,7 +78,8 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
 
     mainPlayer->setWorldMouseData(sdl_window, windowDimensions);
 
-    glewInit();
+    //glewInit();
+    gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
     //water shader
     shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
