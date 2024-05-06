@@ -63,7 +63,8 @@ CMAKE_BINARY_DIR = "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C+
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/Minecraft.dir/all
+all: CMakeFiles/client.dir/all
+all: CMakeFiles/server.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -71,34 +72,61 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/Minecraft.dir/clean
+clean: CMakeFiles/client.dir/clean
+clean: CMakeFiles/server.dir/clean
 .PHONY : clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/Minecraft.dir
+# Target rules for target CMakeFiles/client.dir
 
 # All Build rule for target.
-CMakeFiles/Minecraft.dir/all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 "Built target Minecraft"
-.PHONY : CMakeFiles/Minecraft.dir/all
+CMakeFiles/client.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 "Built target client"
+.PHONY : CMakeFiles/client.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/Minecraft.dir/rule: cmake_check_build_system
+CMakeFiles/client.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" 15
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/Minecraft.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/client.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" 0
-.PHONY : CMakeFiles/Minecraft.dir/rule
+.PHONY : CMakeFiles/client.dir/rule
 
 # Convenience name for target.
-Minecraft: CMakeFiles/Minecraft.dir/rule
-.PHONY : Minecraft
+client: CMakeFiles/client.dir/rule
+.PHONY : client
 
 # clean rule for target.
-CMakeFiles/Minecraft.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/clean
-.PHONY : CMakeFiles/Minecraft.dir/clean
+CMakeFiles/client.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/clean
+.PHONY : CMakeFiles/client.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/server.dir
+
+# All Build rule for target.
+CMakeFiles/server.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" --progress-num=16,17 "Built target server"
+.PHONY : CMakeFiles/server.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/server.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/server.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/build/CMakeFiles" 0
+.PHONY : CMakeFiles/server.dir/rule
+
+# Convenience name for target.
+server: CMakeFiles/server.dir/rule
+.PHONY : server
+
+# clean rule for target.
+CMakeFiles/server.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/clean
+.PHONY : CMakeFiles/server.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

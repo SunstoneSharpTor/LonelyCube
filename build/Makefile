@@ -117,353 +117,390 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Minecraft
+# Target rules for targets named client
 
 # Build rule for target.
-Minecraft: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Minecraft
-.PHONY : Minecraft
+client: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 client
+.PHONY : client
 
 # fast build rule for target.
-Minecraft/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/build
-.PHONY : Minecraft/fast
+client/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/build
+.PHONY : client/fast
 
-camera.o: camera.cpp.o
-.PHONY : camera.o
+#=============================================================================
+# Target rules for targets named server
 
-# target to build an object file
-camera.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/camera.cpp.o
-.PHONY : camera.cpp.o
+# Build rule for target.
+server: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 server
+.PHONY : server
 
-camera.i: camera.cpp.i
-.PHONY : camera.i
+# fast build rule for target.
+server/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/build
+.PHONY : server/fast
 
-# target to preprocess a source file
-camera.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/camera.cpp.i
-.PHONY : camera.cpp.i
-
-camera.s: camera.cpp.s
-.PHONY : camera.s
-
-# target to generate assembly for a file
-camera.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/camera.cpp.s
-.PHONY : camera.cpp.s
-
-chunk.o: chunk.cpp.o
-.PHONY : chunk.o
+lib/glad/glad.o: lib/glad/glad.c.o
+.PHONY : lib/glad/glad.o
 
 # target to build an object file
-chunk.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/chunk.cpp.o
-.PHONY : chunk.cpp.o
+lib/glad/glad.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/lib/glad/glad.c.o
+.PHONY : lib/glad/glad.c.o
 
-chunk.i: chunk.cpp.i
-.PHONY : chunk.i
+lib/glad/glad.i: lib/glad/glad.c.i
+.PHONY : lib/glad/glad.i
 
 # target to preprocess a source file
-chunk.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/chunk.cpp.i
-.PHONY : chunk.cpp.i
+lib/glad/glad.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/lib/glad/glad.c.i
+.PHONY : lib/glad/glad.c.i
 
-chunk.s: chunk.cpp.s
-.PHONY : chunk.s
+lib/glad/glad.s: lib/glad/glad.c.s
+.PHONY : lib/glad/glad.s
 
 # target to generate assembly for a file
-chunk.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/chunk.cpp.s
-.PHONY : chunk.cpp.s
+lib/glad/glad.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/lib/glad/glad.c.s
+.PHONY : lib/glad/glad.c.s
 
-glad.o: glad.c.o
-.PHONY : glad.o
+src/client/client.o: src/client/client.cpp.o
+.PHONY : src/client/client.o
 
 # target to build an object file
-glad.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/glad.c.o
-.PHONY : glad.c.o
+src/client/client.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/client/client.cpp.o
+.PHONY : src/client/client.cpp.o
 
-glad.i: glad.c.i
-.PHONY : glad.i
+src/client/client.i: src/client/client.cpp.i
+.PHONY : src/client/client.i
 
 # target to preprocess a source file
-glad.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/glad.c.i
-.PHONY : glad.c.i
+src/client/client.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/client/client.cpp.i
+.PHONY : src/client/client.cpp.i
 
-glad.s: glad.c.s
-.PHONY : glad.s
+src/client/client.s: src/client/client.cpp.s
+.PHONY : src/client/client.s
 
 # target to generate assembly for a file
-glad.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/glad.c.s
-.PHONY : glad.c.s
+src/client/client.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/client/client.cpp.s
+.PHONY : src/client/client.cpp.s
 
-indexBuffer.o: indexBuffer.cpp.o
-.PHONY : indexBuffer.o
+src/core/camera.o: src/core/camera.cpp.o
+.PHONY : src/core/camera.o
 
 # target to build an object file
-indexBuffer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/indexBuffer.cpp.o
-.PHONY : indexBuffer.cpp.o
+src/core/camera.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/camera.cpp.o
+.PHONY : src/core/camera.cpp.o
 
-indexBuffer.i: indexBuffer.cpp.i
-.PHONY : indexBuffer.i
+src/core/camera.i: src/core/camera.cpp.i
+.PHONY : src/core/camera.i
 
 # target to preprocess a source file
-indexBuffer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/indexBuffer.cpp.i
-.PHONY : indexBuffer.cpp.i
+src/core/camera.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/camera.cpp.i
+.PHONY : src/core/camera.cpp.i
 
-indexBuffer.s: indexBuffer.cpp.s
-.PHONY : indexBuffer.s
+src/core/camera.s: src/core/camera.cpp.s
+.PHONY : src/core/camera.s
 
 # target to generate assembly for a file
-indexBuffer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/indexBuffer.cpp.s
-.PHONY : indexBuffer.cpp.s
+src/core/camera.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/camera.cpp.s
+.PHONY : src/core/camera.cpp.s
 
-main.o: main.cpp.o
-.PHONY : main.o
+src/core/chunk.o: src/core/chunk.cpp.o
+.PHONY : src/core/chunk.o
 
 # target to build an object file
-main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/main.cpp.o
-.PHONY : main.cpp.o
+src/core/chunk.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/chunk.cpp.o
+.PHONY : src/core/chunk.cpp.o
 
-main.i: main.cpp.i
-.PHONY : main.i
+src/core/chunk.i: src/core/chunk.cpp.i
+.PHONY : src/core/chunk.i
 
 # target to preprocess a source file
-main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/main.cpp.i
-.PHONY : main.cpp.i
+src/core/chunk.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/chunk.cpp.i
+.PHONY : src/core/chunk.cpp.i
 
-main.s: main.cpp.s
-.PHONY : main.s
+src/core/chunk.s: src/core/chunk.cpp.s
+.PHONY : src/core/chunk.s
 
 # target to generate assembly for a file
-main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/main.cpp.s
-.PHONY : main.cpp.s
+src/core/chunk.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/chunk.cpp.s
+.PHONY : src/core/chunk.cpp.s
 
-player.o: player.cpp.o
-.PHONY : player.o
+src/core/indexBuffer.o: src/core/indexBuffer.cpp.o
+.PHONY : src/core/indexBuffer.o
 
 # target to build an object file
-player.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/player.cpp.o
-.PHONY : player.cpp.o
+src/core/indexBuffer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/indexBuffer.cpp.o
+.PHONY : src/core/indexBuffer.cpp.o
 
-player.i: player.cpp.i
-.PHONY : player.i
+src/core/indexBuffer.i: src/core/indexBuffer.cpp.i
+.PHONY : src/core/indexBuffer.i
 
 # target to preprocess a source file
-player.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/player.cpp.i
-.PHONY : player.cpp.i
+src/core/indexBuffer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/indexBuffer.cpp.i
+.PHONY : src/core/indexBuffer.cpp.i
 
-player.s: player.cpp.s
-.PHONY : player.s
+src/core/indexBuffer.s: src/core/indexBuffer.cpp.s
+.PHONY : src/core/indexBuffer.s
 
 # target to generate assembly for a file
-player.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/player.cpp.s
-.PHONY : player.cpp.s
+src/core/indexBuffer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/indexBuffer.cpp.s
+.PHONY : src/core/indexBuffer.cpp.s
 
-random.o: random.cpp.o
-.PHONY : random.o
+src/core/player.o: src/core/player.cpp.o
+.PHONY : src/core/player.o
 
 # target to build an object file
-random.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.o
-.PHONY : random.cpp.o
+src/core/player.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/player.cpp.o
+.PHONY : src/core/player.cpp.o
 
-random.i: random.cpp.i
-.PHONY : random.i
+src/core/player.i: src/core/player.cpp.i
+.PHONY : src/core/player.i
 
 # target to preprocess a source file
-random.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.i
-.PHONY : random.cpp.i
+src/core/player.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/player.cpp.i
+.PHONY : src/core/player.cpp.i
 
-random.s: random.cpp.s
-.PHONY : random.s
+src/core/player.s: src/core/player.cpp.s
+.PHONY : src/core/player.s
 
 # target to generate assembly for a file
-random.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/random.cpp.s
-.PHONY : random.cpp.s
+src/core/player.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/player.cpp.s
+.PHONY : src/core/player.cpp.s
 
-renderer.o: renderer.cpp.o
-.PHONY : renderer.o
+src/core/random.o: src/core/random.cpp.o
+.PHONY : src/core/random.o
 
 # target to build an object file
-renderer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/renderer.cpp.o
-.PHONY : renderer.cpp.o
+src/core/random.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/random.cpp.o
+.PHONY : src/core/random.cpp.o
 
-renderer.i: renderer.cpp.i
-.PHONY : renderer.i
+src/core/random.i: src/core/random.cpp.i
+.PHONY : src/core/random.i
 
 # target to preprocess a source file
-renderer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/renderer.cpp.i
-.PHONY : renderer.cpp.i
+src/core/random.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/random.cpp.i
+.PHONY : src/core/random.cpp.i
 
-renderer.s: renderer.cpp.s
-.PHONY : renderer.s
+src/core/random.s: src/core/random.cpp.s
+.PHONY : src/core/random.s
 
 # target to generate assembly for a file
-renderer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/renderer.cpp.s
-.PHONY : renderer.cpp.s
+src/core/random.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/random.cpp.s
+.PHONY : src/core/random.cpp.s
 
-shader.o: shader.cpp.o
-.PHONY : shader.o
+src/core/renderer.o: src/core/renderer.cpp.o
+.PHONY : src/core/renderer.o
 
 # target to build an object file
-shader.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/shader.cpp.o
-.PHONY : shader.cpp.o
+src/core/renderer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/renderer.cpp.o
+.PHONY : src/core/renderer.cpp.o
 
-shader.i: shader.cpp.i
-.PHONY : shader.i
+src/core/renderer.i: src/core/renderer.cpp.i
+.PHONY : src/core/renderer.i
 
 # target to preprocess a source file
-shader.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/shader.cpp.i
-.PHONY : shader.cpp.i
+src/core/renderer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/renderer.cpp.i
+.PHONY : src/core/renderer.cpp.i
 
-shader.s: shader.cpp.s
-.PHONY : shader.s
+src/core/renderer.s: src/core/renderer.cpp.s
+.PHONY : src/core/renderer.s
 
 # target to generate assembly for a file
-shader.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/shader.cpp.s
-.PHONY : shader.cpp.s
+src/core/renderer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/renderer.cpp.s
+.PHONY : src/core/renderer.cpp.s
 
-stb_image.o: stb_image.cpp.o
-.PHONY : stb_image.o
+src/core/shader.o: src/core/shader.cpp.o
+.PHONY : src/core/shader.o
 
 # target to build an object file
-stb_image.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/stb_image.cpp.o
-.PHONY : stb_image.cpp.o
+src/core/shader.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/shader.cpp.o
+.PHONY : src/core/shader.cpp.o
 
-stb_image.i: stb_image.cpp.i
-.PHONY : stb_image.i
+src/core/shader.i: src/core/shader.cpp.i
+.PHONY : src/core/shader.i
 
 # target to preprocess a source file
-stb_image.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/stb_image.cpp.i
-.PHONY : stb_image.cpp.i
+src/core/shader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/shader.cpp.i
+.PHONY : src/core/shader.cpp.i
 
-stb_image.s: stb_image.cpp.s
-.PHONY : stb_image.s
+src/core/shader.s: src/core/shader.cpp.s
+.PHONY : src/core/shader.s
 
 # target to generate assembly for a file
-stb_image.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/stb_image.cpp.s
-.PHONY : stb_image.cpp.s
+src/core/shader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/shader.cpp.s
+.PHONY : src/core/shader.cpp.s
 
-texture.o: texture.cpp.o
-.PHONY : texture.o
+src/core/stb_image.o: src/core/stb_image.cpp.o
+.PHONY : src/core/stb_image.o
 
 # target to build an object file
-texture.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/texture.cpp.o
-.PHONY : texture.cpp.o
+src/core/stb_image.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/stb_image.cpp.o
+.PHONY : src/core/stb_image.cpp.o
 
-texture.i: texture.cpp.i
-.PHONY : texture.i
+src/core/stb_image.i: src/core/stb_image.cpp.i
+.PHONY : src/core/stb_image.i
 
 # target to preprocess a source file
-texture.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/texture.cpp.i
-.PHONY : texture.cpp.i
+src/core/stb_image.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/stb_image.cpp.i
+.PHONY : src/core/stb_image.cpp.i
 
-texture.s: texture.cpp.s
-.PHONY : texture.s
+src/core/stb_image.s: src/core/stb_image.cpp.s
+.PHONY : src/core/stb_image.s
 
 # target to generate assembly for a file
-texture.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/texture.cpp.s
-.PHONY : texture.cpp.s
+src/core/stb_image.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/stb_image.cpp.s
+.PHONY : src/core/stb_image.cpp.s
 
-vertexArray.o: vertexArray.cpp.o
-.PHONY : vertexArray.o
+src/core/texture.o: src/core/texture.cpp.o
+.PHONY : src/core/texture.o
 
 # target to build an object file
-vertexArray.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexArray.cpp.o
-.PHONY : vertexArray.cpp.o
+src/core/texture.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/texture.cpp.o
+.PHONY : src/core/texture.cpp.o
 
-vertexArray.i: vertexArray.cpp.i
-.PHONY : vertexArray.i
+src/core/texture.i: src/core/texture.cpp.i
+.PHONY : src/core/texture.i
 
 # target to preprocess a source file
-vertexArray.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexArray.cpp.i
-.PHONY : vertexArray.cpp.i
+src/core/texture.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/texture.cpp.i
+.PHONY : src/core/texture.cpp.i
 
-vertexArray.s: vertexArray.cpp.s
-.PHONY : vertexArray.s
+src/core/texture.s: src/core/texture.cpp.s
+.PHONY : src/core/texture.s
 
 # target to generate assembly for a file
-vertexArray.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexArray.cpp.s
-.PHONY : vertexArray.cpp.s
+src/core/texture.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/texture.cpp.s
+.PHONY : src/core/texture.cpp.s
 
-vertexBuffer.o: vertexBuffer.cpp.o
-.PHONY : vertexBuffer.o
+src/core/vertexArray.o: src/core/vertexArray.cpp.o
+.PHONY : src/core/vertexArray.o
 
 # target to build an object file
-vertexBuffer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexBuffer.cpp.o
-.PHONY : vertexBuffer.cpp.o
+src/core/vertexArray.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexArray.cpp.o
+.PHONY : src/core/vertexArray.cpp.o
 
-vertexBuffer.i: vertexBuffer.cpp.i
-.PHONY : vertexBuffer.i
+src/core/vertexArray.i: src/core/vertexArray.cpp.i
+.PHONY : src/core/vertexArray.i
 
 # target to preprocess a source file
-vertexBuffer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexBuffer.cpp.i
-.PHONY : vertexBuffer.cpp.i
+src/core/vertexArray.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexArray.cpp.i
+.PHONY : src/core/vertexArray.cpp.i
 
-vertexBuffer.s: vertexBuffer.cpp.s
-.PHONY : vertexBuffer.s
+src/core/vertexArray.s: src/core/vertexArray.cpp.s
+.PHONY : src/core/vertexArray.s
 
 # target to generate assembly for a file
-vertexBuffer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/vertexBuffer.cpp.s
-.PHONY : vertexBuffer.cpp.s
+src/core/vertexArray.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexArray.cpp.s
+.PHONY : src/core/vertexArray.cpp.s
 
-world.o: world.cpp.o
-.PHONY : world.o
+src/core/vertexBuffer.o: src/core/vertexBuffer.cpp.o
+.PHONY : src/core/vertexBuffer.o
 
 # target to build an object file
-world.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/world.cpp.o
-.PHONY : world.cpp.o
+src/core/vertexBuffer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexBuffer.cpp.o
+.PHONY : src/core/vertexBuffer.cpp.o
 
-world.i: world.cpp.i
-.PHONY : world.i
+src/core/vertexBuffer.i: src/core/vertexBuffer.cpp.i
+.PHONY : src/core/vertexBuffer.i
 
 # target to preprocess a source file
-world.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/world.cpp.i
-.PHONY : world.cpp.i
+src/core/vertexBuffer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexBuffer.cpp.i
+.PHONY : src/core/vertexBuffer.cpp.i
 
-world.s: world.cpp.s
-.PHONY : world.s
+src/core/vertexBuffer.s: src/core/vertexBuffer.cpp.s
+.PHONY : src/core/vertexBuffer.s
 
 # target to generate assembly for a file
-world.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Minecraft.dir/build.make CMakeFiles/Minecraft.dir/world.cpp.s
-.PHONY : world.cpp.s
+src/core/vertexBuffer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/vertexBuffer.cpp.s
+.PHONY : src/core/vertexBuffer.cpp.s
+
+src/core/world.o: src/core/world.cpp.o
+.PHONY : src/core/world.o
+
+# target to build an object file
+src/core/world.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/world.cpp.o
+.PHONY : src/core/world.cpp.o
+
+src/core/world.i: src/core/world.cpp.i
+.PHONY : src/core/world.i
+
+# target to preprocess a source file
+src/core/world.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/world.cpp.i
+.PHONY : src/core/world.cpp.i
+
+src/core/world.s: src/core/world.cpp.s
+.PHONY : src/core/world.s
+
+# target to generate assembly for a file
+src/core/world.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/client.dir/build.make CMakeFiles/client.dir/src/core/world.cpp.s
+.PHONY : src/core/world.cpp.s
+
+src/server/server.o: src/server/server.cpp.o
+.PHONY : src/server/server.o
+
+# target to build an object file
+src/server/server.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/server/server.cpp.o
+.PHONY : src/server/server.cpp.o
+
+src/server/server.i: src/server/server.cpp.i
+.PHONY : src/server/server.i
+
+# target to preprocess a source file
+src/server/server.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/server/server.cpp.i
+.PHONY : src/server/server.cpp.i
+
+src/server/server.s: src/server/server.cpp.s
+.PHONY : src/server/server.s
+
+# target to generate assembly for a file
+src/server/server.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/server/server.cpp.s
+.PHONY : src/server/server.cpp.s
 
 # Help Target
 help:
@@ -473,49 +510,53 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... Minecraft"
-	@echo "... camera.o"
-	@echo "... camera.i"
-	@echo "... camera.s"
-	@echo "... chunk.o"
-	@echo "... chunk.i"
-	@echo "... chunk.s"
-	@echo "... glad.o"
-	@echo "... glad.i"
-	@echo "... glad.s"
-	@echo "... indexBuffer.o"
-	@echo "... indexBuffer.i"
-	@echo "... indexBuffer.s"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
-	@echo "... player.o"
-	@echo "... player.i"
-	@echo "... player.s"
-	@echo "... random.o"
-	@echo "... random.i"
-	@echo "... random.s"
-	@echo "... renderer.o"
-	@echo "... renderer.i"
-	@echo "... renderer.s"
-	@echo "... shader.o"
-	@echo "... shader.i"
-	@echo "... shader.s"
-	@echo "... stb_image.o"
-	@echo "... stb_image.i"
-	@echo "... stb_image.s"
-	@echo "... texture.o"
-	@echo "... texture.i"
-	@echo "... texture.s"
-	@echo "... vertexArray.o"
-	@echo "... vertexArray.i"
-	@echo "... vertexArray.s"
-	@echo "... vertexBuffer.o"
-	@echo "... vertexBuffer.i"
-	@echo "... vertexBuffer.s"
-	@echo "... world.o"
-	@echo "... world.i"
-	@echo "... world.s"
+	@echo "... client"
+	@echo "... server"
+	@echo "... lib/glad/glad.o"
+	@echo "... lib/glad/glad.i"
+	@echo "... lib/glad/glad.s"
+	@echo "... src/client/client.o"
+	@echo "... src/client/client.i"
+	@echo "... src/client/client.s"
+	@echo "... src/core/camera.o"
+	@echo "... src/core/camera.i"
+	@echo "... src/core/camera.s"
+	@echo "... src/core/chunk.o"
+	@echo "... src/core/chunk.i"
+	@echo "... src/core/chunk.s"
+	@echo "... src/core/indexBuffer.o"
+	@echo "... src/core/indexBuffer.i"
+	@echo "... src/core/indexBuffer.s"
+	@echo "... src/core/player.o"
+	@echo "... src/core/player.i"
+	@echo "... src/core/player.s"
+	@echo "... src/core/random.o"
+	@echo "... src/core/random.i"
+	@echo "... src/core/random.s"
+	@echo "... src/core/renderer.o"
+	@echo "... src/core/renderer.i"
+	@echo "... src/core/renderer.s"
+	@echo "... src/core/shader.o"
+	@echo "... src/core/shader.i"
+	@echo "... src/core/shader.s"
+	@echo "... src/core/stb_image.o"
+	@echo "... src/core/stb_image.i"
+	@echo "... src/core/stb_image.s"
+	@echo "... src/core/texture.o"
+	@echo "... src/core/texture.i"
+	@echo "... src/core/texture.s"
+	@echo "... src/core/vertexArray.o"
+	@echo "... src/core/vertexArray.i"
+	@echo "... src/core/vertexArray.s"
+	@echo "... src/core/vertexBuffer.o"
+	@echo "... src/core/vertexBuffer.i"
+	@echo "... src/core/vertexBuffer.s"
+	@echo "... src/core/world.o"
+	@echo "... src/core/world.i"
+	@echo "... src/core/world.s"
+	@echo "... src/server/server.o"
+	@echo "... src/server/server.i"
+	@echo "... src/server/server.s"
 .PHONY : help
 
 

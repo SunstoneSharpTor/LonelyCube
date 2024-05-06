@@ -1,0 +1,1 @@
+/usr/bin/g++ -O3 -DNDEBUG CMakeFiles/server.dir/src/server/server.cpp.o -o "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/bin/Linux/Release/server" 
