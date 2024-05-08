@@ -1,1 +1,1 @@
-/usr/bin/g++ -O3 -DNDEBUG CMakeFiles/server.dir/src/server/server.cpp.o -o "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/bin/Linux/Release/server" 
+/usr/bin/g++ -O3 -DNDEBUG CMakeFiles/server.dir/src/server/server.cpp.o -o "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/bin/Linux/Release/server"  /usr/lib/x86_64-linux-gnu/libSDL2.so "/media/bertie-cartwright/External 4TB HDD/sunst/Documents/C++/Minecraft/Minecraft VS Code/lib/enet-1.3.18/libenet.a" 

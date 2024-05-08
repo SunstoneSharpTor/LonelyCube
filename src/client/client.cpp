@@ -1,7 +1,7 @@
 #include <iostream>
-//#include <GL/glew.h>
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
+#include <enet/enet.h>
 #include <fstream>
 #include <string>
 #include <sstream>

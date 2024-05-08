@@ -7,10 +7,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${FullOutputDir}/static_libs")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
 
-include_directories(. ./src/core ./src/client ./lib)
-
 find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+
+include_directories(. ./src/core ./src/client ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include)
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
@@ -35,7 +34,14 @@ set(SERVER_SOURCE_FILES
     src/server/server.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
+target_link_libraries(server ${SDL2_LIBRARIES})
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
+
+    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib)
+    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib)
+elseif (UNIX)
+    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
+    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
 endif(MINGW)
