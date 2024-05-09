@@ -551,12 +551,12 @@ int chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int siz
 	float riversHeight = -6.0f / (1.0f + 1000000.0f * m_riversNoise * m_riversNoise * m_riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
 
 	//scale the peaks and valleys location noise to be an S-shape and between the values of 0 and 1.4
-	//using equation -1 / (x^n + 1) + 1
-	m_peaksAndValleysLocation = -1.4f / ((m_peaksAndValleysLocation + 1.1f) * (m_peaksAndValleysLocation + 1.1f) + 1.0f) + 1.4f;
+	//using equation -1 / (mx^n + 1) + 1
+	m_peaksAndValleysLocation = -1.5f / (1.4 * (m_peaksAndValleysLocation + 1.35f) * (m_peaksAndValleysLocation + 1.35f) + 1.0f) + 1.5f;
 	//scale the peaks and valleys location to be higher near coasts so that mountains can still generate near coasts
 	m_peaksAndValleysLocation *= (std::pow(std::abs(m_continentalness / 1.5f), 0.01f) * m_continentalness + 0.6f) / 1.6f;
 	//scale the peaks and valleys height based on the peaks and valleys location noise
-	m_peaksAndValleysHeight += 96.0f; //promotes all areas with high peaks and valleys to have a high y-value
+	m_peaksAndValleysHeight += 80.0f; //promotes all areas with high peaks and valleys to have a high y-value
 	m_peaksAndValleysHeight *= m_peaksAndValleysLocation;
 
 	// //calculate the height of the smooth noise by having it higher when peaks and valleys height is lower.

@@ -319,6 +319,38 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
 }
 
 int main(int argc, char* argv[]) {
+    if (enet_initialize() != 0) {
+        return EXIT_FAILURE;
+    }
+    atexit(enet_deinitialize);
+    
+    ENetHost* client;
+    client = enet_host_create(NULL, 1, 1, 0, 0);
+
+    if (client == NULL) {
+        return EXIT_FAILURE;
+    }
+
+    ENetAddress address;
+    ENetEvent event;
+    ENetPeer* peer;
+
+    enet_address_set_host(&address, "127.0.0.1");
+    address.port = 7777;
+
+    peer = enet_host_connect(client, &address, 1, 0);
+    if (peer == NULL) {
+        return EXIT_FAILURE;
+    }
+
+    if ((enet_host_service(client, &event, 5000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
+        std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
+    }
+    else {
+        enet_peer_reset(peer);
+        std::cout << "Connection to 127.0.0.1 failed." << std::endl;
+    }
+
     unsigned int worldSeed = std::time(0);
     world mainWorld(32, worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
@@ -349,6 +381,19 @@ int main(int argc, char* argv[]) {
     renderWorker.join();
 
     delete chunkLoaderThreadsRunning;
+
+    enet_peer_disconnect(peer, 0);
+
+    while (enet_host_service(client, &event, 3000) > 0) {
+        switch (event.type) {
+            case ENET_EVENT_TYPE_RECEIVE:
+            enet_packet_destroy(event.packet);
+            break;
+            case ENET_EVENT_TYPE_DISCONNECT:
+            std::cout << "Disconnection succeeded!" << std::endl;
+            break;
+        }
+    }
 
     return 0;
 }
