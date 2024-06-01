@@ -391,7 +391,7 @@ void chunk::generateTerrain() {
 const int chunk::s_PV_NUM_OCTAVES = 5;
 const int chunk::s_CONTINENTALNESS_NUM_OCTAVES = 7;
 const int chunk::s_PVLOC_NUM_OCTAVES = 2;
-const int chunk::s_RIVERS_NUM_OCTAVES = 2;
+const int chunk::s_RIVERS_NUM_OCTAVES = 5;
 const int chunk::s_RIVER_BUMPS_NUM_OCTAVES = 2;
 const float chunk::s_PV_SCALE = 576.0f;
 const float chunk::s_PV_HEIGHT = 128.0f;
@@ -512,7 +512,7 @@ int chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int siz
 	//calculate the height of the cliff noise
 	const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
 	const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
-	const float cliffHeight = 0.6f; //the new value of continentalness that the tops of cliffs will be set to
+	const float cliffHeight = 0.5f; //the new value of continentalness that the tops of cliffs will be set to
 	const float cliffDepth = -0.7f; //the new value of continentalness that the bases of cliffs will be set to
 	float cliffContinentalness;
 	//use the y = mx + c formula to transform the original continentalness value to the cliffs value
