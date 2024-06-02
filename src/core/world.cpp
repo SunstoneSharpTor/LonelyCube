@@ -377,7 +377,7 @@ void world::loadChunksAroundPlayer(char threadNum) {
     }
     else {
         m_accessingArrIndicesVectorsMtx.unlock();
-        std::this_thread::sleep_for(std::operator""us(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(4));
         //build the meshes for any chunks that now have all thier neighbours
         //this is something that can be done at any time, but I am doing it here to increase fluidity of chunk loading
         buildMeshesForNewChunksWithNeighbours(threadNum);
