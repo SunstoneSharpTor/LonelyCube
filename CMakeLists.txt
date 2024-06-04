@@ -39,8 +39,10 @@ target_link_libraries(server ${SDL2_LIBRARIES})
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib)
-    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib)
+    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
+                                 winmm ws2_32)
+    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
+                                 winmm ws2_32)
 elseif (UNIX)
     target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
     target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)

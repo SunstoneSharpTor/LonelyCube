@@ -9,7 +9,8 @@
 #include <random>
 #include <algorithm>
 
-bool chunkMeshUploaded[4] = { false, false, false, false };
+bool chunkMeshUploaded[8] = { false, false, false, false,
+                              false, false, false, false };
 bool relableCompleted = false;
 
 world::world(unsigned short renderDistance, unsigned long long seed) {
@@ -65,7 +66,7 @@ world::world(unsigned short renderDistance, unsigned long long seed) {
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkLoadingThreads = std::thread::hardware_concurrency() - 1;
+    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
     if (!m_numChunkLoadingThreads) {
         m_numChunkLoadingThreads = 1;
     }
