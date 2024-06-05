@@ -158,8 +158,22 @@ void player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
         }
         //keyboard input
         if (m_keyboardState[SDL_SCANCODE_W]) {
+            if (m_keyboardState[SDL_SCANCODE_A] != m_keyboardState[SDL_SCANCODE_D]) {
+                float fac;
+                if (sprint) {
+                    fac = sprintSpeed / std::sqrt(sprintSpeed * sprintSpeed + movementSpeed * movementSpeed);
+                }
+                else {
+                    fac = 0.707107f;
+                }
+                sprintSpeed *= fac;
+                movementSpeed *= fac;
+            }
             force -= sprintSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
         } if (m_keyboardState[SDL_SCANCODE_S]) {
+            if (m_keyboardState[SDL_SCANCODE_A] != m_keyboardState[SDL_SCANCODE_D]) {
+                movementSpeed *= 0.707107f;
+            }
             force += movementSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
         } if (m_keyboardState[SDL_SCANCODE_A]) {
             force -= movementSpeed * viewCamera.right;
