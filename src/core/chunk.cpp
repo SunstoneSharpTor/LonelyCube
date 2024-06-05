@@ -9,10 +9,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/noise.hpp"
 
-std::mutex chunk::s_checkingNeighbouringRelights;
+std::mutex Chunk::s_checkingNeighbouringRelights;
 
 //define the face positions constant:
-const float chunk::m_cubeTextureCoordinates[48] = { 0, 0,
+const float Chunk::m_cubeTextureCoordinates[48] = { 0, 0,
 													1, 0,
 													1, 1,
 													0, 1,
@@ -42,7 +42,7 @@ const float chunk::m_cubeTextureCoordinates[48] = { 0, 0,
 													1, 1,
 													0, 1 };
 
-const float chunk::m_xTextureCoordinates[32] = { 0, 0,
+const float Chunk::m_xTextureCoordinates[32] = { 0, 0,
 												 1, 0,
 												 1, 1,
 												 0, 1,
@@ -62,7 +62,7 @@ const float chunk::m_xTextureCoordinates[32] = { 0, 0,
 												 1, 1,
 												 0, 1 };
 
-const short chunk::m_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
+const short Chunk::m_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
 												 0, 0, 0, 0, 0, 0, //dirt
 												 2, 2, 2, 2, 0, 1, //grass
 												 3, 3, 3, 3, 3, 3, //stone
@@ -72,45 +72,45 @@ const short chunk::m_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
 												 39, 39, 39, 39, 39, 39 //tall grass
 												 };
 
-const short chunk::m_neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
+const short Chunk::m_neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
-const short chunk::m_neighbouringBlocksX[6] = { 0, 0, -1, 1, 0, 0 };
+const short Chunk::m_neighbouringBlocksX[6] = { 0, 0, -1, 1, 0, 0 };
 
-const short chunk::m_neighbouringBlocksY[6] = { -1, 0, 0, 0, 0, 1 };
+const short Chunk::m_neighbouringBlocksY[6] = { -1, 0, 0, 0, 0, 1 };
 
-const short chunk::m_neighbouringBlocksZ[6] = { 0, -1, 0, 0, 1, 0 };
+const short Chunk::m_neighbouringBlocksZ[6] = { 0, -1, 0, 0, 1, 0 };
 
-const int chunk::m_neighbouringChunkBlockOffsets[6] = { constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE - 1, -(constants::CHUNK_SIZE - 1), -(constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) };
+const int Chunk::m_neighbouringChunkBlockOffsets[6] = { constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE - 1, -(constants::CHUNK_SIZE - 1), -(constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) };
 
-const short chunk::m_adjacentBlocksToFaceOffests[48] = { -1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + 1, 1, 1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE - 1, -1,
+const short Chunk::m_adjacentBlocksToFaceOffests[48] = { -1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + 1, 1, 1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE - 1, -1,
 														  1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - 1, -1, -1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1, 1,
 														  -constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - constants::CHUNK_SIZE, -constants::CHUNK_SIZE,
 														  constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + constants::CHUNK_SIZE, constants::CHUNK_SIZE,
 														  -1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + 1, 1, 1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - 1, -1,
 														  -1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + 1, 1, 1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE - 1, -1 };
 
-const short chunk::m_adjacentBlocksToFaceOffestsX[48] = { -1, 0, 1, 1, 1, 0, -1, -1,
+const short Chunk::m_adjacentBlocksToFaceOffestsX[48] = { -1, 0, 1, 1, 1, 0, -1, -1,
 														  1, 0, -1, -1, -1, 0, 1, 1,
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  -1, 0, 1, 1, 1, 0, -1, -1,
 														  -1, 0, 1, 1, 1, 0, -1, -1 };
 
-const short chunk::m_adjacentBlocksToFaceOffestsY[48] = { 0, 0, 0, 0, 0, 0, 0, 0,
+const short Chunk::m_adjacentBlocksToFaceOffestsY[48] = { 0, 0, 0, 0, 0, 0, 0, 0,
 														  -1, -1, -1, 0, 1, 1, 1, 0,
 														  -1, -1, -1, 0, 1, 1, 1, 0,
 														  -1, -1, -1, 0, 1, 1, 1, 0,
 														  -1, -1, -1, 0, 1, 1, 1, 0,
 														  0, 0, 0, 0, 0, 0, 0, 0 };
 
-const short chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1, 0,
+const short Chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1, 0,
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  -1, 0, 1, 1, 1, 0, -1, -1,
 														  1, 0, -1, -1, -1, 0, 1, 1,
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  1, 1, 1, 0, -1, -1, -1, 0 };
 
-chunk::chunk(int x, int y, int z, worldInfo wio) {
+Chunk::Chunk(int x, int y, int z, WorldInfo wio) {
 	inUse = true;
 	m_singleBlockType = false;
 	m_singleSkyLightVal = false;
@@ -127,7 +127,7 @@ chunk::chunk(int x, int y, int z, worldInfo wio) {
 	generateTerrain();
 }
 
-chunk::chunk(worldInfo wio) {
+Chunk::Chunk(WorldInfo wio) {
 	inUse = false;
 	m_singleBlockType = false;
 	m_singleSkyLightVal = false;
@@ -143,13 +143,13 @@ chunk::chunk(worldInfo wio) {
 	m_position[2] = 0;
 }
 
-chunk::chunk() {
+Chunk::Chunk() {
 	inUse = false;
 	m_singleBlockType = false;
 	m_singleSkyLightVal = false;
 	m_skyLightUpToDate = false;
 	m_calculatingSkylight = false;
-	m_worldInfo = worldInfo();
+	m_worldInfo = WorldInfo();
 
 	m_blocks = new unsigned char[0];
 	m_skyLight = new unsigned char[0];
@@ -159,7 +159,7 @@ chunk::chunk() {
 	m_position[2] = 0;
 }
 
-void chunk::recreate(int x, int y, int z) {
+void Chunk::recreate(int x, int y, int z) {
 	inUse = true;
 	m_singleBlockType = false;
 	m_singleSkyLightVal = false;
@@ -175,11 +175,11 @@ void chunk::recreate(int x, int y, int z) {
 	generateTerrain();
 }
 
-void chunk::setWorldInfo(worldInfo wio) {
+void Chunk::setWorldInfo(WorldInfo wio) {
 	m_worldInfo = wio;
 }
 
-void chunk::generateTerrain() {
+void Chunk::generateTerrain() {
 	m_skyLightUpToDate = false;
 	for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE; blockNum++) {
 		m_blocks[blockNum] = 0;
@@ -388,16 +388,16 @@ void chunk::generateTerrain() {
 }
 
 //define world generation constants
-const int chunk::s_PV_NUM_OCTAVES = 5;
-const int chunk::s_CONTINENTALNESS_NUM_OCTAVES = 7;
-const int chunk::s_PVLOC_NUM_OCTAVES = 2;
-const int chunk::s_RIVERS_NUM_OCTAVES = 5;
-const int chunk::s_RIVER_BUMPS_NUM_OCTAVES = 2;
-const float chunk::s_PV_SCALE = 576.0f;
-const float chunk::s_PV_HEIGHT = 128.0f;
-const float chunk::s_RIVER_BUMPS_HEIGHT = 1.5f;
+const int Chunk::s_PV_NUM_OCTAVES = 5;
+const int Chunk::s_CONTINENTALNESS_NUM_OCTAVES = 7;
+const int Chunk::s_PVLOC_NUM_OCTAVES = 2;
+const int Chunk::s_RIVERS_NUM_OCTAVES = 5;
+const int Chunk::s_RIVER_BUMPS_NUM_OCTAVES = 2;
+const float Chunk::s_PV_SCALE = 576.0f;
+const float Chunk::s_PV_HEIGHT = 128.0f;
+const float Chunk::s_RIVER_BUMPS_HEIGHT = 1.5f;
 
-void chunk::calculateAllHeightMapNoise(int minX, int minZ, int size) {
+void Chunk::calculateAllHeightMapNoise(int minX, int minZ, int size) {
 	//calculate the noise values for each position in the grid and for each octave for peaks and valleys
 	const int PV_noiseGridSize = size + 1;
 	for (int z = 0; z < PV_noiseGridSize; z++) {
@@ -424,7 +424,7 @@ void chunk::calculateAllHeightMapNoise(int minX, int minZ, int size) {
 	calculateFractalNoiseOctaves(m_RIVER_BUMPS_n, minX, minZ, size, s_RIVER_BUMPS_NUM_OCTAVES, 32.0f);
 }
 
-int chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int size) {
+int Chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int size) {
 	//sum the peaks and valleys noises (including gradient trick)
 	int PV_noiseGridSize = size + 1;
 	int noiseGridIndex = z * PV_noiseGridSize + x;
@@ -576,7 +576,7 @@ int chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int siz
 	return nonRiverHeight * riverErrosion + riversHeight;
 }
 
-void chunk::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale) {
+void Chunk::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale) {
 	for (int z = 0; z < size; z++) {
 		for (int x = 0; x < size; x++) {
 			int noiseGridIndex = z * size + x;
@@ -589,7 +589,7 @@ void chunk::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, 
 	}
 }
 
-void chunk::findBlockCoordsInWorld(int* blockPos, unsigned int block) {
+void Chunk::findBlockCoordsInWorld(int* blockPos, unsigned int block) {
 	int chunkCoords[3];
 	getChunkPosition(chunkCoords);
 	blockPos[0] = block % constants::CHUNK_SIZE + chunkCoords[0] * constants::CHUNK_SIZE;
@@ -597,19 +597,19 @@ void chunk::findBlockCoordsInWorld(int* blockPos, unsigned int block) {
 	blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
 }
 
-void chunk::findBlockCoordsInChunk(float* blockPos, unsigned int block) {
+void Chunk::findBlockCoordsInChunk(float* blockPos, unsigned int block) {
 	blockPos[0] = block % constants::CHUNK_SIZE;
 	blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
 	blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
 }
 
-void chunk::findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block) {
+void Chunk::findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block) {
 	blockPos[0] = block % constants::CHUNK_SIZE;
 	blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
 	blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
 }
 
-void chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock) {
+void Chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock) {
 	float blockPos[3];
 	int neighbouringBlockPos[3];
 	findBlockCoordsInChunk(blockPos, block);
@@ -835,7 +835,7 @@ void chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned i
 	}
 }
 
-void chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices) {
+void Chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices) {
 	if (!m_skyLightUpToDate) {
 		bool neighbouringChunksToRelight[6];
 		s_checkingNeighbouringRelights.lock();
@@ -908,7 +908,7 @@ void chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* 
 	}
 }
 
-void chunk::getTextureCoordinates(float* coords, short textureNum) {
+void Chunk::getTextureCoordinates(float* coords, short textureNum) {
 	coords[0] = textureNum % 227 * 0.00439453125f + 0.000244140625f;
 	coords[1] = 0.9956054688f - (textureNum / 227 * 0.00439453125f) + 0.000244140625f;
 	coords[2] = coords[0] + 0.00390625f;
@@ -919,13 +919,13 @@ void chunk::getTextureCoordinates(float* coords, short textureNum) {
 	coords[7] = coords[5];
 }
 
-void chunk::getChunkPosition(int* coordinates) {
+void Chunk::getChunkPosition(int* coordinates) {
 	for (char i = 0; i < 3; i++) {
 		coordinates[i] = m_position[i];
 	}
 }
 
-void chunk::unload() {
+void Chunk::unload() {
 	inUse = false;
 
 	delete[] m_blocks;
@@ -934,11 +934,11 @@ void chunk::unload() {
 	m_skyLight = new unsigned char[0];
 }
 
-unsigned int chunk::getBlockNumber(unsigned int* blockCoords) {
+unsigned int Chunk::getBlockNumber(unsigned int* blockCoords) {
 	return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
 }
 
-void chunk::setBlock(unsigned int block, unsigned short blockType) {
+void Chunk::setBlock(unsigned int block, unsigned short blockType) {
 	if (m_singleBlockType) {
 		unsigned char* tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
 		for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
@@ -953,7 +953,7 @@ void chunk::setBlock(unsigned int block, unsigned short blockType) {
 	setSkyLight(block, 0 * !(constants::castsShadows[blockType]));
 }
 
-unsigned char chunk::getWorldBlock(int* blockCoords) {
+unsigned char Chunk::getWorldBlock(int* blockCoords) {
 	int chunkCoords[3];
 	unsigned int blockPosInChunk[3];
 	for (unsigned char i = 0; i < 3; i++) {
@@ -977,7 +977,7 @@ unsigned char chunk::getWorldBlock(int* blockCoords) {
 	return m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getBlock(blockNumber);
 }
 
-unsigned char chunk::getWorldSkyLight(int* blockCoords) {
+unsigned char Chunk::getWorldSkyLight(int* blockCoords) {
 	int chunkCoords[3];
 	unsigned int blockPosInChunk[3];
 	for (unsigned char i = 0; i < 3; i++) {
@@ -1001,14 +1001,14 @@ unsigned char chunk::getWorldSkyLight(int* blockCoords) {
 	return m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getSkyLight(blockNumber);
 }
 
-void chunk::clearSkyLight() {
+void Chunk::clearSkyLight() {
 	//reset all sky light values in the chunk to 0
 	for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
 		m_skyLight[blockNum] = 0;
 	}
 }
 
-void chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neighbouringChunksToBeRelit) {
+void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neighbouringChunksToBeRelit) {
 	if (!m_calculatingSkylight) {
 		s_checkingNeighbouringRelights.lock();
 		bool neighbourBeingRelit = true;

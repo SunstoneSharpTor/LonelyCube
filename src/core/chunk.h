@@ -6,10 +6,10 @@
 
 #include "constants.h"
 
-class chunk;
+class Chunk;
 
-struct worldInfo {
-	chunk* worldChunks;
+struct WorldInfo {
+	Chunk* worldChunks;
 	unsigned int* chunkArrayIndices;
 	int* playerChunkPosition;
 	unsigned int renderDistance;
@@ -18,7 +18,7 @@ struct worldInfo {
 	unsigned long long seed;
 };
 
-class chunk {
+class Chunk {
 private:
 	unsigned char* m_blocks;
 	unsigned char* m_skyLight;
@@ -26,7 +26,7 @@ private:
 	bool m_singleSkyLightVal;
 	bool m_skyLightUpToDate;
 	int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
-	worldInfo m_worldInfo;
+	WorldInfo m_worldInfo;
 	bool m_calculatingSkylight;
 	std::mutex m_accessingSkylightMtx;
 	std::condition_variable m_accessingSkylightCV;
@@ -109,15 +109,15 @@ private:
 public:
 	bool inUse;
 
-	chunk(int x, int y, int z, worldInfo wio);
+	Chunk(int x, int y, int z, WorldInfo wio);
 
-	chunk(worldInfo wio);
+	Chunk(WorldInfo wio);
 
-	chunk();
+	Chunk();
 
 	void recreate(int x, int y, int z);
 
-	void setWorldInfo(worldInfo wio);
+	void setWorldInfo(WorldInfo wio);
 
 	void generateTerrain();
 

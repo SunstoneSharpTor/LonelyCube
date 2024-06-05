@@ -5,7 +5,7 @@
 #include "world.h"
 #include "camera.h"
 
-class player {
+class Player {
 private:
     static const float m_hitBoxCorners[36];
     static const int m_directions[18];
@@ -47,15 +47,15 @@ private:
     
     bool intersectingBlock(int* blockPos);
 public:
-    world* m_world;
+    World* m_world;
 
-	camera viewCamera;
+	Camera viewCamera;
     int cameraBlockPosition[3];
     bool zoom;
 
     unsigned short m_blockHolding;
 
-    player(int* position, world* mainWorld);
+    Player(int* position, World* mainWorld);
 
     void setWorldMouseData(SDL_Window* window, int* windowDimensions);
 

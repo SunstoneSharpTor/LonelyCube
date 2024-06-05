@@ -10,14 +10,14 @@ struct shaderProgramSources {
 	std::string fragmentSource;
 };
 
-class shader {
+class Shader {
 private:
 	std::string m_vertexFilePath, m_fragmentFilePath;
 	unsigned int m_rendererID;
 	std::unordered_map<std::string, int> m_uniformLocationCache;
 public:
-	shader(const std::string& vertexFilePath, const std::string& fragmantFilePath);
-	~shader();
+	Shader(const std::string& vertexFilePath, const std::string& fragmantFilePath);
+	~Shader();
 
 	void bind() const;
 	void unbind() const;

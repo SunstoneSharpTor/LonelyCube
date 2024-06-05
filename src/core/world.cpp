@@ -13,7 +13,7 @@ bool chunkMeshUploaded[8] = { false, false, false, false,
                               false, false, false, false };
 bool relableCompleted = false;
 
-world::world(unsigned short renderDistance, unsigned long long seed) {
+World::World(unsigned short renderDistance, unsigned long long seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -48,12 +48,12 @@ world::world(unsigned short renderDistance, unsigned long long seed) {
     m_chunkArrayIndices = new unsigned int[m_numChunks];
     m_meshUpdates = new bool[m_numChunks];
 
-    m_emptyIndexBuffer = new indexBuffer();
-    m_emptyVertexBuffer = new vertexBuffer();
-    m_emptyVertexArray = new vertexArray(true);
+    m_emptyIndexBuffer = new IndexBuffer();
+    m_emptyVertexBuffer = new VertexBuffer();
+    m_emptyVertexArray = new VertexArray(true);
 
     //create space for chunks on the heap so the memory does not have to be allocated during gameplay
-    m_chunks = new chunk[m_numActualChunks];
+    m_chunks = new Chunk[m_numActualChunks];
 
     m_worldInfo.worldChunks = m_chunks;
     m_worldInfo.chunkArrayIndices = m_chunkArrayIndices;
@@ -147,14 +147,14 @@ world::world(unsigned short renderDistance, unsigned long long seed) {
     m_neighbouringChunkIncludingDiaganalOffsets[26] = (m_renderDiameter * m_renderDiameter) + m_renderDiameter + 1;
 }
 
-void world::renderChunks(renderer mainRenderer, shader& blockShader, shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
+void World::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
     if (m_chunkIndexBuffers.size() != m_meshedChunkArrayIndices.size()) {
         std::cout << "bad\n";
     }
     //else {
     //    cout << "good\n";
     //}
-    frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
+    Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     int chunkPosition[3];
     float chunkCoordinates[3];
@@ -246,7 +246,7 @@ void world::renderChunks(renderer mainRenderer, shader& blockShader, shader& wat
     m_renderingFrame = false;
 }
 
-void world::doRenderThreadJobs() {
+void World::doRenderThreadJobs() {
     relableChunksIfNeeded();
     for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
@@ -267,13 +267,13 @@ void world::doRenderThreadJobs() {
     }
 }
 
-void world::updatePlayerPos(float playerX, float playerY, float playerZ) {
+void World::updatePlayerPos(float playerX, float playerY, float playerZ) {
     m_newPlayerChunkPosition[0] = floor((playerX) / static_cast<float>(constants::CHUNK_SIZE));
     m_newPlayerChunkPosition[1] = floor((playerY) / static_cast<float>(constants::CHUNK_SIZE));
     m_newPlayerChunkPosition[2] = floor((playerZ) / static_cast<float>(constants::CHUNK_SIZE));
 }
 
-void world::relableChunksIfNeeded() {
+void World::relableChunksIfNeeded() {
     if (!m_relableNeeded) {
         bool relableNeeded = !((m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
             && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
@@ -300,7 +300,7 @@ void world::relableChunksIfNeeded() {
     }
 }
 
-unsigned int world::getChunkNumber(int* chunkCoords, int* playerChunkCoords) {
+unsigned int World::getChunkNumber(int* chunkCoords, int* playerChunkCoords) {
     int adjustedChunkCoords[3];
     for (unsigned char i = 0; i < 3; i++) {
         adjustedChunkCoords[i] = chunkCoords[i] - playerChunkCoords[i] + m_renderDistance;
@@ -313,7 +313,7 @@ unsigned int world::getChunkNumber(int* chunkCoords, int* playerChunkCoords) {
     return chunkNumber;
 }
 
-void world::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerChunkCoords) {
+void World::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerChunkCoords) {
     int adjustedChunkCoords[3];
     adjustedChunkCoords[0] = chunkNumber % m_renderDiameter;
     adjustedChunkCoords[1] = chunkNumber / (m_renderDiameter * m_renderDiameter);
@@ -324,7 +324,7 @@ void world::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* play
     }
 }
 
-void world::loadChunksAroundPlayer(char threadNum) {
+void World::loadChunksAroundPlayer(char threadNum) {
     if (m_relableNeeded && (m_numMeshUpdates == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -385,7 +385,7 @@ void world::loadChunksAroundPlayer(char threadNum) {
     }
 }
 
-void world::unloadAndRelableChunks() {
+void World::unloadAndRelableChunks() {
     //unload any meshes and chunks that are out of render distance
     int chunkCoords[3];
     float distance;
@@ -462,7 +462,7 @@ void world::unloadAndRelableChunks() {
     }
 }
 
-bool world::chunkHasNeighbours(unsigned int chunkArrayIndex) {
+bool World::chunkHasNeighbours(unsigned int chunkArrayIndex) {
     int chunkPosition[3];
     m_chunks[chunkArrayIndex].getChunkPosition(chunkPosition);
     
@@ -483,7 +483,7 @@ bool world::chunkHasNeighbours(unsigned int chunkArrayIndex) {
     return true;
 }
 
-void world::loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threadNum) {
+void World::loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threadNum) {
     unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
     m_chunkArrayIndices[chunkNumber] = chunkArrayIndex;
 
@@ -502,7 +502,7 @@ void world::loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threa
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-void world::unloadChunk(unsigned int chunkVectorIndex) {
+void World::unloadChunk(unsigned int chunkVectorIndex) {
     //set the chunk to be unloaded in the array of loaded chunks
     int chunkCoords[3];
     m_chunks[m_unmeshedChunkArrayIndices[chunkVectorIndex]].getChunkPosition(chunkCoords);
@@ -515,34 +515,34 @@ void world::unloadChunk(unsigned int chunkVectorIndex) {
     m_unmeshedChunkArrayIndices.erase(it);
 }
 
-void world::unloadMesh(unsigned int chunkVectorIndex) {
+void World::unloadMesh(unsigned int chunkVectorIndex) {
     m_unmeshedChunkArrayIndices.push_back(m_meshedChunkArrayIndices[chunkVectorIndex]);
 
     std::vector<unsigned int>::iterator it1 = m_meshedChunkArrayIndices.begin() + chunkVectorIndex;
     m_meshedChunkArrayIndices.erase(it1);
 
     if (m_chunkIndexBuffers[chunkVectorIndex]->getCount() > 0) {
-        m_chunkVertexArrays[chunkVectorIndex]->~vertexArray();
+        m_chunkVertexArrays[chunkVectorIndex]->~VertexArray();
         delete m_chunkVertexArrays[chunkVectorIndex];
-        m_chunkVertexBuffers[chunkVectorIndex]->~vertexBuffer();
+        m_chunkVertexBuffers[chunkVectorIndex]->~VertexBuffer();
         delete m_chunkVertexBuffers[chunkVectorIndex];
-        m_chunkIndexBuffers[chunkVectorIndex]->~indexBuffer();
+        m_chunkIndexBuffers[chunkVectorIndex]->~IndexBuffer();
         delete m_chunkIndexBuffers[chunkVectorIndex];
     }
 
-    std::vector<vertexArray*>::iterator it2 = m_chunkVertexArrays.begin() + chunkVectorIndex;
+    std::vector<VertexArray*>::iterator it2 = m_chunkVertexArrays.begin() + chunkVectorIndex;
     m_chunkVertexArrays.erase(it2);
-    std::vector<vertexBuffer*>::iterator it3 = m_chunkVertexBuffers.begin() + chunkVectorIndex;
+    std::vector<VertexBuffer*>::iterator it3 = m_chunkVertexBuffers.begin() + chunkVectorIndex;
     m_chunkVertexBuffers.erase(it3);
-    std::vector<indexBuffer*>::iterator it4 = m_chunkIndexBuffers.begin() + chunkVectorIndex;
+    std::vector<IndexBuffer*>::iterator it4 = m_chunkIndexBuffers.begin() + chunkVectorIndex;
     m_chunkIndexBuffers.erase(it4);
 
     if (m_chunkWaterIndexBuffers[chunkVectorIndex]->getCount() > 0) {
-        m_chunkWaterVertexArrays[chunkVectorIndex]->~vertexArray();
+        m_chunkWaterVertexArrays[chunkVectorIndex]->~VertexArray();
         delete m_chunkWaterVertexArrays[chunkVectorIndex];
-        m_chunkWaterVertexBuffers[chunkVectorIndex]->~vertexBuffer();
+        m_chunkWaterVertexBuffers[chunkVectorIndex]->~VertexBuffer();
         delete m_chunkWaterVertexBuffers[chunkVectorIndex];
-        m_chunkWaterIndexBuffers[chunkVectorIndex]->~indexBuffer();
+        m_chunkWaterIndexBuffers[chunkVectorIndex]->~IndexBuffer();
         delete m_chunkWaterIndexBuffers[chunkVectorIndex];
     }
 
@@ -554,7 +554,7 @@ void world::unloadMesh(unsigned int chunkVectorIndex) {
     m_chunkWaterIndexBuffers.erase(it4);
 }
 
-void world::addChunkMesh(unsigned int chunkVectorIndex, char threadNum) {
+void World::addChunkMesh(unsigned int chunkVectorIndex, char threadNum) {
     //set up containers for data for buffers
     m_numChunkVertices[threadNum] = 0;
     m_numChunkIndices[threadNum] = 0;
@@ -613,29 +613,29 @@ void world::addChunkMesh(unsigned int chunkVectorIndex, char threadNum) {
     }
 }
 
-void world::uploadChunkMesh(char threadNum) {
+void World::uploadChunkMesh(char threadNum) {
     //TODO: precalculate this VBL object
     //create vertex buffer layout
-    vertexBufferLayout layout;
+    VertexBufferLayout layout;
     layout.push<float>(3);
     layout.push<float>(2);
     layout.push<float>(1);
 
-    vertexArray *va, *waterVa;
-    vertexBuffer *vb, *waterVb;
-    indexBuffer *ib, *waterIb;
+    VertexArray *va, *waterVa;
+    VertexBuffer *vb, *waterVb;
+    IndexBuffer *ib, *waterIb;
 
     if (m_numChunkIndices[threadNum] > 0) {
         //create vertex array
-        va = new vertexArray;
+        va = new VertexArray;
 
         //create vertex buffer
-        vb = new vertexBuffer(m_chunkVertices[threadNum], m_numChunkVertices[threadNum] * sizeof(float));
+        vb = new VertexBuffer(m_chunkVertices[threadNum], m_numChunkVertices[threadNum] * sizeof(float));
 
         va->addBuffer(*vb, layout);
 
         //create index buffer
-        ib = new indexBuffer(m_chunkIndices[threadNum], m_numChunkIndices[threadNum]);
+        ib = new IndexBuffer(m_chunkIndices[threadNum], m_numChunkIndices[threadNum]);
     }
     else {
         va = m_emptyVertexArray;
@@ -645,15 +645,15 @@ void world::uploadChunkMesh(char threadNum) {
 
     if (m_numChunkWaterIndices[threadNum] > 0) {
         //create vertex array
-        waterVa = new vertexArray;
+        waterVa = new VertexArray;
 
         //create vertex buffer
-        waterVb = new vertexBuffer(m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] * sizeof(float));
+        waterVb = new VertexBuffer(m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] * sizeof(float));
 
         waterVa->addBuffer(*waterVb, layout);
 
         //create index buffer
-        waterIb = new indexBuffer(m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum]);
+        waterIb = new IndexBuffer(m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum]);
     }
     else {
         waterVa = m_emptyVertexArray;
@@ -681,7 +681,7 @@ void world::uploadChunkMesh(char threadNum) {
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-void world::buildMeshesForNewChunksWithNeighbours(char threadNum) {
+void World::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     int numMeshes = 0;
     unsigned int i = 0;
     m_accessingArrIndicesVectorsMtx.lock();
@@ -716,7 +716,7 @@ void world::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-unsigned char world::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
+unsigned char World::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
     //TODO: improve this to make it need less steps
     glm::vec3 rayPos = startSubBlockPos;
     int blockPos[3];
@@ -744,7 +744,7 @@ unsigned char world::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
     return 0;
 }
 
-void world::replaceBlock(int* blockCoords, unsigned short blockType) {
+void World::replaceBlock(int* blockCoords, unsigned short blockType) {
     int chunkCoords[3];
     unsigned int blockPosInChunk[3];
     unsigned int blockNumber = constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE;
@@ -832,7 +832,7 @@ void world::replaceBlock(int* blockCoords, unsigned short blockType) {
     }
 }
 
-unsigned short world::getBlock(int* blockCoords) {
+unsigned short World::getBlock(int* blockCoords) {
     int chunkCoords[3];
     unsigned int blockPosInChunk[3];
     for (unsigned char i = 0; i < 3; i++) {
@@ -851,15 +851,15 @@ unsigned short world::getBlock(int* blockCoords) {
     return m_chunks[m_chunkArrayIndices[chunkNumber]].getBlock(blockNumber);
 }
 
-worldInfo world::getWorldInfo() {
+WorldInfo World::getWorldInfo() {
     return m_worldInfo;
 }
 
-char world::getNumChunkLoaderThreads() {
+char World::getNumChunkLoaderThreads() {
     return m_numChunkLoadingThreads;
 }
 
-void world::processMouseInput() {
+void World::processMouseInput() {
     auto end = std::chrono::steady_clock::now();
     double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - m_startTime).count() / 1000;
     if (*m_lastMousePoll == 0.0f) {
@@ -903,13 +903,13 @@ void world::processMouseInput() {
     }
 }
 
-void world::setMouseData(double* lastMousePoll,
+void World::setMouseData(double* lastMousePoll,
     bool* playing,
     bool* lastPlaying,
     float* yaw,
     float* pitch,
     int* lastMousePos,
-    camera* viewCamera,
+    Camera* viewCamera,
     SDL_Window* window,
     int* windowDimensions) {
     m_lastMousePoll = lastMousePoll;
@@ -924,14 +924,14 @@ void world::setMouseData(double* lastMousePoll,
     m_startTime = std::chrono::steady_clock::now();
 }
 
-void world::initPlayerPos(float playerX, float playerY, float playerZ) {
+void World::initPlayerPos(float playerX, float playerY, float playerZ) {
     m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = floor((playerX) / static_cast<float>(constants::CHUNK_SIZE));
     m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = floor((playerY) / static_cast<float>(constants::CHUNK_SIZE));
     m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = floor((playerZ) / static_cast<float>(constants::CHUNK_SIZE));
     m_relableNeeded = true;
 }
 
-void world::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks) {
+void World::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks) {
     //find the lowest block in the column that is loaded
     int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
     int chunkCoords[3] = { 0, 0, 0 };

@@ -11,13 +11,13 @@ void GLClearError();
 
 void GLPrintErrors();
 
-class renderer {
+class Renderer {
 public:
 	void clear() const;
 
-	void draw(const vertexArray& va, const indexBuffer& ib, const shader& s) const;
+	void draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
 
-	void drawWireframe(const vertexArray& va, const indexBuffer& ib, const shader& s) const;
+	void drawWireframe(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
 
 	void setOpenGlOptions() const;
 };

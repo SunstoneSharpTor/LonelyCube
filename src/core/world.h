@@ -18,13 +18,13 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-class world {
+class World {
 private:
 	unsigned short m_renderDistance;
 	unsigned short m_renderDiameter;
 	unsigned int m_numChunks; //stores the number of chunks as if they were arranged in a grid
 	unsigned int m_numActualChunks; //stores the number of chunks as if they were arranged in a sphere
-	chunk* m_chunks;
+	Chunk* m_chunks;
 	int m_playerChunkPosition[3];
 	int m_newPlayerChunkPosition[3];
 	int m_updatingPlayerChunkPosition[3];
@@ -37,7 +37,7 @@ private:
 	unsigned int* m_chunkArrayIndices;
 	int m_neighbouringChunkNumberOffets[6];
 	int m_neighbouringChunkIncludingDiaganalOffsets[27];
-	worldInfo m_worldInfo;
+	WorldInfo m_worldInfo;
 	char m_numChunkLoadingThreads;
 	unsigned int m_numMeshesUnloaded;
 	unsigned int m_numChunksUnloaded;
@@ -55,19 +55,19 @@ private:
 	float* m_yaw;
 	float* m_pitch;
 	int* m_lastMousePos;
-	camera* m_viewCamera;
+	Camera* m_viewCamera;
 	SDL_Window* m_window;
 	int* m_windowDimensions;
 
-	std::vector<vertexArray*> m_chunkVertexArrays;
-	std::vector<vertexBuffer*> m_chunkVertexBuffers;
-	std::vector<indexBuffer*> m_chunkIndexBuffers;
-	std::vector<vertexArray*> m_chunkWaterVertexArrays;
-	std::vector<vertexBuffer*> m_chunkWaterVertexBuffers;
-	std::vector<indexBuffer*> m_chunkWaterIndexBuffers;
-	vertexBuffer* m_emptyVertexBuffer;
-	indexBuffer* m_emptyIndexBuffer;
-	vertexArray* m_emptyVertexArray;
+	std::vector<VertexArray*> m_chunkVertexArrays;
+	std::vector<VertexBuffer*> m_chunkVertexBuffers;
+	std::vector<IndexBuffer*> m_chunkIndexBuffers;
+	std::vector<VertexArray*> m_chunkWaterVertexArrays;
+	std::vector<VertexBuffer*> m_chunkWaterVertexBuffers;
+	std::vector<IndexBuffer*> m_chunkWaterIndexBuffers;
+	VertexBuffer* m_emptyVertexBuffer;
+	IndexBuffer* m_emptyIndexBuffer;
+	VertexArray* m_emptyVertexArray;
 	//stores the positions of the loaded chunks in the array m_chunks
 	std::vector<unsigned int> m_meshedChunkArrayIndices;
 	std::vector<unsigned int> m_unmeshedChunkArrayIndices;
@@ -115,14 +115,14 @@ private:
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
-	world(unsigned short renderDistance, unsigned long long seed);
-	void renderChunks(renderer mainRenderer, shader& blockShader, shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
+	World(unsigned short renderDistance, unsigned long long seed);
+	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
 	void replaceBlock(int* blockCoords, unsigned short blockType);
 	unsigned short getBlock(int* blockCoords);
-	worldInfo getWorldInfo();
+	WorldInfo getWorldInfo();
 	void doRenderThreadJobs();
 	void relableChunksIfNeeded();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
@@ -134,7 +134,7 @@ public:
 					  float* yaw,
 					  float* pitch,
 					  int* lastMousePos,
-					  camera* viewCamera,
+					  Camera* viewCamera,
 					  SDL_Window* window,
 					  int* windowDimensions);
 	void processMouseInput();

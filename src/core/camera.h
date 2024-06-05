@@ -6,33 +6,33 @@
 
 #include "constants.h"
 
-struct plane {
+struct Plane {
 	//unit vector
 	glm::vec3 normal = { 0.f, 1.f, 0.f };
 	//distance from origin to the nearest point in the plane
 	float distance = 0.0f;
 
-	plane(const glm::vec3& point, const glm::vec3& norm) {
+	Plane(const glm::vec3& point, const glm::vec3& norm) {
 		normal = glm::normalize(norm);
 		distance = glm::dot(normal, point);
 	}
 
-	plane() {};
+	Plane() {};
 	
 	float getSignedDistanceToPlane(const glm::vec3& point) const {
 		return glm::dot(normal, point) - distance;
 	}
 };
 
-struct frustum {
-	plane topFace;
-	plane bottomFace;
+struct Frustum {
+	Plane topFace;
+	Plane bottomFace;
 	
-	plane rightFace;
-	plane leftFace;
+	Plane rightFace;
+	Plane leftFace;
 	
-	plane farFace;
-	plane nearFace;
+	Plane farFace;
+	Plane nearFace;
 };
 
 struct AABB {
@@ -49,7 +49,7 @@ struct AABB {
 		extents = { iI, iJ, iK };
 	}
 
-	bool isOnOrForwardPlane(const plane& plane) const {
+	bool isOnOrForwardPlane(const Plane& plane) const {
 		//Compute the projection interval radius of b onto L(t) = b.c + t * p.n
 		const float r = extents.x * std::abs(plane.normal.x) +
 			extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
@@ -57,7 +57,7 @@ struct AABB {
 		return -r <= plane.getSignedDistanceToPlane(centre);
 	}
 
-	bool isOnFrustum(const frustum& camFrustum) const {
+	bool isOnFrustum(const Frustum& camFrustum) const {
 		return (isOnOrForwardPlane(camFrustum.leftFace) &&
 			isOnOrForwardPlane(camFrustum.rightFace) &&
 			isOnOrForwardPlane(camFrustum.topFace) &&
@@ -67,7 +67,7 @@ struct AABB {
 	};
 };
 
-class camera {
+class Camera {
 public:
 	glm::vec3 front;
 	glm::vec3 up;
@@ -75,7 +75,7 @@ public:
 	glm::vec3 worldUp;
 	glm::vec3 position;
 
-	camera(glm::vec3 Position = glm::vec3(0.0f, 0.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f, glm::vec3 WorldUp = glm::vec3(0.0f, 1.0f, 0.0f));
+	Camera(glm::vec3 Position = glm::vec3(0.0f, 0.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f, glm::vec3 WorldUp = glm::vec3(0.0f, 1.0f, 0.0f));
 	
 	void updateRotationVectors(float yaw, float pitch);
 
@@ -83,5 +83,5 @@ public:
 
 	void getPosition(float* position);
 
-	frustum createViewFrustum(float aspect, float fovY, float zNear, float zFar);
+	Frustum createViewFrustum(float aspect, float fovY, float zNear, float zFar);
 };

@@ -26,13 +26,29 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
-void chunkLoaderThread(world* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThread(World* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
     }
 }
 
-void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, player* mainPlayer) {
+void networking(ENetHost* client) {
+    ENetEvent event;
+    while(enet_host_service(client, &event, 0) > 0) {
+        switch(event.type) {
+            case ENET_EVENT_TYPE_RECEIVE:
+                std::cout << "A packet of length " << event.packet->dataLength
+                    << " containing " << event.packet->data
+                    << " was received from " << event.peer->address.host
+                    << ":" << event.peer->address.port
+                    << " on channel " << event.channelID << "\n";
+                enet_packet_destroy(event.packet);
+                break;
+        }
+    }
+}
+
+void renderThread(World* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -81,23 +97,23 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
     gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
     //water shader
-    shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
+    Shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_texture", 0);
     waterShader.setUniform1f("u_renderDistance", (mainWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
 
     //set up the shader and the uniforms
-    shader blockShader("shaders/basicVertex.txt", "shaders/basicFragment.txt");
+    Shader blockShader("shaders/basicVertex.txt", "shaders/basicFragment.txt");
     blockShader.bind();
 
-    texture allBlockTextures("blockTextures.png");
+    Texture allBlockTextures("blockTextures.png");
     allBlockTextures.bind();
     blockShader.setUniform1i("u_texture", 0);
     blockShader.setUniform1f("u_renderDistance", (mainWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
 
     glClearColor(0.57f, 0.70f, 1.0f, 1.0f);
 
-    renderer mainRenderer;
+    Renderer mainRenderer;
 
     mainRenderer.setOpenGlOptions();
 
@@ -117,27 +133,27 @@ void renderThread(world* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
                                           6, 5, 4,
                                           4, 7, 6 };
 
-    vertexArray crosshairVA;
-    vertexBuffer crosshairVB(crosshairCoordinates, 24 * sizeof(float));
-    vertexBufferLayout crosshairVBlayout;
+    VertexArray crosshairVA;
+    VertexBuffer crosshairVB(crosshairCoordinates, 24 * sizeof(float));
+    VertexBufferLayout crosshairVBlayout;
     crosshairVBlayout.push<float>(2);
     crosshairVA.addBuffer(crosshairVB, crosshairVBlayout);
-    indexBuffer crosshairIB(crosshairIndices, 12);
+    IndexBuffer crosshairIB(crosshairIndices, 12);
 
-    shader crosshairShader("shaders/crosshairVertex.txt", "shaders/crosshairFragment.txt");
+    Shader crosshairShader("shaders/crosshairVertex.txt", "shaders/crosshairFragment.txt");
     crosshairShader.bind();
     glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
     crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
 
     //set up block outline
-    vertexArray blockOutlineVA;
-    vertexBuffer blockOutlineVB(constants::WIREFRAME_CUBE_FACE_POSITIONS, 24 * sizeof(float));
-    vertexBufferLayout blockOutlineVBL;
+    VertexArray blockOutlineVA;
+    VertexBuffer blockOutlineVB(constants::WIREFRAME_CUBE_FACE_POSITIONS, 24 * sizeof(float));
+    VertexBufferLayout blockOutlineVBL;
     blockOutlineVBL.push<float>(3);
     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
-    indexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
+    IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
-    shader blockOutlineShader("shaders/wireframeVertex.txt", "shaders/wireframeFragment.txt");
+    Shader blockOutlineShader("shaders/wireframeVertex.txt", "shaders/wireframeFragment.txt");
 
     float cameraPos[3];
     cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
@@ -322,7 +338,6 @@ int main(int argc, char* argv[]) {
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
     }
-    atexit(enet_deinitialize);
     
     ENetHost* client;
     client = enet_host_create(NULL, 1, 1, 0, 0);
@@ -343,7 +358,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if ((enet_host_service(client, &event, 5000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
+    if ((enet_host_service(client, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
         std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
     }
     else {
@@ -352,10 +367,10 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    world mainWorld(32, worldSeed);
+    World mainWorld(32, worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    player mainPlayer(playerSpawnPoint, &mainWorld);
+    Player mainPlayer(playerSpawnPoint, &mainWorld);
 
     bool running = true;
 
@@ -371,6 +386,7 @@ int main(int argc, char* argv[]) {
 
     while (running) {
         mainWorld.loadChunksAroundPlayer(0);
+        networking(client);
     }
     chunkLoaderThreadsRunning[0] = false;
 
@@ -394,6 +410,8 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
+
+    enet_deinitialize();
 
     return 0;
 }

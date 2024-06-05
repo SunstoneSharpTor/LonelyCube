@@ -2,15 +2,15 @@
 
 #include "renderer.h"
 
-class texture {
+class Texture {
 private:
 	unsigned int m_rendererID;
 	std::string m_filePath;
 	unsigned char* m_localBuffer;
 	int m_width, m_height, m_BPP;
 public:
-	texture(const std::string& path);
-	~texture();
+	Texture(const std::string& path);
+	~Texture();
 
 	void bind(unsigned int slot = 0) const;
 	void unbind() const;

@@ -3,15 +3,15 @@
 #include "vertexBuffer.h"
 #include "vertexBufferLayout.h"
 
-class vertexArray {
+class VertexArray {
 private:
 	unsigned int m_rendererID;
 public:
-	vertexArray(bool empty);
-	vertexArray();
-	~vertexArray();
+	VertexArray(bool empty);
+	VertexArray();
+	~VertexArray();
 
-	void addBuffer(const vertexBuffer& vb, const vertexBufferLayout& layout);
+	void addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
 
 	void bind() const;
 	void unbind() const;

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cmath>
 
-const float player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
+const float Player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.6f,
                                             0.0f, 0.0f, 0.6f,
@@ -17,14 +17,14 @@ const float player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 1.8f, 0.6f,
                                             0.0f, 1.8f, 0.6f };
 
-const int player::m_directions[18] = { 1, 0, 0,
+const int Player::m_directions[18] = { 1, 0, 0,
                                       -1, 0, 0,
                                        0, 1, 0,
                                        0,-1, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-player::player(int* position, world* mainWorld) {
+Player::Player(int* position, World* mainWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
@@ -33,7 +33,7 @@ player::player(int* position, world* mainWorld) {
 
     m_world = mainWorld;
 
-    viewCamera = camera(glm::vec3(0.5f, 0.5f, 0.5f));
+    viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     for (unsigned char i = 0; i < 3; i++) {
@@ -74,7 +74,7 @@ player::player(int* position, world* mainWorld) {
 
 
 
-void player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime) {
+void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
     if (m_playing) {
@@ -287,7 +287,7 @@ void player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
     }
 }
 
-void player::resolveHitboxCollisions(float DT) {
+void Player::resolveHitboxCollisions(float DT) {
     m_touchGround = false;
     bool lastTouchWater = m_touchWater;
     m_touchWater = false;
@@ -364,7 +364,7 @@ void player::resolveHitboxCollisions(float DT) {
     }
 }
 
-bool player::collidingWithBlock() {
+bool Player::collidingWithBlock() {
     int position[3];
     for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
         for (unsigned char i = 0; i < 3; i++) {
@@ -379,7 +379,7 @@ bool player::collidingWithBlock() {
     return false;
 }
 
-bool player::intersectingBlock(int* blockPos) {
+bool Player::intersectingBlock(int* blockPos) {
     bool intersecting;
     int position;
     for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
@@ -397,7 +397,7 @@ bool player::intersectingBlock(int* blockPos) {
     return false;
 }
 
-void player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
+void Player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
     m_world->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,

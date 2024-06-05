@@ -1,12 +1,12 @@
 #include "camera.h"
 
-camera::camera(glm::vec3 Position, float yaw, float pitch, glm::vec3 WorldUp) {
+Camera::Camera(glm::vec3 Position, float yaw, float pitch, glm::vec3 WorldUp) {
 	position = Position;
     worldUp = WorldUp;
     updateRotationVectors(yaw, pitch);
 }
 
-void camera::updateRotationVectors(float yaw, float pitch) {
+void Camera::updateRotationVectors(float yaw, float pitch) {
     glm::vec3 cameraDirection;
     cameraDirection.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraDirection.y = sin(glm::radians(pitch));
@@ -16,18 +16,18 @@ void camera::updateRotationVectors(float yaw, float pitch) {
     up = glm::normalize(glm::cross(right, front));
 }
 
-void camera::getViewMatrix(glm::mat4* viewMatrix) {
+void Camera::getViewMatrix(glm::mat4* viewMatrix) {
     *viewMatrix = glm::lookAt(position, position + front, up);
 }
 
-void camera::getPosition(float* floatPosition) {
+void Camera::getPosition(float* floatPosition) {
     floatPosition[0] = position.x;
     floatPosition[1] = position.y;
     floatPosition[2] = position.z;
 }
 
-frustum camera::createViewFrustum(float aspect, float fovY, float zNear, float zFar) {
-    frustum viewFrustum;
+Frustum Camera::createViewFrustum(float aspect, float fovY, float zNear, float zFar) {
+    Frustum viewFrustum;
     const float halfVSide = zFar * tanf(glm::radians(fovY) * 0.5f);
     const float halfHSide = halfVSide * aspect;
     const glm::vec3 frontMultFar = zFar * front;
