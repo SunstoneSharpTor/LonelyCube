@@ -17,6 +17,8 @@
 
 #pragma once
 
+namespace client {
+
 class VertexBuffer {
 private:
 	unsigned int m_rendererID;
@@ -28,3 +30,5 @@ public:
 	void bind() const;
 	void unbind() const;
 };
+
+}  // namespace client

@@ -23,6 +23,8 @@
 
 #include "constants.h"
 
+namespace client {
+
 struct Plane {
 	//unit vector
 	glm::vec3 normal = { 0.f, 1.f, 0.f };
@@ -102,3 +104,5 @@ public:
 
 	Frustum createViewFrustum(float aspect, float fovY, float zNear, float zFar);
 };
+
+}  // namespace client

@@ -22,6 +22,8 @@
 
 #include "glm/glm.hpp"
 
+namespace client {
+
 struct shaderProgramSources {
 	std::string vertexSource;
 	std::string fragmentSource;
@@ -51,3 +53,5 @@ private:
 
 	int getUniformLocation(const std::string& name);
 };
+
+}  // namespace client

@@ -23,6 +23,8 @@
 #include "indexBuffer.h"
 #include "shader.h"
 
+namespace client {
+
 void GLClearError();
 
 void GLPrintErrors();
@@ -37,3 +39,5 @@ public:
 
 	void setOpenGlOptions() const;
 };
+
+}  // namespace client

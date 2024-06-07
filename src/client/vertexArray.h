@@ -20,6 +20,8 @@
 #include "vertexBuffer.h"
 #include "vertexBufferLayout.h"
 
+namespace client {
+
 class VertexArray {
 private:
 	unsigned int m_rendererID;
@@ -33,3 +35,5 @@ public:
 	void bind() const;
 	void unbind() const;
 };
+
+}  // namespace client

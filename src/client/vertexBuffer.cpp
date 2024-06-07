@@ -18,6 +18,8 @@
 #include "vertexBuffer.h"
 #include "renderer.h"
 
+namespace client {
+
 VertexBuffer::VertexBuffer() {
     m_rendererID = 0;
 }
@@ -40,3 +42,5 @@ void VertexBuffer::bind() const {
 void VertexBuffer::unbind() const {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+
+}  // namespace client

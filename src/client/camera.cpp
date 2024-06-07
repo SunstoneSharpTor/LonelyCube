@@ -17,6 +17,8 @@
 
 #include "camera.h"
 
+namespace client {
+
 Camera::Camera(glm::vec3 Position, float yaw, float pitch, glm::vec3 WorldUp) {
 	position = Position;
     worldUp = WorldUp;
@@ -58,3 +60,5 @@ Frustum Camera::createViewFrustum(float aspect, float fovY, float zNear, float z
 
     return viewFrustum;
 }
+
+}  // namespace client

@@ -36,6 +36,8 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "enet/enet.h"
 
+namespace client {
+
 class World {
 private:
 	bool m_multiplayer;
@@ -158,3 +160,5 @@ public:
 					  int* windowDimensions);
 	void processMouseInput();
 };
+
+}  // namespace client

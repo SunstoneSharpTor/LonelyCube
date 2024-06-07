@@ -18,6 +18,8 @@
 #include "vertexArray.h"
 #include "renderer.h"
 
+namespace client {
+
 VertexArray::VertexArray(bool empty) {
 	if (empty) {
 		m_rendererID = 0;
@@ -52,3 +54,5 @@ void VertexArray::bind() const {
 void VertexArray::unbind() const {
 	glBindVertexArray(0);
 }
+
+}  // namespace client

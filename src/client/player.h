@@ -22,6 +22,8 @@
 #include "world.h"
 #include "camera.h"
 
+namespace client {
+
 class Player {
 private:
     static const float m_hitBoxCorners[36];
@@ -78,3 +80,5 @@ public:
 
     void processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime);
 };
+
+}  // namespace client

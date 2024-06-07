@@ -17,6 +17,8 @@
 
 #pragma once
 
+namespace client {
+
 class IndexBuffer {
 private:
 	unsigned int m_rendererID;
@@ -33,3 +35,5 @@ public:
 		return m_count;
 	}
 };
+
+}  // namespace client

@@ -23,6 +23,8 @@
 #include "shader.h"
 #include "renderer.h"
 
+namespace client {
+
 Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFilePath)
 	: m_vertexFilePath(vertexFilePath), m_fragmentFilePath(fragmentFilePath), m_rendererID(0) {
     shaderProgramSources shaderSources = parseShaders(vertexFilePath, fragmentFilePath);
@@ -124,3 +126,5 @@ int Shader::getUniformLocation(const std::string& name) {
     m_uniformLocationCache[name] = location;
     return location;
 }
+
+}  // namespace client

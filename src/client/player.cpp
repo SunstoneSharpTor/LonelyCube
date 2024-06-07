@@ -21,6 +21,8 @@
 #include <iostream>
 #include <cmath>
 
+namespace client {
+
 const float Player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.6f,
@@ -425,3 +427,5 @@ void Player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
                           window,
                           windowDimensions);
 }
+
+}  // namespace client

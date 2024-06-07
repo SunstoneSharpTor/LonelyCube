@@ -43,6 +43,8 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
+using namespace client;
+
 void chunkLoaderThread(World* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
@@ -352,7 +354,7 @@ void renderThread(World* mainWorld, bool* running, bool* chunkLoaderThreadsRunni
 }
 
 int main(int argc, char* argv[]) {
-    bool MULTIPLAYER = false;
+    bool MULTIPLAYER = true;
     
     ENetHost* client;
     ENetPeer* peer;

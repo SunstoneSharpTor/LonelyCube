@@ -19,6 +19,8 @@
 
 #include "renderer.h"
 
+namespace client {
+
 class Texture {
 private:
 	unsigned int m_rendererID;
@@ -35,3 +37,5 @@ public:
 	inline int getWidth() const { return m_width; }
 	inline int getHeight() const { return m_height; }
 };
+
+}  // namespace client

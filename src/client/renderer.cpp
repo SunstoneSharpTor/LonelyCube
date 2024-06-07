@@ -19,6 +19,8 @@
 
 #include <iostream>
 
+namespace client {
+
 void GLClearError() {
     while (glGetError() != GL_NO_ERROR);
 }
@@ -53,3 +55,5 @@ void Renderer::setOpenGlOptions() const {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
+
+}  // namespace client

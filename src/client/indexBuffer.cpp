@@ -20,6 +20,8 @@
 #include "indexBuffer.h"
 #include "renderer.h"
 
+namespace client {
+
 IndexBuffer::IndexBuffer() {
     m_rendererID = 0;
     m_count = 0;
@@ -43,3 +45,5 @@ void IndexBuffer::bind() const {
 void IndexBuffer::unbind() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+
+}  // namespace client

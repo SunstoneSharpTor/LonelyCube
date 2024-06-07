@@ -14,17 +14,17 @@ include_directories(. ./src/core ./src/client ./lib ${SDL2_INCLUDE_DIRS} ./lib/e
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
     src/client/camera.cpp
+    src/client/client.cpp
     src/client/indexBuffer.cpp
     src/client/renderer.cpp
+    src/client/player.cpp
     src/client/shader.cpp
     src/client/stb_image.cpp
     src/client/texture.cpp
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
     src/client/world.cpp
-    src/client/client.cpp
     src/core/chunk.cpp
-    src/core/player.cpp
     src/core/random.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})

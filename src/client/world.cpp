@@ -26,6 +26,8 @@
 #include <random>
 #include <algorithm>
 
+namespace client {
+
 bool chunkMeshUploaded[8] = { false, false, false, false,
                               false, false, false, false };
 bool relableCompleted = false;
@@ -1084,3 +1086,5 @@ void World::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigne
     }
     std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
 }
+
+}  // namespace client

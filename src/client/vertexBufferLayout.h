@@ -20,6 +20,8 @@
 #include <glad/glad.h>
 #include <vector>
 
+namespace client {
+
 struct VertexBufferElement {
 	unsigned int type;
 	unsigned int count;
@@ -71,3 +73,5 @@ inline void VertexBufferLayout::push<unsigned char>(unsigned int count) {
 	m_elements.push_back({ GL_UNSIGNED_BYTE, count, GL_TRUE });
 	m_stride += VertexBufferElement::getSizeOfType(GL_UNSIGNED_BYTE) * count;
 }
+
+}  // namespace client
