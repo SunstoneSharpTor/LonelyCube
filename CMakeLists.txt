@@ -9,7 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
 
 find_package(SDL2 REQUIRED)
 
-include_directories(. ./src/core ./src/client ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include)
+include_directories(. ./src ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include)
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
@@ -33,7 +33,8 @@ target_link_libraries(client ${SDL2_LIBRARIES})
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/random.cpp
-    src/server/server.cpp)
+    src/server/server.cpp
+    src/server/world.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
 

@@ -15,7 +15,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "random.h"
+#include "core/random.h"
 
 #include <vector>
 #include <cmath>

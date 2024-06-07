@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "vertexBuffer.h"
-#include "vertexBufferLayout.h"
+#include "client/vertexBuffer.h"
+#include "client/vertexBufferLayout.h"
 
 namespace client {
 

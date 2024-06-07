@@ -15,8 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "player.h"
-#include "constants.h"
+#include "client/player.h"
+#include "core/constants.h"
 
 #include <iostream>
 #include <cmath>

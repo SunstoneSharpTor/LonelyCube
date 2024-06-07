@@ -15,9 +15,9 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "world.h"
-#include "constants.h"
-#include "random.h"
+#include "client/world.h"
+#include "core/constants.h"
+#include "core/random.h"
 
 #include <thread>
 #include <cmath>

@@ -15,10 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "indexBuffer.h"
-
-#include "indexBuffer.h"
-#include "renderer.h"
+#include "client/indexBuffer.h"
+#include "client/renderer.h"
 
 namespace client {
 

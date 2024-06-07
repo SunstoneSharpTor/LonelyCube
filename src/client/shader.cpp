@@ -20,8 +20,8 @@
 #include <string>
 #include <sstream>
 
-#include "shader.h"
-#include "renderer.h"
+#include "client/shader.h"
+#include "client/renderer.h"
 
 namespace client {
 

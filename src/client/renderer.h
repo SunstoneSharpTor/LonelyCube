@@ -19,9 +19,9 @@
 
 #include <glad/glad.h>
 
-#include "vertexArray.h"
-#include "indexBuffer.h"
-#include "shader.h"
+#include "client/vertexArray.h"
+#include "client/indexBuffer.h"
+#include "client/shader.h"
 
 namespace client {
 

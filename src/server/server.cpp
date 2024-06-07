@@ -20,7 +20,7 @@
 #include <thread>
 #include <enet/enet.h>
 
-#include <chunk.h>
+#include <core/chunk.h>
 
 void receiveCommand(bool* quit) {
     std::string command;

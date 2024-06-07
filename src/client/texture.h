@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "renderer.h"
+#include "client/renderer.h"
 
 namespace client {
 

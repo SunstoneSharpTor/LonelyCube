@@ -15,7 +15,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "renderer.h"
+#include "client/renderer.h"
 
 #include <iostream>
 

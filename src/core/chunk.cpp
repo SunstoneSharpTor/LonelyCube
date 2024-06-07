@@ -15,8 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "chunk.h"
-#include "random.h"
+#include "core/chunk.h"
+#include "core/random.h"
 
 #include <iostream>
 #include <cmath>

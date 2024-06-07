@@ -19,8 +19,8 @@
 
 #include <SDL2/SDL.h>
 
-#include "world.h"
-#include "camera.h"
+#include "client/world.h"
+#include "client/camera.h"
 
 namespace client {
 

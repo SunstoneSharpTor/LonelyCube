@@ -27,16 +27,16 @@
 #include <thread>
 #include <algorithm>
 
-#include "renderer.h"
-#include "vertexBuffer.h"
-#include "indexBuffer.h"
-#include "vertexArray.h"
-#include "shader.h"
-#include "texture.h"
-#include "camera.h"
-#include "chunk.h"
-#include "world.h"
-#include "player.h"
+#include "client/renderer.h"
+#include "client/vertexBuffer.h"
+#include "client/indexBuffer.h"
+#include "client/vertexArray.h"
+#include "client/shader.h"
+#include "client/texture.h"
+#include "client/camera.h"
+#include "core/chunk.h"
+#include "client/world.h"
+#include "client/player.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"

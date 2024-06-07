@@ -17,14 +17,14 @@
 
 #pragma once
 
-#include "renderer.h"
-#include "vertexBuffer.h"
-#include "indexBuffer.h"
-#include "vertexArray.h"
-#include "shader.h"
-#include "texture.h"
-#include "camera.h"
-#include "chunk.h"
+#include "client/renderer.h"
+#include "client/vertexBuffer.h"
+#include "client/indexBuffer.h"
+#include "client/vertexArray.h"
+#include "client/shader.h"
+#include "client/texture.h"
+#include "client/camera.h"
+#include "core/chunk.h"
 
 #include <chrono>
 #include <vector>

@@ -15,8 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "vertexBuffer.h"
-#include "renderer.h"
+#include "client/vertexBuffer.h"
+#include "client/renderer.h"
 
 namespace client {
 
