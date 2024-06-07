@@ -35,7 +35,7 @@
 #include "client/texture.h"
 #include "client/camera.h"
 #include "core/chunk.h"
-#include "client/world.h"
+#include "client/clientWorld.h"
 #include "client/player.h"
 
 #include "glm/glm.hpp"
@@ -45,7 +45,7 @@
 
 using namespace client;
 
-void chunkLoaderThread(World* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
     }
@@ -67,7 +67,7 @@ void networking(ENetHost* client) {
     }
 }
 
-void renderThread(World* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
+void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    World mainWorld(32, worldSeed, MULTIPLAYER, peer, client);
+    ClientWorld mainWorld(32, worldSeed, MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     Player mainPlayer(playerSpawnPoint, &mainWorld);

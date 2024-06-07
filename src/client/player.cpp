@@ -43,7 +43,7 @@ const int Player::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-Player::Player(int* position, World* mainWorld) {
+Player::Player(int* position, ClientWorld* mainWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;

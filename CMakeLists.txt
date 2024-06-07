@@ -23,7 +23,7 @@ set(CLIENT_SOURCE_FILES
     src/client/texture.cpp
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
-    src/client/world.cpp
+    src/client/clientWorld.cpp
     src/core/chunk.cpp
     src/core/random.cpp)
 
@@ -33,8 +33,8 @@ target_link_libraries(client ${SDL2_LIBRARIES})
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/random.cpp
-    src/server/server.cpp
-    src/server/world.cpp)
+    src/core/serverWorld.cpp
+    src/server/server.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
 

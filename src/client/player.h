@@ -19,7 +19,7 @@
 
 #include <SDL2/SDL.h>
 
-#include "client/world.h"
+#include "client/clientWorld.h"
 #include "client/camera.h"
 
 namespace client {
@@ -66,7 +66,7 @@ private:
     
     bool intersectingBlock(int* blockPos);
 public:
-    World* m_world;
+    ClientWorld* m_world;
 
 	Camera viewCamera;
     int cameraBlockPosition[3];
@@ -74,7 +74,7 @@ public:
 
     unsigned short m_blockHolding;
 
-    Player(int* position, World* mainWorld);
+    Player(int* position, ClientWorld* mainWorld);
 
     void setWorldMouseData(SDL_Window* window, int* windowDimensions);
 
