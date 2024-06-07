@@ -30,12 +30,14 @@ bool chunkMeshUploaded[8] = { false, false, false, false,
                               false, false, false, false };
 bool relableCompleted = false;
 
-World::World(unsigned short renderDistance, unsigned long long seed) {
+World::World(unsigned short renderDistance, unsigned long long seed, bool multiplayer, ENetPeer* peer, ENetHost* client) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
     seedNoise();
 
+    m_multiplayer = multiplayer;
+    
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
     m_meshedChunksDistance = 0.0f;

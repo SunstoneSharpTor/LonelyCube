@@ -13,28 +13,29 @@ include_directories(. ./src/core ./src/client ./lib ${SDL2_INCLUDE_DIRS} ./lib/e
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
-    src/core/camera.cpp
+    src/client/camera.cpp
+    src/client/indexBuffer.cpp
+    src/client/renderer.cpp
+    src/client/shader.cpp
+    src/client/stb_image.cpp
+    src/client/texture.cpp
+    src/client/vertexArray.cpp
+    src/client/vertexBuffer.cpp
+    src/client/world.cpp
+    src/client/client.cpp
     src/core/chunk.cpp
-    src/core/indexBuffer.cpp
     src/core/player.cpp
-    src/core/random.cpp
-    src/core/renderer.cpp
-    src/core/shader.cpp
-    src/core/stb_image.cpp
-    src/core/texture.cpp
-    src/core/vertexArray.cpp
-    src/core/vertexBuffer.cpp
-    src/core/world.cpp
-    src/client/client.cpp)
+    src/core/random.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client ${SDL2_LIBRARIES})
 
 set(SERVER_SOURCE_FILES
+    src/core/chunk.cpp
+    src/core/random.cpp
     src/server/server.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
-target_link_libraries(server ${SDL2_LIBRARIES})
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")

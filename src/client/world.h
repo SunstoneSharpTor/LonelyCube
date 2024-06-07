@@ -34,9 +34,11 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "enet/enet.h"
 
 class World {
 private:
+	bool m_multiplayer;
 	unsigned short m_renderDistance;
 	unsigned short m_renderDiameter;
 	unsigned int m_numChunks; //stores the number of chunks as if they were arranged in a grid
@@ -132,7 +134,7 @@ private:
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
-	World(unsigned short renderDistance, unsigned long long seed);
+	World(unsigned short renderDistance, unsigned long long seed, bool multiplayer, ENetPeer* peer, ENetHost* client);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
