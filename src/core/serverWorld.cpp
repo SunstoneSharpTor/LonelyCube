@@ -15,5 +15,12 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/chunk.h"
 #include "core/serverWorld.h"
+
+#include <iostream>
+
+#include "core/chunk.h"
+
+ServerWorld::ServerWorld(unsigned long long seed) : m_seed(seed), m_chunks() {
+    
+}

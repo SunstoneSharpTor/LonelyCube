@@ -17,8 +17,19 @@
 
 #include "core/chunk.h"
 
-namespace server {
+#include <unordered_map>
 
+struct ChunkCounter {
+    Chunk chunk;
+    unsigned short playerCount;
 
+    ChunkCounter(int x, int y, int z) : chunk(x, y, x, WorldInfo()), playerCount(1) {};
+};
 
-}  // namespace server
+class ServerWorld {
+private:
+	  unsigned long long m_seed;
+    std::unordered_map<int, ChunkCounter> m_chunks;
+public:
+    ServerWorld(unsigned long long seed);
+};
