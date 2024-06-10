@@ -69,18 +69,19 @@ ServerPlayer::ServerPlayer(double* position, unsigned short renderDistance) :
 }
 
 void ServerPlayer::updatePlayerPos(double* position) {
-    int newPlayerChunkPosition[3];
-    newPlayerChunkPosition[0] = floor(position[0] / static_cast<float>(constants::CHUNK_SIZE));
-    newPlayerChunkPosition[1] = floor(position[1] / static_cast<float>(constants::CHUNK_SIZE));
-    newPlayerChunkPosition[2] = floor(position[2] / static_cast<float>(constants::CHUNK_SIZE));
-    if (newPlayerChunkPosition[0] != m_playerChunkPosition[0]
-        || newPlayerChunkPosition[1] != m_playerChunkPosition[1]
-        || newPlayerChunkPosition[2] != m_playerChunkPosition[2]) {
+    m_playerChunkPosition[0] = floor(position[0] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[1] = floor(position[1] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[2] = floor(position[2] / static_cast<float>(constants::CHUNK_SIZE));
+    // If the player has moved chunk, remove all the chunks that are out of
+    // render distance from the set of loaded chunks
+    if (m_playerChunkPosition[0] != m_playerChunkPosition[0]
+        || m_playerChunkPosition[1] != m_playerChunkPosition[1]
+        || m_playerChunkPosition[2] != m_playerChunkPosition[2]) {
         while (m_nextUnloadedChunk > 0) {
             m_nextUnloadedChunk--;
-            int a = m_unloadedChunks[m_nextUnloadedChunk].x - newPlayerChunkPosition[0];
-            int b = m_unloadedChunks[m_nextUnloadedChunk].y - newPlayerChunkPosition[1];
-            int c = m_unloadedChunks[m_nextUnloadedChunk].z - newPlayerChunkPosition[2];
+            int a = m_unloadedChunks[m_nextUnloadedChunk].x - m_playerChunkPosition[0];
+            int b = m_unloadedChunks[m_nextUnloadedChunk].y - m_playerChunkPosition[1];
+            int c = m_unloadedChunks[m_nextUnloadedChunk].z - m_playerChunkPosition[2];
             if (a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f) {
                 m_loadedChunks.erase(m_unloadedChunks[m_nextUnloadedChunk]);
             }
@@ -88,7 +89,11 @@ void ServerPlayer::updatePlayerPos(double* position) {
     }
 }
 
-bool ServerPlayer::chunksLoaded() {
+bool ServerPlayer::allChunksLoaded() {
+    while ((m_nextUnloadedChunk < m_numChunks)
+        && (m_loadedChunks.count(m_unloadedChunks[m_numChunks]))) {
+        m_numChunks++;
+    }
     return m_nextUnloadedChunk == m_numChunks;
 }
 

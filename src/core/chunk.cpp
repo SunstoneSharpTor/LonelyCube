@@ -862,7 +862,7 @@ void Chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* 
 			for (unsigned int i = 0; i < 6; i++) {
 				neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
 			}
-			std::this_thread::sleep_for(std::operator""us(100));
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
 		}
 		m_calculatingSkylight = true;
 		clearSkyLight();
@@ -1034,7 +1034,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			for (unsigned int i = 0; i < 6; i++) {
 				neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
 			}
-			std::this_thread::sleep_for(std::operator""us(100));
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
 		}
 	}
 	s_checkingNeighbouringRelights.unlock();

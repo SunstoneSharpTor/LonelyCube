@@ -59,6 +59,6 @@ private:
 public:
     ServerPlayer(double* position, unsigned short renderDistance);
     void updatePlayerPos(double* position);
-    bool chunksLoaded();
+    bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
 };
