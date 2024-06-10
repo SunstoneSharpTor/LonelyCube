@@ -936,7 +936,7 @@ void Chunk::getTextureCoordinates(float* coords, short textureNum) {
 	coords[7] = coords[5];
 }
 
-void Chunk::getChunkPosition(int* coordinates) {
+void Chunk::getChunkPosition(int* coordinates) const {
 	for (char i = 0; i < 3; i++) {
 		coordinates[i] = m_position[i];
 	}

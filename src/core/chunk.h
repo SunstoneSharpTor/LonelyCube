@@ -140,7 +140,7 @@ public:
 
 	void buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices);
 
-	void getChunkPosition(int* coordinates);
+	void getChunkPosition(int* coordinates) const;
 
 	void unload();
 

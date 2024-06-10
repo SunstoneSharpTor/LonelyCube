@@ -20,7 +20,9 @@
 #include <iostream>
 
 #include "core/chunk.h"
+#include "core/random.h"
 
 ServerWorld::ServerWorld(unsigned long long seed) : m_seed(seed), m_chunks() {
-    
+    PCG_SeedRandom32(m_seed);
+    seedNoise();
 }

@@ -29,7 +29,7 @@ struct ChunkCounter {
 class ServerWorld {
 private:
 	  unsigned long long m_seed;
-    std::unordered_map<int, ChunkCounter> m_chunks;
+    std::unordered_map<int, ChunkCounter> m_chunks; 
 public:
     ServerWorld(unsigned long long seed);
 };
