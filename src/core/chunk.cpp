@@ -555,7 +555,7 @@ int Chunk::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, int siz
 	m_riversNoise = std::pow(std::abs(m_riversNoise), (1.55f - std::min(m_continentalness + 0.4f, 0.5f)) * 1.15f);
 	//calculate the river errosion using the equation 1 / (nx - 1) + 1
 	//this is the value that the rest of the terrain height will be multiplied by to create low terrain near rivers
-	float riverErrosion = 1.0f / (-4.0f * std::abs(m_riversNoise) - 1.0f) + 1.0f;
+	float riverErrosion = 1.0f / (-2.0f * std::abs(m_riversNoise) - 1.0f) + 1.0f;
 	//calculate the value that determines where the extra bumps for the river bed will be added
 	float invertedRiverErrosion = 1.0f - riverErrosion;
 	float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;

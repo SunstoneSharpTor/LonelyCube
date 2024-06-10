@@ -47,7 +47,6 @@ private:
 	bool m_calculatingSkylight;
 	std::mutex m_accessingSkylightMtx;
 	std::condition_variable m_accessingSkylightCV;
-	static std::mutex s_checkingNeighbouringRelights;
 
 	//world generation
 	static const int s_PV_NUM_OCTAVES;
@@ -116,14 +115,9 @@ private:
 
 	void calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale);
 
-	inline void setSkyLight(unsigned int block, unsigned char value) {
-		bool oddBlockNum = block % 2;
-		bool evenBlockNum = !oddBlockNum;
-		m_skyLight[block / 2] &= 0b00001111 << (4 * evenBlockNum);
-		m_skyLight[block / 2] |= value << (4 * oddBlockNum);
-	}
-
 public:
+	static std::mutex s_checkingNeighbouringRelights;
+	
 	bool inUse;
 
 	Chunk(int x, int y, int z, WorldInfo wio);
@@ -150,6 +144,13 @@ public:
 
 	inline char getSkyLight(unsigned int block) {
 		return (m_skyLight[block / 2] >> (4 * (block % 2))) & 0b1111;
+	}
+	
+	inline void setSkyLight(unsigned int block, unsigned char value) {
+		bool oddBlockNum = block % 2;
+		bool evenBlockNum = !oddBlockNum;
+		m_skyLight[block / 2] &= 0b00001111 << (4 * evenBlockNum);
+		m_skyLight[block / 2] |= value << (4 * oddBlockNum);
 	}
 
 	void setBlock(unsigned int block, unsigned short blockType);

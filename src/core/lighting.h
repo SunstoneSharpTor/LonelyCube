@@ -15,28 +15,13 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <unordered_set>
+#pragma once
+
+#include <unordered_map>
 
 #include "core/chunk.h"
 #include "core/position.h"
 
-class ServerPlayer {
-private:
-	unsigned short m_renderDistance;
-	unsigned short m_renderDiameter;
-    float m_minUnloadedChunkDistance;
-    unsigned int m_numChunks;
-    double m_position[3];
-    Position* m_unloadedChunks;
-    int* m_playerChunkPosition;
-    int m_nextUnloadedChunk;
-    std::unordered_set<Position> m_loadedChunks;
-
-    void initChunkPositions();
-    void initNumChunks();
-public:
-    ServerPlayer(double* position, unsigned short renderDistance);
-    void updatePlayerPos(double* position);
-    bool allChunksLoaded();
-    void getNextChunkCoords(int* chunkCoords);
+class Lighting {
+    static void calculateSkyLight(Chunk& chunk, std::unordered_map<Position, Chunk> worldChunks, bool* neighbouringChunksToBeRelit);
 };
