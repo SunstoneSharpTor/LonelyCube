@@ -89,7 +89,7 @@ const short Chunk::m_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
 												 39, 39, 39, 39, 39, 39 //tall grass
 												 };
 
-const short Chunk::m_neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
+const short Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
 const short Chunk::m_neighbouringBlocksX[6] = { 0, 0, -1, 1, 0, 0 };
 
@@ -397,7 +397,7 @@ void Chunk::generateTerrain() {
 
 	//if the chunk is made up of a single block, compress it
 	if (m_singleBlockType) {
-		unsigned short blockType = m_blocks[0];
+		unsigned char blockType = m_blocks[0];
 		delete[] m_blocks;
 		m_blocks = new unsigned char[1];
 		m_blocks[0] = blockType;
@@ -955,7 +955,7 @@ unsigned int Chunk::getBlockNumber(unsigned int* blockCoords) {
 	return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
 }
 
-void Chunk::setBlock(unsigned int block, unsigned short blockType) {
+void Chunk::setBlock(unsigned int block, unsigned char blockType) {
 	if (m_singleBlockType) {
 		unsigned char* tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
 		for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
@@ -1039,7 +1039,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 	}
 	s_checkingNeighbouringRelights.unlock();
 
-	(*m_worldInfo.numRelights)++;
+	//(*m_worldInfo.numRelights)++;
 
 	//TODO:	make it so that chunks of a single block type get meshes without calling the new function
 	unsigned char* tempBlocks = nullptr;
@@ -1154,7 +1154,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 		unsigned char skyLight = getSkyLight(blockNum) - 1;
 		lightQueue.pop();
 		if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[5];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[5];
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
 			if (newHighestSkyLight) {
@@ -1172,7 +1172,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			}
 		}
 		if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) < (constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[4];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[4];
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
 			if (newHighestSkyLight) {
@@ -1190,7 +1190,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			}
 		}
 		if ((blockNum % constants::CHUNK_SIZE) < (constants::CHUNK_SIZE - 1)) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[3];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[3];
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
 			if (newHighestSkyLight) {
@@ -1208,7 +1208,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			}
 		}
 		if ((blockNum % constants::CHUNK_SIZE) >= 1) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[2];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[2];
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
 			if (newHighestSkyLight) {
@@ -1226,7 +1226,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			}
 		}
 		if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) >= constants::CHUNK_SIZE) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[1];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[1];
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
 			if (newHighestSkyLight) {
@@ -1244,7 +1244,7 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 			}
 		}
 		if (blockNum >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) {
-			unsigned int neighbouringBlockNum = blockNum + m_neighbouringBlocks[0];
+			unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[0];
 			skyLight += (skyLight == 14) * !(constants::dimsLight[m_blocks[neighbouringBlockNum]]);
 			unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
 			bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
@@ -1275,10 +1275,29 @@ void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neig
 	}
 
 	
-	(*m_worldInfo.numRelights)--;
+	//(*m_worldInfo.numRelights)--;
 	m_skyLightUpToDate = true;
 	m_calculatingSkylight = false;
 	// lock release
-	std::lock_guard<std::mutex> lock(m_accessingSkylightMtx);
-	m_accessingSkylightCV.notify_all();
+	// std::lock_guard<std::mutex> lock(m_accessingSkylightMtx);
+	// m_accessingSkylightCV.notify_all();
 }
+
+// void Chunk::uncompressBlocks() {
+// 	if (m_singleBlockType) {
+// 		delete m_blocks;
+// 		m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+// 		for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
+// 			m_blocks[block] = m_blocks[0];
+// 		}
+// 	}
+// }
+
+// void Chunk::recompressBlocks() {
+// 	if (m_singleBlockType) {
+// 		unsigned char blockType = m_blocks[0];
+// 		delete[] m_blocks;
+// 		m_blocks = new unsigned char[1];
+// 		m_blocks[0] = blockType;
+// 	}
+// }

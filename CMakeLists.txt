@@ -34,6 +34,7 @@ target_link_libraries(client ${SDL2_LIBRARIES})
 
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
+    src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
     src/core/serverWorld.cpp

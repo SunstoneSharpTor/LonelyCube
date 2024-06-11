@@ -68,7 +68,6 @@ private:
 	float m_peaksAndValleysLocation;
 	float m_riversNoise;
 
-	static const short m_neighbouringBlocks[6];
 	static const short m_neighbouringBlocksX[6];
 	static const short m_neighbouringBlocksY[6];
 	static const short m_neighbouringBlocksZ[6];
@@ -120,6 +119,8 @@ public:
 	
 	bool inUse;
 
+	static const short neighbouringBlocks[6];
+
 	Chunk(int x, int y, int z, WorldInfo wio);
 
 	Chunk(WorldInfo wio);
@@ -142,6 +143,10 @@ public:
 		return m_blocks[block * (!m_singleBlockType)];
 	}
 
+	// void uncompressBlocks();
+
+	// void recompressBlocks();
+
 	inline char getSkyLight(unsigned int block) {
 		return (m_skyLight[block / 2] >> (4 * (block % 2))) & 0b1111;
 	}
@@ -153,7 +158,7 @@ public:
 		m_skyLight[block / 2] |= value << (4 * oddBlockNum);
 	}
 
-	void setBlock(unsigned int block, unsigned short blockType);
+	void setBlock(unsigned int block, unsigned char blockType);
 
 	unsigned int getBlockNumber(unsigned int* blockCoords);
 
@@ -163,6 +168,10 @@ public:
 
 	inline void setSkyLightToBeOutdated() {
 		m_skyLightUpToDate = false;
+	}
+
+	inline void setSkyLightToBeUpToDate() {
+		m_skyLightUpToDate = true;
 	}
 
 	inline bool skyBeingRelit() {
