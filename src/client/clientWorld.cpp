@@ -16,8 +16,6 @@
 */
 
 #include "client/clientWorld.h"
-#include "core/constants.h"
-#include "core/random.h"
 
 #include <thread>
 #include <cmath>
@@ -25,6 +23,10 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+
+#include "core/constants.h"
+#include "core/random.h"
+#include "core/terrainGen.h"
 
 namespace client {
 
@@ -509,6 +511,7 @@ void ClientWorld::loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char
     m_chunkArrayIndices[chunkNumber] = chunkArrayIndex;
 
     m_chunks[chunkArrayIndex].recreate(chunkCoords[0], chunkCoords[1], chunkCoords[2]);
+    TerrainGen().generateTerrain(m_chunks[chunkArrayIndex], m_seed);
 
     m_accessingArrIndicesVectorsMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {

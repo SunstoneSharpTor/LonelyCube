@@ -23,5 +23,6 @@
 #include "core/position.h"
 
 class Lighting {
+public:
     static void calculateSkyLight(Chunk& chunk, std::unordered_map<Position, Chunk> worldChunks, bool* neighbouringChunksToBeRelit);
 };

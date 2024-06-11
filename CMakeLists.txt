@@ -27,7 +27,8 @@ set(CLIENT_SOURCE_FILES
     src/client/vertexBuffer.cpp
     src/client/clientWorld.cpp
     src/core/chunk.cpp
-    src/core/random.cpp)
+    src/core/random.cpp
+    src/core/terrainGen.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client ${SDL2_LIBRARIES})
@@ -37,6 +38,7 @@ set(SERVER_SOURCE_FILES
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
+    src/core/terrainGen.cpp
     src/core/serverWorld.cpp
     src/server/server.cpp)
 
