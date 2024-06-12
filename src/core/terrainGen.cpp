@@ -113,13 +113,6 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 
 	noiseGridIndex = z * size + x;
 
-	// //sum the smooth terrain noises
-	// float smoothHeight = 0.0f;
-	// for (int octaveNum = 0; octaveNum < SMOOTH_NUM_OCTAVES; octaveNum++) {
-	// 	smoothHeight += SMOOTH_n[noiseGridIndex + size * size * octaveNum]
-	// 		* SMOOTH_HEIGHT / (float)(1 << octaveNum);
-	// }
-
 	//sum the continentalness terrain noises
 	m_continentalness = 0.0f;
 	for (int octaveNum = 0; octaveNum < s_CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
@@ -154,7 +147,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
 	const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
 	const float cliffHeight = 0.5f; //the new value of continentalness that the tops of cliffs will be set to
-	const float cliffDepth = -0.7f; //the new value of continentalness that the bases of cliffs will be set to
+	const float cliffDepth = -0.08f; //the new value of continentalness that the bases of cliffs will be set to
 	float cliffContinentalness;
 	//use the y = mx + c formula to transform the original continentalness value to the cliffs value
 	if (m_continentalness > cliffTop) {
@@ -200,11 +193,11 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	m_peaksAndValleysHeight += 80.0f; //promotes all areas with high peaks and valleys to have a high y-value
 	m_peaksAndValleysHeight *= m_peaksAndValleysLocation;
 
-	// //calculate the height of the smooth noise by having it higher when peaks and valleys height is lower.
-	// smoothHeight = (smoothHeight + 2.0f) * (2.0f - (peaksAndValleysLocation + std::abs(continentalness)) / 2.0f);
-
+	//calculate whether the block is close to the foot of a cliff
+	//this is used to reduce the influence of peaksAndValleysHeight near cliff bases so that they are at a sensible depth
+	float atCliffBase = std::pow(cliffFactor, 0.5f) * std::max(0.0f, (1.0f - 2.0f * std::abs(cliffContinentalness - cliffDepth)));
 	//calculate the height of the terrain before rivers are added
-	float nonRiverHeight = m_continentalness * 30.0f + 2.0f + m_peaksAndValleysHeight;// + smoothHeight;
+	float nonRiverHeight = m_continentalness * 30.0f + 2.0f + m_peaksAndValleysHeight * (1.0f - atCliffBase);
 	//calculate how much of the river errosion needs to be applied
 	//without this step, rivers would not disapear at oceans
 	float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
