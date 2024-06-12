@@ -42,6 +42,7 @@ private:
 	bool m_singleBlockType;
 	bool m_singleSkyLightVal;
 	bool m_skyLightUpToDate;
+	unsigned short m_playerCount; // The number of players that are rendering this chunk
 	int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
 	WorldInfo m_worldInfo;
 	bool m_calculatingSkylight;
@@ -142,6 +143,18 @@ public:
 
 	inline bool skyBeingRelit() {
 		return m_calculatingSkylight;
+	}
+
+	inline void incrementPlayerCount() {
+		m_playerCount++;
+	}
+
+	inline void decrementPlayerCount() {
+		m_playerCount--;
+	}
+
+	inline unsigned short getPlayerCount() const {
+		return m_playerCount;
 	}
 
 	inline bool isSingleBlockType() {

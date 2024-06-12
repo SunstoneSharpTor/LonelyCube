@@ -15,21 +15,29 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/chunk.h"
+#pragma once
 
+#include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
-struct ChunkCounter {
-    Chunk chunk;
-    unsigned short playerCount;
-
-    ChunkCounter(int x, int y, int z) : chunk(x, y, x, WorldInfo()), playerCount(1) {};
-};
+#include "core/chunk.h"
+#include "core/serverPlayer.h"
 
 class ServerWorld {
 private:
-	  unsigned long long m_seed;
-    std::unordered_map<int, ChunkCounter> m_chunks; 
+    bool m_multiplayer;
+	unsigned long long m_seed;
+    int m_nextPlayerID;
+    unsigned short m_numChunkLoadingThreads;
+    
+    std::unordered_map<Position, Chunk> m_chunks;
+    std::unordered_map<int, ServerPlayer> m_players;
+    std::queue<Position> m_chunksToBeLoaded;
+    std::unordered_set<Position> m_chunksBeingLoaded;
+
+    void loadChunks();
 public:
-    ServerWorld(unsigned long long seed);
+    ServerWorld(bool multiplayer, unsigned long long seed);
+    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
 };

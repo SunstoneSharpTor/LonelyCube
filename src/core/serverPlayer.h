@@ -15,6 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#pragma once
+
 #include <unordered_set>
 
 #include "core/chunk.h"
@@ -22,21 +24,36 @@
 
 class ServerPlayer {
 private:
-	unsigned short m_renderDistance;
-	unsigned short m_renderDiameter;
+	  unsigned short m_renderDistance;
+	  unsigned short m_renderDiameter;
     float m_minUnloadedChunkDistance;
     unsigned int m_numChunks;
-    double m_position[3];
+    int m_blockPosition[3];
+    float m_subBlockPosition[3];
     Position* m_unloadedChunks;
     int* m_playerChunkPosition;
     int m_nextUnloadedChunk;
+    int m_playerID;
     std::unordered_set<Position> m_loadedChunks;
 
     void initChunkPositions();
     void initNumChunks();
 public:
-    ServerPlayer(double* position, unsigned short renderDistance);
-    void updatePlayerPos(double* position);
+    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
+    void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
+    
+    inline int getID() const {
+        return m_playerID;
+    }
 };
+
+namespace std {
+    template<>
+    struct hash<ServerPlayer> {
+        size_t operator()(const ServerPlayer& key) const {
+            return key.getID();
+        }
+    };
+}

@@ -59,7 +59,7 @@ private:
 	int m_neighbouringChunkNumberOffets[6];
 	int m_neighbouringChunkIncludingDiaganalOffsets[27];
 	WorldInfo m_worldInfo;
-	char m_numChunkLoadingThreads;
+	unsigned short m_numChunkLoadingThreads;
 	unsigned int m_numMeshesUnloaded;
 	unsigned int m_numChunksUnloaded;
 	bool m_renderingFrame;

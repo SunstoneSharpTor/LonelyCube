@@ -57,22 +57,31 @@ void ServerPlayer::initChunkPositions() {
     m_nextUnloadedChunk = 0;
 }
 
-ServerPlayer::ServerPlayer(double* position, unsigned short renderDistance) :
-    m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1) {
-    m_position[0] = position[0];
-    m_position[1] = position[1];
-    m_position[2] = position[2];
-    m_playerChunkPosition[0] = floor(position[0] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[1] = floor(position[1] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[2] = floor(position[2] / static_cast<float>(constants::CHUNK_SIZE));
+ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance) :
+    m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID) {
+    m_blockPosition[0] = blockPosition[0];
+    m_blockPosition[1] = blockPosition[1];
+    m_blockPosition[2] = blockPosition[2];
+    m_subBlockPosition[0] = subBlockPosition[0];
+    m_subBlockPosition[1] = subBlockPosition[1];
+    m_subBlockPosition[2] = subBlockPosition[2];
+    m_playerChunkPosition[0] = floor(blockPosition[0] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[1] = floor(blockPosition[1] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[2] = floor(blockPosition[2] / static_cast<float>(constants::CHUNK_SIZE));
     initNumChunks();
     initChunkPositions();
 }
 
-void ServerPlayer::updatePlayerPos(double* position) {
-    m_playerChunkPosition[0] = floor(position[0] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[1] = floor(position[1] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[2] = floor(position[2] / static_cast<float>(constants::CHUNK_SIZE));
+void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) {
+    m_blockPosition[0] = blockPosition[0];
+    m_blockPosition[1] = blockPosition[1];
+    m_blockPosition[2] = blockPosition[2];
+    m_subBlockPosition[0] = subBlockPosition[0];
+    m_subBlockPosition[1] = subBlockPosition[1];
+    m_subBlockPosition[2] = subBlockPosition[2];
+    m_playerChunkPosition[0] = floor(blockPosition[0] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[1] = floor(blockPosition[1] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[2] = floor(blockPosition[2] / static_cast<float>(constants::CHUNK_SIZE));
     // If the player has moved chunk, remove all the chunks that are out of
     // render distance from the set of loaded chunks
     if (m_playerChunkPosition[0] != m_playerChunkPosition[0]
@@ -92,7 +101,7 @@ void ServerPlayer::updatePlayerPos(double* position) {
 
 bool ServerPlayer::allChunksLoaded() {
     while ((m_nextUnloadedChunk < m_numChunks)
-        && (m_loadedChunks.count(m_unloadedChunks[m_numChunks]))) {
+        && (m_loadedChunks.contains(m_unloadedChunks[m_numChunks]))) {
         m_numChunks++;
     }
     return m_nextUnloadedChunk == m_numChunks;

@@ -133,6 +133,7 @@ Chunk::Chunk(int x, int y, int z, WorldInfo wio) {
 	m_singleSkyLightVal = false;
 	m_skyLightUpToDate = false;
 	m_calculatingSkylight = false;
+	m_playerCount = 0;
 	m_worldInfo = wio;
 
 	m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -149,6 +150,7 @@ Chunk::Chunk(WorldInfo wio) {
 	m_singleSkyLightVal = false;
 	m_skyLightUpToDate = false;
 	m_calculatingSkylight = false;
+	m_playerCount = 0;
 	m_worldInfo = wio;
 
 	m_blocks = new unsigned char[0];
@@ -165,6 +167,7 @@ Chunk::Chunk() {
 	m_singleSkyLightVal = false;
 	m_skyLightUpToDate = false;
 	m_calculatingSkylight = false;
+	m_playerCount = 0;
 	m_worldInfo = WorldInfo();
 
 	m_blocks = new unsigned char[0];
@@ -180,6 +183,7 @@ void Chunk::recreate(int x, int y, int z) {
 	m_singleBlockType = false;
 	m_singleSkyLightVal = false;
 	m_calculatingSkylight = false;
+	m_playerCount = 0;
 	delete[] m_blocks;
 	delete[] m_skyLight;
 	m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
