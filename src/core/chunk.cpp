@@ -16,7 +16,6 @@
 */
 
 #include "core/chunk.h"
-#include "core/random.h"
 
 #include <iostream>
 #include <cmath>
@@ -25,6 +24,9 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/noise.hpp"
+
+#include "core/position.h"
+#include "core/random.h"
 
 std::mutex Chunk::s_checkingNeighbouringRelights;
 
@@ -126,6 +128,22 @@ const short Chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1
 														  1, 0, -1, -1, -1, 0, 1, 1,
 														  0, 0, 0, 0, 0, 0, 0, 0,
 														  1, 1, 1, 0, -1, -1, -1, 0 };
+
+Chunk::Chunk(Position position) {
+	inUse = true;
+	m_singleBlockType = false;
+	m_singleSkyLightVal = false;
+	m_skyLightUpToDate = false;
+	m_calculatingSkylight = false;
+	m_playerCount = 0;
+
+	m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+	m_skyLight = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+
+	m_position[0] = position.x;
+	m_position[1] = position.y;
+	m_position[2] = position.z;
+}
 
 Chunk::Chunk(int x, int y, int z, WorldInfo wio) {
 	inUse = true;

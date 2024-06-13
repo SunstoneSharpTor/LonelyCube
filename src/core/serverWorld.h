@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
@@ -36,7 +37,14 @@ private:
     std::queue<Position> m_chunksToBeLoaded;
     std::unordered_set<Position> m_chunksBeingLoaded;
 
-    void loadChunks();
+    // Synchronisation
+    std::mutex m_chunksMtx;
+    std::mutex m_playersMtx;
+    std::mutex m_chunksToBeLoadedMtx;
+    std::mutex m_chunksBeingLoadedMtx;
+
+    void loadChunksAroundPlayers();
+    void loadChunk();
 public:
     ServerWorld(bool multiplayer, unsigned long long seed);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);

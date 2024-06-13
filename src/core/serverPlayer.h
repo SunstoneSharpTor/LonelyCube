@@ -24,8 +24,8 @@
 
 class ServerPlayer {
 private:
-	  unsigned short m_renderDistance;
-	  unsigned short m_renderDiameter;
+    unsigned short m_renderDistance;
+    unsigned short m_renderDiameter;
     float m_minUnloadedChunkDistance;
     unsigned int m_numChunks;
     int m_blockPosition[3];
@@ -43,9 +43,17 @@ public:
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
+    bool decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange);
+    bool hasChunkLoaded(Position& chunkPosition);
     
     inline int getID() const {
         return m_playerID;
+    }
+
+    inline void getChunkPosition(int* position) {
+        position[0] = m_playerChunkPosition[0];
+        position[1] = m_playerChunkPosition[1];
+        position[2] = m_playerChunkPosition[2];
     }
 };
 

@@ -18,9 +18,12 @@
 #include "core/serverWorld.h"
 
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "core/chunk.h"
 #include "core/random.h"
+#include "core/terrainGen.h"
 
 ServerWorld::ServerWorld(bool multiplayer, unsigned long long seed) : m_multiplayer(multiplayer), m_seed(seed), m_nextPlayerID(0) {
     PCG_SeedRandom32(m_seed);
@@ -30,11 +33,40 @@ ServerWorld::ServerWorld(bool multiplayer, unsigned long long seed) : m_multipla
 }
 
 void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition) {
+    m_playersMtx.lock();
+    m_chunksMtx.lock();
+    int lastPlayerChunkPosition[3];
+    m_players.at(playerID).getChunkPosition(lastPlayerChunkPosition);
     m_players.at(playerID).updatePlayerPos(blockPosition, subBlockPosition);
+    int newPlayerChunkPosition[3];
+    m_players.at(playerID).getChunkPosition(newPlayerChunkPosition);
+    // If the player has moved chunk, remove all the chunks that are out of
+    // render distance from the set of loaded chunks
+    if (newPlayerChunkPosition[0] != lastPlayerChunkPosition[0]
+        || newPlayerChunkPosition[1] != lastPlayerChunkPosition[1]
+        || newPlayerChunkPosition[2] != lastPlayerChunkPosition[2]) {
+        Position chunkPosition;
+        bool chunkOutOfRange;
+        while (m_players.at(playerID).decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
+            if (chunkOutOfRange) {
+                m_chunks.at(chunkPosition).decrementPlayerCount();
+                if (m_chunks.at(chunkPosition).hasNoPlayers()) {
+                    m_chunks.at(chunkPosition).unload();
+                    m_chunks.erase(chunkPosition);
+                }
+            }
+        }
+    }
+    m_chunksMtx.unlock();
+    m_playersMtx.unlock();
 }
 
-void ServerWorld::loadChunks() {
+void ServerWorld::loadChunksAroundPlayers() {
     if (m_chunksToBeLoaded.size() < m_numChunkLoadingThreads) {
+        m_playersMtx.lock();
+        m_chunksToBeLoadedMtx.lock();
+        m_chunksBeingLoadedMtx.lock();
+        m_chunksMtx.lock();
         for (auto& [playaerID, player] : m_players) {
             if (!player.allChunksLoaded()) {
                 int chunkPosition[3];
@@ -48,5 +80,31 @@ void ServerWorld::loadChunks() {
                 }
             }
         }
+        m_chunksMtx.unlock();
+        m_chunksBeingLoadedMtx.unlock();
+        m_chunksToBeLoadedMtx.unlock();
+        m_playersMtx.unlock();
+    }
+}
+
+void ServerWorld::loadChunk() {
+    m_chunksToBeLoadedMtx.lock();
+    if (!m_chunksToBeLoaded.empty()) {
+        Position chunkPosition = m_chunksToBeLoaded.front();
+        m_chunksToBeLoadedMtx.unlock();
+        m_chunks.emplace(chunkPosition, chunkPosition);
+        TerrainGen().generateTerrain(m_chunks.at(chunkPosition), m_seed);
+        m_chunksBeingLoadedMtx.lock();
+        for (auto& [playaerID, player] : m_players) {
+            if (player.hasChunkLoaded(chunkPosition)) {
+                m_chunks.at(chunkPosition).incrementPlayerCount();
+            }
+        }
+        m_chunksBeingLoaded.erase(chunkPosition);
+        m_chunksBeingLoadedMtx.unlock();
+    }
+    else {
+        m_chunksToBeLoadedMtx.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(4));
     }
 }

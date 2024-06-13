@@ -82,21 +82,6 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_playerChunkPosition[0] = floor(blockPosition[0] / static_cast<float>(constants::CHUNK_SIZE));
     m_playerChunkPosition[1] = floor(blockPosition[1] / static_cast<float>(constants::CHUNK_SIZE));
     m_playerChunkPosition[2] = floor(blockPosition[2] / static_cast<float>(constants::CHUNK_SIZE));
-    // If the player has moved chunk, remove all the chunks that are out of
-    // render distance from the set of loaded chunks
-    if (m_playerChunkPosition[0] != m_playerChunkPosition[0]
-        || m_playerChunkPosition[1] != m_playerChunkPosition[1]
-        || m_playerChunkPosition[2] != m_playerChunkPosition[2]) {
-        while (m_nextUnloadedChunk > 0) {
-            m_nextUnloadedChunk--;
-            int a = m_unloadedChunks[m_nextUnloadedChunk].x - m_playerChunkPosition[0];
-            int b = m_unloadedChunks[m_nextUnloadedChunk].y - m_playerChunkPosition[1];
-            int c = m_unloadedChunks[m_nextUnloadedChunk].z - m_playerChunkPosition[2];
-            if (a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f) {
-                m_loadedChunks.erase(m_unloadedChunks[m_nextUnloadedChunk]);
-            }
-        }
-    }
 }
 
 bool ServerPlayer::allChunksLoaded() {
@@ -113,4 +98,24 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
     chunkCoords[2] = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkPosition[2];
     m_loadedChunks.emplace(chunkCoords);
     m_nextUnloadedChunk++;
+}
+
+bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange) {
+    if (m_nextUnloadedChunk > 0) {
+        m_nextUnloadedChunk--;
+        int a = m_unloadedChunks[m_nextUnloadedChunk].x - m_playerChunkPosition[0];
+        int b = m_unloadedChunks[m_nextUnloadedChunk].y - m_playerChunkPosition[1];
+        int c = m_unloadedChunks[m_nextUnloadedChunk].z - m_playerChunkPosition[2];
+        *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
+        if (*chunkOutOfRange) {
+            m_loadedChunks.erase(m_unloadedChunks[m_nextUnloadedChunk]);
+            *chunkPosition = m_unloadedChunks[m_nextUnloadedChunk];
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ServerPlayer::hasChunkLoaded(Position& chunkPosition) {
+    return m_loadedChunks.contains(chunkPosition);
 }

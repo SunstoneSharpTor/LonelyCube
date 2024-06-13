@@ -17,11 +17,12 @@
 
 #pragma once
 
-#include <vector>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <vector>
 
 #include "core/constants.h"
+#include "core/position.h"
 
 class Chunk;
 
@@ -81,6 +82,8 @@ public:
 	bool inUse;
 
 	static const short neighbouringBlocks[6];
+
+	Chunk(Position position);
 
 	Chunk(int x, int y, int z, WorldInfo wio);
 
@@ -151,6 +154,10 @@ public:
 
 	inline void decrementPlayerCount() {
 		m_playerCount--;
+	}
+
+	inline bool hasNoPlayers() {
+		return m_playerCount == 0;
 	}
 
 	inline unsigned short getPlayerCount() const {
