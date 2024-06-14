@@ -25,11 +25,15 @@
 #include "client/texture.h"
 #include "client/camera.h"
 #include "core/chunk.h"
+#include "core/position.h"
+#include "core/serverWorld.h"
 
 #include <chrono>
 #include <vector>
 #include <condition_variable>
 #include <mutex>
+#include <unordered_map>
+
 #include <SDL2/SDL.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -40,7 +44,7 @@ namespace client {
 
 class ClientWorld {
 private:
-	bool m_multiplayer;
+	bool m_singleplayer;
 	unsigned short m_renderDistance;
 	unsigned short m_renderDiameter;
 	unsigned int m_numChunks; //stores the number of chunks as if they were arranged in a grid
@@ -136,6 +140,8 @@ private:
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
+	ServerWorld integratedServer;
+
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool multiplayer, ENetPeer* peer, ENetHost* client);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);

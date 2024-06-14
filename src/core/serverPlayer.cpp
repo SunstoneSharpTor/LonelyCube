@@ -115,7 +115,3 @@ bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfR
     }
     return false;
 }
-
-bool ServerPlayer::hasChunkLoaded(Position& chunkPosition) {
-    return m_loadedChunks.contains(chunkPosition);
-}

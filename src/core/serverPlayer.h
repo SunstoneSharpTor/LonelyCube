@@ -31,7 +31,7 @@ private:
     int m_blockPosition[3];
     float m_subBlockPosition[3];
     Position* m_unloadedChunks;
-    int* m_playerChunkPosition;
+    int m_playerChunkPosition[3];
     int m_nextUnloadedChunk;
     int m_playerID;
     std::unordered_set<Position> m_loadedChunks;
@@ -44,7 +44,6 @@ public:
     bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
     bool decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange);
-    bool hasChunkLoaded(Position& chunkPosition);
     
     inline int getID() const {
         return m_playerID;
@@ -54,6 +53,10 @@ public:
         position[0] = m_playerChunkPosition[0];
         position[1] = m_playerChunkPosition[1];
         position[2] = m_playerChunkPosition[2];
+    }
+
+    inline bool hasChunkLoaded(Position& chunkPosition) {
+        return m_loadedChunks.contains(chunkPosition);
     }
 };
 

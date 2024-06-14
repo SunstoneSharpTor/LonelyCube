@@ -25,7 +25,7 @@
 #include "core/random.h"
 #include "core/terrainGen.h"
 
-ServerWorld::ServerWorld(bool multiplayer, unsigned long long seed) : m_multiplayer(multiplayer), m_seed(seed), m_nextPlayerID(0) {
+ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singleplayer(singleplayer), m_seed(seed), m_nextPlayerID(0) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
     
@@ -102,9 +102,24 @@ void ServerWorld::loadChunk() {
         }
         m_chunksBeingLoaded.erase(chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
+        if (m_singleplayer) {
+            m_unmeshedChunksMtx.lock();
+            m_unmeshedChunks.push(chunkPosition);
+            m_unmeshedChunksMtx.unlock();
+        }
     }
     else {
         m_chunksToBeLoadedMtx.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
     }
+}
+
+int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance) {
+    m_playersMtx.lock();
+    m_players.emplace(std::piecewise_construct,
+        std::forward_as_tuple(m_nextPlayerID),
+        std::forward_as_tuple(m_nextPlayerID, blockPosition, subBlockPosition, renderDistance));
+    m_nextPlayerID++;
+    m_playersMtx.unlock();
+    return m_nextPlayerID - 1;
 }

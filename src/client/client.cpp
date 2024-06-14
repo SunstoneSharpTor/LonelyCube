@@ -354,7 +354,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 }
 
 int main(int argc, char* argv[]) {
-    bool MULTIPLAYER = true;
+    bool MULTIPLAYER = false;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    ClientWorld mainWorld(32, worldSeed, MULTIPLAYER, peer, client);
+    ClientWorld mainWorld(32, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     Player mainPlayer(playerSpawnPoint, &mainWorld);

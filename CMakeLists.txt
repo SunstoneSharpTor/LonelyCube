@@ -18,6 +18,7 @@ set(CLIENT_SOURCE_FILES
     src/client/camera.cpp
     src/client/client.cpp
     src/client/indexBuffer.cpp
+    src/client/meshBuilder.cpp
     src/client/renderer.cpp
     src/client/player.cpp
     src/client/shader.cpp
@@ -27,8 +28,11 @@ set(CLIENT_SOURCE_FILES
     src/client/vertexBuffer.cpp
     src/client/clientWorld.cpp
     src/core/chunk.cpp
+    src/core/lighting.cpp
+    src/core/serverPlayer.cpp
     src/core/random.cpp
-    src/core/terrainGen.cpp)
+    src/core/terrainGen.cpp
+    src/core/serverWorld.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client ${SDL2_LIBRARIES})

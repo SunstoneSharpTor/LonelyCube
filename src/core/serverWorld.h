@@ -27,7 +27,7 @@
 
 class ServerWorld {
 private:
-    bool m_multiplayer;
+    bool m_singleplayer;
 	unsigned long long m_seed;
     int m_nextPlayerID;
     unsigned short m_numChunkLoadingThreads;
@@ -36,16 +36,19 @@ private:
     std::unordered_map<int, ServerPlayer> m_players;
     std::queue<Position> m_chunksToBeLoaded;
     std::unordered_set<Position> m_chunksBeingLoaded;
+    std::queue<Position> m_unmeshedChunks;
 
     // Synchronisation
     std::mutex m_chunksMtx;
     std::mutex m_playersMtx;
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
+    std::mutex m_unmeshedChunksMtx;
 
+public:
+    ServerWorld(bool singleplayer, unsigned long long seed);
+    int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
+    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
     void loadChunksAroundPlayers();
     void loadChunk();
-public:
-    ServerWorld(bool multiplayer, unsigned long long seed);
-    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
 };

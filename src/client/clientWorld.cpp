@@ -26,6 +26,7 @@
 
 #include "core/constants.h"
 #include "core/random.h"
+#include "core/serverWorld.h"
 #include "core/terrainGen.h"
 
 namespace client {
@@ -34,14 +35,13 @@ bool chunkMeshUploaded[8] = { false, false, false, false,
                               false, false, false, false };
 bool relableCompleted = false;
 
-ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool multiplayer, ENetPeer* peer, ENetHost* client) {
+ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
+    : integratedServer(singleplayer, seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
     seedNoise();
 
-    m_multiplayer = multiplayer;
-    
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
     m_meshedChunksDistance = 0.0f;
@@ -131,6 +131,13 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     }
     for (unsigned int i = 0; i < m_numActualChunks; i++) {
         m_chunks[i].setWorldInfo(m_worldInfo);
+    }
+
+    m_singleplayer = singleplayer;
+    if (singleplayer) {
+        int playerBlockPosition[3] = { 0, 0, 0 };
+        float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+        integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
     }
 
     //calculate the offset chunk numbers for the neighbouring chunks
@@ -348,6 +355,11 @@ void ClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int
 }
 
 void ClientWorld::loadChunksAroundPlayer(char threadNum) {
+    // if (m_singleplayer) {
+    //     integratedServer.loadChunksAroundPlayers();
+    //     integratedServer.loadChunk();
+    // }
+    // return;
     if (m_relableNeeded && (m_numMeshUpdates == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
