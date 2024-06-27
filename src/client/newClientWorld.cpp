@@ -781,22 +781,7 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned short blockType) {
 }
 
 unsigned short NewClientWorld::getBlock(int* blockCoords) {
-    int chunkCoords[3];
-    unsigned int blockPosInChunk[3];
-    for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
-        blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    }
-
-    unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
-
-    if (!(m_loadedChunks[chunkNumber])) {
-        return 0;
-    }
-
-    unsigned int blockNumber = m_chunks[m_chunkArrayIndices[chunkNumber]].getBlockNumber(blockPosInChunk);
-
-    return m_chunks[m_chunkArrayIndices[chunkNumber]].getBlock(blockNumber);
+    return integratedServer.getBlock(Position(blockCoords));
 }
 
 WorldInfo NewClientWorld::getWorldInfo() {

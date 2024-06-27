@@ -52,8 +52,8 @@ public:
     void loadChunksAroundPlayers();
     void loadChunk();
     bool getNextLoadedChunkPosition(Position* chunkPosition);
-
-    inline Chunk& getChunk(Position chunkPosition) {
+    unsigned char getBlock(const Position& position);
+    inline Chunk& getChunk(const Position& chunkPosition) {
         m_chunksMtx.lock();
         Chunk& chunk = m_chunks.at(chunkPosition);
         m_chunksMtx.unlock();
