@@ -27,6 +27,7 @@ set(CLIENT_SOURCE_FILES
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
     src/client/clientWorld.cpp
+    src/client/newClientWorld.cpp
     src/core/chunk.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
@@ -50,6 +51,7 @@ add_executable(server ${SERVER_SOURCE_FILES})
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
+    target_link_options(client PRIVATE -mconsole)
 
     target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
                                  winmm ws2_32)

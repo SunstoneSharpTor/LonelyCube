@@ -58,8 +58,7 @@ public:
 
     void buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices,
         unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices,
-        unsigned int* waterIndices, unsigned int* numWaterIndices,
-        unsigned int* neighbouringChunkIndices);
+        unsigned int* waterIndices, unsigned int* numWaterIndices);
 };
 
 }  // namespace client

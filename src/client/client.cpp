@@ -36,6 +36,7 @@
 #include "client/camera.h"
 #include "core/chunk.h"
 #include "client/clientWorld.h"
+#include "client/newClientWorld.h"
 #include "client/player.h"
 
 #include "glm/glm.hpp"
@@ -46,6 +47,12 @@
 using namespace client;
 
 void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
+    while (*running) {
+        mainWorld->loadChunksAroundPlayer(threadNum);
+    }
+}
+
+void newChunkLoaderThread(NewClientWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
     }
@@ -67,7 +74,7 @@ void networking(ENetHost* client) {
     }
 }
 
-void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
+void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -179,12 +186,14 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
     cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
     mainWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+    newWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
     
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
     double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
     mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time);
     mainWorld->doRenderThreadJobs();
+    newWorld->doRenderThreadJobs();
 
     //set up game loop
     SDL_DisplayMode displayMode;
@@ -200,6 +209,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     float lastFrameRateTime = frameStart + DT;
     bool loopRunning = *running;
     while (loopRunning) {
+        GLPrintErrors();
         //toggle fullscreen if F11 pressed
         if (keyboardState[SDL_SCANCODE_F11] && (!lastF11)) {
             if (windowFullScreen) {
@@ -284,7 +294,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
             //create model view projection matrix for the world
             float FOV = 70.0;
             FOV = FOV - FOV * (2.0 / 3.0) * mainPlayer->zoom;
-            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, static_cast<float>((mainWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE));
+            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, static_cast<float>((newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE));
             glm::mat4 view;
             mainPlayer->viewCamera.getViewMatrix(&view);
             glm::mat4 model = (glm::mat4(1.0f));
@@ -316,9 +326,10 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
             //draw background
             mainRenderer.clear();
+            //mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
 
             //auto tp1 = std::chrono::high_resolution_clock::now();
-            mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
+            newWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
@@ -338,10 +349,15 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
             cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
             cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
             mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+            newWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
 
             frames++;
         }
         mainWorld->doRenderThreadJobs();
+        auto tp1 = std::chrono::steady_clock::now();
+        newWorld->doRenderThreadJobs();
+        auto tp2 = std::chrono::steady_clock::now();
+        //std::cout << (double)std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "\n";
 
         loopRunning = *running;
         for (char i = 0; i < mainWorld->getNumChunkLoaderThreads(); i++) {
@@ -394,21 +410,26 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    ClientWorld mainWorld(32, worldSeed, !MULTIPLAYER, peer, client);
+    ClientWorld mainWorld(4, worldSeed, !MULTIPLAYER, peer, client);
+    NewClientWorld newWorld(5, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    Player mainPlayer(playerSpawnPoint, &mainWorld);
+    Player mainPlayer(playerSpawnPoint, &mainWorld, &newWorld);
 
     bool running = true;
 
     bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
     std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
 
-    std::thread renderWorker(renderThread, &mainWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
+    std::thread renderWorker(renderThread, &mainWorld, &newWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
 
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
+    }
+    std::thread* newChunkLoaderThreads = new std::thread[newWorld.getNumChunkLoaderThreads()];
+    for (char threadNum = 0; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+        newChunkLoaderThreads[threadNum] = std::thread(newChunkLoaderThread, &newWorld, &running, threadNum);
     }
 
     while (running) {
@@ -422,6 +443,9 @@ int main(int argc, char* argv[]) {
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         chunkLoaderThreads[threadNum - 1].join();
         chunkLoaderThreadsRunning[threadNum] = false;
+    }
+    for (char threadNum = 0; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
+        newChunkLoaderThreads[threadNum].join();
     }
     renderWorker.join();
 

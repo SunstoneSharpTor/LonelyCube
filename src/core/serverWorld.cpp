@@ -28,7 +28,11 @@
 ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singleplayer(singleplayer), m_seed(seed), m_nextPlayerID(0) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
-    
+    // TODO:
+    // set this reserved number for m_chunks to be dependant on render distance for singleplayer
+    m_chunks.reserve(16777214);
+    m_players.reserve(32);
+
     m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
 }
 
@@ -48,7 +52,7 @@ void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBl
         Position chunkPosition;
         bool chunkOutOfRange;
         while (m_players.at(playerID).decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
-            if (chunkOutOfRange) {
+            if (chunkOutOfRange && m_chunks.contains(chunkPosition)) {
                 m_chunks.at(chunkPosition).decrementPlayerCount();
                 if (m_chunks.at(chunkPosition).hasNoPlayers()) {
                     m_chunks.at(chunkPosition).unload();
@@ -91,12 +95,15 @@ void ServerWorld::loadChunk() {
     m_chunksToBeLoadedMtx.lock();
     if (!m_chunksToBeLoaded.empty()) {
         Position chunkPosition = m_chunksToBeLoaded.front();
+        m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
+        m_chunksMtx.lock();
         m_chunks.emplace(chunkPosition, chunkPosition);
+        m_chunksMtx.unlock();
         TerrainGen().generateTerrain(m_chunks.at(chunkPosition), m_seed);
         m_chunksBeingLoadedMtx.lock();
         for (auto& [playaerID, player] : m_players) {
-            if (player.hasChunkLoaded(chunkPosition)) {
+            if (player.hasChunkLoaded(chunkPosition) && m_chunks.contains(chunkPosition)) {
                 m_chunks.at(chunkPosition).incrementPlayerCount();
             }
         }
@@ -116,10 +123,22 @@ void ServerWorld::loadChunk() {
 
 int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance) {
     m_playersMtx.lock();
-    m_players.emplace(std::piecewise_construct,
-        std::forward_as_tuple(m_nextPlayerID),
-        std::forward_as_tuple(m_nextPlayerID, blockPosition, subBlockPosition, renderDistance));
+    m_players[m_nextPlayerID] = ServerPlayer { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance };
     m_nextPlayerID++;
     m_playersMtx.unlock();
     return m_nextPlayerID - 1;
+}
+
+bool ServerWorld::getNextLoadedChunkPosition(Position* chunkPosition) {
+    m_unmeshedChunksMtx.lock();
+    if (m_unmeshedChunks.empty()) {
+        m_unmeshedChunksMtx.unlock();
+        return false;
+    }
+    else {
+        *chunkPosition = m_unmeshedChunks.front();
+        m_unmeshedChunks.pop();
+        m_unmeshedChunksMtx.unlock();
+        return true;
+    }
 }

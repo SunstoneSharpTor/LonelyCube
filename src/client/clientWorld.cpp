@@ -24,6 +24,7 @@
 #include <random>
 #include <algorithm>
 
+#include "client/meshBuilder.h"
 #include "core/constants.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
@@ -31,9 +32,9 @@
 
 namespace client {
 
-bool chunkMeshUploaded[8] = { false, false, false, false,
+static bool chunkMeshUploaded[8] = { false, false, false, false,
                               false, false, false, false };
-bool relableCompleted = false;
+static bool relableCompleted = false;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
     : integratedServer(singleplayer, seed) {
@@ -89,7 +90,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
+    m_numChunkLoadingThreads = 1;//std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
     if (!m_numChunkLoadingThreads) {
         m_numChunkLoadingThreads = 1;
     }
@@ -355,11 +356,6 @@ void ClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int
 }
 
 void ClientWorld::loadChunksAroundPlayer(char threadNum) {
-    // if (m_singleplayer) {
-    //     integratedServer.loadChunksAroundPlayers();
-    //     integratedServer.loadChunk();
-    // }
-    // return;
     if (m_relableNeeded && (m_numMeshUpdates == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 

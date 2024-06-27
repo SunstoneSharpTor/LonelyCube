@@ -43,7 +43,7 @@ const int Player::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-Player::Player(int* position, ClientWorld* mainWorld) {
+Player::Player(int* position, ClientWorld* mainWorld, NewClientWorld* newWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
@@ -51,6 +51,7 @@ Player::Player(int* position, ClientWorld* mainWorld) {
     m_pausedMouseState = 0u;
 
     m_world = mainWorld;
+    m_newWorld = newWorld;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -418,6 +419,16 @@ bool Player::intersectingBlock(int* blockPos) {
 
 void Player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
     m_world->setMouseData(&m_lastMousePoll,
+                          &m_playing,
+                          &m_lastPlaying,
+                          &m_yaw,
+                          &m_pitch,
+                          m_lastMousePos,
+                          &viewCamera,
+                          window,
+                          windowDimensions);
+
+    m_newWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,
                           &m_yaw,

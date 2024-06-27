@@ -195,7 +195,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numWaterVertices)++;
                 waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
                 (*numWaterVertices)++;
-                waterVertices[*numWaterVertices] = (1.0f / 16.0f);// * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
+                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * 16;// * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numWaterVertices)++;
             }
 
@@ -231,7 +231,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                     (*numWaterVertices)++;
                     waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
                     (*numWaterVertices)++;
-                    waterVertices[*numWaterVertices] = (1.0f / 16.0f);// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                    waterVertices[*numWaterVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
                     (*numWaterVertices)++;
                 }
 
@@ -264,7 +264,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f);// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 
@@ -324,7 +324,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f);// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 
@@ -360,7 +360,7 @@ void MeshBuilder::getTextureCoordinates(float* coords, short textureNum) {
     coords[7] = coords[5];
 }
 
-void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices) {
+void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices) {
     // if (!m_chunk.isSkylightUpToDate()) {
     //     bool neighbouringChunksToRelight[6];
     //     s_checkingNeighbouringRelights.lock();

@@ -51,4 +51,12 @@ public:
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
     void loadChunksAroundPlayers();
     void loadChunk();
+    bool getNextLoadedChunkPosition(Position* chunkPosition);
+
+    inline Chunk& getChunk(Position chunkPosition) {
+        m_chunksMtx.lock();
+        Chunk& chunk = m_chunks.at(chunkPosition);
+        m_chunksMtx.unlock();
+        return chunk;
+    }
 };

@@ -39,6 +39,7 @@ private:
     void initChunkPositions();
     void initNumChunks();
 public:
+    ServerPlayer() {};
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();

@@ -45,8 +45,10 @@ void ServerPlayer::initChunkPositions() {
     for (int x = -m_renderDistance; x <= m_renderDistance; x++) {
         for (int y = -m_renderDistance; y <= m_renderDistance; y++) {
             for (int z = -m_renderDistance; z <= m_renderDistance; z++) {
-                m_unloadedChunks[i] = Position(x, y, z);
-                i++;
+                if (x * x + y * y + z * z < m_minUnloadedChunkDistance) {
+                    m_unloadedChunks[i] = Position(x, y, z);
+                    i++;
+                }
             }
         }
     }
@@ -113,5 +115,6 @@ bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfR
         }
         return true;
     }
+    *chunkOutOfRange = false;
     return false;
 }
