@@ -51,8 +51,10 @@ public:
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
     void loadChunksAroundPlayers();
     void loadChunk();
+    void addToUnmeshedChunks(const Position& chunkPosition);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
-    unsigned char getBlock(const Position& position);
+    unsigned char getBlock(const Position& position) const;
+    void setBlock(const Position& position, unsigned char blockType);
     inline Chunk& getChunk(const Position& chunkPosition) {
         m_chunksMtx.lock();
         Chunk& chunk = m_chunks.at(chunkPosition);

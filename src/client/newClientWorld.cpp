@@ -52,7 +52,6 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_numMeshesUnloaded = m_numChunksUnloaded = 0;
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
-    m_numMeshUpdates = 0;
 
     int playerPosition[3] = { 0, 0, 0 };
     int chunkCoords[3];
@@ -70,7 +69,6 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_loadingChunks = new bool[m_numChunks];
     m_chunkDistances = new float[m_numChunks];
     m_chunkArrayIndices = new unsigned int[m_numChunks];
-    m_meshUpdates = new bool[m_numChunks];
 
     m_emptyIndexBuffer = new IndexBuffer();
     m_emptyVertexBuffer = new VertexBuffer();
@@ -90,7 +88,7 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkLoadingThreads = 1;//std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
+    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
     if (!m_numChunkLoadingThreads) {
         m_numChunkLoadingThreads = 1;
     }
@@ -128,7 +126,6 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
         //set the chunk to a blank chunk
         m_loadedChunks[i] = false;
         m_loadingChunks[i] = false;
-        m_meshUpdates[i] = false;
     }
     for (unsigned int i = 0; i < m_numActualChunks; i++) {
         m_chunks[i].setWorldInfo(m_worldInfo);
@@ -219,10 +216,10 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
         meshNum++;
 	}
     //ensure that all meshes have been reloaded before moving on to water
-    if (m_numMeshUpdates > 0) {
+    if (m_meshUpdates.size() > 0) {
         auto tp1 = std::chrono::high_resolution_clock::now();
-        while (m_numMeshUpdates > 0) {
-            //cout << "m_numMeshUpdates > 0: " << m_numMeshUpdates << "\n";
+        while (m_meshUpdates.size() > 0) {
+            std::cout << "m_numMeshUpdates > 0: " << m_meshUpdates.size() << "\n";
             doRenderThreadJobs();
         }
         while (meshNum < m_meshedChunkPositions.size()) {
@@ -359,7 +356,7 @@ void NewClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, 
 void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
     integratedServer.loadChunksAroundPlayers();
     integratedServer.loadChunk();
-    if (m_relableNeeded && (m_numMeshUpdates == 0)) {
+    if (m_relableNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
         std::unique_lock<std::mutex> lock(m_relableNeededMtx);
@@ -384,6 +381,7 @@ void NewClientWorld::unloadAndRelableChunks() {
         distance += (m_meshedChunkPositions[m_numMeshesUnloaded].z - m_updatingPlayerChunkPosition[2]) * (m_meshedChunkPositions[m_numMeshesUnloaded].z - m_updatingPlayerChunkPosition[2]);
         if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
             unloadMesh(m_numMeshesUnloaded);
+            std::cout << "unload\n";
         }
         else {
             m_numMeshesUnloaded++;
@@ -407,7 +405,7 @@ void NewClientWorld::unloadAndRelableChunks() {
             currentTime = std::chrono::high_resolution_clock::now();
         }*/
         if (m_numChunksUnloaded == m_unmeshedChunkArrayIndices.size()) {
-            m_numMeshesUnloaded = m_numChunksUnloaded = m_numMeshUpdates = 0;
+            m_numMeshesUnloaded = m_numChunksUnloaded = 0;
 
             //update the player's chunk position
             m_playerChunkPosition[0] = m_updatingPlayerChunkPosition[0];
@@ -570,8 +568,10 @@ void NewClientWorld::addChunkMesh(Position& chunkPosition, char threadNum) {
         m_chunkWaterVertexBuffers.push_back(m_emptyVertexBuffer);
         m_chunkWaterIndexBuffers.push_back(m_emptyIndexBuffer);
         m_meshedChunkPositions.push_back(chunkPosition);
-        m_numMeshUpdates -= m_meshUpdates[chunkNumber];
-        m_meshUpdates[chunkNumber] = false;
+        auto it = m_meshUpdates.find(chunkPosition);
+        if (it != m_meshUpdates.end()) {
+            m_meshUpdates.erase(it);
+        }
 
         m_accessingArrIndicesVectorsMtx.unlock();
 
@@ -650,10 +650,10 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
     m_chunkWaterVertexBuffers.push_back(waterVb);
     m_chunkWaterIndexBuffers.push_back(waterIb);
     m_meshedChunkPositions.push_back(m_chunkPosition[threadNum]);
-    int chunkCoords[3] = { m_chunkPosition[threadNum].x,  m_chunkPosition[threadNum].y, m_chunkPosition[threadNum].z };
-    unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    m_numMeshUpdates -= m_meshUpdates[chunkNumber];
-    m_meshUpdates[chunkNumber] = false;
+    auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
+    if (it != m_meshUpdates.end()) {
+        m_meshUpdates.erase(it);
+    }
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
@@ -692,92 +692,56 @@ unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlo
     return 0;
 }
 
-void NewClientWorld::replaceBlock(int* blockCoords, unsigned short blockType) {
-    // int chunkCoords[3];
-    // unsigned int blockPosInChunk[3];
-    // unsigned int blockNumber = constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE;
-    // int testChunkCoords[3];
-    // for (unsigned char i = 0; i < 3; i++) {
-    //     chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
-    //     blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    //     testChunkCoords[i] = chunkCoords[i] + 1;
-    // }
-    // unsigned int i = 0;
-    // m_accessingArrIndicesVectorsMtx.lock();
-    // while (m_renderThreadWaitingForArrIndicesVectors) {
-    //     m_accessingArrIndicesVectorsMtx.unlock();
-    //     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-    //     m_accessingArrIndicesVectorsMtx.lock();
-    //     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-    // }
+void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
+    Position chunkPosition;
+    chunkPosition.x = -1 * (blockCoords[0] < 0) + blockCoords[0] / constants::CHUNK_SIZE;
+    chunkPosition.y = -1 * (blockCoords[1] < 0) + blockCoords[1] / constants::CHUNK_SIZE;
+    chunkPosition.z = -1 * (blockCoords[2] < 0) + blockCoords[2] / constants::CHUNK_SIZE;
+    
+    // std::cout << (unsigned int)m_chunks[m_meshedChunkPositions[i - 1]].getSkyLight(blockNumber) << " light level\n";
+    integratedServer.setBlock(Position(blockCoords), blockType);
 
-    // while ((!((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2]))) && (i < m_meshedChunkPositions.size())) {
-    //     m_chunks[m_meshedChunkPositions[i]].getChunkPosition(testChunkCoords);
-    //     i++;
-    // }
-    // if ((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2])) {
-    //     blockNumber = m_chunks[m_meshedChunkPositions[i - 1]].getBlockNumber(blockPosInChunk);
-    //     std::cout << (unsigned int)m_chunks[m_meshedChunkPositions[i - 1]].getSkyLight(blockNumber) << " light level\n";
-    //     m_chunks[m_meshedChunkPositions[i - 1]].setBlock(blockNumber, blockType);
+    std::vector<Position> relitChunks;
+    relitChunks.push_back(chunkPosition);
+    // auto tp1 = std::chrono::high_resolution_clock::now();
+    // relightChunksAroundBlock(blockCoords, &relitChunks);
+    // auto tp2 = std::chrono::high_resolution_clock::now();
+    // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    
+    
+    m_accessingArrIndicesVectorsMtx.lock();
+    while (m_renderThreadWaitingForArrIndicesVectors) {
+        m_accessingArrIndicesVectorsMtx.unlock();
+        m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+        m_accessingArrIndicesVectorsMtx.lock();
+        m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+    }
 
-    //     std::vector<unsigned int> relitChunks;
-    //     auto tp1 = std::chrono::high_resolution_clock::now();
-    //     relightChunksAroundBlock(blockCoords, &relitChunks);
-    //     auto tp2 = std::chrono::high_resolution_clock::now();
-    //     std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
-        
-        
-    //     tp1 = std::chrono::high_resolution_clock::now();
-    //     for (unsigned char reloadedChunk = 0; reloadedChunk < relitChunks.size(); reloadedChunk++) {
-    //         getChunkCoords(chunkCoords, (relitChunks[reloadedChunk]), m_playerChunkPosition);
-    //         int i = 0;
-    //         while (i < m_meshedChunkPositions.size()) {
-    //             m_chunks[m_meshedChunkPositions[i]].getChunkPosition(testChunkCoords);
-    //             if ((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2])) {
-    //                 unsigned int chunkNum = getChunkNumber(testChunkCoords, m_playerChunkPosition);
-    //                 m_numMeshUpdates += 1 - m_meshUpdates[chunkNum];
-    //                 m_meshUpdates[chunkNum] = true;
-    //                 unloadMesh(i);
-    //             }
-    //             i++;
-    //         }
-    //     }
-    //     tp2 = std::chrono::high_resolution_clock::now();
-    //     std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
-    // }
-    // /* Below is code to allow for replacing blocks in unmeshed chunks
-    // else {
-    //     i = 0;
-    //     while ((!((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2]))) && (i < m_beingMeshedChunkArrayIndices.size())) {
-    //         m_chunks[m_beingMeshedChunkArrayIndices[i]].getChunkPosition(testChunkCoords);
-    //         i++;
-    //     }
-    //     if ((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2])) {
-    //         blockNumber = m_chunks[m_beingMeshedChunkArrayIndices[i - 1]].getBlockNumber(blockPosInChunk);
-    //         m_chunks[m_beingMeshedChunkArrayIndices[i - 1]].setBlock(blockNumber, blockType);
-    //     }
-    //     else {
-    //         i = 0;
-    //         while (!((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2])) && (i < m_unmeshedChunkArrayIndices.size())) {
-    //             m_chunks[m_unmeshedChunkArrayIndices[i]].getChunkPosition(testChunkCoords);
-    //             i++;
-    //         }
-    //         if ((testChunkCoords[0] == chunkCoords[0]) && (testChunkCoords[1] == chunkCoords[1]) && (testChunkCoords[2] == chunkCoords[2])) {
-    //             blockNumber = m_chunks[m_unmeshedChunkArrayIndices[i - 1]].getBlockNumber(blockPosInChunk);
-    //             m_chunks[m_unmeshedChunkArrayIndices[i - 1]].setBlock(blockNumber, blockType);
-    //         }
-    //     }
-    // }*/
-    // m_accessingArrIndicesVectorsMtx.unlock();
+    auto tp1 = std::chrono::high_resolution_clock::now();
+    for (unsigned char reloadedChunk = 0; reloadedChunk < relitChunks.size(); reloadedChunk++) {
+        int i = 0;
+        while (i < m_meshedChunkPositions.size()) {
+            if (m_meshedChunkPositions[i] == relitChunks.back()) {
+                m_meshUpdates.insert(m_meshedChunkPositions[i]);
+                integratedServer.addToUnmeshedChunks(m_meshedChunkPositions[i]);
+                unloadMesh(i);
+                break;
+            }
+            i++;
+        }
+    }
+    auto tp2 = std::chrono::high_resolution_clock::now();
+    std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    m_accessingArrIndicesVectorsMtx.unlock();
 
-    // if (m_relableNeeded) {
-    //     //release the chunk loader threads so that the required chunks can be remeshed
-    //     relableCompleted = true;
-    //     // lock release 
-    //     std::lock_guard<std::mutex> lock(m_relableNeededMtx);
-    //     // notify consumer when done
-    //     m_relableNeededCV.notify_all();
-    // }
+    if (m_relableNeeded) {
+        //release the chunk loader threads so that the required chunks can be remeshed
+        relableCompleted = true;
+        // lock release 
+        std::lock_guard<std::mutex> lock(m_relableNeededMtx);
+        // notify consumer when done
+        m_relableNeededCV.notify_all();
+    }
 }
 
 unsigned short NewClientWorld::getBlock(int* blockCoords) {

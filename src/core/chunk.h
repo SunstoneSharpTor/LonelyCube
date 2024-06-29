@@ -103,7 +103,7 @@ public:
 
     void unload();
 
-    inline char getBlock(unsigned int block) {
+    inline char getBlock(const unsigned int block) const {
         return m_blocks[block * (!m_singleBlockType)];
     }
 

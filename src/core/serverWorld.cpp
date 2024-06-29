@@ -144,7 +144,7 @@ bool ServerWorld::getNextLoadedChunkPosition(Position* chunkPosition) {
 }
 
 
-unsigned char ServerWorld::getBlock(const Position& position) {
+unsigned char ServerWorld::getBlock(const Position& position) const {
     Position chunkPosition;
     Position chunkBlockCoords;
     chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
@@ -163,4 +163,32 @@ unsigned char ServerWorld::getBlock(const Position& position) {
     }
 
     return chunkIterator->second.getBlock(chunkBlockNum);
+}
+
+
+void ServerWorld::setBlock(const Position& position, unsigned char blockType) {
+    Position chunkPosition;
+    Position chunkBlockCoords;
+    chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
+    chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
+    chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
+    chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
+    chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
+    chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
+    unsigned int chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
+
+    auto chunkIterator = m_chunks.find(chunkPosition);
+
+    if (chunkIterator == m_chunks.end()) {
+        return;
+    }
+
+    chunkIterator->second.setBlock(chunkBlockNum, blockType);
+}
+
+void ServerWorld::addToUnmeshedChunks(const Position& chunkPosition) {
+    m_unmeshedChunksMtx.lock();
+    m_unmeshedChunks.push(chunkPosition);
+    m_unmeshedChunksMtx.unlock();
 }

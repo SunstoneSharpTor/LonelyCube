@@ -66,17 +66,16 @@ private:
     bool collidingWithBlock();
     
     bool intersectingBlock(int* blockPos);
-public:
-    ClientWorld* m_world;
     NewClientWorld* m_newWorld;
 
+public:
 	Camera viewCamera;
     int cameraBlockPosition[3];
     bool zoom;
 
     unsigned short m_blockHolding;
 
-    Player(int* position, ClientWorld* mainWorld, NewClientWorld* newWorld);
+    Player(int* position, NewClientWorld* newWorld);
 
     void setWorldMouseData(SDL_Window* window, int* windowDimensions);
 

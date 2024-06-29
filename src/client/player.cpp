@@ -43,14 +43,13 @@ const int Player::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-Player::Player(int* position, ClientWorld* mainWorld, NewClientWorld* newWorld) {
+Player::Player(int* position, NewClientWorld* newWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
     m_pausedMouseState = 0u;
 
-    m_world = mainWorld;
     m_newWorld = newWorld;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
@@ -116,9 +115,9 @@ void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_world->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
+                if (m_newWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                     m_timeSinceBlockBreak = 0.0f;
-                    m_world->replaceBlock(breakBlockCoords, 0);
+                    m_newWorld->replaceBlock(breakBlockCoords, 0);
                 }
             }
         }
@@ -129,11 +128,11 @@ void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_world->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) == 2) {
+                if (m_newWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) == 2) {
                     if ((!intersectingBlock(placeBlockCoords)) || (!constants::collideable[m_blockHolding])) {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too
-                        m_world->replaceBlock(placeBlockCoords, m_blockHolding);
+                        m_newWorld->replaceBlock(placeBlockCoords, m_blockHolding);
                         m_timeSinceBlockPlace = 0.0f;
                     }
                 }
@@ -338,7 +337,7 @@ void Player::resolveHitboxCollisions(float DT) {
                     position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
                 }
 
-                short blockType = m_world->getBlock(position);
+                short blockType = m_newWorld->getBlock(position);
                 if (constants::collideable[blockType]) {
                     for (unsigned char direction = 0; direction < 6; direction++) {
                         penetration = m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2] - floor(m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2]);
@@ -349,7 +348,7 @@ void Player::resolveHitboxCollisions(float DT) {
                             for (unsigned char i = 0; i < 3; i++) {
                                 neighbouringBlockPosition[i] = position[i] + m_directions[direction * 3 + i];
                             }
-                            blockType = m_world->getBlock(neighbouringBlockPosition);
+                            blockType = m_newWorld->getBlock(neighbouringBlockPosition);
                             if ((!constants::collideable[blockType]) && (m_velocity[direction / 2] != 0.0f)) {
                                 minPenetration = penetration;
                                 axisOfLeastPenetration = direction;
@@ -391,7 +390,7 @@ bool Player::collidingWithBlock() {
             position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
         }
 
-        short blockType = m_world->getBlock(position);
+        short blockType = m_newWorld->getBlock(position);
         if (constants::collideable[blockType]) {
             return true;
         }
@@ -418,16 +417,6 @@ bool Player::intersectingBlock(int* blockPos) {
 }
 
 void Player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
-    m_world->setMouseData(&m_lastMousePoll,
-                          &m_playing,
-                          &m_lastPlaying,
-                          &m_yaw,
-                          &m_pitch,
-                          m_lastMousePos,
-                          &viewCamera,
-                          window,
-                          windowDimensions);
-
     m_newWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,

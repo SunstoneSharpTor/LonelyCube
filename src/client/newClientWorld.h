@@ -29,10 +29,11 @@
 #include "core/serverWorld.h"
 
 #include <chrono>
-#include <vector>
 #include <condition_variable>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include <SDL2/SDL.h>
 #include "glm/glm.hpp"
@@ -56,8 +57,7 @@ private:
 	bool* m_loadedChunks;
 	bool* m_loadingChunks;
 	float* m_chunkDistances;
-	bool* m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
-	int m_numMeshUpdates;
+	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
 	//stores the location of each chunk in the array m_chunks, ordered by chunk number
 	unsigned int* m_chunkArrayIndices;
 	int m_neighbouringChunkNumberOffets[6];
@@ -147,7 +147,7 @@ public:
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
-	void replaceBlock(int* blockCoords, unsigned short blockType);
+	void replaceBlock(int* blockCoords, unsigned char blockType);
 	unsigned short getBlock(int* blockCoords);
 	WorldInfo getWorldInfo();
 	void doRenderThreadJobs();

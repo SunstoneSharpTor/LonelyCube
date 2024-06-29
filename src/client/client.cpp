@@ -35,7 +35,6 @@
 #include "client/texture.h"
 #include "client/camera.h"
 #include "core/chunk.h"
-#include "client/clientWorld.h"
 #include "client/newClientWorld.h"
 #include "client/player.h"
 
@@ -45,12 +44,6 @@
 #include "glm/gtc/noise.hpp"
 
 using namespace client;
-
-void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
-    while (*running) {
-        mainWorld->loadChunksAroundPlayer(threadNum);
-    }
-}
 
 void newChunkLoaderThread(NewClientWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
@@ -74,7 +67,7 @@ void networking(ENetHost* client) {
     }
 }
 
-void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
+void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -126,7 +119,7 @@ void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* runnin
     Shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_texture", 0);
-    waterShader.setUniform1f("u_renderDistance", (mainWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
+    waterShader.setUniform1f("u_renderDistance", (newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
 
     //set up the shader and the uniforms
     Shader blockShader("shaders/basicVertex.txt", "shaders/basicFragment.txt");
@@ -135,7 +128,7 @@ void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* runnin
     Texture allBlockTextures("blockTextures.png");
     allBlockTextures.bind();
     blockShader.setUniform1i("u_texture", 0);
-    blockShader.setUniform1f("u_renderDistance", (mainWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
+    blockShader.setUniform1f("u_renderDistance", (newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
 
     glClearColor(0.57f, 0.70f, 1.0f, 1.0f);
 
@@ -185,14 +178,12 @@ void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* runnin
     cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
     cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
     cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
-    mainWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
     newWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
     
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
     double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
     mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time);
-    mainWorld->doRenderThreadJobs();
     newWorld->doRenderThreadJobs();
 
     //set up game loop
@@ -307,7 +298,7 @@ void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* runnin
             int breakBlockCoords[3];
             int placeBlockCoords[3];
             bool lookingAtBlock;
-            if (mainWorld->shootRay(mainPlayer->viewCamera.position, mainPlayer->cameraBlockPosition, mainPlayer->viewCamera.front, breakBlockCoords, placeBlockCoords)) {
+            if (newWorld->shootRay(mainPlayer->viewCamera.position, mainPlayer->cameraBlockPosition, mainPlayer->viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                 //create the model view projection matrix for the outline
                 glm::vec3 outlinePosition;
                 for (unsigned char i = 0; i < 3; i++) {
@@ -348,19 +339,17 @@ void renderThread(ClientWorld* mainWorld, NewClientWorld* newWorld, bool* runnin
             cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
             cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
             cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
-            mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
             newWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
 
             frames++;
         }
-        mainWorld->doRenderThreadJobs();
         auto tp1 = std::chrono::steady_clock::now();
         newWorld->doRenderThreadJobs();
         auto tp2 = std::chrono::steady_clock::now();
         //std::cout << (double)std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "\n";
 
         loopRunning = *running;
-        for (char i = 0; i < mainWorld->getNumChunkLoaderThreads(); i++) {
+        for (char i = 0; i < newWorld->getNumChunkLoaderThreads(); i++) {
             loopRunning |= chunkLoaderThreadsRunning[i];
         }
     }
@@ -410,42 +399,34 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    ClientWorld mainWorld(4, worldSeed, !MULTIPLAYER, peer, client);
     NewClientWorld newWorld(5, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    Player mainPlayer(playerSpawnPoint, &mainWorld, &newWorld);
+    Player mainPlayer(playerSpawnPoint, &newWorld);
 
     bool running = true;
 
-    bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
-    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
+    bool* chunkLoaderThreadsRunning = new bool[newWorld.getNumChunkLoaderThreads()];
+    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + newWorld.getNumChunkLoaderThreads(), true);
 
-    std::thread renderWorker(renderThread, &mainWorld, &newWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
+    std::thread renderWorker(renderThread, &newWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
 
-    std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
-    for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
-    }
     std::thread* newChunkLoaderThreads = new std::thread[newWorld.getNumChunkLoaderThreads()];
-    for (char threadNum = 0; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (char threadNum = 1; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
         newChunkLoaderThreads[threadNum] = std::thread(newChunkLoaderThread, &newWorld, &running, threadNum);
     }
 
     while (running) {
-        mainWorld.loadChunksAroundPlayer(0);
+        newWorld.loadChunksAroundPlayer(0);
         if (MULTIPLAYER) {
             networking(client);
         }
     }
     chunkLoaderThreadsRunning[0] = false;
 
-    for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        chunkLoaderThreads[threadNum - 1].join();
+    for (char threadNum = 1; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
+        newChunkLoaderThreads[threadNum - 1].join();
         chunkLoaderThreadsRunning[threadNum] = false;
-    }
-    for (char threadNum = 0; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
-        newChunkLoaderThreads[threadNum].join();
     }
     renderWorker.join();
 
