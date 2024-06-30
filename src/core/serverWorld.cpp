@@ -65,7 +65,7 @@ void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBl
     m_playersMtx.unlock();
 }
 
-void ServerWorld::loadChunksAroundPlayers() {
+void ServerWorld::findChunksToLoad() {
     if (m_chunksToBeLoaded.size() < m_numChunkLoadingThreads) {
         m_playersMtx.lock();
         m_chunksToBeLoadedMtx.lock();
@@ -91,33 +91,35 @@ void ServerWorld::loadChunksAroundPlayers() {
     }
 }
 
-void ServerWorld::loadChunk() {
+bool ServerWorld::loadChunk(Position* chunkPosition) {
     m_chunksToBeLoadedMtx.lock();
     if (!m_chunksToBeLoaded.empty()) {
-        Position chunkPosition = m_chunksToBeLoaded.front();
+        *chunkPosition = m_chunksToBeLoaded.front();
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        m_chunks.emplace(chunkPosition, chunkPosition);
+        m_chunks.emplace(*chunkPosition, *chunkPosition);
         m_chunksMtx.unlock();
-        TerrainGen().generateTerrain(m_chunks.at(chunkPosition), m_seed);
+        TerrainGen().generateTerrain(m_chunks.at(*chunkPosition), m_seed);
         m_chunksBeingLoadedMtx.lock();
         for (auto& [playaerID, player] : m_players) {
-            if (player.hasChunkLoaded(chunkPosition) && m_chunks.contains(chunkPosition)) {
-                m_chunks.at(chunkPosition).incrementPlayerCount();
+            if (player.hasChunkLoaded(*chunkPosition) && m_chunks.contains(*chunkPosition)) {
+                m_chunks.at(*chunkPosition).incrementPlayerCount();
             }
         }
-        m_chunksBeingLoaded.erase(chunkPosition);
+        m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
         if (m_singleplayer) {
             m_unmeshedChunksMtx.lock();
-            m_unmeshedChunks.push(chunkPosition);
+            m_unmeshedChunks.push(*chunkPosition);
             m_unmeshedChunksMtx.unlock();
         }
+        return true;
     }
     else {
         m_chunksToBeLoadedMtx.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
+        return false;
     }
 }
 

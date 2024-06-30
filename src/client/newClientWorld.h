@@ -61,7 +61,7 @@ private:
 	//stores the location of each chunk in the array m_chunks, ordered by chunk number
 	unsigned int* m_chunkArrayIndices;
 	int m_neighbouringChunkNumberOffets[6];
-	int m_neighbouringChunkIncludingDiaganalOffsets[27];
+	Position m_neighbouringChunkIncludingDiaganalOffsets[27];
 	WorldInfo m_worldInfo;
 	unsigned short m_numChunkLoadingThreads;
 	unsigned int m_numMeshesUnloaded;
@@ -96,7 +96,8 @@ private:
 	//stores the positions of the loaded chunks in the array m_chunks
 	std::vector<Position> m_meshedChunkPositions;
 	std::vector<unsigned int> m_unmeshedChunkArrayIndices;
-	std::vector<unsigned int> m_beingMeshedChunkArrayIndices;
+	std::unordered_set<Position> m_meshedChunks;
+	std::unordered_set<Position> m_unmeshedChunks;
 
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
@@ -117,6 +118,7 @@ private:
 	std::condition_variable m_relableNeededCV;
 	std::mutex m_accessingArrIndicesVectorsMtx;
 	std::mutex m_renderThreadWaitingForArrIndicesVectorsMtx;
+	std::mutex m_unmeshedChunksMtx;
 	bool m_renderThreadWaitingForArrIndicesVectors;
 	bool* m_chunkMeshReady;
 	bool m_relableNeeded;
@@ -133,8 +135,8 @@ private:
 	void loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threadNum);
 	void unloadChunk(unsigned int chunkVectorIndex);
 	void unloadMesh(unsigned int chunkVectorIndex);
-	bool chunkHasNeighbours(unsigned int chunkArrayIndex);
-	void addChunkMesh(Position& chunkPosition, char threadNum);
+	bool chunkHasNeighbours(const Position& chunkPosition);
+	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unloadAndRelableChunks();
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);

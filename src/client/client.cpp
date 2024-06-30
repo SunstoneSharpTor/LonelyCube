@@ -412,7 +412,7 @@ int main(int argc, char* argv[]) {
     std::thread renderWorker(renderThread, &newWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
 
     std::thread* newChunkLoaderThreads = new std::thread[newWorld.getNumChunkLoaderThreads()];
-    for (char threadNum = 1; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (char threadNum = 0; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
         newChunkLoaderThreads[threadNum] = std::thread(newChunkLoaderThread, &newWorld, &running, threadNum);
     }
 

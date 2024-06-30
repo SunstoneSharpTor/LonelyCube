@@ -49,8 +49,8 @@ public:
     ServerWorld(bool singleplayer, unsigned long long seed);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
-    void loadChunksAroundPlayers();
-    void loadChunk();
+    void findChunksToLoad();
+    bool loadChunk(Position* chunkPosition);
     void addToUnmeshedChunks(const Position& chunkPosition);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
     unsigned char getBlock(const Position& position) const;
@@ -60,5 +60,11 @@ public:
         Chunk& chunk = m_chunks.at(chunkPosition);
         m_chunksMtx.unlock();
         return chunk;
+    }
+    inline bool chunkLoaded(const Position& chunkPosition) {
+        return m_chunks.contains(chunkPosition);
+    }
+    inline const std::unordered_map<Position, Chunk>& getWorldChunks() {
+        return m_chunks;
     }
 };

@@ -146,33 +146,15 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_neighbouringChunkNumberOffets[4] = m_renderDiameter;
     m_neighbouringChunkNumberOffets[5] = (m_renderDiameter * m_renderDiameter);
 
-    m_neighbouringChunkIncludingDiaganalOffsets[0]  = -(m_renderDiameter * m_renderDiameter) - m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[1]  = -(m_renderDiameter * m_renderDiameter) - m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[2]  = -(m_renderDiameter * m_renderDiameter) - m_renderDiameter + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[3]  = -(m_renderDiameter * m_renderDiameter) - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[4]  = -(m_renderDiameter * m_renderDiameter);
-    m_neighbouringChunkIncludingDiaganalOffsets[5]  = -(m_renderDiameter * m_renderDiameter) + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[6]  = -(m_renderDiameter * m_renderDiameter) + m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[7]  = -(m_renderDiameter * m_renderDiameter) + m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[8]  = -(m_renderDiameter * m_renderDiameter) + m_renderDiameter + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[9]  = -m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[10] = -m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[11] = -m_renderDiameter + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[12] = -1;
-    m_neighbouringChunkIncludingDiaganalOffsets[13] = 0;
-    m_neighbouringChunkIncludingDiaganalOffsets[14] = 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[15] = m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[16] = m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[17] = m_renderDiameter + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[18] = (m_renderDiameter * m_renderDiameter) - m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[19] = (m_renderDiameter * m_renderDiameter) - m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[20] = (m_renderDiameter * m_renderDiameter) - m_renderDiameter + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[21] = (m_renderDiameter * m_renderDiameter) - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[22] = (m_renderDiameter * m_renderDiameter);
-    m_neighbouringChunkIncludingDiaganalOffsets[23] = (m_renderDiameter * m_renderDiameter) + 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[24] = (m_renderDiameter * m_renderDiameter) + m_renderDiameter - 1;
-    m_neighbouringChunkIncludingDiaganalOffsets[25] = (m_renderDiameter * m_renderDiameter) + m_renderDiameter;
-    m_neighbouringChunkIncludingDiaganalOffsets[26] = (m_renderDiameter * m_renderDiameter) + m_renderDiameter + 1;
+    int i = 0;
+    for (int x = -1; x < 2; x++) {
+        for (int y = -1; y < 2; y++) {
+            for (int z = -1; z < 2; z++) {
+                m_neighbouringChunkIncludingDiaganalOffsets[i] = { x, y, z };
+                i++;
+            }
+        }
+    }
 }
 
 void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
@@ -354,8 +336,13 @@ void NewClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, 
 }
 
 void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
-    integratedServer.loadChunksAroundPlayers();
-    integratedServer.loadChunk();
+    integratedServer.findChunksToLoad();
+    Position chunkPosition;
+    if (integratedServer.loadChunk(&chunkPosition)) {
+        m_unmeshedChunksMtx.lock();
+        m_unmeshedChunks.insert(chunkPosition);
+        m_unmeshedChunksMtx.unlock();
+    }
     if (m_relableNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -432,7 +419,6 @@ void NewClientWorld::unloadAndRelableChunks() {
 
             //clear the list of being meshed chunks as there are no chunks currently being meshed
             //so this is a safe time to do so
-            m_beingMeshedChunkArrayIndices.clear();
 
             relableCompleted = true;
             m_relableNeeded = false;
@@ -444,20 +430,15 @@ void NewClientWorld::unloadAndRelableChunks() {
     }
 }
 
-bool NewClientWorld::chunkHasNeighbours(unsigned int chunkArrayIndex) {
-    int chunkPosition[3];
-    m_chunks[chunkArrayIndex].getChunkPosition(chunkPosition);
-    
-    for (unsigned char i = 0; i < 3; i++) {
-        if (abs(chunkPosition[i] - m_playerChunkPosition[i]) == m_renderDistance) {
-            return false;
-        }
+bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
+    if ((abs(chunkPosition.x - m_playerChunkPosition[0]) == m_renderDistance)
+        || (abs(chunkPosition.y - m_playerChunkPosition[1]) == m_renderDistance)
+        || (abs(chunkPosition.z - m_playerChunkPosition[2]) == m_renderDistance)) {
+        return false;
     }
 
-    int chunkNumber = getChunkNumber(chunkPosition, m_playerChunkPosition);
-
     for (unsigned char i = 0; i < 27; i++) {
-        if (!(m_loadedChunks[chunkNumber + m_neighbouringChunkIncludingDiaganalOffsets[i]])) {
+        if (!(integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
     }
@@ -501,9 +482,9 @@ void NewClientWorld::unloadChunk(unsigned int chunkVectorIndex) {
 void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
     //m_unmeshedChunkArrayIndices.push_back(m_meshedChunkPositions[chunkVectorIndex]);
 
+    m_meshedChunks.erase(m_meshedChunkPositions[chunkVectorIndex]);
     std::vector<Position>::iterator it1 = m_meshedChunkPositions.begin() + chunkVectorIndex;
     m_meshedChunkPositions.erase(it1);
-
     if (m_chunkIndexBuffers[chunkVectorIndex]->getCount() > 0) {
         m_chunkVertexArrays[chunkVectorIndex]->~VertexArray();
         delete m_chunkVertexArrays[chunkVectorIndex];
@@ -537,8 +518,9 @@ void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
     m_chunkWaterIndexBuffers.erase(it4);
 }
 
-void NewClientWorld::addChunkMesh(Position& chunkPosition, char threadNum) {
+void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
+    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
 
     //set up containers for data for buffers
     m_numChunkVertices[threadNum] = 0;
@@ -568,6 +550,7 @@ void NewClientWorld::addChunkMesh(Position& chunkPosition, char threadNum) {
         m_chunkWaterVertexBuffers.push_back(m_emptyVertexBuffer);
         m_chunkWaterIndexBuffers.push_back(m_emptyIndexBuffer);
         m_meshedChunkPositions.push_back(chunkPosition);
+        m_meshedChunks.insert(chunkPosition);
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);
@@ -658,10 +641,17 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
 }
 
 void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
-    Position chunkPosition;
-    if (integratedServer.getNextLoadedChunkPosition(&chunkPosition)) {
-        addChunkMesh(chunkPosition, threadNum);
+    m_unmeshedChunksMtx.lock();
+    for (const auto& chunkPosition : m_unmeshedChunks) {
+        if (chunkHasNeighbours(chunkPosition)) {
+            Position position = chunkPosition;
+            m_unmeshedChunks.erase(chunkPosition);
+            m_unmeshedChunksMtx.unlock();
+            addChunkMesh(position, threadNum);
+            break;
+        }
     }
+    m_unmeshedChunksMtx.unlock();
 }
 
 unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {

@@ -26,7 +26,11 @@ struct Position {
     Position(int* position) : x(position[0]), y(position[1]), z(position[2]) {};
     Position() {};
 
-    bool operator==(const Position& other) const {
+    inline Position operator+(const Position& other) const {
+        return { x + other.x, y + other.y, z + other.z };
+    }
+
+    inline bool operator==(const Position& other) const {
         return (x == other.x) && (y == other.y) && (z == other.z);
     }
 };
