@@ -67,9 +67,9 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_subBlockPosition[0] = subBlockPosition[0];
     m_subBlockPosition[1] = subBlockPosition[1];
     m_subBlockPosition[2] = subBlockPosition[2];
-    m_playerChunkPosition[0] = floor(blockPosition[0] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[1] = floor(blockPosition[1] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[2] = floor(blockPosition[2] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[0] = -1 * (blockPosition[0] < 0) + blockPosition[0] / constants::CHUNK_SIZE;
+    m_playerChunkPosition[1] = -1 * (blockPosition[1] < 0) + blockPosition[1] / constants::CHUNK_SIZE;
+    m_playerChunkPosition[2] = -1 * (blockPosition[2] < 0) + blockPosition[2] / constants::CHUNK_SIZE;
     initNumChunks();
     initChunkPositions();
 }
@@ -81,9 +81,9 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_subBlockPosition[0] = subBlockPosition[0];
     m_subBlockPosition[1] = subBlockPosition[1];
     m_subBlockPosition[2] = subBlockPosition[2];
-    m_playerChunkPosition[0] = floor(blockPosition[0] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[1] = floor(blockPosition[1] / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[2] = floor(blockPosition[2] / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[0] = -1 * (blockPosition[0] < 0) + blockPosition[0] / constants::CHUNK_SIZE;
+    m_playerChunkPosition[1] = -1 * (blockPosition[1] < 0) + blockPosition[1] / constants::CHUNK_SIZE;
+    m_playerChunkPosition[2] = -1 * (blockPosition[2] < 0) + blockPosition[2] / constants::CHUNK_SIZE;
 }
 
 bool ServerPlayer::allChunksLoaded() {

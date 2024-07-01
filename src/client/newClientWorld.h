@@ -132,8 +132,6 @@ private:
 	unsigned int getChunkNumber(int* chunkCoords, int* playerCoords);
 
 	void getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerCoords);
-	void loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threadNum);
-	void unloadChunk(unsigned int chunkVectorIndex);
 	void unloadMesh(unsigned int chunkVectorIndex);
 	bool chunkHasNeighbours(const Position& chunkPosition);
 	void addChunkMesh(const Position& chunkPosition, char threadNum);

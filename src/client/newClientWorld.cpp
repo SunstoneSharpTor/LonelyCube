@@ -274,9 +274,9 @@ void NewClientWorld::doRenderThreadJobs() {
 }
 
 void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
-    m_newPlayerChunkPosition[0] = floor((playerX) / static_cast<float>(constants::CHUNK_SIZE));
-    m_newPlayerChunkPosition[1] = floor((playerY) / static_cast<float>(constants::CHUNK_SIZE));
-    m_newPlayerChunkPosition[2] = floor((playerZ) / static_cast<float>(constants::CHUNK_SIZE));
+    m_newPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
+    m_newPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
+    m_newPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
 }
 
 void NewClientWorld::relableChunksIfNeeded() {
@@ -446,40 +446,8 @@ bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     return true;
 }
 
-void NewClientWorld::loadChunk(unsigned int chunkArrayIndex, int* chunkCoords, char threadNum) {
-    unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    m_chunkArrayIndices[chunkNumber] = chunkArrayIndex;
-
-    m_chunks[chunkArrayIndex].recreate(chunkCoords[0], chunkCoords[1], chunkCoords[2]);
-    TerrainGen().generateTerrain(m_chunks[chunkArrayIndex], m_seed);
-
-    m_accessingArrIndicesVectorsMtx.lock();
-    while (m_renderThreadWaitingForArrIndicesVectors) {
-        m_accessingArrIndicesVectorsMtx.unlock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-        m_accessingArrIndicesVectorsMtx.lock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-    }
-    m_unmeshedChunkArrayIndices.push_back(chunkArrayIndex);
-    //set the chunk to be loaded in the array of loaded chunks
-    m_loadedChunks[chunkNumber] = true;
-    m_accessingArrIndicesVectorsMtx.unlock();
-}
-
-void NewClientWorld::unloadChunk(unsigned int chunkVectorIndex) {
-    //set the chunk to be unloaded in the array of loaded chunks
-    int chunkCoords[3];
-    m_chunks[m_unmeshedChunkArrayIndices[chunkVectorIndex]].getChunkPosition(chunkCoords);
-    unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    m_loadedChunks[chunkNumber] = false;
-
-    m_chunks[m_unmeshedChunkArrayIndices[chunkVectorIndex]].unload();
-
-    std::vector<unsigned int>::iterator it = m_unmeshedChunkArrayIndices.begin() + chunkVectorIndex;
-    m_unmeshedChunkArrayIndices.erase(it);
-}
-
 void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
+    Position chunkPosition = m_meshedChunkPositions[chunkVectorIndex];
     //m_unmeshedChunkArrayIndices.push_back(m_meshedChunkPositions[chunkVectorIndex]);
 
     m_meshedChunks.erase(m_meshedChunkPositions[chunkVectorIndex]);
@@ -516,6 +484,10 @@ void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
     m_chunkWaterVertexBuffers.erase(it3);
     it4 = m_chunkWaterIndexBuffers.begin() + chunkVectorIndex;
     m_chunkWaterIndexBuffers.erase(it4);
+
+    m_unmeshedChunksMtx.lock();
+    m_unmeshedChunks.insert(chunkPosition);
+    m_unmeshedChunksMtx.unlock();
 }
 
 void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
@@ -642,12 +614,11 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
 
 void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_unmeshedChunksMtx.lock();
-    for (const auto& chunkPosition : m_unmeshedChunks) {
+    for (const auto chunkPosition : m_unmeshedChunks) {
         if (chunkHasNeighbours(chunkPosition)) {
-            Position position = chunkPosition;
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
-            addChunkMesh(position, threadNum);
+            addChunkMesh(chunkPosition, threadNum);
             break;
         }
     }
@@ -697,8 +668,7 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     // relightChunksAroundBlock(blockCoords, &relitChunks);
     // auto tp2 = std::chrono::high_resolution_clock::now();
     // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
-    
-    
+
     m_accessingArrIndicesVectorsMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {
         m_accessingArrIndicesVectorsMtx.unlock();
@@ -712,9 +682,8 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
         int i = 0;
         while (i < m_meshedChunkPositions.size()) {
             if (m_meshedChunkPositions[i] == relitChunks.back()) {
-                m_meshUpdates.insert(m_meshedChunkPositions[i]);
-                integratedServer.addToUnmeshedChunks(m_meshedChunkPositions[i]);
                 unloadMesh(i);
+                m_meshUpdates.insert(chunkPosition);
                 break;
             }
             i++;
@@ -812,9 +781,9 @@ void NewClientWorld::setMouseData(double* lastMousePoll,
 }
 
 void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) {
-    m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = floor((playerX) / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = floor((playerY) / static_cast<float>(constants::CHUNK_SIZE));
-    m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = floor((playerZ) / static_cast<float>(constants::CHUNK_SIZE));
+    m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
+    m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
+    m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
     m_relableNeeded = true;
 }
 
@@ -823,7 +792,7 @@ void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vecto
     int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
     int chunkCoords[3] = { 0, 0, 0 };
     for (char i = 0; i < 3; i++) {
-        chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
+        chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
     }
     unsigned int chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
     while ((chunkCoords[1] > lowestChunkInWorld) && (m_loadedChunks[chunkNum])) {
@@ -849,7 +818,8 @@ void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vecto
 
     //find the furthest blocks that the skylight could spread to and add them to a vector
     std::vector<int> blockCoordsToBeRelit;
-    int chunkLayerHeight = floor(static_cast<float>(blockCoords[1] + constants::skyLightMaxValue - 1) / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+    int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
+    int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
     while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
         blockPos[0] = blockCoords[0];
         blockPos[1] = chunkLayerHeight;
@@ -892,9 +862,9 @@ void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vecto
     //for every block that the skylight could spread to, add that chunk to a vector only if it is not there already
     std::vector<unsigned int> chunksToBeRelit;
     for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
-        chunkCoords[0] = floor(static_cast<float>(blockCoordsToBeRelit[i]) / constants::CHUNK_SIZE);
-        chunkCoords[1] = blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
-        chunkCoords[2] = floor(static_cast<float>(blockCoordsToBeRelit[i + 2]) / constants::CHUNK_SIZE);
+        chunkCoords[0] = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
+        chunkCoords[1] = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
+        chunkCoords[2] = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
         chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
         if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkNum) == chunksToBeRelit.end()) {
             chunksToBeRelit.push_back(chunkNum);
