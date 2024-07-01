@@ -24,18 +24,6 @@
 #include "core/constants.h"
 #include "core/position.h"
 
-class Chunk;
-
-struct WorldInfo {
-    Chunk* worldChunks;
-    unsigned int* chunkArrayIndices;
-    int* playerChunkPosition;
-    unsigned int renderDistance;
-    unsigned int renderDiameter;
-    int* numRelights;
-    unsigned long long seed;
-};
-
 class Chunk {
 private:
     unsigned char* m_blocks;
@@ -45,7 +33,6 @@ private:
     bool m_skyLightUpToDate;
     unsigned short m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
-    WorldInfo m_worldInfo;
     bool m_calculatingSkylight;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
@@ -85,15 +72,7 @@ public:
 
     Chunk(Position position);
 
-    Chunk(int x, int y, int z, WorldInfo wio);
-
-    Chunk(WorldInfo wio);
-
     Chunk();
-
-    void recreate(int x, int y, int z);
-
-    void setWorldInfo(WorldInfo wio);
 
     void generateTerrain();
 

@@ -32,8 +32,7 @@
 
 namespace client {
 
-static bool chunkMeshUploaded[8] = { false, false, false, false,
-                              false, false, false, false };
+static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, false, false };
 static bool relableCompleted = false;
 
 NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
@@ -49,42 +48,16 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_fogDistance = 0.0f;
     m_timeByDTs = 0.0;
     m_mouseCalls = 0;
-    m_numMeshesUnloaded = m_numChunksUnloaded = 0;
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
 
     int playerPosition[3] = { 0, 0, 0 };
     int chunkCoords[3];
-    m_numChunks = m_renderDiameter * m_renderDiameter * m_renderDiameter;
     float minUnloadedChunkDistance = ((m_renderDistance + 1) * (m_renderDistance + 1));
-    m_numActualChunks = 0;
-    for (unsigned int i = 0; i < m_numChunks; i++) {
-        getChunkCoords(chunkCoords, i, playerPosition);
-        if ((chunkCoords[0] * chunkCoords[0] + chunkCoords[1] * chunkCoords[1] + chunkCoords[2] * chunkCoords[2]) < minUnloadedChunkDistance) {
-            m_numActualChunks++;
-        }
-    }
-
-    m_loadedChunks = new bool[m_numChunks];
-    m_loadingChunks = new bool[m_numChunks];
-    m_chunkDistances = new float[m_numChunks];
-    m_chunkArrayIndices = new unsigned int[m_numChunks];
 
     m_emptyIndexBuffer = new IndexBuffer();
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
-
-    //create space for chunks on the heap so the memory does not have to be allocated during gameplay
-    m_chunks = new Chunk[m_numActualChunks];
-
-    m_worldInfo.worldChunks = m_chunks;
-    m_worldInfo.chunkArrayIndices = m_chunkArrayIndices;
-    m_worldInfo.playerChunkPosition = m_playerChunkPosition;
-    m_worldInfo.renderDistance = m_renderDistance;
-    m_worldInfo.renderDiameter = m_renderDiameter;
-    m_numRelights = 0;
-    m_worldInfo.numRelights = &m_numRelights;
-    m_worldInfo.seed = m_seed;
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
@@ -118,19 +91,6 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
-
-    //populate the list of chunk distances with pre-calculated values, so they don't have to be calculated during gameplay
-    for (unsigned int i = 0; i < m_numChunks; i++) {
-        getChunkCoords(chunkCoords, i, playerPosition);
-        m_chunkDistances[i] = chunkCoords[0] * chunkCoords[0] + chunkCoords[1] * chunkCoords[1] + chunkCoords[2] * chunkCoords[2];
-        //set the chunk to a blank chunk
-        m_loadedChunks[i] = false;
-        m_loadingChunks[i] = false;
-    }
-    for (unsigned int i = 0; i < m_numActualChunks; i++) {
-        m_chunks[i].setWorldInfo(m_worldInfo);
-    }
-
     m_singleplayer = singleplayer;
     if (singleplayer) {
         int playerBlockPosition[3] = { 0, 0, 0 };
@@ -139,12 +99,12 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     }
 
     //calculate the offset chunk numbers for the neighbouring chunks
-    m_neighbouringChunkNumberOffets[0] = -(m_renderDiameter * m_renderDiameter);
-    m_neighbouringChunkNumberOffets[1] = -m_renderDiameter;
-    m_neighbouringChunkNumberOffets[2] = -1;
-    m_neighbouringChunkNumberOffets[3] = 1;
-    m_neighbouringChunkNumberOffets[4] = m_renderDiameter;
-    m_neighbouringChunkNumberOffets[5] = (m_renderDiameter * m_renderDiameter);
+    m_neighbouringChunkOffets[0] = { 0, -1, 0 };
+    m_neighbouringChunkOffets[1] = { 0, 0, -1 };
+    m_neighbouringChunkOffets[2] = { -1, 0, 0 };
+    m_neighbouringChunkOffets[3] = { 1, 0, 0 };
+    m_neighbouringChunkOffets[4] = { 0, 0, 1 };
+    m_neighbouringChunkOffets[5] = { 0, 1, 0 };
 
     int i = 0;
     for (int x = -1; x < 2; x++) {
@@ -158,7 +118,7 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
 }
 
 void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
-    if (m_chunkIndexBuffers.size() != m_meshedChunkPositions.size()) {
+    if (m_chunkIndexBuffers.size() != m_meshedChunks.size()) {
         std::cout << "bad\n";
     }
     //else {
@@ -178,73 +138,54 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
         m_timeByDTs -= (1.0/(double)constants::visualTPS);
     }
     blockShader.setUniform1f("u_renderDistance", m_fogDistance);
-    unsigned int meshNum = 0;
-    while (meshNum < m_meshedChunkPositions.size()) {
-        if (m_chunkIndexBuffers[meshNum]->getCount() > 0) {
-            chunkCoordinates[0] = m_meshedChunkPositions[meshNum].x * constants::CHUNK_SIZE - playerBlockPosition[0];
-            chunkCoordinates[1] = m_meshedChunkPositions[meshNum].y * constants::CHUNK_SIZE - playerBlockPosition[1];
-            chunkCoordinates[2] = m_meshedChunkPositions[meshNum].z * constants::CHUNK_SIZE - playerBlockPosition[2];
-            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-            if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-                //update the MVP uniform
-                blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                m_chunkVertexArrays[meshNum]->bind();
-                mainRenderer.draw(*m_chunkVertexArrays[meshNum], *m_chunkIndexBuffers[meshNum], blockShader);
-                doRenderThreadJobs();
-            }
-        }
-        meshNum++;
-	}
-    //ensure that all meshes have been reloaded before moving on to water
     if (m_meshUpdates.size() > 0) {
         auto tp1 = std::chrono::high_resolution_clock::now();
         while (m_meshUpdates.size() > 0) {
             std::cout << "m_numMeshUpdates > 0: " << m_meshUpdates.size() << "\n";
             doRenderThreadJobs();
         }
-        while (meshNum < m_meshedChunkPositions.size()) {
-            if (m_chunkIndexBuffers[meshNum]->getCount() > 0) {
-                chunkCoordinates[0] = m_meshedChunkPositions[meshNum].x * constants::CHUNK_SIZE - playerBlockPosition[0];
-                chunkCoordinates[1] = m_meshedChunkPositions[meshNum].y * constants::CHUNK_SIZE - playerBlockPosition[1];
-                chunkCoordinates[2] = m_meshedChunkPositions[meshNum].z * constants::CHUNK_SIZE - playerBlockPosition[2];
-                AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-                if (aabb.isOnFrustum(viewFrustum)) {
-                    glm::mat4 modelMatrix = glm::mat4(1.0f);
-                    modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-                    //update the MVP uniform
-                    blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                    m_chunkVertexArrays[meshNum]->bind();
-                    mainRenderer.draw(*m_chunkVertexArrays[meshNum], *m_chunkIndexBuffers[meshNum], blockShader);
-                    doRenderThreadJobs();
-                }
-            }
-            meshNum++;
-        }
-        if (m_relableNeeded) {
-            relableCompleted = false;
-        }
         auto tp2 = std::chrono::high_resolution_clock::now();
         std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
     }
+    for (const auto& [chunkPosition, ib] : m_chunkIndexBuffers) {
+        if (m_chunkIndexBuffers.at(chunkPosition)->getCount() > 0) {
+            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
+            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
+            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
+            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
+            if (aabb.isOnFrustum(viewFrustum)) {
+                glm::mat4 modelMatrix = glm::mat4(1.0f);
+                modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
+                //update the MVP uniform
+                blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
+                m_chunkVertexArrays.at(chunkPosition)->bind();
+                mainRenderer.draw(*m_chunkVertexArrays.at(chunkPosition), *m_chunkIndexBuffers.at(chunkPosition), blockShader);
+                doRenderThreadJobs();
+            }
+        }
+    }
+    if (m_relableNeeded) {
+        relableCompleted = false;
+    }
+    auto tp2 = std::chrono::high_resolution_clock::now();
     //render water
     waterShader.bind();
     waterShader.setUniformMat4f("u_proj", projMatrix);
     waterShader.setUniform1f("u_renderDistance", m_fogDistance);
-    for (unsigned int i = 0; i < m_meshedChunkPositions.size(); i++) {
-        if (m_chunkWaterIndexBuffers[i]->getCount() > 0) {
-            chunkCoordinates[0] = m_meshedChunkPositions[meshNum].x * constants::CHUNK_SIZE - playerBlockPosition[0];
-            chunkCoordinates[1] = m_meshedChunkPositions[meshNum].y * constants::CHUNK_SIZE - playerBlockPosition[1];
-            chunkCoordinates[2] = m_meshedChunkPositions[meshNum].z * constants::CHUNK_SIZE - playerBlockPosition[2];
+    for (const auto& [chunkPosition, ib] : m_chunkWaterIndexBuffers) {
+        std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
+        if (m_chunkWaterIndexBuffers.at(chunkPosition)->getCount() > 0) {
+            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
+            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
+            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
             AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
                 //update the MVP uniform
                 waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                m_chunkWaterVertexArrays[i]->bind();
-                mainRenderer.draw(*m_chunkWaterVertexArrays[i], *m_chunkWaterIndexBuffers[i], waterShader);
+                m_chunkWaterVertexArrays.at(chunkPosition)->bind();
+                mainRenderer.draw(*m_chunkWaterVertexArrays.at(chunkPosition), *m_chunkWaterIndexBuffers.at(chunkPosition), waterShader);
                 doRenderThreadJobs();
             }
         }
@@ -356,78 +297,31 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
 
 void NewClientWorld::unloadAndRelableChunks() {
     //unload any meshes and chunks that are out of render distance
-    float distance;
-    const int maxMicroseconds = 2000;
-    auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = startTime;
-    while ((std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count() < maxMicroseconds)
-        && (m_numMeshesUnloaded < (unsigned int)m_meshedChunkPositions.size())) {;
-        distance = 0;
-        distance += (m_meshedChunkPositions[m_numMeshesUnloaded].x - m_updatingPlayerChunkPosition[0]) * (m_meshedChunkPositions[m_numMeshesUnloaded].x - m_updatingPlayerChunkPosition[0]);
-        distance += (m_meshedChunkPositions[m_numMeshesUnloaded].y - m_updatingPlayerChunkPosition[1]) * (m_meshedChunkPositions[m_numMeshesUnloaded].y - m_updatingPlayerChunkPosition[1]);
-        distance += (m_meshedChunkPositions[m_numMeshesUnloaded].z - m_updatingPlayerChunkPosition[2]) * (m_meshedChunkPositions[m_numMeshesUnloaded].z - m_updatingPlayerChunkPosition[2]);
+    float distance = 0;
+    Position lastChunkPosition;
+    for (auto& chunkPosition : m_meshedChunks) {
         if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
-            unloadMesh(m_numMeshesUnloaded);
+            unloadMesh(lastChunkPosition);
             std::cout << "unload\n";
         }
-        else {
-            m_numMeshesUnloaded++;
-        }
-        currentTime = std::chrono::high_resolution_clock::now();
+        distance = 0;
+        distance += (chunkPosition.x - m_updatingPlayerChunkPosition[0]) * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
+        distance += (chunkPosition.y - m_updatingPlayerChunkPosition[1]) * (chunkPosition.y - m_updatingPlayerChunkPosition[1]);
+        distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2]) * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
+        lastChunkPosition = chunkPosition;
     }
-    if (m_numMeshesUnloaded == m_meshedChunkPositions.size()) {
-        /*while ((std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count() < maxMicroseconds)
-            && (m_numChunksUnloaded < (unsigned int)m_unmeshedChunkArrayIndices.size())) {
-            m_chunks[m_unmeshedChunkArrayIndices[m_numChunksUnloaded]].getChunkPosition(chunkCoords);
-            distance = 0;
-            for (unsigned char ii = 0; ii < 3; ii++) {
-                distance += (chunkCoords[ii] - m_updatingPlayerChunkPosition[ii]) * (chunkCoords[ii] - m_updatingPlayerChunkPosition[ii]);
-            }
-            if (distance >= ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
-                unloadChunk(m_numChunksUnloaded);
-            }
-            else {
-                m_numChunksUnloaded++;
-            }
-            currentTime = std::chrono::high_resolution_clock::now();
-        }*/
-        if (m_numChunksUnloaded == m_unmeshedChunkArrayIndices.size()) {
-            m_numMeshesUnloaded = m_numChunksUnloaded = 0;
 
-            //update the player's chunk position
-            m_playerChunkPosition[0] = m_updatingPlayerChunkPosition[0];
-            m_playerChunkPosition[1] = m_updatingPlayerChunkPosition[1];
-            m_playerChunkPosition[2] = m_updatingPlayerChunkPosition[2];
+    //update the player's chunk position
+    m_playerChunkPosition[0] = m_updatingPlayerChunkPosition[0];
+    m_playerChunkPosition[1] = m_updatingPlayerChunkPosition[1];
+    m_playerChunkPosition[2] = m_updatingPlayerChunkPosition[2];
 
-            // //recalculate which chunks are loaded and unloaded
-            // for (unsigned int i = 0; i < m_numChunks; i++) {
-            //     m_loadedChunks[i] = false;
-            //     m_meshUpdates[i] = false;
-            // }
-            // unsigned int chunkNumber;
-            // int chunkCoords[3];
-            // for (unsigned int i = 0; i < m_numActualChunks; i++) {
-            //     if (m_chunks[i].inUse) {
-            //         m_chunks[i].getChunkPosition(chunkCoords);
-            //         chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
-            //         m_loadedChunks[chunkNumber] = true;
-            //         m_chunkArrayIndices[chunkNumber] = i;
-            //     }
-            // }
-
-            //cout << "RELABLE ";
-
-            //clear the list of being meshed chunks as there are no chunks currently being meshed
-            //so this is a safe time to do so
-
-            relableCompleted = true;
-            m_relableNeeded = false;
-            // lock release 
-            std::lock_guard<std::mutex> lock(m_relableNeededMtx);
-            // notify consumer when done
-            m_relableNeededCV.notify_all();
-        }
-    }
+    relableCompleted = true;
+    m_relableNeeded = false;
+    // lock release 
+    std::lock_guard<std::mutex> lock(m_relableNeededMtx);
+    // notify consumer when done
+    m_relableNeededCV.notify_all();
 }
 
 bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
@@ -446,44 +340,29 @@ bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     return true;
 }
 
-void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
-    Position chunkPosition = m_meshedChunkPositions[chunkVectorIndex];
+void NewClientWorld::unloadMesh(const Position& chunkPosition) {
     //m_unmeshedChunkArrayIndices.push_back(m_meshedChunkPositions[chunkVectorIndex]);
 
-    m_meshedChunks.erase(m_meshedChunkPositions[chunkVectorIndex]);
-    std::vector<Position>::iterator it1 = m_meshedChunkPositions.begin() + chunkVectorIndex;
-    m_meshedChunkPositions.erase(it1);
-    if (m_chunkIndexBuffers[chunkVectorIndex]->getCount() > 0) {
-        m_chunkVertexArrays[chunkVectorIndex]->~VertexArray();
-        delete m_chunkVertexArrays[chunkVectorIndex];
-        m_chunkVertexBuffers[chunkVectorIndex]->~VertexBuffer();
-        delete m_chunkVertexBuffers[chunkVectorIndex];
-        m_chunkIndexBuffers[chunkVectorIndex]->~IndexBuffer();
-        delete m_chunkIndexBuffers[chunkVectorIndex];
+    m_meshedChunks.erase(chunkPosition);
+    if (m_chunkIndexBuffers.at(chunkPosition)->getCount() > 0) {
+        delete m_chunkVertexArrays.at(chunkPosition);
+        delete m_chunkVertexBuffers.at(chunkPosition);
+        delete m_chunkIndexBuffers.at(chunkPosition);
     }
 
-    std::vector<VertexArray*>::iterator it2 = m_chunkVertexArrays.begin() + chunkVectorIndex;
-    m_chunkVertexArrays.erase(it2);
-    std::vector<VertexBuffer*>::iterator it3 = m_chunkVertexBuffers.begin() + chunkVectorIndex;
-    m_chunkVertexBuffers.erase(it3);
-    std::vector<IndexBuffer*>::iterator it4 = m_chunkIndexBuffers.begin() + chunkVectorIndex;
-    m_chunkIndexBuffers.erase(it4);
+    m_chunkVertexArrays.erase(chunkPosition);
+    m_chunkVertexBuffers.erase(chunkPosition);
+    m_chunkIndexBuffers.erase(chunkPosition);
 
-    if (m_chunkWaterIndexBuffers[chunkVectorIndex]->getCount() > 0) {
-        m_chunkWaterVertexArrays[chunkVectorIndex]->~VertexArray();
-        delete m_chunkWaterVertexArrays[chunkVectorIndex];
-        m_chunkWaterVertexBuffers[chunkVectorIndex]->~VertexBuffer();
-        delete m_chunkWaterVertexBuffers[chunkVectorIndex];
-        m_chunkWaterIndexBuffers[chunkVectorIndex]->~IndexBuffer();
-        delete m_chunkWaterIndexBuffers[chunkVectorIndex];
+    if (m_chunkWaterIndexBuffers.at(chunkPosition)->getCount() > 0) {
+        delete m_chunkWaterVertexArrays.at(chunkPosition);
+        delete m_chunkWaterVertexBuffers.at(chunkPosition);
+        delete m_chunkWaterIndexBuffers.at(chunkPosition);
     }
 
-    it2 = m_chunkWaterVertexArrays.begin() + chunkVectorIndex;
-    m_chunkWaterVertexArrays.erase(it2);
-    it3 = m_chunkWaterVertexBuffers.begin() + chunkVectorIndex;
-    m_chunkWaterVertexBuffers.erase(it3);
-    it4 = m_chunkWaterIndexBuffers.begin() + chunkVectorIndex;
-    m_chunkWaterIndexBuffers.erase(it4);
+    m_chunkWaterVertexArrays.erase(chunkPosition);
+    m_chunkWaterVertexBuffers.erase(chunkPosition);
+    m_chunkWaterIndexBuffers.erase(chunkPosition);
 
     m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
@@ -492,7 +371,6 @@ void NewClientWorld::unloadMesh(unsigned int chunkVectorIndex) {
 
 void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
-    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
 
     //set up containers for data for buffers
     m_numChunkVertices[threadNum] = 0;
@@ -515,13 +393,12 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
             m_accessingArrIndicesVectorsMtx.lock();
             m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
         }
-        m_chunkVertexArrays.push_back(m_emptyVertexArray);
-        m_chunkVertexBuffers.push_back(m_emptyVertexBuffer);
-        m_chunkIndexBuffers.push_back(m_emptyIndexBuffer);
-        m_chunkWaterVertexArrays.push_back(m_emptyVertexArray);
-        m_chunkWaterVertexBuffers.push_back(m_emptyVertexBuffer);
-        m_chunkWaterIndexBuffers.push_back(m_emptyIndexBuffer);
-        m_meshedChunkPositions.push_back(chunkPosition);
+        m_chunkVertexArrays[chunkPosition] = m_emptyVertexArray;
+        m_chunkVertexBuffers[chunkPosition] = m_emptyVertexBuffer;
+        m_chunkIndexBuffers[chunkPosition] = m_emptyIndexBuffer;
+        m_chunkWaterVertexArrays[chunkPosition] = m_emptyVertexArray;
+        m_chunkWaterVertexBuffers[chunkPosition] = m_emptyVertexBuffer;
+        m_chunkWaterIndexBuffers[chunkPosition] = m_emptyIndexBuffer;
         m_meshedChunks.insert(chunkPosition);
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
@@ -598,13 +475,13 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
     m_accessingArrIndicesVectorsMtx.lock();
     m_renderThreadWaitingForArrIndicesVectors = false;
     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-    m_chunkVertexArrays.push_back(va);
-    m_chunkVertexBuffers.push_back(vb);
-    m_chunkIndexBuffers.push_back(ib);
-    m_chunkWaterVertexArrays.push_back(waterVa);
-    m_chunkWaterVertexBuffers.push_back(waterVb);
-    m_chunkWaterIndexBuffers.push_back(waterIb);
-    m_meshedChunkPositions.push_back(m_chunkPosition[threadNum]);
+    m_chunkVertexArrays[m_chunkPosition[threadNum]] = va;
+    m_chunkVertexBuffers[m_chunkPosition[threadNum]] = vb;
+    m_chunkIndexBuffers[m_chunkPosition[threadNum]] = ib;
+    m_chunkWaterVertexArrays[m_chunkPosition[threadNum]] = waterVa;
+    m_chunkWaterVertexBuffers[m_chunkPosition[threadNum]] = waterVb;
+    m_chunkWaterIndexBuffers[m_chunkPosition[threadNum]] = waterIb;
+    m_meshedChunks.insert(m_chunkPosition[threadNum]);
     auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
     if (it != m_meshUpdates.end()) {
         m_meshUpdates.erase(it);
@@ -678,16 +555,9 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     }
 
     auto tp1 = std::chrono::high_resolution_clock::now();
-    for (unsigned char reloadedChunk = 0; reloadedChunk < relitChunks.size(); reloadedChunk++) {
-        int i = 0;
-        while (i < m_meshedChunkPositions.size()) {
-            if (m_meshedChunkPositions[i] == relitChunks.back()) {
-                unloadMesh(i);
-                m_meshUpdates.insert(chunkPosition);
-                break;
-            }
-            i++;
-        }
+    for (auto& relitChunk : relitChunks) {
+        unloadMesh(relitChunk);
+        m_meshUpdates.insert(relitChunk);
     }
     auto tp2 = std::chrono::high_resolution_clock::now();
     std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
@@ -705,10 +575,6 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
 
 unsigned short NewClientWorld::getBlock(int* blockCoords) {
     return integratedServer.getBlock(Position(blockCoords));
-}
-
-WorldInfo NewClientWorld::getWorldInfo() {
-    return m_worldInfo;
 }
 
 char NewClientWorld::getNumChunkLoaderThreads() {
@@ -788,139 +654,139 @@ void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) 
 }
 
 void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks) {
-    //find the lowest block in the column that is loaded
-    int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
-    int chunkCoords[3] = { 0, 0, 0 };
-    for (char i = 0; i < 3; i++) {
-        chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
-    }
-    unsigned int chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    while ((chunkCoords[1] > lowestChunkInWorld) && (m_loadedChunks[chunkNum])) {
-        chunkCoords[1] -= 1;
-        chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    }
-    int lowestLoadedBlockInColumn = (chunkCoords[1] + 1) * constants::CHUNK_SIZE;
-    //find the lowest block in the column that has a full sky access
-    int blockPos[3];
-    for (char i = 0; i < 3; i++) {
-        blockPos[i] = blockCoords[i];
-    }
-    blockPos[1]--;
-    while (blockPos[1] - constants::skyLightMaxValue + 1 >= lowestLoadedBlockInColumn) {
-        unsigned char blockType = getBlock(blockPos);
-        if (constants::dimsLight[blockType] || (!constants::transparent[blockType])) {
-            blockPos[1]--;
-            break;
-        }
-        blockPos[1]--;
-    }
-    int lowestFullySkylitBlockInColumn = blockPos[1] + 2;
+    // //find the lowest block in the column that is loaded
+    // int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
+    // int chunkCoords[3] = { 0, 0, 0 };
+    // for (char i = 0; i < 3; i++) {
+    //     chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
+    // }
+    // unsigned int chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
+    // while ((chunkCoords[1] > lowestChunkInWorld) && (m_loadedChunks[chunkNum])) {
+    //     chunkCoords[1] -= 1;
+    //     chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
+    // }
+    // int lowestLoadedBlockInColumn = (chunkCoords[1] + 1) * constants::CHUNK_SIZE;
+    // //find the lowest block in the column that has a full sky access
+    // int blockPos[3];
+    // for (char i = 0; i < 3; i++) {
+    //     blockPos[i] = blockCoords[i];
+    // }
+    // blockPos[1]--;
+    // while (blockPos[1] - constants::skyLightMaxValue + 1 >= lowestLoadedBlockInColumn) {
+    //     unsigned char blockType = getBlock(blockPos);
+    //     if (constants::dimsLight[blockType] || (!constants::transparent[blockType])) {
+    //         blockPos[1]--;
+    //         break;
+    //     }
+    //     blockPos[1]--;
+    // }
+    // int lowestFullySkylitBlockInColumn = blockPos[1] + 2;
 
-    //find the furthest blocks that the skylight could spread to and add them to a vector
-    std::vector<int> blockCoordsToBeRelit;
-    int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
-    int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-    while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
-        blockPos[0] = blockCoords[0];
-        blockPos[1] = chunkLayerHeight;
-        blockPos[2] = blockCoords[2];
-        for (char i = 0; i < 3; i++) {
-            blockCoordsToBeRelit.push_back(blockPos[i]);
-        }
-        blockPos[0] += constants::skyLightMaxValue - 1;
-        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-            blockPos[0]--;
-            blockPos[2]++;
-            for (char i = 0; i < 3; i++) {
-                blockCoordsToBeRelit.push_back(blockPos[i]);
-            }
-        }
-        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-            blockPos[0]--;
-            blockPos[2]--;
-            for (char i = 0; i < 3; i++) {
-                blockCoordsToBeRelit.push_back(blockPos[i]);
-            }
-        }
-        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-            blockPos[0]++;
-            blockPos[2]--;
-            for (char i = 0; i < 3; i++) {
-                blockCoordsToBeRelit.push_back(blockPos[i]);
-            }
-        }
-        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-            blockPos[0]++;
-            blockPos[2]++;
-            for (char i = 0; i < 3; i++) {
-                blockCoordsToBeRelit.push_back(blockPos[i]);
-            }
-        }
-        chunkLayerHeight -= constants::CHUNK_SIZE;
-    }
+    // //find the furthest blocks that the skylight could spread to and add them to a vector
+    // std::vector<int> blockCoordsToBeRelit;
+    // int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
+    // int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+    // while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
+    //     blockPos[0] = blockCoords[0];
+    //     blockPos[1] = chunkLayerHeight;
+    //     blockPos[2] = blockCoords[2];
+    //     for (char i = 0; i < 3; i++) {
+    //         blockCoordsToBeRelit.push_back(blockPos[i]);
+    //     }
+    //     blockPos[0] += constants::skyLightMaxValue - 1;
+    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+    //         blockPos[0]--;
+    //         blockPos[2]++;
+    //         for (char i = 0; i < 3; i++) {
+    //             blockCoordsToBeRelit.push_back(blockPos[i]);
+    //         }
+    //     }
+    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+    //         blockPos[0]--;
+    //         blockPos[2]--;
+    //         for (char i = 0; i < 3; i++) {
+    //             blockCoordsToBeRelit.push_back(blockPos[i]);
+    //         }
+    //     }
+    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+    //         blockPos[0]++;
+    //         blockPos[2]--;
+    //         for (char i = 0; i < 3; i++) {
+    //             blockCoordsToBeRelit.push_back(blockPos[i]);
+    //         }
+    //     }
+    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+    //         blockPos[0]++;
+    //         blockPos[2]++;
+    //         for (char i = 0; i < 3; i++) {
+    //             blockCoordsToBeRelit.push_back(blockPos[i]);
+    //         }
+    //     }
+    //     chunkLayerHeight -= constants::CHUNK_SIZE;
+    // }
 
-    //for every block that the skylight could spread to, add that chunk to a vector only if it is not there already
-    std::vector<unsigned int> chunksToBeRelit;
-    for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
-        chunkCoords[0] = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
-        chunkCoords[1] = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
-        chunkCoords[2] = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
-        chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-        if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkNum) == chunksToBeRelit.end()) {
-            chunksToBeRelit.push_back(chunkNum);
-            m_chunks[m_chunkArrayIndices[chunkNum]].clearSkyLight();
-        }
-    }
+    // //for every block that the skylight could spread to, add that chunk to a vector only if it is not there already
+    // std::vector<unsigned int> chunksToBeRelit;
+    // for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
+    //     chunkCoords[0] = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
+    //     chunkCoords[1] = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
+    //     chunkCoords[2] = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
+    //     chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
+    //     if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkNum) == chunksToBeRelit.end()) {
+    //         chunksToBeRelit.push_back(chunkNum);
+    //         m_chunks[m_chunkArrayIndices[chunkNum]].clearSkyLight();
+    //     }
+    // }
 
-    int numChunksRelit = 0;
-    int numSpreads = 0;
-    while (chunksToBeRelit.size() > 0) {
-        bool neighbouringChunksToRelight[6];
-        unsigned int neighbouringChunkIndices[6];
-        unsigned int neighbouringChunkNumbers[6];
-        bool neighbouringChunksLoaded = true;
-        //check that the chunk has its neighbours loaded so that it can be lit
-        for (char ii = 0; ii < 6; ii++) {
-            if ((((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) < 0) 
-                || (((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) > m_renderDiameter * m_renderDiameter * m_renderDiameter)) {
-                neighbouringChunksLoaded = false;
-                break;
-            }
-            neighbouringChunkNumbers[ii] = chunksToBeRelit[0] + m_neighbouringChunkNumberOffets[ii];
-            if (!m_loadedChunks[neighbouringChunkNumbers[ii]]) {
-                neighbouringChunksLoaded = false;
-                break;
-            }
-            neighbouringChunkIndices[ii] = m_chunkArrayIndices[neighbouringChunkNumbers[ii]];
-        }
-        //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-        if (!neighbouringChunksLoaded) {
-            m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].setSkyLightToBeOutdated();
-            std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
-            chunksToBeRelit.erase(it);
-            continue;
-        }
-        //clear the skylight data for the chunk and relight it
-        //m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].clearSkyLight();
-        m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].calculateSkyLight(neighbouringChunkIndices, neighbouringChunksToRelight);
-        if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
-            relitChunks->push_back(chunksToBeRelit[0]);
-        }
-        std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
-        chunksToBeRelit.erase(it);
-        //add the neighbouring chunks that were marked as needing recalculating to the queue
-        for (char i = 0; i < 6; i++) {
-            if (!neighbouringChunksToRelight[i]) {
-                continue;
-            }
-            if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkNumbers[i]) == chunksToBeRelit.end()) {
-                chunksToBeRelit.push_back(neighbouringChunkNumbers[i]);
-                numSpreads++;
-            }
-        }
-        numChunksRelit++;
-    }
-    std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
+    // int numChunksRelit = 0;
+    // int numSpreads = 0;
+    // while (chunksToBeRelit.size() > 0) {
+    //     bool neighbouringChunksToRelight[6];
+    //     unsigned int neighbouringChunkIndices[6];
+    //     unsigned int neighbouringChunkNumbers[6];
+    //     bool neighbouringChunksLoaded = true;
+    //     //check that the chunk has its neighbours loaded so that it can be lit
+    //     for (char ii = 0; ii < 6; ii++) {
+    //         if ((((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) < 0) 
+    //             || (((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) > m_renderDiameter * m_renderDiameter * m_renderDiameter)) {
+    //             neighbouringChunksLoaded = false;
+    //             break;
+    //         }
+    //         neighbouringChunkNumbers[ii] = chunksToBeRelit[0] + m_neighbouringChunkNumberOffets[ii];
+    //         if (!m_loadedChunks[neighbouringChunkNumbers[ii]]) {
+    //             neighbouringChunksLoaded = false;
+    //             break;
+    //         }
+    //         neighbouringChunkIndices[ii] = m_chunkArrayIndices[neighbouringChunkNumbers[ii]];
+    //     }
+    //     //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+    //     if (!neighbouringChunksLoaded) {
+    //         m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].setSkyLightToBeOutdated();
+    //         std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
+    //         chunksToBeRelit.erase(it);
+    //         continue;
+    //     }
+    //     //clear the skylight data for the chunk and relight it
+    //     //m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].clearSkyLight();
+    //     m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].calculateSkyLight(neighbouringChunkIndices, neighbouringChunksToRelight);
+    //     if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
+    //         relitChunks->push_back(chunksToBeRelit[0]);
+    //     }
+    //     std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
+    //     chunksToBeRelit.erase(it);
+    //     //add the neighbouring chunks that were marked as needing recalculating to the queue
+    //     for (char i = 0; i < 6; i++) {
+    //         if (!neighbouringChunksToRelight[i]) {
+    //             continue;
+    //         }
+    //         if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkNumbers[i]) == chunksToBeRelit.end()) {
+    //             chunksToBeRelit.push_back(neighbouringChunkNumbers[i]);
+    //             numSpreads++;
+    //         }
+    //     }
+    //     numChunksRelit++;
+    // }
+    // std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
 }
 
 }  // namespace client

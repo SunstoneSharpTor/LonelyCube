@@ -19,7 +19,6 @@
 
 #include <SDL2/SDL.h>
 
-#include "client/clientWorld.h"
 #include "client/newClientWorld.h"
 #include "client/camera.h"
 

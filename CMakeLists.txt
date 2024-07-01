@@ -26,7 +26,6 @@ set(CLIENT_SOURCE_FILES
     src/client/texture.cpp
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
-    src/client/clientWorld.cpp
     src/client/newClientWorld.cpp
     src/core/chunk.cpp
     src/core/lighting.cpp

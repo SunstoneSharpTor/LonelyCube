@@ -48,24 +48,14 @@ private:
 	bool m_singleplayer;
 	unsigned short m_renderDistance;
 	unsigned short m_renderDiameter;
-	unsigned int m_numChunks; //stores the number of chunks as if they were arranged in a grid
-	unsigned int m_numActualChunks; //stores the number of chunks as if they were arranged in a sphere
-	Chunk* m_chunks;
 	int m_playerChunkPosition[3];
 	int m_newPlayerChunkPosition[3];
 	int m_updatingPlayerChunkPosition[3];
-	bool* m_loadedChunks;
-	bool* m_loadingChunks;
-	float* m_chunkDistances;
 	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
 	//stores the location of each chunk in the array m_chunks, ordered by chunk number
-	unsigned int* m_chunkArrayIndices;
-	int m_neighbouringChunkNumberOffets[6];
+	Position m_neighbouringChunkOffets[6];
 	Position m_neighbouringChunkIncludingDiaganalOffsets[27];
-	WorldInfo m_worldInfo;
 	unsigned short m_numChunkLoadingThreads;
-	unsigned int m_numMeshesUnloaded;
-	unsigned int m_numChunksUnloaded;
 	bool m_renderingFrame;
 	float m_meshedChunksDistance;
 	float m_fogDistance;
@@ -84,18 +74,15 @@ private:
 	SDL_Window* m_window;
 	int* m_windowDimensions;
 
-	std::vector<VertexArray*> m_chunkVertexArrays;
-	std::vector<VertexBuffer*> m_chunkVertexBuffers;
-	std::vector<IndexBuffer*> m_chunkIndexBuffers;
-	std::vector<VertexArray*> m_chunkWaterVertexArrays;
-	std::vector<VertexBuffer*> m_chunkWaterVertexBuffers;
-	std::vector<IndexBuffer*> m_chunkWaterIndexBuffers;
+	std::unordered_map<Position, VertexArray*> m_chunkVertexArrays;
+	std::unordered_map<Position, VertexBuffer*> m_chunkVertexBuffers;
+	std::unordered_map<Position, IndexBuffer*> m_chunkIndexBuffers;
+	std::unordered_map<Position, VertexArray*> m_chunkWaterVertexArrays;
+	std::unordered_map<Position, VertexBuffer*> m_chunkWaterVertexBuffers;
+	std::unordered_map<Position, IndexBuffer*> m_chunkWaterIndexBuffers;
 	VertexBuffer* m_emptyVertexBuffer;
 	IndexBuffer* m_emptyIndexBuffer;
 	VertexArray* m_emptyVertexArray;
-	//stores the positions of the loaded chunks in the array m_chunks
-	std::vector<Position> m_meshedChunkPositions;
-	std::vector<unsigned int> m_unmeshedChunkArrayIndices;
 	std::unordered_set<Position> m_meshedChunks;
 	std::unordered_set<Position> m_unmeshedChunks;
 
@@ -132,7 +119,7 @@ private:
 	unsigned int getChunkNumber(int* chunkCoords, int* playerCoords);
 
 	void getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerCoords);
-	void unloadMesh(unsigned int chunkVectorIndex);
+	void unloadMesh(const Position& chunkPosition);
 	bool chunkHasNeighbours(const Position& chunkPosition);
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
@@ -149,7 +136,9 @@ public:
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
 	void replaceBlock(int* blockCoords, unsigned char blockType);
 	unsigned short getBlock(int* blockCoords);
-	WorldInfo getWorldInfo();
+	inline int getRenderDistance() {
+		return m_renderDistance;
+	}
 	void doRenderThreadJobs();
 	void relableChunksIfNeeded();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);

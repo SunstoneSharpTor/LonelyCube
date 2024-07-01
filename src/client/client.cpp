@@ -119,7 +119,7 @@ void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThre
     Shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_texture", 0);
-    waterShader.setUniform1f("u_renderDistance", (newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
+    waterShader.setUniform1f("u_renderDistance", (newWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
 
     //set up the shader and the uniforms
     Shader blockShader("shaders/basicVertex.txt", "shaders/basicFragment.txt");
@@ -128,7 +128,7 @@ void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThre
     Texture allBlockTextures("blockTextures.png");
     allBlockTextures.bind();
     blockShader.setUniform1i("u_texture", 0);
-    blockShader.setUniform1f("u_renderDistance", (newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE);
+    blockShader.setUniform1f("u_renderDistance", (newWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
 
     glClearColor(0.57f, 0.70f, 1.0f, 1.0f);
 
@@ -285,7 +285,7 @@ void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThre
             //create model view projection matrix for the world
             float FOV = 70.0;
             FOV = FOV - FOV * (2.0 / 3.0) * mainPlayer->zoom;
-            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, static_cast<float>((newWorld->getWorldInfo().renderDistance - 1) * constants::CHUNK_SIZE));
+            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, static_cast<float>((newWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
             glm::mat4 view;
             mainPlayer->viewCamera.getViewMatrix(&view);
             glm::mat4 model = (glm::mat4(1.0f));
