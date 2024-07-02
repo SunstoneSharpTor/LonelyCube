@@ -17,6 +17,7 @@
 
 #include "client/meshBuilder.h"
 
+#include <iostream>
 #include <unordered_map>
 
 #include "core/chunk.h"
@@ -124,12 +125,12 @@ const short MeshBuilder::s_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1
 void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock) {
     int chunkPosition[3];
     m_chunk.getChunkPosition(chunkPosition);
-    float blockPos[3];
+    int blockCoords[3];
     int neighbouringBlockPos[3];
-    findBlockCoordsInChunk(blockPos, block);
-    neighbouringBlockPos[0] = chunkPosition[0] * constants::CHUNK_SIZE + blockPos[0] + s_neighbouringBlocksX[neighbouringBlock];
-    neighbouringBlockPos[1] = chunkPosition[1] * constants::CHUNK_SIZE + blockPos[1] + s_neighbouringBlocksY[neighbouringBlock];
-    neighbouringBlockPos[2] = chunkPosition[2] * constants::CHUNK_SIZE + blockPos[2] + s_neighbouringBlocksZ[neighbouringBlock];
+    findBlockCoordsInChunk(blockCoords, block);
+    neighbouringBlockPos[0] = chunkPosition[0] * constants::CHUNK_SIZE + blockCoords[0] + s_neighbouringBlocksX[neighbouringBlock];
+    neighbouringBlockPos[1] = chunkPosition[1] * constants::CHUNK_SIZE + blockCoords[1] + s_neighbouringBlocksY[neighbouringBlock];
+    neighbouringBlockPos[2] = chunkPosition[2] * constants::CHUNK_SIZE + blockCoords[2] + s_neighbouringBlocksZ[neighbouringBlock];
 
     if (constants::cubeMesh[m_chunk.getBlock(block)]) {
         short firstPositionIndex;
@@ -188,14 +189,14 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
             getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
             for (short vertex = 0; vertex < 4; vertex++) {
                 for (short element = 0; element < 3; element++) {
-                    waterVertices[*numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockPos[element];
+                    waterVertices[*numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
                     (*numWaterVertices)++;
                 }
                 waterVertices[*numWaterVertices] = texCoords[vertex * 2];
                 (*numWaterVertices)++;
                 waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
                 (*numWaterVertices)++;
-                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * 16;// * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
+                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(blockCoords) + 1);
                 (*numWaterVertices)++;
             }
 
@@ -219,19 +220,19 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 firstAdjacentBlockIndex = 0;
                 textureNum = 4;
                 neighbouringBlockCoordsOffset = 0;
-                blockPos[1]++;
+                blockCoords[1]++;
 
                 getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
                 for (short vertex = 0; vertex < 4; vertex++) {
                     for (short element = 0; element < 3; element++) {
-                        waterVertices[*numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockPos[element];
+                        waterVertices[*numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
                         (*numWaterVertices)++;
                     }
                     waterVertices[*numWaterVertices] = texCoords[vertex * 2];
                     (*numWaterVertices)++;
                     waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
                     (*numWaterVertices)++;
-                    waterVertices[*numWaterVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                    waterVertices[*numWaterVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                     (*numWaterVertices)++;
                 }
 
@@ -257,14 +258,14 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
             getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
             for (short vertex = 0; vertex < 4; vertex++) {
                 for (short element = 0; element < 3; element++) {
-                    vertices[*numVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockPos[element];
+                    vertices[*numVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
                     (*numVertices)++;
                 }
                 vertices[*numVertices] = texCoords[vertex * 2];
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 
@@ -278,14 +279,20 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 blockCoords[0] += chunkPosition[0] * constants::CHUNK_SIZE + s_neighbouringBlocksX[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsX[firstAdjacentBlockIndex + adjacentBlockToFace];
                 blockCoords[1] += chunkPosition[1] * constants::CHUNK_SIZE + s_neighbouringBlocksY[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsY[firstAdjacentBlockIndex + adjacentBlockToFace];
                 blockCoords[2] += chunkPosition[2] * constants::CHUNK_SIZE + s_neighbouringBlocksZ[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsZ[firstAdjacentBlockIndex + adjacentBlockToFace];
-                blockType = 0;//getWorldBlock(blockCoords);
+                blockType = m_chunk.getWorldBlock(blockCoords);
                 if (constants::castsShadows[blockType]) {
-                    if ((adjacentBlockToFace % 2) == 0) {
-                        vertices[*numVertices - (19 - adjacentBlockToFace / 2 * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
+                    if (*numVertices < 24) {
+                        std::cout << "num vertices: " << *numVertices << "\n";
                     }
-                    else {
-                        vertices[*numVertices - (19 - adjacentBlockToFace / 2 * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
-                        vertices[*numVertices - (19 - ((adjacentBlockToFace / 2 + 1) % 4) * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
+                    unsigned char type = m_chunk.getBlock(block);
+                    float val = constants::shadowReceiveAmount[type];
+                    int vertexNum = *numVertices - (19 - adjacentBlockToFace / 2 * 6);
+                    vertices[vertexNum] *= val;
+                    //vertices[*numVertices - (19 - adjacentBlockToFace / 2 * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
+                    if ((adjacentBlockToFace % 2) != 0) {
+                        vertexNum = *numVertices - (19 - ((adjacentBlockToFace / 2 + 1) % 4) * 6);
+                        vertices[vertexNum] *= val;
+                        //vertices[*numVertices - (19 - ((adjacentBlockToFace / 2 + 1) % 4) * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
                     }
                 }
             }
@@ -317,14 +324,14 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
             getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + face]);
             for (short vertex = 0; vertex < 4; vertex++) {
                 for (short element = 0; element < 3; element++) {
-                    vertices[*numVertices] = constants::X_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockPos[element];
+                    vertices[*numVertices] = constants::X_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
                     (*numVertices)++;
                 }
                 vertices[*numVertices] = texCoords[vertex * 2];
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * 16;// * (getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 
@@ -377,6 +384,7 @@ void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned
     //     calculateSkyLight(neighbouringChunkIndices, neighbouringChunksToRelight);
     //     m_calculatingSkylight = false;
     // }
+    *numVertices = *numIndices = *numWaterVertices = *numWaterIndices = 0;
     int chunkPosition[3];
     m_chunk.getChunkPosition(chunkPosition);
     int blockPos[3];
@@ -394,9 +402,10 @@ void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[neighbouringBlock];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[neighbouringBlock];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[neighbouringBlock];
-                        //if (getWorldBlock(neighbouringBlockPos) != 4) {
+                        unsigned char neighbouringBlockType =m_chunk.getWorldBlock(neighbouringBlockPos);
+                        if ((neighbouringBlockType != 4) && (constants::transparent[neighbouringBlockType])) {
                             addFaceToMesh(vertices, numVertices, indices, numIndices, waterVertices, numWaterVertices, waterIndices, numWaterIndices, blockNum, neighbouringBlock);
-                        //}
+                        }
                     }
                 }
                 else {
@@ -404,9 +413,9 @@ void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[neighbouringBlock];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[neighbouringBlock];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[neighbouringBlock];
-                        //if (constants::transparent[getWorldBlock(neighbouringBlockPos)]) {
+                        if (constants::transparent[m_chunk.getWorldBlock(neighbouringBlockPos)]) {
                             addFaceToMesh(vertices, numVertices, indices, numIndices, waterVertices, numWaterVertices, waterIndices, numWaterIndices, blockNum, neighbouringBlock);
-                        //}
+                        }
                     }
                 }
                 blockNum++;

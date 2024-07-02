@@ -84,10 +84,10 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_relableNeeded = true;
     
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
-        m_chunkVertices[i] = new float[4 * 12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkIndices[i] = new unsigned int[4 * 18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkWaterVertices[i] = new float[4 * 12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkWaterIndices[i] = new unsigned int[4 * 18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkIndices[i] = new unsigned int[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkWaterVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkWaterIndices[i] = new unsigned int[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
@@ -148,7 +148,7 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
         std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
     }
     for (const auto& [chunkPosition, ib] : m_chunkIndexBuffers) {
-        if (m_chunkIndexBuffers.at(chunkPosition)->getCount() > 0) {
+        if (ib->getCount() > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
             chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
             chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
@@ -173,8 +173,7 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
     waterShader.setUniformMat4f("u_proj", projMatrix);
     waterShader.setUniform1f("u_renderDistance", m_fogDistance);
     for (const auto& [chunkPosition, ib] : m_chunkWaterIndexBuffers) {
-        std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
-        if (m_chunkWaterIndexBuffers.at(chunkPosition)->getCount() > 0) {
+        if (ib->getCount() > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
             chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
             chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
@@ -371,15 +370,6 @@ void NewClientWorld::unloadMesh(const Position& chunkPosition) {
 
 void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
-
-    //set up containers for data for buffers
-    m_numChunkVertices[threadNum] = 0;
-    m_numChunkIndices[threadNum] = 0;
-    m_numChunkWaterVertices[threadNum] = 0;
-    m_numChunkWaterIndices[threadNum] = 0;
-
-    //get the chunk number
-    unsigned int chunkNumber = getChunkNumber(chunkCoords, m_playerChunkPosition);
 
     //generate the mesh
     MeshBuilder(integratedServer.getChunk(chunkPosition)).buildMesh(m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]);

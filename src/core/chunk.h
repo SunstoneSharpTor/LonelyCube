@@ -19,6 +19,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 #include "core/constants.h"
@@ -34,6 +35,7 @@ private:
     unsigned short m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_calculatingSkylight;
+    std::unordered_map<Position, Chunk>* m_worldChunks;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
 
@@ -49,19 +51,29 @@ private:
     static const short m_adjacentBlocksToFaceOffestsY[48];
     static const short m_adjacentBlocksToFaceOffestsZ[48];
 
-    void addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock);
+    inline void findBlockCoordsInWorld(int* blockPos, unsigned int block) {
+        int chunkCoords[3];
+        getChunkPosition(chunkCoords);
+        blockPos[0] = block % constants::CHUNK_SIZE + chunkCoords[0] * constants::CHUNK_SIZE;
+        blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE) + chunkCoords[1] * constants::CHUNK_SIZE;
+        blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
+    }
+
+    inline static void findBlockCoordsInChunk(float* blockPos, unsigned int block) {
+        blockPos[0] = block % constants::CHUNK_SIZE;
+        blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
+    }
+
+    inline static void findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block) {
+        blockPos[0] = block % constants::CHUNK_SIZE;
+        blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
+    }
+
+    void addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, unsigned char neighbouringBlock);
 
     void getTextureCoordinates(float* coords, short textureNum);
-
-    void findBlockCoordsInChunk(float* blockPos, unsigned int block);
-
-    void findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block);
-
-    void findBlockCoordsInWorld(int* blockPos, unsigned int block);
-
-    unsigned char getWorldBlock(int* blockCoords);
-
-    unsigned char getWorldSkyLight(int* blockCoords);
 
 public:
     static std::mutex s_checkingNeighbouringRelights;
@@ -70,13 +82,13 @@ public:
 
     static const short neighbouringBlocks[6];
 
-    Chunk(Position position);
+    inline static unsigned int getBlockNumber(unsigned int* blockCoords) {
+        return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
+    }
+
+    Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks);
 
     Chunk();
-
-    void generateTerrain();
-
-    void buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices);
 
     void getChunkPosition(int* coordinates) const;
 
@@ -107,13 +119,11 @@ public:
         m_skyLight[block / 2] |= value << (4 * oddBlockNum);
     }
 
-    unsigned int getBlockNumber(unsigned int* blockCoords);
-
-    void calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neighbouringChunksToBeRelit);
-
-    void clearSkyLight();
-
     void clearBlocksAndLight();
+
+    unsigned char getWorldBlock(int* blockCoords);
+
+    unsigned char getWorldSkyLight(int* blockCoords);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;

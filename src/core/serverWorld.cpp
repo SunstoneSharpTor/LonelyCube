@@ -98,7 +98,7 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        m_chunks.emplace(*chunkPosition, *chunkPosition);
+        m_chunks[*chunkPosition] = { *chunkPosition, &m_chunks };
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(m_chunks.at(*chunkPosition), m_seed);
         m_chunksBeingLoadedMtx.lock();

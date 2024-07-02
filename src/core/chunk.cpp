@@ -129,7 +129,7 @@ const short Chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1
                                                           0, 0, 0, 0, 0, 0, 0, 0,
                                                           1, 1, 1, 0, -1, -1, -1, 0 };
 
-Chunk::Chunk(Position position) {
+Chunk::Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks) : m_worldChunks(worldChunks) {
     inUse = true;
     m_singleBlockType = false;
     m_singleSkyLightVal = false;
@@ -161,27 +161,7 @@ Chunk::Chunk() {
     m_position[2] = 0;
 }
 
-void Chunk::findBlockCoordsInWorld(int* blockPos, unsigned int block) {
-    int chunkCoords[3];
-    getChunkPosition(chunkCoords);
-    blockPos[0] = block % constants::CHUNK_SIZE + chunkCoords[0] * constants::CHUNK_SIZE;
-    blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE) + chunkCoords[1] * constants::CHUNK_SIZE;
-    blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
-}
-
-void Chunk::findBlockCoordsInChunk(float* blockPos, unsigned int block) {
-    blockPos[0] = block % constants::CHUNK_SIZE;
-    blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
-    blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
-}
-
-void Chunk::findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block) {
-    blockPos[0] = block % constants::CHUNK_SIZE;
-    blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
-    blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
-}
-
-void Chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock) {
+void Chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, unsigned char neighbouringBlock) {
     float blockPos[3];
     int neighbouringBlockPos[3];
     findBlockCoordsInChunk(blockPos, block);
@@ -407,79 +387,6 @@ void Chunk::addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned i
     }
 }
 
-void Chunk::buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int* neighbouringChunkIndices) {
-    if (!m_skyLightUpToDate) {
-        bool neighbouringChunksToRelight[6];
-        s_checkingNeighbouringRelights.lock();
-        bool neighbourBeingRelit = true;
-        while (neighbourBeingRelit) {
-            neighbourBeingRelit = false;
-            for (unsigned int i = 0; i < 6; i++) {
-                // neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
-            }
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
-        }
-        m_calculatingSkylight = true;
-        clearSkyLight();
-        calculateSkyLight(neighbouringChunkIndices, neighbouringChunksToRelight);
-        m_calculatingSkylight = false;
-    }
-
-    //TODO:    make it so that chunks of a single block type get meshes without calling the new function
-    unsigned char* tempBlocks = nullptr;
-    if (m_singleBlockType) {
-        tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
-            tempBlocks[block] = m_blocks[0];
-        }
-        unsigned char* temp = m_blocks;
-        m_blocks = tempBlocks;
-        tempBlocks = temp;
-    }
-
-    int blockPos[3];
-    int neighbouringBlockPos[3];
-    int blockNum = 0;
-    for (blockPos[1] = m_position[1] * constants::CHUNK_SIZE; blockPos[1] < (m_position[1] + 1) * constants::CHUNK_SIZE; blockPos[1]++) {
-        for (blockPos[2] = m_position[2] * constants::CHUNK_SIZE; blockPos[2] < (m_position[2] + 1) * constants::CHUNK_SIZE; blockPos[2]++) {
-            for (blockPos[0] = m_position[0] * constants::CHUNK_SIZE; blockPos[0] < (m_position[0] + 1) * constants::CHUNK_SIZE; blockPos[0]++) {
-                if (m_blocks[blockNum] == 0) {
-                    blockNum++;
-                    continue;
-                }
-                if (m_blocks[blockNum] == 4) {
-                    for (short neighbouringBlock = 0; neighbouringBlock < 6; neighbouringBlock++) {
-                        neighbouringBlockPos[0] = blockPos[0] + m_neighbouringBlocksX[neighbouringBlock];
-                        neighbouringBlockPos[1] = blockPos[1] + m_neighbouringBlocksY[neighbouringBlock];
-                        neighbouringBlockPos[2] = blockPos[2] + m_neighbouringBlocksZ[neighbouringBlock];
-                        if (getWorldBlock(neighbouringBlockPos) != 4) {
-                            addFaceToMesh(vertices, numVertices, indices, numIndices, waterVertices, numWaterVertices, waterIndices, numWaterIndices, blockNum, neighbouringBlock);
-                        }
-                    }
-                }
-                else {
-                    for (short neighbouringBlock = 0; neighbouringBlock < 6; neighbouringBlock++) {
-                        neighbouringBlockPos[0] = blockPos[0] + m_neighbouringBlocksX[neighbouringBlock];
-                        neighbouringBlockPos[1] = blockPos[1] + m_neighbouringBlocksY[neighbouringBlock];
-                        neighbouringBlockPos[2] = blockPos[2] + m_neighbouringBlocksZ[neighbouringBlock];
-                        if (constants::transparent[getWorldBlock(neighbouringBlockPos)]) {
-                            addFaceToMesh(vertices, numVertices, indices, numIndices, waterVertices, numWaterVertices, waterIndices, numWaterIndices, blockNum, neighbouringBlock);
-                        }
-                    }
-                }
-                blockNum++;
-            }
-        }
-    }
-
-    //TODO:    make it so that chunks of a single block type get meshes without calling the new function
-    if (m_singleBlockType) {
-        unsigned char* temp = m_blocks;
-        m_blocks = tempBlocks;
-        delete[] temp;
-    }
-}
-
 void Chunk::getTextureCoordinates(float* coords, short textureNum) {
     coords[0] = textureNum % 227 * 0.00439453125f + 0.000244140625f;
     coords[1] = 0.9956054688f - (textureNum / 227 * 0.00439453125f) + 0.000244140625f;
@@ -506,10 +413,6 @@ void Chunk::unload() {
     m_skyLight = new unsigned char[0];
 }
 
-unsigned int Chunk::getBlockNumber(unsigned int* blockCoords) {
-    return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
-}
-
 void Chunk::setBlock(unsigned int block, unsigned char blockType) {
     if (m_singleBlockType) {
         unsigned char* tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -526,60 +429,29 @@ void Chunk::setBlock(unsigned int block, unsigned char blockType) {
 }
 
 unsigned char Chunk::getWorldBlock(int* blockCoords) {
-    // int chunkCoords[3];
-    // unsigned int blockPosInChunk[3];
-    // for (unsigned char i = 0; i < 3; i++) {
-    //     chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
-    //     blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    // }
+    int chunkCoords[3];
+    unsigned int blockPosInChunk[3];
+    for (unsigned char i = 0; i < 3; i++) {
+        chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
+        blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
+    }
 
-    // //get the chunk number
-    // int adjustedChunkCoords[3];
-    // for (unsigned char i = 0; i < 3; i++) {
-    //     adjustedChunkCoords[i] = chunkCoords[i] - m_worldInfo.playerChunkPosition[i] + m_worldInfo.renderDistance;
-    // }
+    unsigned int blockNumber = getBlockNumber(blockPosInChunk);
 
-    // unsigned int chunkNumber = adjustedChunkCoords[1] * m_worldInfo.renderDiameter * m_worldInfo.renderDiameter;
-    // chunkNumber += adjustedChunkCoords[2] * m_worldInfo.renderDiameter;
-    // chunkNumber += adjustedChunkCoords[0];
-
-
-    // unsigned int blockNumber = m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getBlockNumber(blockPosInChunk);
-
-    // return m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getBlock(blockNumber);
-    return 0;
+    return m_worldChunks->at(chunkCoords).getBlock(blockNumber);
 }
 
 unsigned char Chunk::getWorldSkyLight(int* blockCoords) {
-    // int chunkCoords[3];
-    // unsigned int blockPosInChunk[3];
-    // for (unsigned char i = 0; i < 3; i++) {
-    //     chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
-    //     blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    // }
-
-    // //get the chunk number
-    // int adjustedChunkCoords[3];
-    // for (unsigned char i = 0; i < 3; i++) {
-    //     adjustedChunkCoords[i] = chunkCoords[i] - m_worldInfo.playerChunkPosition[i] + m_worldInfo.renderDistance;
-    // }
-
-    // unsigned int chunkNumber = adjustedChunkCoords[1] * m_worldInfo.renderDiameter * m_worldInfo.renderDiameter;
-    // chunkNumber += adjustedChunkCoords[2] * m_worldInfo.renderDiameter;
-    // chunkNumber += adjustedChunkCoords[0];
-
-
-    // unsigned int blockNumber = m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getBlockNumber(blockPosInChunk);
-
-    // return m_worldInfo.worldChunks[m_worldInfo.chunkArrayIndices[chunkNumber]].getSkyLight(blockNumber);
-    return 0;
-}
-
-void Chunk::clearSkyLight() {
-    //reset all sky light values in the chunk to 0
-    for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
-        m_skyLight[blockNum] = 0;
+    int chunkCoords[3];
+    unsigned int blockPosInChunk[3];
+    for (unsigned char i = 0; i < 3; i++) {
+        chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
+        blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
     }
+
+    unsigned int blockNumber = getBlockNumber(blockPosInChunk);
+
+    return m_worldChunks->at(chunkCoords).getSkyLight(blockNumber);
 }
 
 void Chunk::clearBlocksAndLight() {
@@ -588,264 +460,6 @@ void Chunk::clearBlocksAndLight() {
         m_blocks[blockNum] = 0;
         m_skyLight[blockNum >> 1] = 0;
     }
-}
-
-void Chunk::calculateSkyLight(unsigned int* neighbouringChunkIndices, bool* neighbouringChunksToBeRelit) {
-    // if (!m_calculatingSkylight) {
-    //     s_checkingNeighbouringRelights.lock();
-    //     bool neighbourBeingRelit = true;
-    //     while (neighbourBeingRelit) {
-    //         neighbourBeingRelit = false;
-    //         for (unsigned int i = 0; i < 6; i++) {
-    //             neighbourBeingRelit |= m_worldInfo.worldChunks[neighbouringChunkIndices[i]].skyBeingRelit();
-    //         }
-    //         std::this_thread::sleep_for(std::chrono::microseconds(100));
-    //     }
-    // }
-    // s_checkingNeighbouringRelights.unlock();
-
-    // //(*m_worldInfo.numRelights)++;
-
-    // //TODO:    make it so that chunks of a single block type get meshes without calling the new function
-    // unsigned char* tempBlocks = nullptr;
-    // if (m_singleBlockType) {
-    //     tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-    //     for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
-    //         tempBlocks[block] = m_blocks[0];
-    //     }
-    //     unsigned char* temp = m_blocks;
-    //     m_blocks = tempBlocks;
-    //     tempBlocks = temp;
-    // }
-
-    // std::queue<unsigned int> lightQueue;
-    // //add the light values from chunk borders to the light queue
-    // unsigned int blockNum = 0;
-    // for (unsigned int z = 0; z < constants::CHUNK_SIZE; z++) {
-    //     for (unsigned int x = 0; x < constants::CHUNK_SIZE; x++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[0]].getSkyLight(
-    //             blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) - 1;
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum++;
-    //     }
-    // }
-    // blockNum = 0;
-    // for (unsigned int y = 0; y < constants::CHUNK_SIZE; y++) {
-    //     for (unsigned int x = 0; x < constants::CHUNK_SIZE; x++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[1]].getSkyLight(
-    //             blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) - 1;
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum++;
-    //     }
-    //     blockNum += constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-    // }
-    // blockNum = 0;
-    // for (unsigned int y = 0; y < constants::CHUNK_SIZE; y++) {
-    //     for (unsigned int z = 0; z < constants::CHUNK_SIZE; z++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[2]].getSkyLight(
-    //             blockNum + constants::CHUNK_SIZE - 1) - 1;
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum += constants::CHUNK_SIZE;
-    //     }
-    // }
-    // blockNum = constants::CHUNK_SIZE - 1;
-    // for (unsigned int y = 0; y < constants::CHUNK_SIZE; y++) {
-    //     for (unsigned int z = 0; z < constants::CHUNK_SIZE; z++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[3]].getSkyLight(
-    //             blockNum - constants::CHUNK_SIZE + 1) - 1;
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum += constants::CHUNK_SIZE;
-    //     }
-    // }
-    // blockNum = constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-    // for (unsigned int y = 0; y < constants::CHUNK_SIZE; y++) {
-    //     for (unsigned int x = 0; x < constants::CHUNK_SIZE; x++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[4]].getSkyLight(
-    //             blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) - 1;
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum++;
-    //     }
-    //     blockNum += constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-    // }
-    // blockNum = constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-    // for (unsigned int z = 0; z < constants::CHUNK_SIZE; z++) {
-    //     for (unsigned int x = 0; x < constants::CHUNK_SIZE; x++) {
-    //         char currentskyLight = getSkyLight(blockNum);
-    //         char neighbouringskyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[5]].getSkyLight(
-    //             blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) - 1;
-    //         //propogate direct skylight down without reducing its intensity
-    //         neighbouringskyLight += (neighbouringskyLight == 14)
-    //             * !(constants::dimsLight[m_worldInfo.worldChunks[neighbouringChunkIndices[5]].getBlock(
-    //             blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))]);
-    //         bool newHighestSkyLight = (currentskyLight < neighbouringskyLight) * !constants::castsShadows[m_blocks[blockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(blockNum, neighbouringskyLight);
-    //             lightQueue.push(blockNum);
-    //         }
-    //         blockNum++;
-    //     }
-    // }
-    // //propogate the light values to the neighbouring blocks in the chunk
-    // for (char i = 0; i < 6; i++) {
-    //     neighbouringChunksToBeRelit[i] = false;
-    // }
-    // while (!lightQueue.empty()) {
-    //     unsigned int blockNum = lightQueue.front();
-    //     unsigned char skyLight = getSkyLight(blockNum) - 1;
-    //     lightQueue.pop();
-    //     if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[5];
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[5]].getBlock(
-    //             blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[5]].getSkyLight(
-    //             blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[5] = true;
-    //         }
-    //     }
-    //     if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) < (constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[4];
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[4]].getBlock(
-    //             blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[4]].getSkyLight(
-    //             blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[4] = true;
-    //         }
-    //     }
-    //     if ((blockNum % constants::CHUNK_SIZE) < (constants::CHUNK_SIZE - 1)) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[3];
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[3]].getBlock(
-    //             blockNum - (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[3]].getSkyLight(
-    //             blockNum - (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[3] = true;
-    //         }
-    //     }
-    //     if ((blockNum % constants::CHUNK_SIZE) >= 1) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[2];
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[2]].getBlock(
-    //             blockNum + (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[2]].getSkyLight(
-    //             blockNum + (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[2] = true;
-    //         }
-    //     }
-    //     if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) >= constants::CHUNK_SIZE) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[1];
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[1]].getBlock(
-    //             blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[1]].getSkyLight(
-    //             blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[1] = true;
-    //         }
-    //     }
-    //     if (blockNum >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) {
-    //         unsigned int neighbouringBlockNum = blockNum + neighbouringBlocks[0];
-    //         skyLight += (skyLight == 14) * !(constants::dimsLight[m_blocks[neighbouringBlockNum]]);
-    //         unsigned char neighbouringskyLight = getSkyLight(neighbouringBlockNum);
-    //         bool newHighestSkyLight = (neighbouringskyLight < skyLight) * !constants::castsShadows[m_blocks[neighbouringBlockNum]];
-    //         if (newHighestSkyLight) {
-    //             setSkyLight(neighbouringBlockNum, skyLight);
-    //             lightQueue.push(neighbouringBlockNum);
-    //         }
-    //     }
-    //     else {
-    //         bool dimsLight = constants::dimsLight[m_worldInfo.worldChunks[neighbouringChunkIndices[0]].getBlock(
-    //             blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))];
-    //         skyLight += (skyLight == 14) * !(dimsLight);
-    //         bool transparrent = constants::transparent[m_worldInfo.worldChunks[neighbouringChunkIndices[0]].getBlock(
-    //             blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))];
-    //         bool newHighestSkyLight = m_worldInfo.worldChunks[neighbouringChunkIndices[0]].getSkyLight(
-    //             blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) < skyLight;
-    //         if (transparrent && newHighestSkyLight) {
-    //             neighbouringChunksToBeRelit[0] = true;
-    //         }
-    //     }
-    // }
-
-    // //TODO:    make it so that chunks of a single block type get meshes without calling the new function
-    // if (m_singleBlockType) {
-    //     unsigned char* temp = m_blocks;
-    //     m_blocks = tempBlocks;
-    //     delete[] temp;
-    // }
-
-    
-    // //(*m_worldInfo.numRelights)--;
-    // m_skyLightUpToDate = true;
-    // m_calculatingSkylight = false;
-    // // lock release
-    // // std::lock_guard<std::mutex> lock(m_accessingSkylightMtx);
-    // // m_accessingSkylightCV.notify_all();
 }
 
 // void Chunk::uncompressBlocks() {

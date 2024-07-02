@@ -47,7 +47,7 @@ private:
         unsigned int* numWaterVertices, unsigned int* waterIndices,
         unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock);
 
-    inline void findBlockCoordsInChunk(float* blockPos, unsigned int block) {
+    inline void findBlockCoordsInChunk(int* blockPos, unsigned int block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
