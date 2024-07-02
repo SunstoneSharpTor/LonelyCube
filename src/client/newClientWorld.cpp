@@ -118,12 +118,6 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
 }
 
 void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
-    if (m_chunkIndexBuffers.size() != m_meshedChunks.size()) {
-        std::cout << "bad\n";
-    }
-    //else {
-    //    cout << "good\n";
-    //}
     Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
@@ -147,8 +141,8 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
         auto tp2 = std::chrono::high_resolution_clock::now();
         std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
     }
-    for (const auto& [chunkPosition, ib] : m_chunkIndexBuffers) {
-        if (ib->getCount() > 0) {
+    for (const auto& [chunkPosition, mesh] : m_meshes) {
+        if (mesh.indexBuffer->getCount() > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
             chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
             chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
@@ -158,8 +152,8 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
                 modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
                 //update the MVP uniform
                 blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                m_chunkVertexArrays.at(chunkPosition)->bind();
-                mainRenderer.draw(*m_chunkVertexArrays.at(chunkPosition), *m_chunkIndexBuffers.at(chunkPosition), blockShader);
+                mesh.vertexArray->bind();
+                mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
                 doRenderThreadJobs();
             }
         }
@@ -172,8 +166,8 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
     waterShader.bind();
     waterShader.setUniformMat4f("u_proj", projMatrix);
     waterShader.setUniform1f("u_renderDistance", m_fogDistance);
-    for (const auto& [chunkPosition, ib] : m_chunkWaterIndexBuffers) {
-        if (ib->getCount() > 0) {
+    for (const auto& [chunkPosition, mesh] : m_meshes) {
+        if (mesh.waterIndexBuffer->getCount() > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
             chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
             chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
@@ -183,8 +177,8 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
                 modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
                 //update the MVP uniform
                 waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                m_chunkWaterVertexArrays.at(chunkPosition)->bind();
-                mainRenderer.draw(*m_chunkWaterVertexArrays.at(chunkPosition), *m_chunkWaterIndexBuffers.at(chunkPosition), waterShader);
+                mesh.waterVertexArray->bind();
+                mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
                 doRenderThreadJobs();
             }
         }
@@ -298,7 +292,7 @@ void NewClientWorld::unloadAndRelableChunks() {
     //unload any meshes and chunks that are out of render distance
     float distance = 0;
     Position lastChunkPosition;
-    for (auto& chunkPosition : m_meshedChunks) {
+    for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
             unloadMesh(lastChunkPosition);
             std::cout << "unload\n";
@@ -340,28 +334,20 @@ bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
 }
 
 void NewClientWorld::unloadMesh(const Position& chunkPosition) {
-    //m_unmeshedChunkArrayIndices.push_back(m_meshedChunkPositions[chunkVectorIndex]);
-
-    m_meshedChunks.erase(chunkPosition);
-    if (m_chunkIndexBuffers.at(chunkPosition)->getCount() > 0) {
-        delete m_chunkVertexArrays.at(chunkPosition);
-        delete m_chunkVertexBuffers.at(chunkPosition);
-        delete m_chunkIndexBuffers.at(chunkPosition);
+    MeshData& mesh = m_meshes.at(chunkPosition);
+    if (mesh.indexBuffer->getCount() > 0) {
+        delete mesh.vertexArray;
+        delete mesh.vertexBuffer;
+        delete mesh.indexBuffer;
     }
 
-    m_chunkVertexArrays.erase(chunkPosition);
-    m_chunkVertexBuffers.erase(chunkPosition);
-    m_chunkIndexBuffers.erase(chunkPosition);
-
-    if (m_chunkWaterIndexBuffers.at(chunkPosition)->getCount() > 0) {
-        delete m_chunkWaterVertexArrays.at(chunkPosition);
-        delete m_chunkWaterVertexBuffers.at(chunkPosition);
-        delete m_chunkWaterIndexBuffers.at(chunkPosition);
+    if (mesh.waterIndexBuffer->getCount() > 0) {
+        delete mesh.waterVertexArray;
+        delete mesh.waterVertexBuffer;
+        delete mesh.waterIndexBuffer;
     }
 
-    m_chunkWaterVertexArrays.erase(chunkPosition);
-    m_chunkWaterVertexBuffers.erase(chunkPosition);
-    m_chunkWaterIndexBuffers.erase(chunkPosition);
+    m_meshes.erase(chunkPosition);
 
     m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
@@ -383,13 +369,8 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
             m_accessingArrIndicesVectorsMtx.lock();
             m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
         }
-        m_chunkVertexArrays[chunkPosition] = m_emptyVertexArray;
-        m_chunkVertexBuffers[chunkPosition] = m_emptyVertexBuffer;
-        m_chunkIndexBuffers[chunkPosition] = m_emptyIndexBuffer;
-        m_chunkWaterVertexArrays[chunkPosition] = m_emptyVertexArray;
-        m_chunkWaterVertexBuffers[chunkPosition] = m_emptyVertexBuffer;
-        m_chunkWaterIndexBuffers[chunkPosition] = m_emptyIndexBuffer;
-        m_meshedChunks.insert(chunkPosition);
+        m_meshes[chunkPosition] = { m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer,
+                                    m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer };
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);
@@ -465,13 +446,7 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
     m_accessingArrIndicesVectorsMtx.lock();
     m_renderThreadWaitingForArrIndicesVectors = false;
     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-    m_chunkVertexArrays[m_chunkPosition[threadNum]] = va;
-    m_chunkVertexBuffers[m_chunkPosition[threadNum]] = vb;
-    m_chunkIndexBuffers[m_chunkPosition[threadNum]] = ib;
-    m_chunkWaterVertexArrays[m_chunkPosition[threadNum]] = waterVa;
-    m_chunkWaterVertexBuffers[m_chunkPosition[threadNum]] = waterVb;
-    m_chunkWaterIndexBuffers[m_chunkPosition[threadNum]] = waterIb;
-    m_meshedChunks.insert(m_chunkPosition[threadNum]);
+    m_meshes[m_chunkPosition[threadNum]] = { va, vb, ib, waterVa, waterVb, waterIb };
     auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
     if (it != m_meshUpdates.end()) {
         m_meshUpdates.erase(it);

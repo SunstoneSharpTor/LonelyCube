@@ -43,6 +43,15 @@
 
 namespace client {
 
+struct MeshData {
+	VertexArray* vertexArray;
+	VertexBuffer* vertexBuffer;
+	IndexBuffer* indexBuffer;
+	VertexArray* waterVertexArray;
+	VertexBuffer* waterVertexBuffer;
+	IndexBuffer* waterIndexBuffer;
+};
+
 class NewClientWorld {
 private:
 	bool m_singleplayer;
@@ -74,16 +83,10 @@ private:
 	SDL_Window* m_window;
 	int* m_windowDimensions;
 
-	std::unordered_map<Position, VertexArray*> m_chunkVertexArrays;
-	std::unordered_map<Position, VertexBuffer*> m_chunkVertexBuffers;
-	std::unordered_map<Position, IndexBuffer*> m_chunkIndexBuffers;
-	std::unordered_map<Position, VertexArray*> m_chunkWaterVertexArrays;
-	std::unordered_map<Position, VertexBuffer*> m_chunkWaterVertexBuffers;
-	std::unordered_map<Position, IndexBuffer*> m_chunkWaterIndexBuffers;
+	std::unordered_map<Position, MeshData> m_meshes;
 	VertexBuffer* m_emptyVertexBuffer;
 	IndexBuffer* m_emptyIndexBuffer;
 	VertexArray* m_emptyVertexArray;
-	std::unordered_set<Position> m_meshedChunks;
 	std::unordered_set<Position> m_unmeshedChunks;
 
 	//mesh building data - this is stored at class-level because it allows it to be

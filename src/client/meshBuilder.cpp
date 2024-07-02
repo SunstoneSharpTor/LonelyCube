@@ -196,7 +196,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numWaterVertices)++;
                 waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
                 (*numWaterVertices)++;
-                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(blockCoords) + 1);
+                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * 16;//(m_chunk.getWorldSkyLight(blockCoords) + 1);
                 (*numWaterVertices)++;
             }
 
@@ -265,7 +265,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * 16;//(m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 
