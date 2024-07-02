@@ -129,7 +129,8 @@ unsigned char Chunk::getWorldBlock(int* blockCoords) {
     int chunkCoords[3];
     unsigned int blockPosInChunk[3];
     for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
+        chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
+        // chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
         blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
     }
 

@@ -331,7 +331,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 (*numVertices)++;
                 vertices[*numVertices] = texCoords[vertex * 2 + 1];
                 (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
+                vertices[*numVertices] = (1.0f / 16.0f) * 16.0f;//(m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
                 (*numVertices)++;
             }
 

@@ -208,9 +208,12 @@ void NewClientWorld::doRenderThreadJobs() {
 }
 
 void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
-    m_newPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
-    m_newPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
-    m_newPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
+    m_newPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
+    m_newPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
+    m_newPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
+    // m_newPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
+    // m_newPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
+    // m_newPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
 }
 
 void NewClientWorld::relableChunksIfNeeded() {
@@ -361,7 +364,7 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
     MeshBuilder(integratedServer.getChunk(chunkPosition)).buildMesh(m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]);
 
     //if the chunk is empty fill the data with empty values to save interrupting the render thread
-    if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
+    if (false) {//(m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
         m_accessingArrIndicesVectorsMtx.lock();
         while (m_renderThreadWaitingForArrIndicesVectors) {
             m_accessingArrIndicesVectorsMtx.unlock();
@@ -456,13 +459,17 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
 
 void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_unmeshedChunksMtx.lock();
-    for (const auto chunkPosition : m_unmeshedChunks) {
-        if (chunkHasNeighbours(chunkPosition)) {
+    auto it = m_unmeshedChunks.begin();
+    while (it != m_unmeshedChunks.end()) {
+        if (chunkHasNeighbours(*it)) {
+            Position chunkPosition = *it;
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
             addChunkMesh(chunkPosition, threadNum);
-            break;
+            m_unmeshedChunksMtx.lock();
+            it = m_unmeshedChunks.begin();
         }
+        it++;
     }
     m_unmeshedChunksMtx.unlock();
 }
@@ -497,9 +504,9 @@ unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlo
 
 void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     Position chunkPosition;
-    chunkPosition.x = -1 * (blockCoords[0] < 0) + blockCoords[0] / constants::CHUNK_SIZE;
-    chunkPosition.y = -1 * (blockCoords[1] < 0) + blockCoords[1] / constants::CHUNK_SIZE;
-    chunkPosition.z = -1 * (blockCoords[2] < 0) + blockCoords[2] / constants::CHUNK_SIZE;
+    chunkPosition.x = std::floor((float)blockCoords[0] / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)blockCoords[1] / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)blockCoords[2] / constants::CHUNK_SIZE);
     
     // std::cout << (unsigned int)m_chunks[m_meshedChunkPositions[i - 1]].getSkyLight(blockNumber) << " light level\n";
     integratedServer.setBlock(Position(blockCoords), blockType);
@@ -612,9 +619,12 @@ void NewClientWorld::setMouseData(double* lastMousePoll,
 }
 
 void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) {
-    m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
-    m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
-    m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
+    m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
+    m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
+    m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
+    // m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
+    // m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
+    // m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
     m_relableNeeded = true;
 }
 

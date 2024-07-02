@@ -17,6 +17,7 @@
 
 #include "core/serverWorld.h"
 
+#include <cmath>
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -149,9 +150,12 @@ bool ServerWorld::getNextLoadedChunkPosition(Position* chunkPosition) {
 unsigned char ServerWorld::getBlock(const Position& position) const {
     Position chunkPosition;
     Position chunkBlockCoords;
-    chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
-    chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
-    chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
+    chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)position.y / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)position.z / constants::CHUNK_SIZE);
+    // chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
+    // chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
+    // chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
     chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
     chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
     chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
@@ -171,9 +175,12 @@ unsigned char ServerWorld::getBlock(const Position& position) const {
 void ServerWorld::setBlock(const Position& position, unsigned char blockType) {
     Position chunkPosition;
     Position chunkBlockCoords;
-    chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
-    chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
-    chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
+    chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)position.y / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)position.z / constants::CHUNK_SIZE);
+    // chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
+    // chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
+    // chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
     chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
     chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
     chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
