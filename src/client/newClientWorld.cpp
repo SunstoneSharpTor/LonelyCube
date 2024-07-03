@@ -33,7 +33,7 @@
 namespace client {
 
 static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, false, false };
-static bool relableCompleted = false;
+static bool unmeshCompleted = false;
 
 NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
     : integratedServer(singleplayer, seed) {
@@ -81,7 +81,7 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     m_chunkMeshReadyCV = new std::condition_variable[m_numChunkLoadingThreads];
     m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
-    m_relableNeeded = true;
+    m_unmeshNeeded = true;
     
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -158,8 +158,8 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
             }
         }
     }
-    if (m_relableNeeded) {
-        relableCompleted = false;
+    if (m_unmeshNeeded) {
+        unmeshCompleted = false;
     }
     auto tp2 = std::chrono::high_resolution_clock::now();
     //render water
@@ -187,7 +187,7 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
 }
 
 void NewClientWorld::doRenderThreadJobs() {
-    relableChunksIfNeeded();
+    unmeshChunksIfNeeded();
     for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
@@ -216,13 +216,13 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
     // m_newPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
 }
 
-void NewClientWorld::relableChunksIfNeeded() {
-    if (!m_relableNeeded) {
-        bool relableNeeded = !((m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
-            && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
-            && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]));
-        m_relableNeeded = relableNeeded;
-        relableCompleted = !m_relableNeeded;
+void NewClientWorld::unmeshChunksIfNeeded() {
+    bool unmeshNeeded = !((m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
+        && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
+        && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]));
+    if (!m_unmeshNeeded) {
+        //m_unmeshNeeded = unmeshNeeded;
+        //unmeshCompleted = !m_unmeshNeeded;
         for (char i = 0; i < 3; i++) {
             m_updatingPlayerChunkPosition[i] = m_newPlayerChunkPosition[i];
         }
@@ -233,18 +233,18 @@ void NewClientWorld::relableChunksIfNeeded() {
         integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition);
     }
     //if the player has moved chunk, update the list of loaded chunks
-    if (m_relableNeeded && (!m_renderingFrame)) {
+    if (unmeshNeeded && (!m_renderingFrame)) {
         //wait for all the mesh builder threads to finish their jobs
-        bool readyToRelable = false;
+        bool readyToUnmesh = false;
         for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
-            readyToRelable |= !m_threadWaiting[threadNum];
+            readyToUnmesh |= !m_threadWaiting[threadNum];
         }
-        readyToRelable = !readyToRelable;
-        if (!readyToRelable) {
+        readyToUnmesh = !readyToUnmesh;
+        if (false) { //!readyToUnmesh) {
             return;
         }
 
-        unloadAndRelableChunks();
+        unmeshChunks();
     }
 }
 
@@ -280,25 +280,28 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshedChunks.insert(chunkPosition);
         m_unmeshedChunksMtx.unlock();
     }
-    if (m_relableNeeded && (m_meshUpdates.size() == 0)) {
+    if (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
-        std::unique_lock<std::mutex> lock(m_relableNeededMtx);
+        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
         // waiting 
-        m_relableNeededCV.wait(lock, [] { return relableCompleted; });
+        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-void NewClientWorld::unloadAndRelableChunks() {
+void NewClientWorld::unmeshChunks() {
     //unload any meshes and chunks that are out of render distance
     float distance = 0;
     Position lastChunkPosition;
+    m_unmeshedChunksMtx.lock();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
             unloadMesh(lastChunkPosition);
-            std::cout << "unload\n";
+        }
+        if (distance >= (m_renderDistance + 0.999f) * (m_renderDistance * 0.999f)) {
+            m_unmeshedChunks.erase(lastChunkPosition);
         }
         distance = 0;
         distance += (chunkPosition.x - m_updatingPlayerChunkPosition[0]) * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
@@ -306,18 +309,25 @@ void NewClientWorld::unloadAndRelableChunks() {
         distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2]) * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
         lastChunkPosition = chunkPosition;
     }
+    if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
+        unloadMesh(lastChunkPosition);
+    }
+    if (distance >= (m_renderDistance + 0.999f) * (m_renderDistance * 0.999f)) {
+        m_unmeshedChunks.erase(lastChunkPosition);
+    }
+    m_unmeshedChunksMtx.unlock();
 
     //update the player's chunk position
     m_playerChunkPosition[0] = m_updatingPlayerChunkPosition[0];
     m_playerChunkPosition[1] = m_updatingPlayerChunkPosition[1];
     m_playerChunkPosition[2] = m_updatingPlayerChunkPosition[2];
 
-    relableCompleted = true;
-    m_relableNeeded = false;
+    unmeshCompleted = true;
+    m_unmeshNeeded = false;
     // lock release 
-    std::lock_guard<std::mutex> lock(m_relableNeededMtx);
+    std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
     // notify consumer when done
-    m_relableNeededCV.notify_all();
+    m_unmeshNeededCV.notify_all();
 }
 
 bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
@@ -351,10 +361,7 @@ void NewClientWorld::unloadMesh(const Position& chunkPosition) {
     }
 
     m_meshes.erase(chunkPosition);
-
-    m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
-    m_unmeshedChunksMtx.unlock();
 }
 
 void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
@@ -535,13 +542,13 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
     m_accessingArrIndicesVectorsMtx.unlock();
 
-    if (m_relableNeeded) {
+    if (m_unmeshNeeded) {
         //release the chunk loader threads so that the required chunks can be remeshed
-        relableCompleted = true;
+        unmeshCompleted = true;
         // lock release 
-        std::lock_guard<std::mutex> lock(m_relableNeededMtx);
+        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
         // notify consumer when done
-        m_relableNeededCV.notify_all();
+        m_unmeshNeededCV.notify_all();
     }
 }
 
@@ -625,7 +632,7 @@ void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) 
     // m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
     // m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
     // m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
-    m_relableNeeded = true;
+    m_unmeshNeeded = true;
 }
 
 void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks) {

@@ -88,7 +88,7 @@ private:
 	IndexBuffer* m_emptyIndexBuffer;
 	VertexArray* m_emptyVertexArray;
 	std::unordered_set<Position> m_unmeshedChunks;
-
+	std::unordered_set<Position>m_beingMeshesdChunks;
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
 	unsigned int* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value
@@ -104,15 +104,16 @@ private:
 	//communication
 	std::mutex* m_chunkMeshReadyMtx;
 	std::condition_variable* m_chunkMeshReadyCV;
-	std::mutex m_relableNeededMtx;
-	std::condition_variable m_relableNeededCV;
+	std::mutex m_unmeshNeededMtx;
+	std::condition_variable m_unmeshNeededCV;
 	std::mutex m_accessingArrIndicesVectorsMtx;
 	std::mutex m_renderThreadWaitingForArrIndicesVectorsMtx;
 	std::mutex m_unmeshedChunksMtx;
+	std::condition_variable m_unmeshedChunksCV;
 	bool m_renderThreadWaitingForArrIndicesVectors;
 	bool* m_chunkMeshReady;
-	bool m_relableNeeded;
-	bool* m_relableOccurred;
+	bool m_unmeshNeeded;
+	bool* m_unmeshOccurred;
 	bool* m_threadWaiting;
 	int m_mouseCalls;
 	int m_numRelights;
@@ -126,7 +127,7 @@ private:
 	bool chunkHasNeighbours(const Position& chunkPosition);
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
-	void unloadAndRelableChunks();
+	void unmeshChunks();
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
 
 public:
@@ -143,7 +144,7 @@ public:
 		return m_renderDistance;
 	}
 	void doRenderThreadJobs();
-	void relableChunksIfNeeded();
+	void unmeshChunksIfNeeded();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
 	void initPlayerPos(float playerX, float playerY, float playerZ);
 	char getNumChunkLoaderThreads();
