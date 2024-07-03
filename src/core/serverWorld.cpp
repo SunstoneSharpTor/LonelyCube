@@ -40,11 +40,12 @@ ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singlep
 void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition) {
     m_playersMtx.lock();
     m_chunksMtx.lock();
+    ServerPlayer& player = m_players.at(playerID);
     int lastPlayerChunkPosition[3];
-    m_players.at(playerID).getChunkPosition(lastPlayerChunkPosition);
-    m_players.at(playerID).updatePlayerPos(blockPosition, subBlockPosition);
+    player.getChunkPosition(lastPlayerChunkPosition);
+    player.updatePlayerPos(blockPosition, subBlockPosition);
     int newPlayerChunkPosition[3];
-    m_players.at(playerID).getChunkPosition(newPlayerChunkPosition);
+    player.getChunkPosition(newPlayerChunkPosition);
     // If the player has moved chunk, remove all the chunks that are out of
     // render distance from the set of loaded chunks
     if (newPlayerChunkPosition[0] != lastPlayerChunkPosition[0]
@@ -52,7 +53,7 @@ void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBl
         || newPlayerChunkPosition[2] != lastPlayerChunkPosition[2]) {
         Position chunkPosition;
         bool chunkOutOfRange;
-        while (m_players.at(playerID).decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
+        while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
             if (chunkOutOfRange && m_chunks.contains(chunkPosition)) {
                 m_chunks.at(chunkPosition).decrementPlayerCount();
                 if (m_chunks.at(chunkPosition).hasNoPlayers()) {

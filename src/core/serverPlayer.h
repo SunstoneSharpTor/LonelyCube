@@ -27,11 +27,12 @@ private:
     unsigned short m_renderDistance;
     unsigned short m_renderDiameter;
     float m_minUnloadedChunkDistance;
-    unsigned int m_numChunks;
+    unsigned int m_numChunks;  // The max number of chunks in the player's render distance
     int m_blockPosition[3];
     float m_subBlockPosition[3];
     Position* m_unloadedChunks;
     int m_playerChunkPosition[3];
+    int m_playerChunkMovementOffset[3];
     int m_nextUnloadedChunk;
     int m_playerID;
     std::unordered_set<Position> m_loadedChunks;

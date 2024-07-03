@@ -67,9 +67,10 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_subBlockPosition[0] = subBlockPosition[0];
     m_subBlockPosition[1] = subBlockPosition[1];
     m_subBlockPosition[2] = subBlockPosition[2];
-    m_playerChunkPosition[0] = -1 * (blockPosition[0] < 0) + blockPosition[0] / constants::CHUNK_SIZE;
-    m_playerChunkPosition[1] = -1 * (blockPosition[1] < 0) + blockPosition[1] / constants::CHUNK_SIZE;
-    m_playerChunkPosition[2] = -1 * (blockPosition[2] < 0) + blockPosition[2] / constants::CHUNK_SIZE;
+    m_playerChunkPosition[0] = std::floor((float)blockPosition[0] / constants::CHUNK_SIZE);
+    m_playerChunkPosition[1] = std::floor((float)blockPosition[1] / constants::CHUNK_SIZE);
+    m_playerChunkPosition[2] = std::floor((float)blockPosition[2] / constants::CHUNK_SIZE);
+    m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initNumChunks();
     initChunkPositions();
 }
@@ -81,15 +82,18 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_subBlockPosition[0] = subBlockPosition[0];
     m_subBlockPosition[1] = subBlockPosition[1];
     m_subBlockPosition[2] = subBlockPosition[2];
-    m_playerChunkPosition[0] = -1 * (blockPosition[0] < 0) + blockPosition[0] / constants::CHUNK_SIZE;
-    m_playerChunkPosition[1] = -1 * (blockPosition[1] < 0) + blockPosition[1] / constants::CHUNK_SIZE;
-    m_playerChunkPosition[2] = -1 * (blockPosition[2] < 0) + blockPosition[2] / constants::CHUNK_SIZE;
+    m_playerChunkMovementOffset[0] = std::floor((float)blockPosition[0] / constants::CHUNK_SIZE) - m_playerChunkPosition[0];
+    m_playerChunkPosition[0] += m_playerChunkMovementOffset[0];
+    m_playerChunkMovementOffset[1] = std::floor((float)blockPosition[1] / constants::CHUNK_SIZE) - m_playerChunkPosition[1];
+    m_playerChunkPosition[1] += m_playerChunkMovementOffset[1];
+    m_playerChunkMovementOffset[2] = std::floor((float)blockPosition[2] / constants::CHUNK_SIZE) - m_playerChunkPosition[2];
+    m_playerChunkPosition[2] += m_playerChunkMovementOffset[2];
 }
 
 bool ServerPlayer::allChunksLoaded() {
     while ((m_nextUnloadedChunk < m_numChunks)
-        && (m_loadedChunks.contains(m_unloadedChunks[m_numChunks]))) {
-        m_numChunks++;
+        && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition))) {
+        m_nextUnloadedChunk++;
     }
     return m_nextUnloadedChunk == m_numChunks;
 }
@@ -105,9 +109,9 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
 bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange) {
     if (m_nextUnloadedChunk > 0) {
         m_nextUnloadedChunk--;
-        int a = m_unloadedChunks[m_nextUnloadedChunk].x - m_playerChunkPosition[0];
-        int b = m_unloadedChunks[m_nextUnloadedChunk].y - m_playerChunkPosition[1];
-        int c = m_unloadedChunks[m_nextUnloadedChunk].z - m_playerChunkPosition[2];
+        int a = m_unloadedChunks[m_nextUnloadedChunk].x + m_playerChunkMovementOffset[0];
+        int b = m_unloadedChunks[m_nextUnloadedChunk].y + m_playerChunkMovementOffset[1];
+        int c = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkMovementOffset[2];
         *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
         if (*chunkOutOfRange) {
             m_loadedChunks.erase(m_unloadedChunks[m_nextUnloadedChunk]);

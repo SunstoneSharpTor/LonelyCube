@@ -281,15 +281,12 @@ void NewClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, 
 }
 
 void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
-        auto tp1 = std::chrono::high_resolution_clock::now();
     integratedServer.findChunksToLoad();
     Position chunkPosition;
     if (integratedServer.loadChunk(&chunkPosition)) {
         m_unmeshedChunksMtx.lock();
         m_unmeshedChunks.insert(chunkPosition);
         m_unmeshedChunksMtx.unlock();
-        auto tp2 = std::chrono::high_resolution_clock::now();
-        std::cout << "loaded chunk in " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
     }
     if (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
@@ -469,9 +466,7 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
 }
 
 void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
-    int numChunks = 0;
     m_unmeshedChunksMtx.lock();
-    auto tp1 = std::chrono::high_resolution_clock::now();
     auto it = m_unmeshedChunks.begin();
     while (it != m_unmeshedChunks.end()) {
         if (chunkHasNeighbours(*it)) {
@@ -479,15 +474,12 @@ void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
             addChunkMesh(chunkPosition, threadNum);
-            numChunks++;
             m_unmeshedChunksMtx.lock();
             it = m_unmeshedChunks.begin();
         }
         it++;
     }
     m_unmeshedChunksMtx.unlock();
-    auto tp2 = std::chrono::high_resolution_clock::now();
-    std::cout << "built " << numChunks << " chunks in " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 }
 
 unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
