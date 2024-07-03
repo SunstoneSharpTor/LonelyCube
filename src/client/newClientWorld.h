@@ -109,7 +109,6 @@ private:
 	std::mutex m_accessingArrIndicesVectorsMtx;
 	std::mutex m_renderThreadWaitingForArrIndicesVectorsMtx;
 	std::mutex m_unmeshedChunksMtx;
-	std::condition_variable m_unmeshedChunksCV;
 	bool m_renderThreadWaitingForArrIndicesVectors;
 	bool* m_chunkMeshReady;
 	bool m_unmeshNeeded;

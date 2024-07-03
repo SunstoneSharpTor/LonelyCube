@@ -399,7 +399,7 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    NewClientWorld newWorld(5, worldSeed, !MULTIPLAYER, peer, client);
+    NewClientWorld newWorld(32, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     Player mainPlayer(playerSpawnPoint, &newWorld);
@@ -412,7 +412,7 @@ int main(int argc, char* argv[]) {
     std::thread renderWorker(renderThread, &newWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
 
     std::thread* newChunkLoaderThreads = new std::thread[newWorld.getNumChunkLoaderThreads()];
-    for (char threadNum = 0; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (char threadNum = 1; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
         newChunkLoaderThreads[threadNum] = std::thread(newChunkLoaderThread, &newWorld, &running, threadNum);
     }
 

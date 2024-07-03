@@ -402,7 +402,7 @@ void MeshBuilder::buildMesh(float* vertices, unsigned int* numVertices, unsigned
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[neighbouringBlock];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[neighbouringBlock];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[neighbouringBlock];
-                        unsigned char neighbouringBlockType =m_chunk.getWorldBlock(neighbouringBlockPos);
+                        unsigned char neighbouringBlockType = m_chunk.getWorldBlock(neighbouringBlockPos);
                         if ((neighbouringBlockType != 4) && (constants::transparent[neighbouringBlockType])) {
                             addFaceToMesh(vertices, numVertices, indices, numIndices, waterVertices, numWaterVertices, waterIndices, numWaterIndices, blockNum, neighbouringBlock);
                         }
