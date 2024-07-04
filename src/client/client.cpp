@@ -399,7 +399,7 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    NewClientWorld newWorld(32, worldSeed, !MULTIPLAYER, peer, client);
+    NewClientWorld newWorld(5, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     Player mainPlayer(playerSpawnPoint, &newWorld);

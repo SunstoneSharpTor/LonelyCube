@@ -111,11 +111,6 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         }
         m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
-        if (m_singleplayer) {
-            m_unmeshedChunksMtx.lock();
-            m_unmeshedChunks.push(*chunkPosition);
-            m_unmeshedChunksMtx.unlock();
-        }
         return true;
     }
     else {
@@ -132,21 +127,6 @@ int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned
     m_playersMtx.unlock();
     return m_nextPlayerID - 1;
 }
-
-bool ServerWorld::getNextLoadedChunkPosition(Position* chunkPosition) {
-    m_unmeshedChunksMtx.lock();
-    if (m_unmeshedChunks.empty()) {
-        m_unmeshedChunksMtx.unlock();
-        return false;
-    }
-    else {
-        *chunkPosition = m_unmeshedChunks.front();
-        m_unmeshedChunks.pop();
-        m_unmeshedChunksMtx.unlock();
-        return true;
-    }
-}
-
 
 unsigned char ServerWorld::getBlock(const Position& position) const {
     Position chunkPosition;
@@ -195,10 +175,4 @@ void ServerWorld::setBlock(const Position& position, unsigned char blockType) {
     }
 
     chunkIterator->second.setBlock(chunkBlockNum, blockType);
-}
-
-void ServerWorld::addToUnmeshedChunks(const Position& chunkPosition) {
-    m_unmeshedChunksMtx.lock();
-    m_unmeshedChunks.push(chunkPosition);
-    m_unmeshedChunksMtx.unlock();
 }

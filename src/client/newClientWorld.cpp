@@ -135,7 +135,6 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
     if (m_meshUpdates.size() > 0) {
         auto tp1 = std::chrono::high_resolution_clock::now();
         while (m_meshUpdates.size() > 0) {
-            std::cout << "m_numMeshUpdates > 0: " << m_meshUpdates.size() << "\n";
             doRenderThreadJobs();
         }
         auto tp2 = std::chrono::high_resolution_clock::now();
@@ -219,6 +218,9 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
         && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
         && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
     m_unmeshNeeded = !unmeshCompleted;
+    if (m_unmeshNeeded) {
+        doRenderThreadJobs();
+    }
     bool readyToRelable = false;
     while (m_unmeshNeeded && (!readyToRelable)) {
         doRenderThreadJobs();
@@ -300,16 +302,16 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
 }
 
 void NewClientWorld::unmeshChunks() {
+    m_updatingPlayerChunkPosition[0] = m_newPlayerChunkPosition[0];
+    m_updatingPlayerChunkPosition[1] = m_newPlayerChunkPosition[1];
+    m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
     //unload any meshes and chunks that are out of render distance
     float distance = 0;
     Position lastChunkPosition;
     m_unmeshedChunksMtx.lock();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
+        if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
             unloadMesh(lastChunkPosition);
-        }
-        if (distance >= (m_renderDistance + 0.999f) * (m_renderDistance * 0.999f)) {
-            m_unmeshedChunks.erase(lastChunkPosition);
         }
         distance = 0;
         distance += (chunkPosition.x - m_updatingPlayerChunkPosition[0]) * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
@@ -317,11 +319,13 @@ void NewClientWorld::unmeshChunks() {
         distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2]) * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
         lastChunkPosition = chunkPosition;
     }
-    if (distance >= ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
+    if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
         unloadMesh(lastChunkPosition);
     }
-    if (distance >= (m_renderDistance + 0.999f) * (m_renderDistance * 0.999f)) {
-        m_unmeshedChunks.erase(lastChunkPosition);
+    for (const auto& chunkPosition : m_unmeshedChunks) {
+        if (!integratedServer.chunkLoaded(chunkPosition)) {
+            m_unmeshedChunks.erase(chunkPosition);
+        }
     }
     m_unmeshedChunksMtx.unlock();
 

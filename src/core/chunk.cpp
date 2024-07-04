@@ -69,7 +69,7 @@ Chunk::Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks
     m_singleSkyLightVal = false;
     m_skyLightUpToDate = false;
     m_calculatingSkylight = false;
-    m_playerCount = 0;
+    m_playerCount = 1;
 
     m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
     m_skyLight = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];

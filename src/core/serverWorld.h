@@ -36,7 +36,6 @@ private:
     std::unordered_map<int, ServerPlayer> m_players;
     std::queue<Position> m_chunksToBeLoaded;
     std::unordered_set<Position> m_chunksBeingLoaded;
-    std::queue<Position> m_unmeshedChunks;
 
     // Synchronisation
     std::mutex m_chunksMtx;
@@ -51,7 +50,6 @@ public:
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
-    void addToUnmeshedChunks(const Position& chunkPosition);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
     unsigned char getBlock(const Position& position) const;
     void setBlock(const Position& position, unsigned char blockType);

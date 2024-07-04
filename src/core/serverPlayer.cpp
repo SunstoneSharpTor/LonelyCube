@@ -114,8 +114,9 @@ bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfR
         int c = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkMovementOffset[2];
         *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
         if (*chunkOutOfRange) {
-            m_loadedChunks.erase(m_unloadedChunks[m_nextUnloadedChunk]);
-            *chunkPosition = m_unloadedChunks[m_nextUnloadedChunk];
+            Position unloadedChunkPosition = m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition;
+            *chunkPosition = unloadedChunkPosition;
+            m_loadedChunks.erase(unloadedChunkPosition);
         }
         return true;
     }
