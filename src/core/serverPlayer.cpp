@@ -26,7 +26,7 @@
 #include "core/position.h"
 
 void ServerPlayer::initNumChunks() {
-    m_minUnloadedChunkDistance = ((m_renderDistance + 1) * (m_renderDistance + 1));
+    m_minUnloadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);
     m_numChunks = 0;
     for (int x = -m_renderDistance; x <= m_renderDistance; x++) {
         for (int y = -m_renderDistance; y <= m_renderDistance; y++) {
