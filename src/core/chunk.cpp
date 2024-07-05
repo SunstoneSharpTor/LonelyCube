@@ -136,6 +136,12 @@ unsigned char Chunk::getWorldBlock(int* blockCoords) {
 
     unsigned int blockNumber = getBlockNumber(blockPosInChunk);
 
+    if (!m_worldChunks->contains(chunkCoords)) {
+        std::cout << blockCoords[0] << ", " << blockCoords[1] << ", " << blockCoords[2] << "\n";
+        std::cout << chunkCoords[0] << ", " << chunkCoords[1] << ", " << chunkCoords[2] << "\n";
+        std::cout << "BROKEN\n";
+    }
+
     return m_worldChunks->at(chunkCoords).getBlock(blockNumber);
 }
 

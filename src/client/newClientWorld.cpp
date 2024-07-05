@@ -238,30 +238,16 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
         readyToRelable = !readyToRelable;
     }
 
-    integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition);
+    integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
 
-    unmeshChunksIfNeeded();
-
-    doRenderThreadJobs();
-
-    unmeshCompleted = true;
-    m_unmeshNeeded = false;
-    // lock release 
-    std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
-    // notify consumer when done
-    m_unmeshNeededCV.notify_all();
-}
-
-void NewClientWorld::unmeshChunksIfNeeded() {
-    bool unmeshNeeded = !((m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
-        && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
-        && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]));
-    //if the player has moved chunk, update the list of loaded chunks
-    if (unmeshNeeded && (!m_renderingFrame)) {
-        auto tp1 = std::chrono::high_resolution_clock::now();
+    if (m_unmeshNeeded) {
         unmeshChunks();
-        auto tp2 = std::chrono::high_resolution_clock::now();
-        std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+        unmeshCompleted = true;
+        m_unmeshNeeded = false;
+        // lock release 
+        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
+        // notify consumer when done
+        m_unmeshNeededCV.notify_all();
     }
 }
 
@@ -290,27 +276,7 @@ void NewClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, 
 }
 
 void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
-        auto tp1 = std::chrono::high_resolution_clock::now();
-    integratedServer.findChunksToLoad();
-        auto tp2 = std::chrono::high_resolution_clock::now();
-        int time = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
-        if (time > 1000) {
-        std::cout << "FIND took " << time << "us\n";
-        }
-    Position chunkPosition;
-    if (integratedServer.loadChunk(&chunkPosition)) {
-        m_unmeshedChunksMtx.lock();
-        m_unmeshedChunks.insert(chunkPosition);
-        m_unmeshedChunksMtx.unlock();
-    }
-        tp1 = std::chrono::high_resolution_clock::now();
-    buildMeshesForNewChunksWithNeighbours(threadNum);
-        tp2 = std::chrono::high_resolution_clock::now();
-        time = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
-        if (time > 100000) {
-        std::cout << "BUILD took " << time << "us\n";
-        }
-    if (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
+    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
@@ -318,6 +284,14 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
+    integratedServer.findChunksToLoad();
+    Position chunkPosition;
+    if (integratedServer.loadChunk(&chunkPosition)) {
+        m_unmeshedChunksMtx.lock();
+        m_unmeshedChunks.insert(chunkPosition);
+        m_unmeshedChunksMtx.unlock();
+    }
+    buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
 void NewClientWorld::unmeshChunks() {
@@ -328,14 +302,9 @@ void NewClientWorld::unmeshChunks() {
     float distance = 0;
     Position lastChunkPosition;
     m_unmeshedChunksMtx.lock();
-    int unloaded = 0;
-    int notUnloaded = 0;
     for (const auto& [chunkPosition, mesh] : m_meshes) {
-        notUnloaded++;
         if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
             unloadMesh(lastChunkPosition);
-            unloaded++;
-            notUnloaded--;
         }
         distance = 0;
         distance += (chunkPosition.x - m_updatingPlayerChunkPosition[0]) * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
@@ -346,15 +315,15 @@ void NewClientWorld::unmeshChunks() {
     if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
         unloadMesh(lastChunkPosition);
     }
-for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
-    if (!integratedServer.chunkLoaded(*it)) {
-        it = m_unmeshedChunks.erase(it);
-    } else {
-        ++it;
+    // Remove any chunks from unmeshedChunks that have just been unloaded
+    for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
+        if (!integratedServer.chunkLoaded(*it)) {
+            it = m_unmeshedChunks.erase(it);
+        } else {
+            ++it;
+        }
     }
-}
     m_unmeshedChunksMtx.unlock();
-    std::cout << unloaded << " unloaded and " << notUnloaded << " not unloaded\n";
 
     //update the player's chunk position
     m_playerChunkPosition[0] = m_updatingPlayerChunkPosition[0];
@@ -364,6 +333,9 @@ for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
 
 bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     for (unsigned char i = 0; i < 27; i++) {
+        // std::cout << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).x << ", "
+        //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).y << ", "
+        //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).z << "\n";
         if (!(integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
@@ -494,8 +466,8 @@ void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_unmeshedChunksMtx.lock();
     auto it = m_unmeshedChunks.begin();
     while (it != m_unmeshedChunks.end()) {
-        if (chunkHasNeighbours(*it)) {
-            Position chunkPosition = *it;
+        Position chunkPosition = *it;
+        if (chunkHasNeighbours(chunkPosition)) {
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
             addChunkMesh(chunkPosition, threadNum);
@@ -567,15 +539,6 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     auto tp2 = std::chrono::high_resolution_clock::now();
     std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
     m_accessingArrIndicesVectorsMtx.unlock();
-
-    if (m_unmeshNeeded) {
-        //release the chunk loader threads so that the required chunks can be remeshed
-        unmeshCompleted = true;
-        // lock release 
-        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
-        // notify consumer when done
-        m_unmeshNeededCV.notify_all();
-    }
 }
 
 unsigned short NewClientWorld::getBlock(int* blockCoords) {

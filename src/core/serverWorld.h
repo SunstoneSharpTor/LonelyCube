@@ -47,7 +47,7 @@ private:
 public:
     ServerWorld(bool singleplayer, unsigned long long seed);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
-    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition);
+    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool waited);
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
     bool getNextLoadedChunkPosition(Position* chunkPosition);

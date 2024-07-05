@@ -143,7 +143,6 @@ public:
 		return m_renderDistance;
 	}
 	void doRenderThreadJobs();
-	void unmeshChunksIfNeeded();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
 	void initPlayerPos(float playerX, float playerY, float playerZ);
 	char getNumChunkLoaderThreads();
