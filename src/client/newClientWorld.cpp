@@ -238,20 +238,11 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
         readyToRelable = !readyToRelable;
     }
 
-    auto tp1 = std::chrono::high_resolution_clock::now();
     integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition);
 
     unmeshChunksIfNeeded();
 
     doRenderThreadJobs();
-
-    if (m_unmeshNeeded) {
-    }
-    
-    if (m_unmeshNeeded) {
-        auto tp2 = std::chrono::high_resolution_clock::now();
-        std::cout << "update took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
-    }
 
     unmeshCompleted = true;
     m_unmeshNeeded = false;
@@ -312,6 +303,13 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshedChunks.insert(chunkPosition);
         m_unmeshedChunksMtx.unlock();
     }
+        tp1 = std::chrono::high_resolution_clock::now();
+    buildMeshesForNewChunksWithNeighbours(threadNum);
+        tp2 = std::chrono::high_resolution_clock::now();
+        time = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
+        if (time > 100000) {
+        std::cout << "BUILD took " << time << "us\n";
+        }
     if (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -320,13 +318,6 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-        tp1 = std::chrono::high_resolution_clock::now();
-    buildMeshesForNewChunksWithNeighbours(threadNum);
-        tp2 = std::chrono::high_resolution_clock::now();
-        time = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
-        if (time > 100000) {
-        std::cout << "BUILD took " << time << "us\n";
-        }
 }
 
 void NewClientWorld::unmeshChunks() {
@@ -372,12 +363,6 @@ for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
 }
 
 bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
-    if ((abs(chunkPosition.x - m_playerChunkPosition[0]) == m_renderDistance)
-        || (abs(chunkPosition.y - m_playerChunkPosition[1]) == m_renderDistance)
-        || (abs(chunkPosition.z - m_playerChunkPosition[2]) == m_renderDistance)) {
-        return false;
-    }
-
     for (unsigned char i = 0; i < 27; i++) {
         if (!(integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;

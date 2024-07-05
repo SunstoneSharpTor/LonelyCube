@@ -88,6 +88,7 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_playerChunkPosition[1] += m_playerChunkMovementOffset[1];
     m_playerChunkMovementOffset[2] = std::floor((float)blockPosition[2] / constants::CHUNK_SIZE) - m_playerChunkPosition[2];
     m_playerChunkPosition[2] += m_playerChunkMovementOffset[2];
+    m_processedChunk = m_loadedChunks.begin();
 }
 
 bool ServerPlayer::allChunksLoaded() {
@@ -107,19 +108,23 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
 }
 
 bool ServerPlayer::decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange) {
-    if (m_nextUnloadedChunk > 0) {
-        m_nextUnloadedChunk--;
-        int a = m_unloadedChunks[m_nextUnloadedChunk].x + m_playerChunkMovementOffset[0];
-        int b = m_unloadedChunks[m_nextUnloadedChunk].y + m_playerChunkMovementOffset[1];
-        int c = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkMovementOffset[2];
+    if (m_processedChunk == m_loadedChunks.end()) {
+        m_nextUnloadedChunk = 0;
+        *chunkOutOfRange = false;
+        return false;
+    }
+    else {
+        int a = m_processedChunk->x - m_playerChunkPosition[0];
+        int b = m_processedChunk->y - m_playerChunkPosition[1];
+        int c = m_processedChunk->z - m_playerChunkPosition[2];
         *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
         if (*chunkOutOfRange) {
-            Position unloadedChunkPosition = m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition;
-            *chunkPosition = unloadedChunkPosition;
-            m_loadedChunks.erase(unloadedChunkPosition);
+            *chunkPosition = *m_processedChunk;
+            m_processedChunk = m_loadedChunks.erase(m_processedChunk);
+        }
+        else {
+            m_processedChunk++;
         }
         return true;
     }
-    *chunkOutOfRange = false;
-    return false;
 }

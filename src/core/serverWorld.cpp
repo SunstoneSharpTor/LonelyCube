@@ -38,19 +38,19 @@ ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singlep
 }
 
 void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition) {
-    m_playersMtx.lock();
-    m_chunksMtx.lock();
-    ServerPlayer& player = m_players.at(playerID);
-    int lastPlayerChunkPosition[3];
-    player.getChunkPosition(lastPlayerChunkPosition);
-    player.updatePlayerPos(blockPosition, subBlockPosition);
-    int newPlayerChunkPosition[3];
-    player.getChunkPosition(newPlayerChunkPosition);
-    // If the player has moved chunk, remove all the chunks that are out of
-    // render distance from the set of loaded chunks
-    if (newPlayerChunkPosition[0] != lastPlayerChunkPosition[0]
-        || newPlayerChunkPosition[1] != lastPlayerChunkPosition[1]
-        || newPlayerChunkPosition[2] != lastPlayerChunkPosition[2]) {
+    int currentPosition[3];
+    m_players.at(playerID).getChunkPosition(currentPosition);
+    if ((currentPosition[0] != std::floor((float)(blockPosition[0] / constants::CHUNK_SIZE)))
+        || (currentPosition[1] != std::floor((float)(blockPosition[1] / constants::CHUNK_SIZE)))
+        || (currentPosition[2] != std::floor((float)(blockPosition[2] / constants::CHUNK_SIZE)))) {
+        m_playersMtx.lock();
+        m_chunksMtx.lock();
+        m_chunksToBeLoadedMtx.lock();
+        m_chunksBeingLoadedMtx.lock();
+        ServerPlayer& player = m_players.at(playerID);
+        player.updatePlayerPos(blockPosition, subBlockPosition);
+        // If the player has moved chunk, remove all the chunks that are out of
+        // render distance from the set of loaded chunks
         Position chunkPosition;
         bool chunkOutOfRange;
         while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
@@ -62,9 +62,15 @@ void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBl
                 }
             }
         }
+        while (!m_chunksToBeLoaded.empty()) {
+            m_chunksToBeLoaded.pop();
+        }
+        m_chunksBeingLoaded.clear();
+        m_chunksBeingLoadedMtx.unlock();
+        m_chunksToBeLoadedMtx.unlock();
+        m_chunksMtx.unlock();
+        m_playersMtx.unlock();
     }
-    m_chunksMtx.unlock();
-    m_playersMtx.unlock();
 }
 
 void ServerWorld::findChunksToLoad() {

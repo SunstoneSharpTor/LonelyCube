@@ -36,6 +36,7 @@ private:
     int m_nextUnloadedChunk;
     int m_playerID;
     std::unordered_set<Position> m_loadedChunks;
+    std::unordered_set<Position>::iterator m_processedChunk;
 
     void initChunkPositions();
     void initNumChunks();
