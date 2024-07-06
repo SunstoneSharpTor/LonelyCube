@@ -303,7 +303,7 @@ void NewClientWorld::unmeshChunks() {
     Position lastChunkPosition;
     m_unmeshedChunksMtx.lock();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
+        if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
             unloadMesh(lastChunkPosition);
         }
         distance = 0;
@@ -312,7 +312,7 @@ void NewClientWorld::unmeshChunks() {
         distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2]) * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
         lastChunkPosition = chunkPosition;
     }
-    if (distance > ((m_renderDistance - 0.001f) * (m_renderDistance - 0.001f))) {
+    if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
         unloadMesh(lastChunkPosition);
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded

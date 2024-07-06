@@ -285,7 +285,7 @@ void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThre
             //create model view projection matrix for the world
             float FOV = 70.0;
             FOV = FOV - FOV * (2.0 / 3.0) * mainPlayer->zoom;
-            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, static_cast<float>((newWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
+            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, 2000.0f);//static_cast<float>((newWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
             glm::mat4 view;
             mainPlayer->viewCamera.getViewMatrix(&view);
             glm::mat4 model = (glm::mat4(1.0f));
