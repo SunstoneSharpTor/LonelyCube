@@ -117,17 +117,12 @@ private:
 	int m_mouseCalls;
 	int m_numRelights;
 
-	//chunk number is a number assigned to each chunk within render distance (between
-	//0 and m_numChunks) that allows the chunks to be represented in a 1d array
-	unsigned int getChunkNumber(int* chunkCoords, int* playerCoords);
-
-	void getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerCoords);
 	void unloadMesh(const Position& chunkPosition);
 	bool chunkHasNeighbours(const Position& chunkPosition);
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unmeshChunks();
-	void relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks);
+	void relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks);
 
 public:
 	ServerWorld integratedServer;

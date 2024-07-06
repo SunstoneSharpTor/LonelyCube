@@ -26,7 +26,7 @@ namespace client {
 
 class MeshBuilder {
 private:
-    Chunk m_chunk;
+    Chunk& m_chunk;
 
     static const short s_neighbouringBlocks[6];
     static const short s_neighbouringBlocksX[6];
@@ -54,7 +54,7 @@ private:
     }
 
 public:
-    MeshBuilder(const Chunk& chunk) : m_chunk(chunk) {}
+    MeshBuilder(Chunk& chunk) : m_chunk(chunk) {}
 
     void buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices,
         unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices,

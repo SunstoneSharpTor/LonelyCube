@@ -108,16 +108,17 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
         m_chunks[*chunkPosition] = { *chunkPosition, &m_chunks };
+        Chunk& chunk = m_chunks.at(*chunkPosition);
         m_chunksMtx.unlock();
-        TerrainGen().generateTerrain(m_chunks.at(*chunkPosition), m_seed);
+        TerrainGen().generateTerrain(chunk, m_seed);
         m_chunksBeingLoadedMtx.lock();
-        for (auto& [playaerID, player] : m_players) {
-            if (player.hasChunkLoaded(*chunkPosition) && m_chunks.contains(*chunkPosition)) {
-                m_chunks.at(*chunkPosition).incrementPlayerCount();
-            }
-        }
         m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
+        for (auto& [playaerID, player] : m_players) {
+            if (player.hasChunkLoaded(*chunkPosition)) {
+                chunk.incrementPlayerCount();
+            }
+        }
         return true;
     }
     else {

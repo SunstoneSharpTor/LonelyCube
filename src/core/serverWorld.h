@@ -54,15 +54,13 @@ public:
     unsigned char getBlock(const Position& position) const;
     void setBlock(const Position& position, unsigned char blockType);
     inline Chunk& getChunk(const Position& chunkPosition) {
-        m_chunksMtx.lock();
         Chunk& chunk = m_chunks.at(chunkPosition);
-        m_chunksMtx.unlock();
         return chunk;
     }
     inline bool chunkLoaded(const Position& chunkPosition) {
         return m_chunks.contains(chunkPosition);
     }
-    inline const std::unordered_map<Position, Chunk>& getWorldChunks() {
+    inline std::unordered_map<Position, Chunk>& getWorldChunks() {
         return m_chunks;
     }
 };

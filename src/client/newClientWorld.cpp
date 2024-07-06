@@ -26,6 +26,7 @@
 
 #include "client/meshBuilder.h"
 #include "core/constants.h"
+#include "core/lighting.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
 #include "core/terrainGen.h"
@@ -251,30 +252,6 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
     }
 }
 
-unsigned int NewClientWorld::getChunkNumber(int* chunkCoords, int* playerChunkCoords) {
-    int adjustedChunkCoords[3];
-    for (unsigned char i = 0; i < 3; i++) {
-        adjustedChunkCoords[i] = chunkCoords[i] - playerChunkCoords[i] + m_renderDistance;
-    }
-    
-    unsigned int chunkNumber = adjustedChunkCoords[1] * m_renderDiameter * m_renderDiameter;
-    chunkNumber += adjustedChunkCoords[2] * m_renderDiameter;
-    chunkNumber += adjustedChunkCoords[0];
-
-    return chunkNumber;
-}
-
-void NewClientWorld::getChunkCoords(int* chunkCoords, unsigned int chunkNumber, int* playerChunkCoords) {
-    int adjustedChunkCoords[3];
-    adjustedChunkCoords[0] = chunkNumber % m_renderDiameter;
-    adjustedChunkCoords[1] = chunkNumber / (m_renderDiameter * m_renderDiameter);
-    adjustedChunkCoords[2] = (chunkNumber - adjustedChunkCoords[1] * m_renderDiameter * m_renderDiameter) / m_renderDiameter;
-
-    for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = adjustedChunkCoords[i] - m_renderDistance + playerChunkCoords[i];
-    }
-}
-
 void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
@@ -393,9 +370,11 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
     m_chunkMeshReady[threadNum] = true;
     chunkMeshUploaded[threadNum] = false;
 
+    if (!m_meshUpdates.contains(chunkPosition)) {
     m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) * (chunkPosition.x - m_playerChunkPosition[0])
         + (chunkPosition.y - m_playerChunkPosition[1]) * (chunkPosition.y - m_playerChunkPosition[1])
         + (chunkPosition.z - m_playerChunkPosition[2]) * (chunkPosition.z - m_playerChunkPosition[2]);
+    }
 
     // locking
     std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
@@ -474,6 +453,25 @@ void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
         if (chunkHasNeighbours(chunkPosition)) {
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
+            Chunk& chunk = integratedServer.getChunk(chunkPosition);
+            if (!chunk.isSkylightUpToDate()) {
+                Chunk::s_checkingNeighbouringRelights.lock();
+                bool neighbourBeingRelit = true;
+                while (neighbourBeingRelit) {
+                    neighbourBeingRelit = false;
+                    for (unsigned int i = 0; i < 6; i++) {
+                        neighbourBeingRelit |= integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
+                    }
+                    if (neighbourBeingRelit) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(100));
+                    }
+                }
+                chunk.setSkylightBeingRelit(true);
+                chunk.clearSkyLight();
+                bool neighbouringChunksToRelight[6];
+                Lighting::calculateSkyLight(chunkPosition, integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+                chunk.setSkylightBeingRelit(false);
+            }
             addChunkMesh(chunkPosition, threadNum);
             m_unmeshedChunksMtx.lock();
             it = m_unmeshedChunks.begin();
@@ -521,11 +519,10 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     integratedServer.setBlock(Position(blockCoords), blockType);
 
     std::vector<Position> relitChunks;
-    relitChunks.push_back(chunkPosition);
-    // auto tp1 = std::chrono::high_resolution_clock::now();
-    // relightChunksAroundBlock(blockCoords, &relitChunks);
-    // auto tp2 = std::chrono::high_resolution_clock::now();
-    // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    auto tp1 = std::chrono::high_resolution_clock::now();
+    relightChunksAroundBlock(blockCoords, &relitChunks);
+    auto tp2 = std::chrono::high_resolution_clock::now();
+    std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
     m_accessingArrIndicesVectorsMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {
@@ -535,13 +532,13 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
         m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
     }
 
-    auto tp1 = std::chrono::high_resolution_clock::now();
+    tp1 = std::chrono::high_resolution_clock::now();
     for (auto& relitChunk : relitChunks) {
         unloadMesh(relitChunk);
         m_meshUpdates.insert(relitChunk);
     }
-    auto tp2 = std::chrono::high_resolution_clock::now();
-    std::cout << "unmesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    tp2 = std::chrono::high_resolution_clock::now();
+    std::cout << "remesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
@@ -628,140 +625,130 @@ void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) 
     m_unmeshNeeded = true;
 }
 
-void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<unsigned int>* relitChunks) {
-    // //find the lowest block in the column that is loaded
-    // int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
-    // int chunkCoords[3] = { 0, 0, 0 };
-    // for (char i = 0; i < 3; i++) {
-    //     chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
-    // }
-    // unsigned int chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    // while ((chunkCoords[1] > lowestChunkInWorld) && (m_loadedChunks[chunkNum])) {
-    //     chunkCoords[1] -= 1;
-    //     chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    // }
-    // int lowestLoadedBlockInColumn = (chunkCoords[1] + 1) * constants::CHUNK_SIZE;
-    // //find the lowest block in the column that has a full sky access
-    // int blockPos[3];
-    // for (char i = 0; i < 3; i++) {
-    //     blockPos[i] = blockCoords[i];
-    // }
-    // blockPos[1]--;
-    // while (blockPos[1] - constants::skyLightMaxValue + 1 >= lowestLoadedBlockInColumn) {
-    //     unsigned char blockType = getBlock(blockPos);
-    //     if (constants::dimsLight[blockType] || (!constants::transparent[blockType])) {
-    //         blockPos[1]--;
-    //         break;
-    //     }
-    //     blockPos[1]--;
-    // }
-    // int lowestFullySkylitBlockInColumn = blockPos[1] + 2;
+void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks) {
+    //find the lowest block in the column that is loaded
+    int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
+    int chunkCoords[3] = { 0, 0, 0 };
+    for (char i = 0; i < 3; i++) {
+        chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
+    }
+    while ((chunkCoords[1] > lowestChunkInWorld) && integratedServer.chunkLoaded(chunkCoords)) {
+        chunkCoords[1] -= 1;
+    }
+    int lowestLoadedBlockInColumn = (chunkCoords[1] + 1) * constants::CHUNK_SIZE;
+    //find the lowest block in the column that has a full sky access
+    int blockPos[3];
+    for (char i = 0; i < 3; i++) {
+        blockPos[i] = blockCoords[i];
+    }
+    blockPos[1]--;
+    while (blockPos[1] - constants::skyLightMaxValue + 1 >= lowestLoadedBlockInColumn) {
+        unsigned char blockType = getBlock(blockPos);
+        if (constants::dimsLight[blockType] || (!constants::transparent[blockType])) {
+            blockPos[1]--;
+            break;
+        }
+        blockPos[1]--;
+    }
+    int lowestFullySkylitBlockInColumn = blockPos[1] + 2;
 
-    // //find the furthest blocks that the skylight could spread to and add them to a vector
-    // std::vector<int> blockCoordsToBeRelit;
-    // int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
-    // int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-    // while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
-    //     blockPos[0] = blockCoords[0];
-    //     blockPos[1] = chunkLayerHeight;
-    //     blockPos[2] = blockCoords[2];
-    //     for (char i = 0; i < 3; i++) {
-    //         blockCoordsToBeRelit.push_back(blockPos[i]);
-    //     }
-    //     blockPos[0] += constants::skyLightMaxValue - 1;
-    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-    //         blockPos[0]--;
-    //         blockPos[2]++;
-    //         for (char i = 0; i < 3; i++) {
-    //             blockCoordsToBeRelit.push_back(blockPos[i]);
-    //         }
-    //     }
-    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-    //         blockPos[0]--;
-    //         blockPos[2]--;
-    //         for (char i = 0; i < 3; i++) {
-    //             blockCoordsToBeRelit.push_back(blockPos[i]);
-    //         }
-    //     }
-    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-    //         blockPos[0]++;
-    //         blockPos[2]--;
-    //         for (char i = 0; i < 3; i++) {
-    //             blockCoordsToBeRelit.push_back(blockPos[i]);
-    //         }
-    //     }
-    //     for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
-    //         blockPos[0]++;
-    //         blockPos[2]++;
-    //         for (char i = 0; i < 3; i++) {
-    //             blockCoordsToBeRelit.push_back(blockPos[i]);
-    //         }
-    //     }
-    //     chunkLayerHeight -= constants::CHUNK_SIZE;
-    // }
+    //find the furthest blocks that the skylight could spread to and add them to a vector
+    std::vector<int> blockCoordsToBeRelit;
+    int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
+    int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+    while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
+        blockPos[0] = blockCoords[0];
+        blockPos[1] = chunkLayerHeight;
+        blockPos[2] = blockCoords[2];
+        for (char i = 0; i < 3; i++) {
+            blockCoordsToBeRelit.push_back(blockPos[i]);
+        }
+        blockPos[0] += constants::skyLightMaxValue - 1;
+        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+            blockPos[0]--;
+            blockPos[2]++;
+            for (char i = 0; i < 3; i++) {
+                blockCoordsToBeRelit.push_back(blockPos[i]);
+            }
+        }
+        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+            blockPos[0]--;
+            blockPos[2]--;
+            for (char i = 0; i < 3; i++) {
+                blockCoordsToBeRelit.push_back(blockPos[i]);
+            }
+        }
+        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+            blockPos[0]++;
+            blockPos[2]--;
+            for (char i = 0; i < 3; i++) {
+                blockCoordsToBeRelit.push_back(blockPos[i]);
+            }
+        }
+        for (char i = 0; i < constants::skyLightMaxValue - 1; i++) {
+            blockPos[0]++;
+            blockPos[2]++;
+            for (char i = 0; i < 3; i++) {
+                blockCoordsToBeRelit.push_back(blockPos[i]);
+            }
+        }
+        chunkLayerHeight -= constants::CHUNK_SIZE;
+    }
 
-    // //for every block that the skylight could spread to, add that chunk to a vector only if it is not there already
-    // std::vector<unsigned int> chunksToBeRelit;
-    // for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
-    //     chunkCoords[0] = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
-    //     chunkCoords[1] = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
-    //     chunkCoords[2] = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
-    //     chunkNum = getChunkNumber(chunkCoords, m_playerChunkPosition);
-    //     if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkNum) == chunksToBeRelit.end()) {
-    //         chunksToBeRelit.push_back(chunkNum);
-    //         m_chunks[m_chunkArrayIndices[chunkNum]].clearSkyLight();
-    //     }
-    // }
+    //for every block that the skylight could spread to, add that chunk to a vector only if it is not there already
+    std::vector<Position> chunksToBeRelit;
+    Position chunkPosition;
+    for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
+        chunkPosition.x = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
+        chunkPosition.y = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
+        chunkPosition.z = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
+        if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkPosition) == chunksToBeRelit.end()) {
+            chunksToBeRelit.push_back(chunkPosition);
+            integratedServer.getChunk(chunkPosition).clearSkyLight();
+        }
+    }
 
-    // int numChunksRelit = 0;
-    // int numSpreads = 0;
-    // while (chunksToBeRelit.size() > 0) {
-    //     bool neighbouringChunksToRelight[6];
-    //     unsigned int neighbouringChunkIndices[6];
-    //     unsigned int neighbouringChunkNumbers[6];
-    //     bool neighbouringChunksLoaded = true;
-    //     //check that the chunk has its neighbours loaded so that it can be lit
-    //     for (char ii = 0; ii < 6; ii++) {
-    //         if ((((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) < 0) 
-    //             || (((int)(chunksToBeRelit[0]) + m_neighbouringChunkNumberOffets[ii]) > m_renderDiameter * m_renderDiameter * m_renderDiameter)) {
-    //             neighbouringChunksLoaded = false;
-    //             break;
-    //         }
-    //         neighbouringChunkNumbers[ii] = chunksToBeRelit[0] + m_neighbouringChunkNumberOffets[ii];
-    //         if (!m_loadedChunks[neighbouringChunkNumbers[ii]]) {
-    //             neighbouringChunksLoaded = false;
-    //             break;
-    //         }
-    //         neighbouringChunkIndices[ii] = m_chunkArrayIndices[neighbouringChunkNumbers[ii]];
-    //     }
-    //     //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-    //     if (!neighbouringChunksLoaded) {
-    //         m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].setSkyLightToBeOutdated();
-    //         std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
-    //         chunksToBeRelit.erase(it);
-    //         continue;
-    //     }
-    //     //clear the skylight data for the chunk and relight it
-    //     //m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].clearSkyLight();
-    //     m_chunks[m_chunkArrayIndices[chunksToBeRelit[0]]].calculateSkyLight(neighbouringChunkIndices, neighbouringChunksToRelight);
-    //     if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
-    //         relitChunks->push_back(chunksToBeRelit[0]);
-    //     }
-    //     std::vector<unsigned int>::iterator it = chunksToBeRelit.begin();
-    //     chunksToBeRelit.erase(it);
-    //     //add the neighbouring chunks that were marked as needing recalculating to the queue
-    //     for (char i = 0; i < 6; i++) {
-    //         if (!neighbouringChunksToRelight[i]) {
-    //             continue;
-    //         }
-    //         if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkNumbers[i]) == chunksToBeRelit.end()) {
-    //             chunksToBeRelit.push_back(neighbouringChunkNumbers[i]);
-    //             numSpreads++;
-    //         }
-    //     }
-    //     numChunksRelit++;
-    // }
-    // std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
+    int numChunksRelit = 0;
+    int numSpreads = 0;
+    while (chunksToBeRelit.size() > 0) {
+        bool neighbouringChunksToRelight[6];
+        Position neighbouringChunkPositions[6];
+        bool neighbouringChunksLoaded = true;
+        //check that the chunk has its neighbours loaded so that it can be lit
+        for (char ii = 0; ii < 6; ii++) {
+            neighbouringChunkPositions[ii] = chunksToBeRelit[0] + m_neighbouringChunkOffets[ii];
+            if (!integratedServer.chunkLoaded(neighbouringChunkPositions[ii])) {
+                neighbouringChunksLoaded = false;
+                break;
+            }
+        }
+        //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+        if (!neighbouringChunksLoaded) {
+            integratedServer.getChunk(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+            std::vector<Position>::iterator it = chunksToBeRelit.begin();
+            chunksToBeRelit.erase(it);
+            continue;
+        }
+        
+        Lighting::calculateSkyLight(chunksToBeRelit[0], integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+        if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
+            relitChunks->push_back(chunksToBeRelit[0]);
+        }
+        std::vector<Position>::iterator it = chunksToBeRelit.begin();
+        chunksToBeRelit.erase(it);
+        //add the neighbouring chunks that were marked as needing recalculating to the queue
+        for (char i = 0; i < 6; i++) {
+            if (!neighbouringChunksToRelight[i]) {
+                continue;
+            }
+            if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
+                chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
+                numSpreads++;
+            }
+        }
+        numChunksRelit++;
+    }
+    std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
 }
 
 }  // namespace client

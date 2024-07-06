@@ -110,6 +110,13 @@ void Chunk::unload() {
     m_skyLight = new unsigned char[0];
 }
 
+void Chunk::clearSkyLight() {
+    //reset all sky light values in the chunk to 0
+    for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
+        m_skyLight[blockNum] = 0;
+    }
+}
+
 void Chunk::setBlock(unsigned int block, unsigned char blockType) {
     if (m_singleBlockType) {
         unsigned char* tempBlocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -149,7 +156,7 @@ unsigned char Chunk::getWorldSkyLight(int* blockCoords) {
     int chunkCoords[3];
     unsigned int blockPosInChunk[3];
     for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = floor(static_cast<float>(blockCoords[i]) / constants::CHUNK_SIZE);
+        chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
         blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
     }
 

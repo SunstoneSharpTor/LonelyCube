@@ -24,5 +24,5 @@
 
 class Lighting {
 public:
-    static void calculateSkyLight(Chunk& chunk, std::unordered_map<Position, Chunk> worldChunks, bool* neighbouringChunksToBeRelit);
+    static void calculateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit);
 };

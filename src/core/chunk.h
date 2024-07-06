@@ -137,8 +137,12 @@ public:
         return m_skyLightUpToDate;
     }
 
-    inline bool skyBeingRelit() {
+    inline bool isSkyBeingRelit() {
         return m_calculatingSkylight;
+    }
+
+    inline void setSkylightBeingRelit(bool val) {
+        m_calculatingSkylight = val;
     }
 
     inline void incrementPlayerCount() {
@@ -164,6 +168,8 @@ public:
     inline void setSingleBlockType(bool val) {
         m_singleBlockType = val;
     }
+    
+    void clearSkyLight();
 
     // void uncompressBlocks();
 

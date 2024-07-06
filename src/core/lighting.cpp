@@ -17,33 +17,37 @@
 
 #include "core/lighting.h"
 
+#include <iostream>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
 #include "core/chunk.h"
 #include "core/position.h"
 
-void Lighting::calculateSkyLight(Chunk& chunk, std::unordered_map<Position, Chunk> worldChunks, bool* neighbouringChunksToBeRelit) {
-    int* chunkPosition;
-    chunk.getChunkPosition(chunkPosition);
+void Lighting::calculateSkyLight(Position pos, std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit) {
+    Chunk& chunk = worldChunks.at(pos);
+	int chunkPosition[3] = { pos.x, pos.y, pos.z };
     Position neighbouringChunkPositions[6] = { Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2]),
                                              Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1),
                                              Position(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2]),
                                              Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2]),
                                              Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1),
                                              Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2]) };
-	if (!chunk.skyBeingRelit()) {
-		chunk.s_checkingNeighbouringRelights.lock();
+	if (!chunk.isSkyBeingRelit()) {
+		Chunk::s_checkingNeighbouringRelights.lock();
 		bool neighbourBeingRelit = true;
 		while (neighbourBeingRelit) {
 			neighbourBeingRelit = false;
 			for (unsigned int i = 0; i < 6; i++) {
-				neighbourBeingRelit |= worldChunks[neighbouringChunkPositions[i]].skyBeingRelit();
+				neighbourBeingRelit |= worldChunks.at(neighbouringChunkPositions[i]).isSkyBeingRelit();
 			}
-			std::this_thread::sleep_for(std::chrono::microseconds(100));
+			if (neighbourBeingRelit) {
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
+			}
 		}
 	}
-	chunk.s_checkingNeighbouringRelights.unlock();
+	Chunk::s_checkingNeighbouringRelights.unlock();
 
 	//(*m_worldInfo.numRelights)++;
 
