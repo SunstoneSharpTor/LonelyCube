@@ -127,7 +127,7 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
     blockShader.setUniformMat4f("u_proj", projMatrix);
     m_timeByDTs += DT;
     while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
-        constexpr double fac = 0.016;
+        constexpr double fac = 0.004;
         m_fogDistance = m_fogDistance * (1.0 - fac) + (sqrt(m_meshedChunksDistance) - 2.0) * fac * constants::CHUNK_SIZE;
         m_timeByDTs -= (1.0/(double)constants::visualTPS);
     }
@@ -392,6 +392,10 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
     m_chunkPosition[threadNum] = chunkPosition;
     m_chunkMeshReady[threadNum] = true;
     chunkMeshUploaded[threadNum] = false;
+
+    m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) * (chunkPosition.x - m_playerChunkPosition[0])
+        + (chunkPosition.y - m_playerChunkPosition[1]) * (chunkPosition.y - m_playerChunkPosition[1])
+        + (chunkPosition.z - m_playerChunkPosition[2]) * (chunkPosition.z - m_playerChunkPosition[2]);
 
     // locking
     std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
