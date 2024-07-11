@@ -160,7 +160,6 @@ unsigned char ServerWorld::getBlock(const Position& position) const {
     return chunkIterator->second.getBlock(chunkBlockNum);
 }
 
-
 void ServerWorld::setBlock(const Position& position, unsigned char blockType) {
     Position chunkPosition;
     Position chunkBlockCoords;
@@ -183,4 +182,29 @@ void ServerWorld::setBlock(const Position& position, unsigned char blockType) {
     }
 
     chunkIterator->second.setBlock(chunkBlockNum, blockType);
+}
+
+
+unsigned char ServerWorld::getSkyLight(const Position& position) const {
+    Position chunkPosition;
+    Position chunkBlockCoords;
+    chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)position.y / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)position.z / constants::CHUNK_SIZE);
+    // chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
+    // chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
+    // chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
+    chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
+    chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
+    chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
+    unsigned int chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
+
+    auto chunkIterator = m_chunks.find(chunkPosition);
+
+    if (chunkIterator == m_chunks.end()) {
+        return 0;
+    }
+
+    return chunkIterator->second.getSkyLight(chunkBlockNum);
 }

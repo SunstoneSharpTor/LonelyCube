@@ -515,7 +515,7 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     chunkPosition.y = std::floor((float)blockCoords[1] / constants::CHUNK_SIZE);
     chunkPosition.z = std::floor((float)blockCoords[2] / constants::CHUNK_SIZE);
     
-    // std::cout << (unsigned int)m_chunks[m_meshedChunkPositions[i - 1]].getSkyLight(blockNumber) << " light level\n";
+    std::cout << (unsigned int)integratedServer.getSkyLight(blockCoords) << " light level\n";
     integratedServer.setBlock(Position(blockCoords), blockType);
 
     std::vector<Position> relitChunks;
@@ -531,14 +531,11 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
         m_accessingArrIndicesVectorsMtx.lock();
         m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
     }
-
-    tp1 = std::chrono::high_resolution_clock::now();
+    
     for (auto& relitChunk : relitChunks) {
         unloadMesh(relitChunk);
         m_meshUpdates.insert(relitChunk);
     }
-    tp2 = std::chrono::high_resolution_clock::now();
-    std::cout << "remesh took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
@@ -655,7 +652,7 @@ void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vecto
     //find the furthest blocks that the skylight could spread to and add them to a vector
     std::vector<int> blockCoordsToBeRelit;
     int highestAffectedBlock = blockCoords[1] + constants::skyLightMaxValue - 1;
-    int chunkLayerHeight = (-1 * (highestAffectedBlock < 0) + highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+    int chunkLayerHeight = std::floor((float)highestAffectedBlock / constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
     while (chunkLayerHeight >= lowestFullySkylitBlockInColumn - constants::skyLightMaxValue + 1 - constants::CHUNK_SIZE) {
         blockPos[0] = blockCoords[0];
         blockPos[1] = chunkLayerHeight;
@@ -699,9 +696,9 @@ void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vecto
     std::vector<Position> chunksToBeRelit;
     Position chunkPosition;
     for (int i = 0; i < blockCoordsToBeRelit.size(); i += 3) {
-        chunkPosition.x = -1 * (blockCoordsToBeRelit[i] < 0) + blockCoordsToBeRelit[i] / constants::CHUNK_SIZE;
-        chunkPosition.y = -1 * (blockCoordsToBeRelit[i + 1] < 0) + blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE;
-        chunkPosition.z = -1 * (blockCoordsToBeRelit[i + 2] < 0) + blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE;
+        chunkPosition.x = std::floor((float)blockCoordsToBeRelit[i] / constants::CHUNK_SIZE);
+        chunkPosition.y = std::floor((float)blockCoordsToBeRelit[i + 1] / constants::CHUNK_SIZE);
+        chunkPosition.z = std::floor((float)blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE);
         if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkPosition) == chunksToBeRelit.end()) {
             chunksToBeRelit.push_back(chunkPosition);
             integratedServer.getChunk(chunkPosition).clearSkyLight();

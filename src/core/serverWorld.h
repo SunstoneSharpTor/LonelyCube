@@ -53,6 +53,7 @@ public:
     bool getNextLoadedChunkPosition(Position* chunkPosition);
     unsigned char getBlock(const Position& position) const;
     void setBlock(const Position& position, unsigned char blockType);
+    unsigned char getSkyLight(const Position& position) const;
     inline Chunk& getChunk(const Position& chunkPosition) {
         Chunk& chunk = m_chunks.at(chunkPosition);
         return chunk;

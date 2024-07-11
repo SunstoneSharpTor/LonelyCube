@@ -108,7 +108,7 @@ public:
         m_blocks[block] = blockType;
     }
 
-    inline char getSkyLight(unsigned int block) {
+    inline char getSkyLight(const unsigned int block) const {
         return (m_skyLight[block / 2] >> (4 * (block % 2))) & 0b1111;
     }
     
