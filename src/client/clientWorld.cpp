@@ -15,7 +15,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/newClientWorld.h"
+#include "client/clientWorld.h"
 
 #include <thread>
 #include <cmath>
@@ -36,7 +36,7 @@ namespace client {
 static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, false, false };
 static bool unmeshCompleted = false;
 
-NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
+ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
     : integratedServer(singleplayer, seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
@@ -118,7 +118,7 @@ NewClientWorld::NewClientWorld(unsigned short renderDistance, unsigned long long
     }
 }
 
-void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
+void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
     Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
@@ -186,7 +186,7 @@ void NewClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Sh
     m_renderingFrame = false;
 }
 
-void NewClientWorld::doRenderThreadJobs() {
+void ClientWorld::doRenderThreadJobs() {
     for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
@@ -206,7 +206,7 @@ void NewClientWorld::doRenderThreadJobs() {
     }
 }
 
-void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
+void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     m_newPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
     m_newPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
     m_newPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
@@ -252,7 +252,7 @@ void NewClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ
     }
 }
 
-void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
+void ClientWorld::loadChunksAroundPlayer(char threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -271,7 +271,7 @@ void NewClientWorld::loadChunksAroundPlayer(char threadNum) {
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-void NewClientWorld::unmeshChunks() {
+void ClientWorld::unmeshChunks() {
     m_updatingPlayerChunkPosition[0] = m_newPlayerChunkPosition[0];
     m_updatingPlayerChunkPosition[1] = m_newPlayerChunkPosition[1];
     m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
@@ -308,7 +308,7 @@ void NewClientWorld::unmeshChunks() {
     m_playerChunkPosition[2] = m_updatingPlayerChunkPosition[2];
 }
 
-bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
+bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     for (unsigned char i = 0; i < 27; i++) {
         // std::cout << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).x << ", "
         //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).y << ", "
@@ -321,7 +321,7 @@ bool NewClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     return true;
 }
 
-void NewClientWorld::unloadMesh(const Position& chunkPosition) {
+void ClientWorld::unloadMesh(const Position& chunkPosition) {
     MeshData& mesh = m_meshes.at(chunkPosition);
     if (mesh.indexBuffer->getCount() > 0) {
         delete mesh.vertexArray;
@@ -339,7 +339,7 @@ void NewClientWorld::unloadMesh(const Position& chunkPosition) {
     m_unmeshedChunks.insert(chunkPosition);
 }
 
-void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
+void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
@@ -384,7 +384,7 @@ void NewClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum)
     }
 }
 
-void NewClientWorld::uploadChunkMesh(char threadNum) {
+void ClientWorld::uploadChunkMesh(char threadNum) {
     //TODO: precalculate this VBL object
     //create vertex buffer layout
     VertexBufferLayout layout;
@@ -445,7 +445,7 @@ void NewClientWorld::uploadChunkMesh(char threadNum) {
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
+void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_unmeshedChunksMtx.lock();
     auto it = m_unmeshedChunks.begin();
     while (it != m_unmeshedChunks.end()) {
@@ -481,7 +481,7 @@ void NewClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     m_unmeshedChunksMtx.unlock();
 }
 
-unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
+unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
     //TODO: improve this to make it need less steps
     glm::vec3 rayPos = startSubBlockPos;
     int blockPos[3];
@@ -509,7 +509,7 @@ unsigned char NewClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlo
     return 0;
 }
 
-void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
+void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     Position chunkPosition;
     chunkPosition.x = std::floor((float)blockCoords[0] / constants::CHUNK_SIZE);
     chunkPosition.y = std::floor((float)blockCoords[1] / constants::CHUNK_SIZE);
@@ -539,15 +539,15 @@ void NewClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-unsigned short NewClientWorld::getBlock(int* blockCoords) {
+unsigned short ClientWorld::getBlock(int* blockCoords) {
     return integratedServer.getBlock(Position(blockCoords));
 }
 
-char NewClientWorld::getNumChunkLoaderThreads() {
+char ClientWorld::getNumChunkLoaderThreads() {
     return m_numChunkLoadingThreads;
 }
 
-void NewClientWorld::processMouseInput() {
+void ClientWorld::processMouseInput() {
     auto end = std::chrono::steady_clock::now();
     double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - m_startTime).count() / 1000;
     if (*m_lastMousePoll == 0.0f) {
@@ -591,7 +591,7 @@ void NewClientWorld::processMouseInput() {
     }
 }
 
-void NewClientWorld::setMouseData(double* lastMousePoll,
+void ClientWorld::setMouseData(double* lastMousePoll,
     bool* playing,
     bool* lastPlaying,
     float* yaw,
@@ -612,7 +612,7 @@ void NewClientWorld::setMouseData(double* lastMousePoll,
     m_startTime = std::chrono::steady_clock::now();
 }
 
-void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) {
+void ClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) {
     m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
     m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
     m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
@@ -622,7 +622,7 @@ void NewClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) 
     m_unmeshNeeded = true;
 }
 
-void NewClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks) {
+void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks) {
     //find the lowest block in the column that is loaded
     int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
     int chunkCoords[3] = { 0, 0, 0 };

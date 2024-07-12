@@ -15,7 +15,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/player.h"
+#include "client/clientPlayer.h"
 #include "core/constants.h"
 
 #include <iostream>
@@ -23,7 +23,7 @@
 
 namespace client {
 
-const float Player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
+const float ClientPlayer::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.6f,
                                             0.0f, 0.0f, 0.6f,
@@ -36,14 +36,14 @@ const float Player::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 1.8f, 0.6f,
                                             0.0f, 1.8f, 0.6f };
 
-const int Player::m_directions[18] = { 1, 0, 0,
+const int ClientPlayer::m_directions[18] = { 1, 0, 0,
                                       -1, 0, 0,
                                        0, 1, 0,
                                        0,-1, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-Player::Player(int* position, NewClientWorld* newWorld) {
+ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
@@ -93,7 +93,7 @@ Player::Player(int* position, NewClientWorld* newWorld) {
 
 
 
-void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime) {
+void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
     if (m_playing) {
@@ -199,7 +199,7 @@ void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
         } if (m_keyboardState[SDL_SCANCODE_D]) {
             force += movementSpeed * viewCamera.right;
         } if (m_keyboardState[SDL_SCANCODE_SPACE]) {
-            if ((m_timeSinceLastSpace < 0.5f) && !m_lastSpace) {
+            if ((m_timeSinceLastSpace < 0.4f) && !m_lastSpace) {
                 m_fly = !m_fly;
                 m_velocity[1] = 0.0f;
                 force[1] = 0.0f;
@@ -306,7 +306,7 @@ void Player::processUserInput(SDL_Window* sdl_window, int* windowDimensions, boo
     }
 }
 
-void Player::resolveHitboxCollisions(float DT) {
+void ClientPlayer::resolveHitboxCollisions(float DT) {
     m_touchGround = false;
     bool lastTouchWater = m_touchWater;
     m_touchWater = false;
@@ -383,7 +383,7 @@ void Player::resolveHitboxCollisions(float DT) {
     }
 }
 
-bool Player::collidingWithBlock() {
+bool ClientPlayer::collidingWithBlock() {
     int position[3];
     for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
         for (unsigned char i = 0; i < 3; i++) {
@@ -398,7 +398,7 @@ bool Player::collidingWithBlock() {
     return false;
 }
 
-bool Player::intersectingBlock(int* blockPos) {
+bool ClientPlayer::intersectingBlock(int* blockPos) {
     bool intersecting;
     int position;
     for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
@@ -416,7 +416,7 @@ bool Player::intersectingBlock(int* blockPos) {
     return false;
 }
 
-void Player::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
+void ClientPlayer::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
     m_newWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,

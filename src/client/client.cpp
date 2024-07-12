@@ -35,8 +35,8 @@
 #include "client/texture.h"
 #include "client/camera.h"
 #include "core/chunk.h"
-#include "client/newClientWorld.h"
-#include "client/player.h"
+#include "client/clientWorld.h"
+#include "client/clientPlayer.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -45,7 +45,7 @@
 
 using namespace client;
 
-void newChunkLoaderThread(NewClientWorld* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
     }
@@ -67,7 +67,7 @@ void networking(ENetHost* client) {
     }
 }
 
-void renderThread(NewClientWorld* newWorld, bool* running, bool* chunkLoaderThreadsRunning, Player* mainPlayer) {
+void renderThread(ClientWorld* newWorld, bool* running, bool* chunkLoaderThreadsRunning, ClientPlayer* mainPlayer) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -399,10 +399,10 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
-    NewClientWorld newWorld(32, worldSeed, !MULTIPLAYER, peer, client);
+    ClientWorld newWorld(32, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    Player mainPlayer(playerSpawnPoint, &newWorld);
+    ClientPlayer mainPlayer(playerSpawnPoint, &newWorld);
 
     bool running = true;
 
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
 
     std::thread* newChunkLoaderThreads = new std::thread[newWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < newWorld.getNumChunkLoaderThreads(); threadNum++) {
-        newChunkLoaderThreads[threadNum - 1] = std::thread(newChunkLoaderThread, &newWorld, &running, threadNum);
+        newChunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &newWorld, &running, threadNum);
     }
 
     while (running) {

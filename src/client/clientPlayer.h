@@ -19,12 +19,12 @@
 
 #include <SDL2/SDL.h>
 
-#include "client/newClientWorld.h"
+#include "client/clientWorld.h"
 #include "client/camera.h"
 
 namespace client {
 
-class Player {
+class ClientPlayer {
 private:
     static const float m_hitBoxCorners[36];
     static const int m_directions[18];
@@ -65,7 +65,7 @@ private:
     bool collidingWithBlock();
     
     bool intersectingBlock(int* blockPos);
-    NewClientWorld* m_newWorld;
+    ClientWorld* m_newWorld;
 
 public:
 	Camera viewCamera;
@@ -74,7 +74,7 @@ public:
 
     unsigned short m_blockHolding;
 
-    Player(int* position, NewClientWorld* newWorld);
+    ClientPlayer(int* position, ClientWorld* newWorld);
 
     void setWorldMouseData(SDL_Window* window, int* windowDimensions);
 

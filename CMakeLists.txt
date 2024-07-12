@@ -20,13 +20,13 @@ set(CLIENT_SOURCE_FILES
     src/client/indexBuffer.cpp
     src/client/meshBuilder.cpp
     src/client/renderer.cpp
-    src/client/player.cpp
+    src/client/clientPlayer.cpp
     src/client/shader.cpp
     src/client/stb_image.cpp
     src/client/texture.cpp
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
-    src/client/newClientWorld.cpp
+    src/client/clientWorld.cpp
     src/core/chunk.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp

@@ -52,7 +52,7 @@ struct MeshData {
 	IndexBuffer* waterIndexBuffer;
 };
 
-class NewClientWorld {
+class ClientWorld {
 private:
 	bool m_singleplayer;
 	unsigned short m_renderDistance;
@@ -127,7 +127,7 @@ private:
 public:
 	ServerWorld integratedServer;
 
-	NewClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client);
+	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
