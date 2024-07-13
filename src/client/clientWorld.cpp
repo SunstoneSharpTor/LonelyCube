@@ -200,7 +200,7 @@ void ClientWorld::doRenderThreadJobs() {
     }
     //process the mouse input occasionally
     m_mouseCalls += 1;
-    if (m_mouseCalls > 100) {
+    if (m_mouseCalls > 10) {
         processMouseInput();
         m_mouseCalls = 0;
     }
