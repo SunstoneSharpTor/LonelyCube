@@ -34,10 +34,11 @@
 namespace client {
 
 static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, false, false };
-static bool unmeshCompleted = false;
+static bool unmeshCompleted = true;
 
-ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
-    : m_integratedServer(singleplayer, seed) {
+ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
+    const Position& playerPos, ENetPeer* peer, ENetHost* client) : m_integratedServer(singleplayer,
+    seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -52,8 +53,10 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
 
-    int playerPosition[3] = { 0, 0, 0 };
-    int chunkCoords[3];
+    m_playerChunkPosition[0] = std::floor((float)playerPos.x / constants::CHUNK_SIZE);
+    m_playerChunkPosition[1] = std::floor((float)playerPos.y / constants::CHUNK_SIZE);
+    m_playerChunkPosition[2] = std::floor((float)playerPos.z / constants::CHUNK_SIZE);
+    
     float minUnloadedChunkDistance = ((m_renderDistance + 1) * (m_renderDistance + 1));
 
     m_emptyIndexBuffer = new IndexBuffer();
@@ -199,8 +202,7 @@ void ClientWorld::doRenderThreadJobs() {
         }
     }
     //process the mouse input occasionally
-    m_mouseCalls += 1;
-    if (m_mouseCalls > 500) {
+    if (++m_mouseCalls > 500) {
         processMouseInput();
         m_mouseCalls = 0;
     }

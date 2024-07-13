@@ -127,7 +127,7 @@ private:
 	void relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks);
 
 public:
-	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client);
+	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos, ENetPeer* peer, ENetHost* client);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
 	void loadChunksAroundPlayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
