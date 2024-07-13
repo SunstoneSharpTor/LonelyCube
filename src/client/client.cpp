@@ -189,7 +189,7 @@ void renderThread(ClientWorld* newWorld, bool* running, bool* chunkLoaderThreads
     //set up game loop
     SDL_DisplayMode displayMode;
     SDL_GetWindowDisplayMode(sdl_window, &displayMode);
-    int FPS_CAP = (displayMode.refresh_rate) * VSYNC + 100000 * (!VSYNC);
+    int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
     double DT = 1.0 / FPS_CAP;
     long frames = 0;
     long lastFrameRateFrames = 0;
@@ -399,6 +399,7 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned int worldSeed = std::time(0);
+    worldSeed = 0;
     ClientWorld newWorld(32, worldSeed, !MULTIPLAYER, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     int playerSpawnPoint[3] = { 0, 200, 0 };

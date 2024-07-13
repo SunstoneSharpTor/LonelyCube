@@ -250,23 +250,23 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 	unsigned int lastBlockTypeInChunk = 0;
 	for (int z = -MAX_STRUCTURE_RADIUS; z < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; z++) {
 		for (int x = -MAX_STRUCTURE_RADIUS; x < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; x++) {
-			int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
+			int height = -1 + sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
 			heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)] = height;
 			
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
 				unsigned int blockNum = z * constants::CHUNK_SIZE + x;
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
 					if (y > height) {
-						if (y > 0) {
-                            chunk.setSkyLight(blockNum, 15);
-						}
-						else {
+						if (y < 0) {
                             chunk.setBlockUnchecked(blockNum, 4);
                             chunk.setSkyLight(blockNum, 15 + std::max(y - 1, -15));
 						}
+						else {
+                            chunk.setSkyLight(blockNum, 15);
+						}
 					}
 					else if (y == height) {
-						if (y < 0) {
+						if (y < -1) {
 							chunk.setBlockUnchecked(blockNum, 1);
 						}
 						else {
@@ -290,7 +290,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 			int worldZ = z + chunkMinCoords[2];
 
 			//add trees
-			if ((m_peaksAndValleysLocation > 0.23f) && (m_peaksAndValleysHeight < 120.0f) && (height >= 0) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
+			if ((m_peaksAndValleysLocation > 0.23f) && (m_peaksAndValleysHeight < 120.0f) && (height > -2) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
 				if (worldZ > worldX) {
@@ -381,7 +381,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 
 			//add grass
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)
-				&& (height >= 0) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height)) {
+				&& (height > -2) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height)) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
 				if (worldZ > worldX) {

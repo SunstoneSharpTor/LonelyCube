@@ -37,7 +37,7 @@ static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, f
 static bool unmeshCompleted = false;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, ENetPeer* peer, ENetHost* client)
-    : integratedServer(singleplayer, seed) {
+    : m_integratedServer(singleplayer, seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -96,7 +96,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     if (singleplayer) {
         int playerBlockPosition[3] = { 0, 0, 0 };
         float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-        integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
+        m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
     }
 
     //calculate the offset chunk numbers for the neighbouring chunks
@@ -154,8 +154,8 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
                 blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
                 mesh.vertexArray->bind();
                 mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
-                doRenderThreadJobs();
             }
+            doRenderThreadJobs();
         }
     }
     if (m_unmeshNeeded) {
@@ -179,8 +179,8 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
                 waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
                 mesh.waterVertexArray->bind();
                 mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
-                doRenderThreadJobs();
             }
+            doRenderThreadJobs();
         }
     }
     m_renderingFrame = false;
@@ -200,7 +200,7 @@ void ClientWorld::doRenderThreadJobs() {
     }
     //process the mouse input occasionally
     m_mouseCalls += 1;
-    if (m_mouseCalls > 10) {
+    if (m_mouseCalls > 500) {
         processMouseInput();
         m_mouseCalls = 0;
     }
@@ -239,7 +239,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
         readyToRelable = !readyToRelable;
     }
 
-    integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
+    m_integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
 
     if (m_unmeshNeeded) {
         unmeshChunks();
@@ -261,9 +261,9 @@ void ClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-    integratedServer.findChunksToLoad();
+    m_integratedServer.findChunksToLoad();
     Position chunkPosition;
-    if (integratedServer.loadChunk(&chunkPosition)) {
+    if (m_integratedServer.loadChunk(&chunkPosition)) {
         m_unmeshedChunksMtx.lock();
         m_unmeshedChunks.insert(chunkPosition);
         m_unmeshedChunksMtx.unlock();
@@ -294,7 +294,7 @@ void ClientWorld::unmeshChunks() {
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded
     for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
-        if (!integratedServer.chunkLoaded(*it)) {
+        if (!m_integratedServer.chunkLoaded(*it)) {
             it = m_unmeshedChunks.erase(it);
         } else {
             ++it;
@@ -313,7 +313,7 @@ bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
         // std::cout << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).x << ", "
         //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).y << ", "
         //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).z << "\n";
-        if (!(integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
+        if (!(m_integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
     }
@@ -343,7 +343,7 @@ void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
-    MeshBuilder(integratedServer.getChunk(chunkPosition)).buildMesh(m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]);
+    MeshBuilder(m_integratedServer.getChunk(chunkPosition)).buildMesh(m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]);
 
     //if the chunk is empty fill the data with empty values to save interrupting the render thread
     if (false) {//(m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
@@ -453,14 +453,14 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
         if (chunkHasNeighbours(chunkPosition)) {
             m_unmeshedChunks.erase(chunkPosition);
             m_unmeshedChunksMtx.unlock();
-            Chunk& chunk = integratedServer.getChunk(chunkPosition);
+            Chunk& chunk = m_integratedServer.getChunk(chunkPosition);
             if (!chunk.isSkylightUpToDate()) {
                 Chunk::s_checkingNeighbouringRelights.lock();
                 bool neighbourBeingRelit = true;
                 while (neighbourBeingRelit) {
                     neighbourBeingRelit = false;
                     for (unsigned int i = 0; i < 6; i++) {
-                        neighbourBeingRelit |= integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
+                        neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
                     }
                     if (neighbourBeingRelit) {
                         std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -469,7 +469,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                 chunk.setSkylightBeingRelit(true);
                 chunk.clearSkyLight();
                 bool neighbouringChunksToRelight[6];
-                Lighting::calculateSkyLight(chunkPosition, integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+                Lighting::calculateSkyLight(chunkPosition, m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
                 chunk.setSkylightBeingRelit(false);
             }
             addChunkMesh(chunkPosition, threadNum);
@@ -515,8 +515,8 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     chunkPosition.y = std::floor((float)blockCoords[1] / constants::CHUNK_SIZE);
     chunkPosition.z = std::floor((float)blockCoords[2] / constants::CHUNK_SIZE);
     
-    std::cout << (unsigned int)integratedServer.getSkyLight(blockCoords) << " light level\n";
-    integratedServer.setBlock(Position(blockCoords), blockType);
+    std::cout << (unsigned int)m_integratedServer.getSkyLight(blockCoords) << " light level\n";
+    m_integratedServer.setBlock(Position(blockCoords), blockType);
 
     std::vector<Position> relitChunks;
     auto tp1 = std::chrono::high_resolution_clock::now();
@@ -540,7 +540,7 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
 }
 
 unsigned short ClientWorld::getBlock(int* blockCoords) {
-    return integratedServer.getBlock(Position(blockCoords));
+    return m_integratedServer.getBlock(Position(blockCoords));
 }
 
 char ClientWorld::getNumChunkLoaderThreads() {
@@ -629,7 +629,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
     for (char i = 0; i < 3; i++) {
         chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
     }
-    while ((chunkCoords[1] > lowestChunkInWorld) && integratedServer.chunkLoaded(chunkCoords)) {
+    while ((chunkCoords[1] > lowestChunkInWorld) && m_integratedServer.chunkLoaded(chunkCoords)) {
         chunkCoords[1] -= 1;
     }
     int lowestLoadedBlockInColumn = (chunkCoords[1] + 1) * constants::CHUNK_SIZE;
@@ -701,7 +701,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
         chunkPosition.z = std::floor((float)blockCoordsToBeRelit[i + 2] / constants::CHUNK_SIZE);
         if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), chunkPosition) == chunksToBeRelit.end()) {
             chunksToBeRelit.push_back(chunkPosition);
-            integratedServer.getChunk(chunkPosition).clearSkyLight();
+            m_integratedServer.getChunk(chunkPosition).clearSkyLight();
         }
     }
 
@@ -714,20 +714,20 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
         //check that the chunk has its neighbours loaded so that it can be lit
         for (char ii = 0; ii < 6; ii++) {
             neighbouringChunkPositions[ii] = chunksToBeRelit[0] + m_neighbouringChunkOffets[ii];
-            if (!integratedServer.chunkLoaded(neighbouringChunkPositions[ii])) {
+            if (!m_integratedServer.chunkLoaded(neighbouringChunkPositions[ii])) {
                 neighbouringChunksLoaded = false;
                 break;
             }
         }
         //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
         if (!neighbouringChunksLoaded) {
-            integratedServer.getChunk(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+            m_integratedServer.getChunk(chunksToBeRelit[0]).setSkyLightToBeOutdated();
             std::vector<Position>::iterator it = chunksToBeRelit.begin();
             chunksToBeRelit.erase(it);
             continue;
         }
         
-        Lighting::calculateSkyLight(chunksToBeRelit[0], integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+        Lighting::calculateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
         if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
             relitChunks->push_back(chunksToBeRelit[0]);
         }
