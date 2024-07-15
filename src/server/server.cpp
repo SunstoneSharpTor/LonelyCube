@@ -18,17 +18,25 @@
 #include <iostream>
 #include <string>
 #include <thread>
+
 #include <enet/enet.h>
 
 #include <core/chunk.h>
+#include <core/serverWorld.h>
 
-void receiveCommand(bool* quit) {
+void receiveCommands(bool* running) {
     std::string command;
-    while (!(*quit)) {
+    while (*running) {
         std::getline(std::cin, command);
         if (command == "quit") {
-            *quit = true;
+            *running = false;
         }
+    }
+}
+
+void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
+    while (*running) {
+        //mainWorld->loadChunksAroundPlayer(threadNum);
     }
 }
 
@@ -60,10 +68,24 @@ int main (int argc, char** argv) {
         return 1;
     }
 
+    unsigned int worldSeed = std::time(0);
+    ServerWorld mainWorld(false, worldSeed);
+    std::cout << "World Seed: " << worldSeed << std::endl;
+
+    unsigned char numChunkLoaderThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
+    bool* chunkLoaderThreadsRunning = new bool[numChunkLoaderThreads];
+    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + numChunkLoaderThreads, true);
+
+    bool running = true;
+
+    std::thread* chunkLoaderThreads = new std::thread[numChunkLoaderThreads];
+    for (char threadNum = 1; threadNum < numChunkLoaderThreads; threadNum++) {
+        chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
+    }
+
     // Gameloop
-    bool quit = false;
-    std::thread(receiveCommand, &quit).detach();
-    while(!quit) {
+    std::thread(receiveCommands, &running).detach();
+    while(running) {
         ENetEvent event;
         // Wait up to 1000 milliseconds for an event
         while (enet_host_service (server, & event, 1000) > 0) {
@@ -89,6 +111,13 @@ int main (int argc, char** argv) {
                     event.peer->data = NULL;
             }
         }
+    }
+
+    chunkLoaderThreadsRunning[0] = false;
+
+    for (char threadNum = 1; threadNum < numChunkLoaderThreads; threadNum++) {
+        chunkLoaderThreads[threadNum - 1].join();
+        chunkLoaderThreadsRunning[threadNum] = false;
     }
 
     enet_host_destroy(server);

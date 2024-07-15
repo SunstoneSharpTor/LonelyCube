@@ -139,7 +139,6 @@ public:
 	}
 	void doRenderThreadJobs();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
-	void initPlayerPos(float playerX, float playerY, float playerZ);
 	char getNumChunkLoaderThreads();
 	void setMouseData(double* lastMousePoll,
 					  bool* playing,

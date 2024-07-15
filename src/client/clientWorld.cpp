@@ -62,16 +62,11 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     m_emptyIndexBuffer = new IndexBuffer();
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
-
+    
+    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
+    
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
-    if (!m_numChunkLoadingThreads) {
-        m_numChunkLoadingThreads = 1;
-    }
-    else if (m_numChunkLoadingThreads > 4) {
-        m_numChunkLoadingThreads = 4;
-    }
     m_numChunkVertices = new unsigned int[m_numChunkLoadingThreads];
     m_numChunkIndices = new unsigned int[m_numChunkLoadingThreads];
     m_numChunkWaterVertices = new unsigned int[m_numChunkLoadingThreads];
@@ -85,7 +80,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     m_chunkMeshReadyCV = new std::condition_variable[m_numChunkLoadingThreads];
     m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
-    m_unmeshNeeded = true;
+    m_unmeshNeeded = false;
     
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -96,11 +91,9 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
         m_threadWaiting[i] = false;
     }
     m_singleplayer = singleplayer;
-    if (singleplayer) {
-        int playerBlockPosition[3] = { 0, 0, 0 };
-        float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-        m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
-    }
+    int playerBlockPosition[3] = { 0, 0, 0 };
+    float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+    m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
 
     //calculate the offset chunk numbers for the neighbouring chunks
     m_neighbouringChunkOffets[0] = { 0, -1, 0 };
@@ -263,7 +256,6 @@ void ClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-    m_integratedServer.findChunksToLoad();
     Position chunkPosition;
     if (m_integratedServer.loadChunk(&chunkPosition)) {
         m_unmeshedChunksMtx.lock();
@@ -612,16 +604,6 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     m_window = window;
     m_windowDimensions = windowDimensions;
     m_startTime = std::chrono::steady_clock::now();
-}
-
-void ClientWorld::initPlayerPos(float playerX, float playerY, float playerZ) {
-    m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
-    m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
-    m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
-    // m_playerChunkPosition[0] = m_newPlayerChunkPosition[0] = m_updatingPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
-    // m_playerChunkPosition[1] = m_newPlayerChunkPosition[1] = m_updatingPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
-    // m_playerChunkPosition[2] = m_newPlayerChunkPosition[2] = m_updatingPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
-    m_unmeshNeeded = true;
 }
 
 void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks) {

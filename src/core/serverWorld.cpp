@@ -101,6 +101,7 @@ void ServerWorld::findChunksToLoad() {
 }
 
 bool ServerWorld::loadChunk(Position* chunkPosition) {
+    findChunksToLoad();
     m_chunksToBeLoadedMtx.lock();
     if (!m_chunksToBeLoaded.empty()) {
         *chunkPosition = m_chunksToBeLoaded.front();

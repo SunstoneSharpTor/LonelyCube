@@ -178,7 +178,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
     cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
     cameraPos[2] = mainPlayer->cameraBlockPosition[2] + mainPlayer->viewCamera.position[2];
-    mainWorld->initPlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+    mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
     
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
@@ -225,6 +225,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
         while (SDL_PollEvent(&windowEvent)) {
             switch (windowEvent.type) {
             case SDL_QUIT:
+            std::cout << "QUIT\n";
                 *running = false;
                 break;
             case SDL_WINDOWEVENT:
