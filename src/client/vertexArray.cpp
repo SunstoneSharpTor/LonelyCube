@@ -25,9 +25,11 @@ VertexArray::VertexArray(bool empty) {
 		m_rendererID = 0;
 	}
 }
+
 VertexArray::VertexArray() {
 	glGenVertexArrays(1, &m_rendererID);
 }
+
 VertexArray::~VertexArray() {
 	if (m_rendererID != 0) {
 		glDeleteVertexArrays(1, &m_rendererID);
