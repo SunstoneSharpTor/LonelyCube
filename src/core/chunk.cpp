@@ -17,9 +17,7 @@
 
 #include "core/chunk.h"
 
-#include <iostream>
-#include <cmath>
-#include <thread>
+#include "core/pch.h"
 
 #include "core/position.h"
 

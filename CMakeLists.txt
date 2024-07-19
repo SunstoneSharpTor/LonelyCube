@@ -36,6 +36,8 @@ set(CLIENT_SOURCE_FILES
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client ${SDL2_LIBRARIES})
+target_precompile_headers(client PRIVATE 
+$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
@@ -47,6 +49,8 @@ set(SERVER_SOURCE_FILES
     src/server/server.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
+target_precompile_headers(server PRIVATE 
+$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")

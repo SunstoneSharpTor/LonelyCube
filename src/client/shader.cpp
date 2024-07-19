@@ -15,10 +15,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
+#include "core/pch.h"
 
 #include "client/shader.h"
 #include "client/renderer.h"

@@ -17,12 +17,9 @@
 
 #include "client/clientWorld.h"
 
-#include <thread>
-#include <cmath>
+#include "core/pch.h"
 #include <time.h>
-#include <iostream>
 #include <random>
-#include <algorithm>
 
 #include "client/meshBuilder.h"
 #include "core/constants.h"
@@ -535,10 +532,6 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
 
 unsigned short ClientWorld::getBlock(int* blockCoords) {
     return m_integratedServer.getBlock(Position(blockCoords));
-}
-
-char ClientWorld::getNumChunkLoaderThreads() {
-    return m_numChunkLoadingThreads;
 }
 
 void ClientWorld::processMouseInput() {

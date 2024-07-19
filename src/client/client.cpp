@@ -15,17 +15,12 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 #include <enet/enet.h>
-#include <fstream>
-#include <string>
-#include <sstream>
+
+#include "core/pch.h"
 #include <time.h>
-#include <chrono>
-#include <thread>
-#include <algorithm>
 
 #include "client/renderer.h"
 #include "client/vertexBuffer.h"
@@ -54,6 +49,7 @@ void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
 void networking(ENetHost* client) {
     ENetEvent event;
     while(enet_host_service(client, &event, 0) > 0) {
+        std::cout << "event\n";
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
                 std::cout << "A packet of length " << event.packet->dataLength
@@ -225,7 +221,6 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
         while (SDL_PollEvent(&windowEvent)) {
             switch (windowEvent.type) {
             case SDL_QUIT:
-            std::cout << "QUIT\n";
                 *running = false;
                 break;
             case SDL_WINDOWEVENT:
@@ -386,14 +381,15 @@ int main(int argc, char* argv[]) {
 
         if ((enet_host_service(client, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
             std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
+
+            ENetPacket* packet = enet_packet_create((void*)"Hello World!", strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(peer, 0, packet);
+            enet_packet_destroy(packet);
         }
         else {
             enet_peer_reset(peer);
             std::cout << "Connection to 127.0.0.1 failed." << std::endl;
         }
-
-        ENetPacket* packet = enet_packet_create((void*)"Hello World!", strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(peer, 0, packet);
     }
 
     unsigned int worldSeed = std::time(0);

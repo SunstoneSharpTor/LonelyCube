@@ -17,8 +17,7 @@
 
 #include "core/random.h"
 
-#include <vector>
-#include <cmath>
+#include "core/pch.h"
 #include <cstdint>
 
 static unsigned long long PCG_Ramdom32State = 0x4d595df4d0f33173;

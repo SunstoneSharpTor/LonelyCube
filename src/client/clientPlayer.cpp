@@ -18,8 +18,7 @@
 #include "client/clientPlayer.h"
 #include "core/constants.h"
 
-#include <iostream>
-#include <cmath>
+#include "core/pch.h"
 
 namespace client {
 

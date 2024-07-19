@@ -17,10 +17,7 @@
 
 #include "core/serverWorld.h"
 
-#include <cmath>
-#include <iostream>
-#include <unordered_map>
-#include <unordered_set>
+#include "core/pch.h"
 
 #include "core/chunk.h"
 #include "core/random.h"
@@ -34,15 +31,12 @@ ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singlep
     m_chunks.reserve(16777214);
     m_players.reserve(32);
 
-    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
+    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
 }
 
 void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool waited) {
     int currentPosition[3];
     m_players.at(playerID).getChunkPosition(currentPosition);
-    // if ((currentPosition[0] != std::floor((float)(blockPosition[0] / constants::CHUNK_SIZE)))
-    //     || (currentPosition[1] != std::floor((float)(blockPosition[1] / constants::CHUNK_SIZE)))
-    //     || (currentPosition[2] != std::floor((float)(blockPosition[2] / constants::CHUNK_SIZE)))) {
     if (waited) {
         m_playersMtx.lock();
         m_chunksMtx.lock();

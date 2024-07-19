@@ -15,8 +15,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
 unsigned int PCG_Hash32(unsigned int input);
 
 unsigned int PCG_Random32();

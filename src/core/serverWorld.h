@@ -17,10 +17,7 @@
 
 #pragma once
 
-#include <mutex>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
+#include "core/pch.h"
 
 #include "core/chunk.h"
 #include "core/serverPlayer.h"
@@ -64,4 +61,7 @@ public:
     inline std::unordered_map<Position, Chunk>& getWorldChunks() {
         return m_chunks;
     }
+	inline char getNumChunkLoaderThreads() {
+		return m_numChunkLoadingThreads;
+	}
 };

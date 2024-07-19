@@ -28,12 +28,7 @@
 #include "core/position.h"
 #include "core/serverWorld.h"
 
-#include <chrono>
-#include <condition_variable>
-#include <mutex>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include "core/pch.h"
 
 #include <SDL2/SDL.h>
 #include "glm/glm.hpp"
@@ -137,9 +132,11 @@ public:
 	inline int getRenderDistance() {
 		return m_renderDistance;
 	}
+	inline char getNumChunkLoaderThreads() {
+		return m_numChunkLoadingThreads;
+	}
 	void doRenderThreadJobs();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
-	char getNumChunkLoaderThreads();
 	void setMouseData(double* lastMousePoll,
 					  bool* playing,
 					  bool* lastPlaying,

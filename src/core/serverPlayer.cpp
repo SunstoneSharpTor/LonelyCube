@@ -17,9 +17,7 @@
 
 #include "core/serverPlayer.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
+#include "core/pch.h"
 
 #include "core/chunk.h"
 #include "core/constants.h"
@@ -57,6 +55,22 @@ void ServerPlayer::initChunkPositions() {
         return a.x * a.x + a.y * a.y + a.z * a.z < b.x * b.x + b.y * b.y + b.z * b.z;
     });
     m_nextUnloadedChunk = 0;
+}
+
+ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer peer) :
+    m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID),  m_peer(peer) {
+    m_blockPosition[0] = blockPosition[0];
+    m_blockPosition[1] = blockPosition[1];
+    m_blockPosition[2] = blockPosition[2];
+    m_subBlockPosition[0] = subBlockPosition[0];
+    m_subBlockPosition[1] = subBlockPosition[1];
+    m_subBlockPosition[2] = subBlockPosition[2];
+    m_playerChunkPosition[0] = std::floor((float)blockPosition[0] / constants::CHUNK_SIZE);
+    m_playerChunkPosition[1] = std::floor((float)blockPosition[1] / constants::CHUNK_SIZE);
+    m_playerChunkPosition[2] = std::floor((float)blockPosition[2] / constants::CHUNK_SIZE);
+    m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
+    initNumChunks();
+    initChunkPositions();
 }
 
 ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance) :

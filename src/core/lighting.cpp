@@ -17,10 +17,7 @@
 
 #include "core/lighting.h"
 
-#include <iostream>
-#include <queue>
-#include <thread>
-#include <unordered_map>
+#include "core/pch.h"
 
 #include "core/chunk.h"
 #include "core/position.h"

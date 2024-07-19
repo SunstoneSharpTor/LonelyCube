@@ -15,9 +15,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include <string>
-#include <thread>
+#include "core/pch.h"
+#include <cstring>
 
 #include <enet/enet.h>
 
@@ -36,7 +35,10 @@ void receiveCommands(bool* running) {
 
 void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
-        //mainWorld->loadChunksAroundPlayer(threadNum);
+        Position chunkPosition;
+        if (mainWorld->loadChunk(&chunkPosition)) {
+
+        }
     }
 }
 
@@ -79,15 +81,14 @@ int main (int argc, char** argv) {
     bool running = true;
 
     std::thread* chunkLoaderThreads = new std::thread[numChunkLoaderThreads];
-    for (char threadNum = 1; threadNum < numChunkLoaderThreads; threadNum++) {
-        chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
+    for (char threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
+        chunkLoaderThreads[threadNum] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
     }
 
     // Gameloop
     std::thread(receiveCommands, &running).detach();
     while(running) {
         ENetEvent event;
-        // Wait up to 1000 milliseconds for an event
         while (enet_host_service (server, & event, 1000) > 0) {
             switch (event.type) {
                 case ENET_EVENT_TYPE_CONNECT:
@@ -101,8 +102,16 @@ int main (int argc, char** argv) {
                         << " containing " << event.packet->data
                         << " was received from " << event.peer->data
                         << " on channel " << (int)event.channelID << "\n";
-                        // Clean up the packet now that we're done using it
-                        enet_packet_destroy (event.packet);
+                    //if (std::string((char*)(event.packet->data)) == "Hello World!") {
+                    //    std::cout << "should\n";
+                    {
+                        ENetPacket* packet = enet_packet_create((void*)"Hello World!", std::strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
+                        enet_peer_send(event.peer, 0, packet);
+                        enet_packet_destroy(packet);
+                    }
+                    //}
+                    // Clean up the packet now that we're done using it
+                    enet_packet_destroy (event.packet);
                 break;
 
                 case ENET_EVENT_TYPE_DISCONNECT:
@@ -115,8 +124,8 @@ int main (int argc, char** argv) {
 
     chunkLoaderThreadsRunning[0] = false;
 
-    for (char threadNum = 1; threadNum < numChunkLoaderThreads; threadNum++) {
-        chunkLoaderThreads[threadNum - 1].join();
+    for (char threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
+        chunkLoaderThreads[threadNum].join();
         chunkLoaderThreadsRunning[threadNum] = false;
     }
 
