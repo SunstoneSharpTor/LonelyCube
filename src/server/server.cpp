@@ -63,7 +63,7 @@ void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         Position chunkPosition;
         if (mainWorld->loadChunk(&chunkPosition)) {
-
+            
         }
     }
 }

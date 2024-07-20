@@ -74,7 +74,7 @@ void ServerWorld::findChunksToLoad() {
         m_chunksToBeLoadedMtx.lock();
         m_chunksBeingLoadedMtx.lock();
         m_chunksMtx.lock();
-        for (auto& [playaerID, player] : m_players) {
+        for (auto& [playerID, player] : m_players) {
             if (!player.allChunksLoaded()) {
                 int chunkPosition[3];
                 player.getNextChunkCoords(chunkPosition);

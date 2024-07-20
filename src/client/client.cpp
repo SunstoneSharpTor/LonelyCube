@@ -53,7 +53,6 @@ void receivePacket(ENetPacket* packet, ENetPeer* peer, ClientWorld& mainWorld) {
     switch (head.getPacketType()) {
     case PacketType::ClientConnection:
     {
-        // Add the player to the world
         Packet<int, 1> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         mainWorld.setClientID(payload[0]);
@@ -368,7 +367,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance;
+    unsigned short renderDistance = 12;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -411,7 +410,7 @@ int main(int argc, char* argv[]) {
 
     unsigned int worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(32, worldSeed, !MULTIPLAYER, playerSpawnPoint, peer, client);
+    ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld);
 
