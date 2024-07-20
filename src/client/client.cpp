@@ -29,9 +29,10 @@
 #include "client/shader.h"
 #include "client/texture.h"
 #include "client/camera.h"
-#include "core/chunk.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
+#include "core/chunk.h"
+#include "core/packet.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -352,7 +353,8 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 }
 
 int main(int argc, char* argv[]) {
-    bool MULTIPLAYER = false;
+    bool MULTIPLAYER = true;
+    unsigned short renderDistance;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -382,9 +384,10 @@ int main(int argc, char* argv[]) {
         if ((enet_host_service(client, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
             std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
 
-            ENetPacket* packet = enet_packet_create((void*)"Hello World!", strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
+            Packet<unsigned short, 1> payload(0 ,PacketType::ClientConnection, 1);
+            payload[0] = renderDistance;
+            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
             enet_peer_send(peer, 0, packet);
-            enet_packet_destroy(packet);
         }
         else {
             enet_peer_reset(peer);

@@ -20,8 +20,9 @@
 
 #include <enet/enet.h>
 
-#include <core/chunk.h>
-#include <core/serverWorld.h>
+#include "core/chunk.h"
+#include "core/packet.h"
+#include "core/serverWorld.h"
 
 void receiveCommands(bool* running) {
     std::string command;
@@ -98,20 +99,26 @@ int main (int argc, char** argv) {
                 break;
 
                 case ENET_EVENT_TYPE_RECEIVE:
-                    std::cout << "A packet of length " << event.packet->dataLength
-                        << " containing " << event.packet->data
-                        << " was received from " << event.peer->data
-                        << " on channel " << (int)event.channelID << "\n";
-                    //if (std::string((char*)(event.packet->data)) == "Hello World!") {
-                    //    std::cout << "should\n";
+                {
+                    Packet<int, 0> packetHeader;
+                    memcpy(&packetHeader, event.packet->data, packetHeader.getSize());
+                    if (packetHeader.getPacketType() == 0) {
+                        Packet<char, 100> packet;
+                        memcpy(&packet, event.packet->data, event.packet->dataLength);
+                        std::cout << "A packet of length " << event.packet->dataLength
+                            << " containing " << packet[0];
+                            for (int i = 0; i < packet.getPayloadLength(); i++) {
+                                std::cout << (packet[i]);
+                            }
+                            std::cout << " was received from " << event.peer->address.host
+                            << ":" << event.peer->address.port
+                            << " on channel " << (int)event.channelID << "\n";
+                    }
                     {
                         ENetPacket* packet = enet_packet_create((void*)"Hello World!", std::strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
                         enet_peer_send(event.peer, 0, packet);
-                        enet_packet_destroy(packet);
                     }
-                    //}
-                    // Clean up the packet now that we're done using it
-                    enet_packet_destroy (event.packet);
+                }
                 break;
 
                 case ENET_EVENT_TYPE_DISCONNECT:

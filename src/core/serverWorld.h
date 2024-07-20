@@ -19,6 +19,8 @@
 
 #include "core/pch.h"
 
+#include "enet/enet.h"
+
 #include "core/chunk.h"
 #include "core/serverPlayer.h"
 
@@ -44,6 +46,7 @@ private:
 public:
     ServerWorld(bool singleplayer, unsigned long long seed);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
+    int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer peer);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool waited);
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);

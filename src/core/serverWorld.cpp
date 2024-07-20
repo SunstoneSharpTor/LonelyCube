@@ -123,6 +123,14 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
     }
 }
 
+int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer peer) {
+    m_playersMtx.lock();
+    m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer };
+    m_nextPlayerID++;
+    m_playersMtx.unlock();
+    return m_nextPlayerID - 1;
+}
+
 int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance) {
     m_playersMtx.lock();
     m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance };

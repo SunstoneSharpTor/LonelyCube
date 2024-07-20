@@ -11,6 +11,7 @@
 #include <thread>
 
 // Data structures
+#include <array>
 #include <queue>
 #include <string>
 #include <unordered_map>
