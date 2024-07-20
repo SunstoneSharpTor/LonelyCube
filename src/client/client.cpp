@@ -47,18 +47,32 @@ void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
     }
 }
 
-void networking(ENetHost* client) {
+void receivePacket(ENetPacket* packet, ENetPeer* peer, ClientWorld& mainWorld) {
+    Packet<int, 0> head;
+    memcpy(&head, packet->data, head.getSize());
+    switch (head.getPacketType()) {
+    case PacketType::ClientConnection:
+    {
+        // Add the player to the world
+        Packet<int, 1> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        mainWorld.setClientID(payload[0]);
+        std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
+    }
+    break;
+    
+    default:
+        break;
+    }
+}
+
+void networking(ENetHost* client, ClientWorld& mainWorld) {
     ENetEvent event;
     while(enet_host_service(client, &event, 0) > 0) {
         std::cout << "event\n";
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
-                std::cout << "A packet of length " << event.packet->dataLength
-                    << " containing " << event.packet->data
-                    << " was received from " << event.peer->address.host
-                    << ":" << event.peer->address.port
-                    << " on channel " << event.channelID << "\n";
-                enet_packet_destroy(event.packet);
+                receivePacket(event.packet, event.peer, mainWorld);
                 break;
         }
     }
@@ -384,7 +398,7 @@ int main(int argc, char* argv[]) {
         if ((enet_host_service(client, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
             std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
 
-            Packet<unsigned short, 1> payload(0 ,PacketType::ClientConnection, 1);
+            Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
             payload[0] = renderDistance;
             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
             enet_peer_send(peer, 0, packet);
@@ -416,7 +430,7 @@ int main(int argc, char* argv[]) {
     while (running) {
         mainWorld.loadChunksAroundPlayer(0);
         if (MULTIPLAYER) {
-            networking(client);
+            networking(client, mainWorld);
         }
     }
     chunkLoaderThreadsRunning[0] = false;

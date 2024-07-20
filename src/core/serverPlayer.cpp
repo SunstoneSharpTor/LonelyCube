@@ -57,7 +57,7 @@ void ServerPlayer::initChunkPositions() {
     m_nextUnloadedChunk = 0;
 }
 
-ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer peer) :
+ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer) :
     m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID),  m_peer(peer) {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];

@@ -34,6 +34,31 @@ void receiveCommands(bool* running) {
     }
 }
 
+void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld& mainWorld) {
+    Packet<int, 0> head;
+    memcpy(&head, packet->data, head.getSize());
+    switch (head.getPacketType()) {
+    case PacketType::ClientConnection:
+    {
+        // Add the player to the world
+        Packet<int, 1> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        int blockPosition[3] =  { 0, 200, 0 };
+        float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+        int playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
+        // Send a response
+        Packet<unsigned short, 1> responsePayload(0, PacketType::ClientConnection, 1);
+        responsePayload[0] = playerID;
+        ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
+    }
+    break;
+    
+    default:
+        break;
+    }
+}
+
 void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         Position chunkPosition;
@@ -99,26 +124,7 @@ int main (int argc, char** argv) {
                 break;
 
                 case ENET_EVENT_TYPE_RECEIVE:
-                {
-                    Packet<int, 0> packetHeader;
-                    memcpy(&packetHeader, event.packet->data, packetHeader.getSize());
-                    if (packetHeader.getPacketType() == 0) {
-                        Packet<char, 100> packet;
-                        memcpy(&packet, event.packet->data, event.packet->dataLength);
-                        std::cout << "A packet of length " << event.packet->dataLength
-                            << " containing " << packet[0];
-                            for (int i = 0; i < packet.getPayloadLength(); i++) {
-                                std::cout << (packet[i]);
-                            }
-                            std::cout << " was received from " << event.peer->address.host
-                            << ":" << event.peer->address.port
-                            << " on channel " << (int)event.channelID << "\n";
-                    }
-                    {
-                        ENetPacket* packet = enet_packet_create((void*)"Hello World!", std::strlen("Hello World!") + 1, ENET_PACKET_FLAG_RELIABLE);
-                        enet_peer_send(event.peer, 0, packet);
-                    }
-                }
+                    receivePacket(event.packet, event.peer, mainWorld);
                 break;
 
                 case ENET_EVENT_TYPE_DISCONNECT:

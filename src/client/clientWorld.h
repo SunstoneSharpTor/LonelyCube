@@ -113,6 +113,7 @@ private:
 	int m_numRelights;
 
 	ServerWorld m_integratedServer;
+	int m_clientID;
 
 	void unloadMesh(const Position& chunkPosition);
 	bool chunkHasNeighbours(const Position& chunkPosition);
@@ -147,6 +148,12 @@ public:
 					  SDL_Window* window,
 					  int* windowDimensions);
 	void processMouseInput();
+	inline void setClientID(int ID) {
+		m_clientID = ID;
+	}
+	inline int getClientID() {
+		return m_clientID;
+	}
 };
 
 }  // namespace client

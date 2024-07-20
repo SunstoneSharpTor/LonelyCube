@@ -4,7 +4,9 @@
 
 #include "pch.h"
 
-enum PacketType { ClientConnection }
+enum PacketType {
+    ClientConnection
+};
 
 template<typename T, int maxPayloadLength>
 class Packet {
