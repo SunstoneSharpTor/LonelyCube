@@ -22,6 +22,7 @@
 #include "core/pch.h"
 #include <time.h>
 
+#include "client/clientNetworking.h"
 #include "client/renderer.h"
 #include "client/vertexBuffer.h"
 #include "client/indexBuffer.h"
@@ -44,36 +45,6 @@ using namespace client;
 void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->loadChunksAroundPlayer(threadNum);
-    }
-}
-
-void receivePacket(ENetPacket* packet, ENetPeer* peer, ClientWorld& mainWorld) {
-    Packet<int, 0> head;
-    memcpy(&head, packet->data, head.getSize());
-    switch (head.getPacketType()) {
-    case PacketType::ClientConnection:
-    {
-        Packet<int, 1> payload;
-        memcpy(&payload, packet->data, packet->dataLength);
-        mainWorld.setClientID(payload[0]);
-        std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
-    }
-    break;
-    
-    default:
-        break;
-    }
-}
-
-void networking(ENetHost* client, ClientWorld& mainWorld) {
-    ENetEvent event;
-    while(enet_host_service(client, &event, 0) > 0) {
-        std::cout << "event\n";
-        switch(event.type) {
-            case ENET_EVENT_TYPE_RECEIVE:
-                receivePacket(event.packet, event.peer, mainWorld);
-                break;
-        }
     }
 }
 
@@ -374,37 +345,8 @@ int main(int argc, char* argv[]) {
     ENetEvent event;
 
     if (MULTIPLAYER) {
-        if (enet_initialize() != 0) {
-            return EXIT_FAILURE;
-        }
-        
-        client = enet_host_create(NULL, 1, 1, 0, 0);
-
-        if (client == NULL) {
-            return EXIT_FAILURE;
-        }
-
-        ENetAddress address;
-
-        enet_address_set_host(&address, "127.0.0.1");
-        address.port = 5555;
-
-        peer = enet_host_connect(client, &address, 1, 0);
-        if (peer == NULL) {
-            return EXIT_FAILURE;
-        }
-
-        if ((enet_host_service(client, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
-            std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
-
-            Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
-            payload[0] = renderDistance;
-            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(peer, 0, packet);
-        }
-        else {
-            enet_peer_reset(peer);
-            std::cout << "Connection to 127.0.0.1 failed." << std::endl;
+        if (!ClientNetworking::establishConnection(client, peer, renderDistance)) {
+            MULTIPLAYER = false;
         }
     }
 
@@ -429,7 +371,7 @@ int main(int argc, char* argv[]) {
     while (running) {
         mainWorld.loadChunksAroundPlayer(0);
         if (MULTIPLAYER) {
-            networking(client, mainWorld);
+            ClientNetworking::receiveEvents(client, mainWorld);
         }
     }
     chunkLoaderThreadsRunning[0] = false;

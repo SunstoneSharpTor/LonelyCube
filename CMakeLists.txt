@@ -17,6 +17,7 @@ set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
     src/client/camera.cpp
     src/client/client.cpp
+    src/client/clientNetworking.cpp
     src/client/indexBuffer.cpp
     src/client/meshBuilder.cpp
     src/client/renderer.cpp
@@ -46,7 +47,8 @@ set(SERVER_SOURCE_FILES
     src/core/random.cpp
     src/core/terrainGen.cpp
     src/core/serverWorld.cpp
-    src/server/server.cpp)
+    src/server/server.cpp
+    src/server/serverNetworking.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
 target_precompile_headers(server PRIVATE 
