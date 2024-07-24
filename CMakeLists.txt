@@ -29,6 +29,7 @@ set(CLIENT_SOURCE_FILES
     src/client/vertexBuffer.cpp
     src/client/clientWorld.cpp
     src/core/chunk.cpp
+    src/core/compression.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
@@ -42,6 +43,7 @@ $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
+    src/core/compression.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp

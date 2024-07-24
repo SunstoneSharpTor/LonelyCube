@@ -25,44 +25,45 @@ enum PacketType {
     ClientConnection
 };
 
-template<typename T, int maxPayloadLength>
+template<typename T, unsigned int maxPayloadLength>
 class Packet {
 private:
-    short m_packetType;
-    short m_payloadLength;
-    int m_peerID;
+    unsigned short m_packetType;
+    unsigned short m_peerID;
+    unsigned int m_payloadLength;
     std::array<T, maxPayloadLength> m_payload;
 public:
     Packet(int peerID, short packetType, short payloadLength) :
-    m_packetType(packetType), m_payloadLength(payloadLength), m_peerID(peerID) { }
+    m_packetType(packetType), m_peerID(peerID), m_payloadLength(payloadLength) { }
 
     Packet() : m_payloadLength(0) {};
 
-    short getPeerID() {
+    unsigned short getPeerID() {
         return m_peerID;
     }
 
-    short getPacketType() {
+    unsigned short getPacketType() {
         return m_packetType;
     }
 
-    short getPayloadLength() {
+    unsigned int getPayloadLength() {
         return m_payloadLength;
     }
 
-    T operator[](int index) const {
+    T operator[](unsigned int index) const {
         return m_payload[index];
     }
 
-    T& operator[](int index) {
+    T& operator[](unsigned int index) {
         return m_payload[index];
     } 
 
-    short getSize() {
-        return sizeof(int) + 2 * sizeof(short) + m_payloadLength * sizeof(T);
+    unsigned int getSize() {
+        constexpr unsigned int baseSize = sizeof(Packet<T, 1>) - sizeof(T);
+        return baseSize + m_payloadLength * sizeof(T);
     }
 
-    T* getPayloadAddress(int index) {
+    T* getPayloadAddress(unsigned int index) {
         return &(m_payload[0]);
     }
 };
