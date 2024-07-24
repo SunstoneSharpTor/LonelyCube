@@ -80,9 +80,9 @@ const short MeshBuilder::s_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
                                                  2, 2, 2, 2, 0, 1, //grass
                                                  3, 3, 3, 3, 3, 3, //stone
                                                  4, 4, 4, 4, 4, 4, //water
-                                                 36, 36, 36, 36, 37, 37, //oak log
-                                                 38, 38, 38, 38, 38, 38, //oak leaves
-                                                 39, 39, 39, 39, 39, 39 //tall grass
+                                                 5, 5, 5, 5, 6, 6, //oak log
+                                                 7, 7, 7, 7, 7, 7, //oak leaves
+                                                 8, 8, 8, 8, 8, 8 //tall grass
                                                  };
 
 const short MeshBuilder::s_neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
@@ -353,13 +353,13 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
     }
 }
 
-void MeshBuilder::getTextureCoordinates(float* coords, short textureNum) {
-    coords[0] = textureNum % 227 * 0.00439453125f + 0.000244140625f;
-    coords[1] = 0.9956054688f - (textureNum / 227 * 0.00439453125f) + 0.000244140625f;
-    coords[2] = coords[0] + 0.00390625f;
+void MeshBuilder::getTextureCoordinates(float* coords, const short textureNum) {
+    coords[0] = 0.015625f + textureNum % 16 * 0.0625f;
+    coords[1] = 0.953125 - textureNum / 16 * 0.0625f;
+    coords[2] = coords[0] + 0.03125f;
     coords[3] = coords[1];
     coords[4] = coords[2];
-    coords[5] = coords[1] + 0.00390625f;
+    coords[5] = coords[1] + 0.03125f;
     coords[6] = coords[0];
     coords[7] = coords[5];
 }

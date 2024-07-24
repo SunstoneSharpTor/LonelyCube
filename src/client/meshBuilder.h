@@ -40,7 +40,7 @@ private:
     static const short s_adjacentBlocksToFaceOffestsY[48];
     static const short s_adjacentBlocksToFaceOffestsZ[48];
 
-    void getTextureCoordinates(float* coords, short textureNum);
+    void getTextureCoordinates(float* coords, const short textureNum);
 
     void addFaceToMesh(float* vertices, unsigned int* numVertices,
         unsigned int* indices, unsigned int* numIndices, float* waterVertices,
