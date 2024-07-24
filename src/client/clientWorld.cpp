@@ -253,11 +253,13 @@ void ClientWorld::loadChunksAroundPlayer(char threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-    Position chunkPosition;
-    if (m_integratedServer.loadChunk(&chunkPosition)) {
-        m_unmeshedChunksMtx.lock();
-        m_unmeshedChunks.insert(chunkPosition);
-        m_unmeshedChunksMtx.unlock();
+    if (m_meshUpdates.empty()) {
+        Position chunkPosition;
+        if (m_integratedServer.loadChunk(&chunkPosition)) {
+            m_unmeshedChunksMtx.lock();
+            m_unmeshedChunks.insert(chunkPosition);
+            m_unmeshedChunksMtx.unlock();
+        }
     }
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
@@ -464,8 +466,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                 chunk.setSkylightBeingRelit(false);
             }
             addChunkMesh(chunkPosition, threadNum);
-            m_unmeshedChunksMtx.lock();
-            it = m_unmeshedChunks.begin();
+            return;
         }
         it++;
     }
