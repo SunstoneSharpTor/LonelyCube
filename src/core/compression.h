@@ -23,7 +23,11 @@
 #include "core/packet.h"
 
 class Compression {
+public:
     static void compressChunk(Packet<unsigned char,
-    6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    Chunk& chunk);
+    static void decompressChunk(Packet<unsigned char,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk);
 };

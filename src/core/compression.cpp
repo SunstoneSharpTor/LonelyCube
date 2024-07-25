@@ -23,55 +23,89 @@
 #include "core/packet.h"
 
 void Compression::compressChunk(Packet<unsigned char,
-    6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
-    //  Add blocks
+    // Add blocks
     unsigned char currentBlock = chunk.getBlock(0);
-    unsigned char count = 0;
+    unsigned short count = 0;
     unsigned int packetIndex = 0;
     unsigned char nextBlock;
     for (unsigned int block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE; block++) {
         nextBlock = chunk.getBlock(block);
-        if ((nextBlock != currentBlock) && (count < 127)) {
+        if ((nextBlock == currentBlock) && (count < 65535)) {
             count++;
         }
         else {
             compressedChunk[packetIndex] = currentBlock;
-            compressedChunk[packetIndex + 1] = count;
-            packetIndex += 2;
+            compressedChunk[packetIndex + 1] = count >> 8;
+            compressedChunk[packetIndex + 2] = count;
+            packetIndex += 3;
             currentBlock = nextBlock;
             count = 0;
         }
     }
-    if (count == 0) {
-        compressedChunk[packetIndex] = currentBlock;
-        compressedChunk[packetIndex + 1] = count;
-        packetIndex += 2;
-    }
-    //  Add skylight
+    compressedChunk[packetIndex] = currentBlock;
+    compressedChunk[packetIndex + 1] = count >> 8;
+    compressedChunk[packetIndex + 2] = count;
+    packetIndex += 3;
+    // Add skylight
     currentBlock = chunk.getSkyLight(0);
     count = 0;
     for (unsigned int block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE; block++) {
         nextBlock = chunk.getSkyLight(block);
-        if ((nextBlock != currentBlock) && (count < 127)) {
+        if ((nextBlock == currentBlock) && (count < 65535)) {
             count++;
         }
         else {
             compressedChunk[packetIndex] = currentBlock;
-            compressedChunk[packetIndex + 1] = count;
-            packetIndex += 2;
+            compressedChunk[packetIndex + 1] = count >> 8;
+            compressedChunk[packetIndex + 2] = count;
+            packetIndex += 3;
             currentBlock = nextBlock;
             count = 0;
         }
     }
-    if (count == 0) {
-        compressedChunk[packetIndex] = currentBlock;
-        compressedChunk[packetIndex + 1] = count;
-        packetIndex += 2;
+    compressedChunk[packetIndex] = currentBlock;
+    compressedChunk[packetIndex + 1] = count >> 8;
+    compressedChunk[packetIndex + 2] = count;
+    packetIndex += 3;
+    compressedChunk.setPayloadLength(packetIndex);
+}
+
+void Compression::decompressChunk(Packet<unsigned char,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    Chunk& chunk) {
+    // Add blocks
+    unsigned int packetIndex = 0;
+    unsigned int blockNum = 0;
+    while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
+        unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)
+            + (unsigned int)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
+        while (blockNum < count) {
+            chunk.setBlockUnchecked(blockNum, compressedChunk[packetIndex]);
+            blockNum++;
+        }
+        packetIndex += 3;
     }
-    std::cout << packetIndex << std::endl;
+    if (blockNum != 32768) {
+        std::cout << "aaa\n";
+    }
+    // Add skylight
+    blockNum = 0;
+    while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
+        unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)
+            + (unsigned int)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
+        while (blockNum < count) {
+            chunk.setSkyLight(blockNum, compressedChunk[packetIndex]);
+            blockNum++;
+        }
+        packetIndex += 3;
+    }
+    if (blockNum != 32768) {
+        std::cout << "aaa\n";
+    }
 }

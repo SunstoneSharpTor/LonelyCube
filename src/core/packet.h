@@ -38,32 +38,36 @@ public:
 
     Packet() : m_payloadLength(0) {};
 
-    unsigned short getPeerID() {
+    unsigned short getPeerID() const {
         return m_peerID;
     }
 
-    unsigned short getPacketType() {
+    unsigned short getPacketType() const {
         return m_packetType;
     }
 
-    unsigned int getPayloadLength() {
+    unsigned int getPayloadLength() const {
         return m_payloadLength;
     }
 
-    T operator[](unsigned int index) const {
+    void setPayloadLength(const unsigned int payloadLength) {
+        m_payloadLength = payloadLength;
+    }
+
+    T operator[](const unsigned int index) const {
         return m_payload[index];
     }
 
-    T& operator[](unsigned int index) {
+    T& operator[](const unsigned int index) {
         return m_payload[index];
     } 
 
-    unsigned int getSize() {
+    unsigned int getSize() const {
         constexpr unsigned int baseSize = sizeof(Packet<T, 1>) - sizeof(T);
         return baseSize + m_payloadLength * sizeof(T);
     }
 
-    T* getPayloadAddress(unsigned int index) {
+    T* getPayloadAddress(unsigned int index) const {
         return &(m_payload[0]);
     }
 };

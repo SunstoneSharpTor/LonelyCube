@@ -168,7 +168,7 @@ public:
     
     void clearSkyLight();
 
-    // void uncompressBlocks();
+    void uncompressBlocks();
 
     void compressBlocks();
 };

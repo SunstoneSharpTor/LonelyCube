@@ -171,15 +171,15 @@ void Chunk::clearBlocksAndLight() {
     }
 }
 
-// void Chunk::uncompressBlocks() {
-//     if (m_singleBlockType) {
-//         delete m_blocks;
-//         m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-//         for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
-//             m_blocks[block] = m_blocks[0];
-//         }
-//     }
-// }
+void Chunk::uncompressBlocks() {
+    if (m_singleBlockType) {
+        delete m_blocks;
+        m_blocks = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        for (unsigned int block = 0; block < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE); block++) {
+            m_blocks[block] = m_blocks[0];
+        }
+    }
+}
 
 void Chunk::compressBlocks() {
     if (m_singleBlockType) {

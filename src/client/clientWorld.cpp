@@ -121,8 +121,9 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
     blockShader.setUniformMat4f("u_proj", projMatrix);
     m_timeByDTs += DT;
     while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
-        constexpr double fac = 0.006;
-        m_fogDistance = m_fogDistance * (1.0 - fac) + (sqrt(m_meshedChunksDistance) - 1.2) * fac * constants::CHUNK_SIZE;
+        double fac = 0.006;
+        double targetDistance = sqrt(m_meshedChunksDistance) - 1.2;
+        m_fogDistance = m_fogDistance * (1.0 - fac) + targetDistance * fac * constants::CHUNK_SIZE;
         m_timeByDTs -= (1.0/(double)constants::visualTPS);
     }
     blockShader.setUniform1f("u_renderDistance", m_fogDistance);

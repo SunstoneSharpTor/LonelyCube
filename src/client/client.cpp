@@ -71,7 +71,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
     context = SDL_GL_CreateContext(sdl_window);
-    bool VSYNC = false;
+    bool VSYNC = true;
     if ((!VSYNC) || SDL_GL_SetSwapInterval(-1) != 0) {
         SDL_GL_SetSwapInterval(0);
         std::cout << "vsync not enabled\n";
@@ -337,7 +337,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 }
 
 int main(int argc, char* argv[]) {
-    bool MULTIPLAYER = false;
+    bool MULTIPLAYER = true;
     unsigned short renderDistance = 32;
     
     ENetHost* client;
