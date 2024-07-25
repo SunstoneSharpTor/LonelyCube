@@ -26,7 +26,7 @@
 
 class ServerWorld {
 private:
-    bool m_singleplayer;
+    bool m_integrated;
 	unsigned long long m_seed;
     int m_nextPlayerID;
     unsigned short m_numChunkLoadingThreads;

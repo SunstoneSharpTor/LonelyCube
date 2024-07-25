@@ -20,10 +20,13 @@
 #include "core/pch.h"
 
 #include "core/chunk.h"
+#include "core/compression.h"
+#include "core/constants.h"
+#include "core/packet.h"
 #include "core/random.h"
 #include "core/terrainGen.h"
 
-ServerWorld::ServerWorld(bool singleplayer, unsigned long long seed) : m_singleplayer(singleplayer), m_seed(seed), m_nextPlayerID(0) {
+ServerWorld::ServerWorld(bool integrated, unsigned long long seed) : m_integrated(integrated), m_seed(seed), m_nextPlayerID(0) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
     // TODO:
@@ -109,9 +112,21 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         m_chunksBeingLoadedMtx.lock();
         m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
-        for (auto& [playaerID, player] : m_players) {
+        Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+            * constants::CHUNK_SIZE> payload(0, 1, 0);
+        if (!m_integrated) {
+            Compression::compressChunk(payload, chunk);
+        }
+        for (auto& [playerID, player] : m_players) {
             if (player.hasChunkLoaded(*chunkPosition)) {
                 chunk.incrementPlayerCount();
+                if (!m_integrated) {
+                    payload.setPeerID(playerID);
+                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                    if (!enet_peer_send(player.getPeer(), 0, packet)) {
+                        std::cout << "chunk sent\n";
+                    }
+                }
             }
         }
         return true;

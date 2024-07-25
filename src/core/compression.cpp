@@ -25,10 +25,18 @@
 void Compression::compressChunk(Packet<unsigned char,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
+    int chunkPosition[3];
+    chunk.getChunkPosition(chunkPosition);
+    unsigned int packetIndex = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int shift = 24; shift > 0; shift -= 8) {
+            compressedChunk[packetIndex] = chunkPosition[i] >> shift;
+            packetIndex++;
+        }
+    }
     // Add blocks
     unsigned char currentBlock = chunk.getBlock(0);
     unsigned short count = 0;
-    unsigned int packetIndex = 0;
     unsigned char nextBlock;
     for (unsigned int block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
@@ -79,8 +87,16 @@ void Compression::compressChunk(Packet<unsigned char,
 void Compression::decompressChunk(Packet<unsigned char,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
-    // Add blocks
+    int chunkPosition[3];
     unsigned int packetIndex = 0;
+    for (int i = 0; i < 3; i++) {
+        chunkPosition[i] = 0;
+        for (int shift = 24; shift > 0; shift -= 8) {
+            chunkPosition[i] += compressedChunk[packetIndex] << shift;
+            packetIndex++;
+        }
+    }
+    // Add blocks
     unsigned int blockNum = 0;
     while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
         unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)

@@ -22,7 +22,7 @@
 #include "pch.h"
 
 enum PacketType {
-    ClientConnection
+    ClientConnection, ChunkData
 };
 
 template<typename T, unsigned int maxPayloadLength>
@@ -40,6 +40,10 @@ public:
 
     unsigned short getPeerID() const {
         return m_peerID;
+    }
+
+    void setPeerID(const unsigned short peerID) {
+        m_peerID = peerID;
     }
 
     unsigned short getPacketType() const {

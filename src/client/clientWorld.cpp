@@ -34,7 +34,7 @@ static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, f
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
-    const Position& playerPos, ENetPeer* peer, ENetHost* client) : m_integratedServer(singleplayer,
+    const Position& playerPos, ENetPeer* peer, ENetHost* client) : m_integratedServer(true,
     seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
