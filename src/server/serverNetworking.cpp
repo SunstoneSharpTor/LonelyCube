@@ -70,6 +70,15 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
     }
+    case PacketType::ClientPosition:
+    {
+
+        // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
+        //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
+        //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
+        // int subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+        // mainWorld.updatePlayerPos(head.getPeerID(), head.getPayloadAddress(), subBlockPosition, 
+    }
     break;
     
     default:

@@ -370,22 +370,6 @@ void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
 
     //if the chunk is empty fill the data with empty values to save interrupting the render thread
     if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
-        // m_accessingArrIndicesVectorsMtx.lock();
-        // while (m_renderThreadWaitingForArrIndicesVectors) {
-        //     m_accessingArrIndicesVectorsMtx.unlock();
-        //     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-        //     m_accessingArrIndicesVectorsMtx.lock();
-        //     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-        // }
-        // m_meshes[chunkPosition] = { m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer,
-        //                             m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer };
-        // auto it = m_meshUpdates.find(chunkPosition);
-        // if (it != m_meshUpdates.end()) {
-        //     m_meshUpdates.erase(it);
-        // }
-
-        // m_accessingArrIndicesVectorsMtx.unlock();
-
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);

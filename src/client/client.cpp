@@ -345,7 +345,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 16;
+    unsigned short renderDistance = 8;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -357,7 +357,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    unsigned int worldSeed = 0;//std::time(0);
+    unsigned int worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
@@ -381,8 +381,19 @@ int main(int argc, char* argv[]) {
     }
 
     if (MULTIPLAYER) {
+        auto lastMessage = std::chrono::steady_clock::now();
         while (running) {
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
+            auto currentTime = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastMessage) > std::chrono::milliseconds(100)) {
+                Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
+                payload[0] = mainPlayer.cameraBlockPosition[0];
+                payload[1] = mainPlayer.cameraBlockPosition[1];
+                payload[2] = mainPlayer.cameraBlockPosition[3];
+                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
+                enet_peer_send(peer, 0, packet);
+                lastMessage = currentTime;
+            }
         }
     }
     else {
