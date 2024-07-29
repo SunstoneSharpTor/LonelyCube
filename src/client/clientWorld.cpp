@@ -261,6 +261,9 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(char threadNum) {
             m_unmeshedChunks.insert(chunkPosition);
             m_unmeshedChunksMtx.unlock();
         }
+        else {
+            std::cout << "done\n";
+        }
     }
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
@@ -337,7 +340,12 @@ bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
 }
 
 void ClientWorld::unloadMesh(const Position& chunkPosition) {
-    MeshData& mesh = m_meshes.at(chunkPosition);
+    auto it = m_meshes.find(chunkPosition);
+    if (it == m_meshes.end()) {
+        m_unmeshedChunks.insert(chunkPosition);
+        return;
+    }
+    MeshData& mesh = it->second;
     if (mesh.indexBuffer->getCount() > 0) {
         delete mesh.vertexArray;
         delete mesh.vertexBuffer;
@@ -361,22 +369,27 @@ void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     MeshBuilder(m_integratedServer.getChunk(chunkPosition)).buildMesh(m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]);
 
     //if the chunk is empty fill the data with empty values to save interrupting the render thread
-    if (false) {//(m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
-        m_accessingArrIndicesVectorsMtx.lock();
-        while (m_renderThreadWaitingForArrIndicesVectors) {
-            m_accessingArrIndicesVectorsMtx.unlock();
-            m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-            m_accessingArrIndicesVectorsMtx.lock();
-            m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-        }
-        m_meshes[chunkPosition] = { m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer,
-                                    m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer };
+    if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
+        // m_accessingArrIndicesVectorsMtx.lock();
+        // while (m_renderThreadWaitingForArrIndicesVectors) {
+        //     m_accessingArrIndicesVectorsMtx.unlock();
+        //     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+        //     m_accessingArrIndicesVectorsMtx.lock();
+        //     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+        // }
+        // m_meshes[chunkPosition] = { m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer,
+        //                             m_emptyVertexArray, m_emptyVertexBuffer, m_emptyIndexBuffer };
+        // auto it = m_meshUpdates.find(chunkPosition);
+        // if (it != m_meshUpdates.end()) {
+        //     m_meshUpdates.erase(it);
+        // }
+
+        // m_accessingArrIndicesVectorsMtx.unlock();
+
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);
         }
-
-        m_accessingArrIndicesVectorsMtx.unlock();
 
         return;
     }
@@ -412,15 +425,9 @@ void ClientWorld::uploadChunkMesh(char threadNum) {
     IndexBuffer *ib, *waterIb;
 
     if (m_numChunkIndices[threadNum] > 0) {
-        //create vertex array
         va = new VertexArray;
-
-        //create vertex buffer
         vb = new VertexBuffer(m_chunkVertices[threadNum], m_numChunkVertices[threadNum] * sizeof(float));
-
         va->addBuffer(*vb, layout);
-
-        //create index buffer
         ib = new IndexBuffer(m_chunkIndices[threadNum], m_numChunkIndices[threadNum]);
     }
     else {
@@ -430,15 +437,9 @@ void ClientWorld::uploadChunkMesh(char threadNum) {
     }
 
     if (m_numChunkWaterIndices[threadNum] > 0) {
-        //create vertex array
         waterVa = new VertexArray;
-
-        //create vertex buffer
         waterVb = new VertexBuffer(m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] * sizeof(float));
-
         waterVa->addBuffer(*waterVb, layout);
-
-        //create index buffer
         waterIb = new IndexBuffer(m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum]);
     }
     else {
@@ -488,7 +489,6 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                 chunk.setSkylightBeingRelit(false);
             }
             addChunkMesh(chunkPosition, threadNum);
-            std::cout << "MESH BUILT\n";
             return;
         }
         it++;

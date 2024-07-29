@@ -345,7 +345,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 8;
+    unsigned short renderDistance = 16;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -357,7 +357,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    unsigned int worldSeed = std::time(0);
+    unsigned int worldSeed = 0;//std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint, peer, client);
     std::cout << "World Seed: " << worldSeed << std::endl;
