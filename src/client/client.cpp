@@ -42,9 +42,16 @@
 
 using namespace client;
 
-void chunkLoaderThread(ClientWorld* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char threadNum) {
     while (*running) {
-        mainWorld->loadChunksAroundPlayer(threadNum);
+        mainWorld.loadChunksAroundPlayerSingleplayer(threadNum);
+    }
+}
+
+void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ENetHost* client, bool* running, char threadNum) {
+    while (*running) {
+        mainWorld.loadChunksAroundPlayerMultiplayer(threadNum);
+        ClientNetworking::receiveEvents(client, mainWorld);
     }
 }
 
@@ -338,7 +345,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 32;
+    unsigned short renderDistance = 8;
     
     ENetHost* client;
     ENetPeer* peer;
@@ -365,13 +372,22 @@ int main(int argc, char* argv[]) {
 
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
+        if (MULTIPLAYER) {
+            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer, std::ref(mainWorld), client, &running, threadNum);
+        }
+        else {
+            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadSingleplayer, std::ref(mainWorld), &running, threadNum);
+        }
     }
 
-    while (running) {
-        mainWorld.loadChunksAroundPlayer(0);
-        if (MULTIPLAYER) {
-            ClientNetworking::receiveEvents(client, mainWorld);
+    if (MULTIPLAYER) {
+        while (running) {
+            mainWorld.loadChunksAroundPlayerMultiplayer(0);
+        }
+    }
+    else {
+        while (running) {
+            mainWorld.loadChunksAroundPlayerSingleplayer(0);
         }
     }
     chunkLoaderThreadsRunning[0] = false;

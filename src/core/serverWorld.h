@@ -22,10 +22,12 @@
 #include "enet/enet.h"
 
 #include "core/chunk.h"
+#include "core/packet.h"
 #include "core/serverPlayer.h"
 
 class ServerWorld {
 private:
+    bool m_singleplayer;
     bool m_integrated;
 	unsigned long long m_seed;
     int m_nextPlayerID;
@@ -44,15 +46,17 @@ private:
     std::mutex m_unmeshedChunksMtx;
 
 public:
-    ServerWorld(bool singleplayer, unsigned long long seed);
+    ServerWorld(bool singleplayer, bool integrated, unsigned long long seed);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
-    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool waited);
+    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
     const ServerPlayer& getPlayer(int playerID) const {
         return m_players.at(playerID);
     }
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
+    void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
     unsigned char getBlock(const Position& position) const;
     void setBlock(const Position& position, unsigned char blockType);

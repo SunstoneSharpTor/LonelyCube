@@ -30,4 +30,7 @@ public:
     static void decompressChunk(Packet<unsigned char,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk);
+    static void getChunkPosition(Packet<unsigned char,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    Position& position);
 };

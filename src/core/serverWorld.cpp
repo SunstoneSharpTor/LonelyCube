@@ -26,7 +26,8 @@
 #include "core/random.h"
 #include "core/terrainGen.h"
 
-ServerWorld::ServerWorld(bool integrated, unsigned long long seed) : m_integrated(integrated), m_seed(seed), m_nextPlayerID(0) {
+ServerWorld::ServerWorld(bool singleplayer, bool integrated, unsigned long long seed) :
+    m_singleplayer(singleplayer), m_integrated(integrated), m_seed(seed), m_nextPlayerID(0) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
     // TODO:
@@ -37,10 +38,10 @@ ServerWorld::ServerWorld(bool integrated, unsigned long long seed) : m_integrate
     m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
 }
 
-void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool waited) {
+void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded) {
     int currentPosition[3];
     m_players.at(playerID).getChunkPosition(currentPosition);
-    if (waited) {
+    if (unloadNeeded) {
         m_playersMtx.lock();
         m_chunksMtx.lock();
         m_chunksToBeLoadedMtx.lock();
@@ -113,7 +114,7 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
         Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-            * constants::CHUNK_SIZE> payload(0, 1, 0);
+            * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
         if (!m_integrated) {
             Compression::compressChunk(payload, chunk);
         }
@@ -124,7 +125,9 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     if (!enet_peer_send(player.getPeer(), 0, packet)) {
-                        std::cout << "chunk sent\n";
+    Position chunkPosition;
+    Compression::getChunkPosition(payload, chunkPosition);
+    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
                     }
                 }
             }
@@ -136,6 +139,18 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
         return false;
     }
+}
+
+void ServerWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+    constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition) {
+    Compression::getChunkPosition(payload, chunkPosition);
+    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
+    m_chunksMtx.lock();
+    m_chunks[chunkPosition] = { chunkPosition, &m_chunks };
+    Chunk& chunk = m_chunks.at(chunkPosition);
+    m_chunksMtx.unlock();
+    Compression::decompressChunk(payload, chunk);
+    std::cout << m_chunks.size() << std::endl;
 }
 
 int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer) {

@@ -57,7 +57,7 @@ int main (int argc, char** argv) {
     }
 
     unsigned int worldSeed = std::time(0);
-    ServerWorld mainWorld(false, worldSeed);
+    ServerWorld mainWorld(false, false, worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
 
     unsigned char numChunkLoaderThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));

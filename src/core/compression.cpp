@@ -29,7 +29,7 @@ void Compression::compressChunk(Packet<unsigned char,
     chunk.getChunkPosition(chunkPosition);
     unsigned int packetIndex = 0;
     for (int i = 0; i < 3; i++) {
-        for (int shift = 24; shift > 0; shift -= 8) {
+        for (int shift = 24; shift >= 0; shift -= 8) {
             compressedChunk[packetIndex] = chunkPosition[i] >> shift;
             packetIndex++;
         }
@@ -87,16 +87,8 @@ void Compression::compressChunk(Packet<unsigned char,
 void Compression::decompressChunk(Packet<unsigned char,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
-    int chunkPosition[3];
-    unsigned int packetIndex = 0;
-    for (int i = 0; i < 3; i++) {
-        chunkPosition[i] = 0;
-        for (int shift = 24; shift > 0; shift -= 8) {
-            chunkPosition[i] += compressedChunk[packetIndex] << shift;
-            packetIndex++;
-        }
-    }
     // Add blocks
+    unsigned int packetIndex = 12;
     unsigned int blockNum = 0;
     while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
         unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)
@@ -106,9 +98,6 @@ void Compression::decompressChunk(Packet<unsigned char,
             blockNum++;
         }
         packetIndex += 3;
-    }
-    if (blockNum != 32768) {
-        std::cout << "aaa\n";
     }
     // Add skylight
     blockNum = 0;
@@ -121,7 +110,19 @@ void Compression::decompressChunk(Packet<unsigned char,
         }
         packetIndex += 3;
     }
-    if (blockNum != 32768) {
-        std::cout << "aaa\n";
+}
+
+void Compression::getChunkPosition(Packet<unsigned char,
+    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
+    Position& position) {
+    int chunkPosition[3];
+    unsigned int packetIndex = 0;
+    for (int i = 0; i < 3; i++) {
+        chunkPosition[i] = 0;
+        for (int shift = 24; shift >= 0; shift -= 8) {
+            chunkPosition[i] += compressedChunk[packetIndex] << shift;
+            packetIndex++;
+        }
     }
+    position = chunkPosition;
 }

@@ -25,6 +25,7 @@
 #include "client/texture.h"
 #include "client/camera.h"
 #include "core/chunk.h"
+#include "core/packet.h"
 #include "core/position.h"
 #include "core/serverWorld.h"
 
@@ -125,7 +126,8 @@ private:
 public:
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos, ENetPeer* peer, ENetHost* client);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
-	void loadChunksAroundPlayer(char threadNum);
+	void loadChunksAroundPlayerSingleplayer(char threadNum);
+	void loadChunksAroundPlayerMultiplayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
 	void replaceBlock(int* blockCoords, unsigned char blockType);
@@ -154,6 +156,8 @@ public:
 	inline int getClientID() {
 		return m_clientID;
 	}
+	void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload);
 };
 
 }  // namespace client

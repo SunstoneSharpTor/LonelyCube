@@ -61,7 +61,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         // Add the player to the world
         Packet<int, 1> payload;
         memcpy(&payload, packet->data, packet->dataLength);
-        int blockPosition[3] =  { 0, 200, 0 };
+        int blockPosition[3] =  { 0, 0, 0 };
         float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
         int playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
         // Send a response

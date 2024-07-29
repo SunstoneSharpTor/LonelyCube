@@ -34,8 +34,8 @@ static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, f
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
-    const Position& playerPos, ENetPeer* peer, ENetHost* client) : m_integratedServer(true,
-    seed) {
+    const Position& playerPos, ENetPeer* peer, ENetHost* client) : m_integratedServer(singleplayer,
+    true, seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -245,7 +245,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     }
 }
 
-void ClientWorld::loadChunksAroundPlayer(char threadNum) {
+void ClientWorld::loadChunksAroundPlayerSingleplayer(char threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -263,6 +263,27 @@ void ClientWorld::loadChunksAroundPlayer(char threadNum) {
         }
     }
     buildMeshesForNewChunksWithNeighbours(threadNum);
+}
+
+void ClientWorld::loadChunksAroundPlayerMultiplayer(char threadNum) {
+    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
+        m_threadWaiting[threadNum] = true;
+        // locking 
+        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+        // waiting 
+        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
+        m_threadWaiting[threadNum] = false;
+    }
+    buildMeshesForNewChunksWithNeighbours(threadNum);
+}
+
+void ClientWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+    constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
+    Position chunkPosition;
+    m_integratedServer.loadChunkFromPacket(payload, chunkPosition);
+    m_unmeshedChunksMtx.lock();
+    m_unmeshedChunks.insert(chunkPosition);
+    m_unmeshedChunksMtx.unlock();
 }
 
 void ClientWorld::unmeshChunks() {
@@ -467,6 +488,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                 chunk.setSkylightBeingRelit(false);
             }
             addChunkMesh(chunkPosition, threadNum);
+            std::cout << "MESH BUILT\n";
             return;
         }
         it++;

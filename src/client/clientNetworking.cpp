@@ -74,6 +74,14 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ClientW
         std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
     }
     break;
+    case PacketType::ChunkSent:
+    {
+        Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+            constants::CHUNK_SIZE> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        mainWorld.loadChunkFromPacket(payload);
+    }
+    break;
     
     default:
         break;
@@ -83,7 +91,6 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ClientW
 void ClientNetworking::receiveEvents(ENetHost* client, ClientWorld& mainWorld) {
     ENetEvent event;
     while(enet_host_service(client, &event, 0) > 0) {
-        std::cout << "event\n";
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
                 receivePacket(event.packet, event.peer, mainWorld);
