@@ -39,6 +39,7 @@ void receiveCommands(bool* running) {
 
 void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
     while (*running) {
+        mainWorld->waitIfRequired(threadNum);
         Position chunkPosition;
         if (mainWorld->loadChunk(&chunkPosition)) {
             
@@ -60,7 +61,7 @@ int main (int argc, char** argv) {
     ServerWorld mainWorld(false, false, worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
 
-    unsigned char numChunkLoaderThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
+    unsigned char numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
     bool* chunkLoaderThreadsRunning = new bool[numChunkLoaderThreads];
     std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + numChunkLoaderThreads, true);
 
@@ -73,7 +74,13 @@ int main (int argc, char** argv) {
 
     // Gameloop
     std::thread(receiveCommands, &running).detach();
+    auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     while(running) {
+        auto currentTime = std::chrono::steady_clock::now();
+        if (currentTime >= nextTick) {
+            mainWorld.tick();
+            nextTick += std::chrono::milliseconds(100);
+        }
         networking.receiveEvents(mainWorld);
     }
 

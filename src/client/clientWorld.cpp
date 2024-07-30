@@ -60,7 +60,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
     
-    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency() - 1));
+    m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads();
     
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk

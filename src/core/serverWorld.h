@@ -32,6 +32,7 @@ private:
 	unsigned long long m_seed;
     int m_nextPlayerID;
     unsigned short m_numChunkLoadingThreads;
+    unsigned int m_gameTick;
     
     std::unordered_map<Position, Chunk> m_chunks;
     std::unordered_map<int, ServerPlayer> m_players;
@@ -44,15 +45,23 @@ private:
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
     std::mutex m_unmeshedChunksMtx;
+    std::mutex m_threadsWaitMtx;
+    std::condition_variable m_threadsWaitCV;
+    bool m_threadsWait;
+	bool* m_threadWaiting;
+
+    void disconnectPlayer(unsigned short playerID);
 
 public:
     ServerWorld(bool singleplayer, bool integrated, unsigned long long seed);
+    void tick();
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
     int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
-    const ServerPlayer& getPlayer(int playerID) const {
+    ServerPlayer& getPlayer(int playerID) {
         return m_players.at(playerID);
     }
+    void waitIfRequired(unsigned char threadNum);
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
     void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
@@ -74,4 +83,7 @@ public:
 	inline char getNumChunkLoaderThreads() {
 		return m_numChunkLoadingThreads;
 	}
+    inline unsigned int getTickNum() {
+        return m_gameTick;
+    }
 };

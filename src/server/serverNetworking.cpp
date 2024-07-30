@@ -72,7 +72,10 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     }
     case PacketType::ClientPosition:
     {
-
+        Packet<int, 3> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        mainWorld.getPlayer(payload.getPeerID()).packetReceived(mainWorld.getTickNum());
+        std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
         // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
         //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
         //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
@@ -88,7 +91,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
 void ServerNetworking::receiveEvents(ServerWorld& mainWorld) {
     ENetEvent event;
-    while (enet_host_service (m_host, &event, 1000) > 0) {
+    while (enet_host_service (m_host, &event, 5) > 0) {
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
                 std::cout << "A new client connected from "

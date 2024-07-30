@@ -38,6 +38,7 @@ private:
     int m_nextUnloadedChunk;
     int m_playerID;
     ENetPeer* m_peer;
+    unsigned int m_lastPacketTick;
     std::unordered_set<Position> m_loadedChunks;
     std::unordered_set<Position>::iterator m_processedChunk;
 
@@ -45,7 +46,7 @@ private:
     void initNumChunks();
 public:
     ServerPlayer() {};
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
+    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer, unsigned int gameTick);
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();
@@ -68,6 +69,14 @@ public:
 
     inline bool hasChunkLoaded(Position& chunkPosition) {
         return m_loadedChunks.contains(chunkPosition);
+    }
+
+    inline void packetReceived(unsigned int gameTick) {
+        m_lastPacketTick = gameTick;
+    }
+
+    inline unsigned int getLastPacketTick() const {
+        return m_lastPacketTick;
     }
 };
 

@@ -383,14 +383,14 @@ int main(int argc, char* argv[]) {
         while (running) {
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
             auto currentTime = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastMessage) > std::chrono::milliseconds(100)) {
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastMessage) > std::chrono::milliseconds(100)) {
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
-                payload[2] = mainPlayer.cameraBlockPosition[3];
-                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), 0);
+                payload[2] = mainPlayer.cameraBlockPosition[2];
+                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
                 enet_peer_send(networking.getPeer(), 0, packet);
-                lastMessage = currentTime;
+                lastMessage += std::chrono::milliseconds(100);
             }
         }
     }

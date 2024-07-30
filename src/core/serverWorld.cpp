@@ -27,7 +27,8 @@
 #include "core/terrainGen.h"
 
 ServerWorld::ServerWorld(bool singleplayer, bool integrated, unsigned long long seed) :
-    m_singleplayer(singleplayer), m_integrated(integrated), m_seed(seed), m_nextPlayerID(0) {
+    m_singleplayer(singleplayer), m_integrated(integrated), m_seed(seed), m_nextPlayerID(0),
+    m_gameTick(0), m_threadsWait(false) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
     // TODO:
@@ -36,6 +37,8 @@ ServerWorld::ServerWorld(bool singleplayer, bool integrated, unsigned long long 
     m_players.reserve(32);
 
     m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
+    m_threadWaiting = new bool[m_numChunkLoadingThreads];
+    std::fill(m_threadWaiting, m_threadWaiting + m_numChunkLoadingThreads, false);
 }
 
 void ServerWorld::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded) {
@@ -155,7 +158,7 @@ void ServerWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK
 
 int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer) {
     m_playersMtx.lock();
-    m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer };
+    m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick };
     m_nextPlayerID++;
     m_playersMtx.unlock();
     return m_nextPlayerID - 1;
@@ -167,6 +170,56 @@ int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned
     m_nextPlayerID++;
     m_playersMtx.unlock();
     return m_nextPlayerID - 1;
+}
+
+void ServerWorld::disconnectPlayer(unsigned short playerID) {
+    std::cout << m_chunks.size() << std::endl;
+    // Wait for all the chunk loader threads to finish their jobs
+    m_threadsWait = true;
+    bool allThreadsWaiting = false;
+    while (!allThreadsWaiting) {
+        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
+        m_threadsWaitCV.wait(lock);
+        for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+            allThreadsWaiting |= !m_threadWaiting[threadNum];
+        }
+        allThreadsWaiting = !allThreadsWaiting;
+    }
+
+    // Remove the player from all chunks that it had loaded
+    m_playersMtx.lock();
+    m_chunksMtx.lock();
+    m_chunksToBeLoadedMtx.lock();
+    m_chunksBeingLoadedMtx.lock();
+    ServerPlayer& player = m_players.at(playerID);
+    Position chunkPosition;
+    bool chunkOutOfRange;
+    while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
+        if (m_chunks.contains(chunkPosition)) {
+            m_chunks.at(chunkPosition).decrementPlayerCount();
+            if (m_chunks.at(chunkPosition).hasNoPlayers()) {
+                m_chunks.at(chunkPosition).unload();
+                m_chunks.erase(chunkPosition);
+            }
+        }
+    }
+    while (!m_chunksToBeLoaded.empty()) {
+        m_chunksToBeLoaded.pop();
+    }
+    m_chunksBeingLoaded.clear();
+    m_chunksBeingLoadedMtx.unlock();
+    m_chunksToBeLoadedMtx.unlock();
+    m_chunksMtx.unlock();
+    m_playersMtx.unlock();
+
+    // Allow chunk loaded threads to continue work
+    m_threadsWait = false;
+    // lock release 
+    std::lock_guard<std::mutex> lock(m_threadsWaitMtx);
+    // notify consumer when done
+    m_threadsWaitCV.notify_all();
+    std::cout << playerID << " disconnected\n";
+    std::cout << m_chunks.size() << std::endl;
 }
 
 unsigned char ServerWorld::getBlock(const Position& position) const {
@@ -240,4 +293,34 @@ unsigned char ServerWorld::getSkyLight(const Position& position) const {
     }
 
     return chunkIterator->second.getSkyLight(chunkBlockNum);
+}
+
+void ServerWorld::waitIfRequired(unsigned char threadNum) {
+    while (m_threadsWait) {
+        m_threadWaiting[threadNum] = true;
+    m_threadsWaitCV.notify_all();
+        // locking 
+        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
+        // waiting 
+        while (m_threadsWait) {
+            m_threadsWaitCV.wait(lock);
+        }
+        m_threadWaiting[threadNum] = false;
+    }
+}
+
+void ServerWorld::tick() {
+    if (!m_integrated) {
+        auto it = m_players.begin();
+        while (it != m_players.end()) {
+            if (m_gameTick - it->second.getLastPacketTick() > 20) {
+                disconnectPlayer(it->first);
+                it = m_players.erase(it);
+            }
+            else {
+                it++;
+            }
+        }
+    }
+    m_gameTick++;
 }
