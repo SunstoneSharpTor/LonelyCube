@@ -30,6 +30,7 @@ class ClientNetworking {
 private:
     ENetHost* m_host;
     ENetPeer* m_peer;
+    std::mutex m_hostMtx;
 public:
     bool establishConnection(unsigned short renderDistance);
     void receivePacket(ENetPacket* packet, ClientWorld& mainWorld);

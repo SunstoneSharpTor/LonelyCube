@@ -90,13 +90,17 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
 
 void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
     ENetEvent event;
+    m_hostMtx.lock();
     while(enet_host_service(m_host, &event, 0) > 0) {
+        m_hostMtx.unlock();
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
                 receivePacket(event.packet, mainWorld);
                 break;
         }
+        m_hostMtx.lock();
     }
+    m_hostMtx.unlock();
 }
 
 }  // namespace client

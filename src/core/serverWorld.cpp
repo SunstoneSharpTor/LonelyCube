@@ -144,13 +144,13 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
 void ServerWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
-    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
+    // std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
     m_chunksMtx.lock();
     m_chunks[chunkPosition] = { chunkPosition, &m_chunks };
     Chunk& chunk = m_chunks.at(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
-    std::cout << m_chunks.size() << std::endl;
+    // std::cout << m_chunks.size() << std::endl;
 }
 
 int ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer) {
