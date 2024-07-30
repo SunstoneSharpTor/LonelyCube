@@ -26,10 +26,15 @@
 namespace server {
 
 class ServerNetworking {
+private:
+    ENetHost* m_host;
 public:
-    static bool initServer(ENetAddress& address, ENetHost*& server);
-    static void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld& mainWorld);
-    static void receiveEvents(ENetHost* server, ServerWorld& mainWorld);
+    bool initServer(ENetAddress& address);
+    void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld& mainWorld);
+    void receiveEvents(ServerWorld& mainWorld);
+    ENetHost* getHost() {
+      return m_host;
+    }
 };
 
 }  // namespace server

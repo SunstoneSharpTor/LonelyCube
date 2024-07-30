@@ -49,9 +49,9 @@ void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
 int main (int argc, char** argv) {
     ENetEvent event;
     ENetAddress address;
-    ENetHost* server;
+    ServerNetworking networking;
 
-    if (!ServerNetworking::initServer(address, server)) {
+    if (!networking.initServer(address)) {
         std::cout << "Failed to initialise server" << std::endl;
         return 0;
     }
@@ -74,7 +74,7 @@ int main (int argc, char** argv) {
     // Gameloop
     std::thread(receiveCommands, &running).detach();
     while(running) {
-        ServerNetworking::receiveEvents(server, mainWorld);
+        networking.receiveEvents(mainWorld);
     }
 
     chunkLoaderThreadsRunning[0] = false;
@@ -84,7 +84,7 @@ int main (int argc, char** argv) {
         chunkLoaderThreadsRunning[threadNum] = false;
     }
 
-    enet_host_destroy(server);
+    enet_host_destroy(networking.getHost());
 
     enet_deinitialize();
 

@@ -27,10 +27,19 @@
 namespace client {
 
 class ClientNetworking {
+private:
+    ENetHost* m_host;
+    ENetPeer* m_peer;
 public:
-    static bool establishConnection(ENetHost*& client, ENetPeer*& peer, unsigned short renderDistance);
-    static void receivePacket(ENetPacket* packet, ENetPeer* peer, ClientWorld& mainWorld);
-    static void receiveEvents(ENetHost* client, ClientWorld& mainWorld);
+    bool establishConnection(unsigned short renderDistance);
+    void receivePacket(ENetPacket* packet, ClientWorld& mainWorld);
+    void receiveEvents(ClientWorld& mainWorld);
+    ENetPeer* getPeer() {
+        return m_peer;
+    }
+    ENetHost* getHost() {
+      return m_host;
+    }
 };
 
 }  // namespace client

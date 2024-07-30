@@ -48,10 +48,10 @@ void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char t
     }
 }
 
-void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ENetHost* client, bool* running, char threadNum) {
+void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool* running, char threadNum) {
     while (*running) {
         mainWorld.loadChunksAroundPlayerMultiplayer(threadNum);
-        ClientNetworking::receiveEvents(client, mainWorld);
+        networking.receiveEvents(mainWorld);
     }
 }
 
@@ -347,19 +347,17 @@ int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
     unsigned short renderDistance = 8;
     
-    ENetHost* client;
-    ENetPeer* peer;
-    ENetEvent event;
+    ClientNetworking networking;
 
     if (MULTIPLAYER) {
-        if (!ClientNetworking::establishConnection(client, peer, renderDistance)) {
+        if (!networking.establishConnection(renderDistance)) {
             MULTIPLAYER = false;
         }
     }
 
     unsigned int worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint, peer, client);
+    ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld);
 
@@ -373,7 +371,7 @@ int main(int argc, char* argv[]) {
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         if (MULTIPLAYER) {
-            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer, std::ref(mainWorld), client, &running, threadNum);
+            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer, std::ref(mainWorld), std::ref(networking), &running, threadNum);
         }
         else {
             chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadSingleplayer, std::ref(mainWorld), &running, threadNum);
@@ -390,8 +388,8 @@ int main(int argc, char* argv[]) {
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
                 payload[2] = mainPlayer.cameraBlockPosition[3];
-                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-                enet_peer_send(peer, 0, packet);
+                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), 0);
+                enet_peer_send(networking.getPeer(), 0, packet);
                 lastMessage = currentTime;
             }
         }
@@ -412,9 +410,9 @@ int main(int argc, char* argv[]) {
     delete chunkLoaderThreadsRunning;
 
     if (MULTIPLAYER) {
-        enet_peer_disconnect(peer, 0);
-
-        while (enet_host_service(client, &event, 3000) > 0) {
+        enet_peer_disconnect(networking.getPeer(), 0);
+        ENetEvent event;
+        while (enet_host_service(networking.getHost(), &event, 3000) > 0) {
             switch (event.type) {
                 case ENET_EVENT_TYPE_RECEIVE:
                 enet_packet_destroy(event.packet);

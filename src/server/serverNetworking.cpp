@@ -25,7 +25,7 @@
 
 namespace server {
 
-bool ServerNetworking::initServer(ENetAddress& address, ENetHost*& server) {
+bool ServerNetworking::initServer(ENetAddress& address) {
     if (enet_initialize () != 0) {
         return false;
     }
@@ -39,13 +39,13 @@ bool ServerNetworking::initServer(ENetAddress& address, ENetHost*& server) {
 
     const int MAX_PLAYERS = 32;
 
-    server = enet_host_create (&address,    // the address to bind the server host to
+    m_host = enet_host_create (&address,    // the address to bind the server host to
                     MAX_PLAYERS,  // allow up to 32 clients and/or outgoing connections
                     1,  // allow up to 1 channel to be used, 0
                     0,  // assume any amount of incoming bandwidth
                     0); // assume any amount of outgoing bandwidth
 
-    if (server == NULL) {
+    if (m_host == NULL) {
         return false;
     }
 
@@ -86,9 +86,9 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     }
 }
 
-void ServerNetworking::receiveEvents(ENetHost* server, ServerWorld& mainWorld) {
+void ServerNetworking::receiveEvents(ServerWorld& mainWorld) {
     ENetEvent event;
-    while (enet_host_service (server, &event, 1000) > 0) {
+    while (enet_host_service (m_host, &event, 1000) > 0) {
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
                 std::cout << "A new client connected from "
