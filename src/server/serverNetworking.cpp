@@ -81,12 +81,31 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         }
         else {
             it->second.packetReceived(mainWorld.getTickNum());
-            //std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
-            // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
-            //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
-            //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
-            // int subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-            // mainWorld.updatePlayerPos(head.getPeerID(), head.getPayloadAddress(), subBlockPosition, 
+            int oldPlayerChunkPosition[3];
+            it->second.getBlockPosition(oldPlayerChunkPosition);
+            oldPlayerChunkPosition[0] = std::floor((float)oldPlayerChunkPosition[0] / constants::CHUNK_SIZE);
+            oldPlayerChunkPosition[1] = std::floor((float)oldPlayerChunkPosition[1] / constants::CHUNK_SIZE);
+            oldPlayerChunkPosition[2] = std::floor((float)oldPlayerChunkPosition[2] / constants::CHUNK_SIZE);
+            int newPlayerPos[3];
+            memcpy(newPlayerPos, payload.getPayloadAddress(), 3 * sizeof(int));
+            int newPlayerChunkPosition[3];
+            newPlayerChunkPosition[0] = std::floor((float)newPlayerPos[0] / constants::CHUNK_SIZE);
+            newPlayerChunkPosition[1] = std::floor((float)newPlayerPos[1] / constants::CHUNK_SIZE);
+            newPlayerChunkPosition[2] = std::floor((float)newPlayerPos[2] / constants::CHUNK_SIZE);
+            bool unloadNeeded = !((oldPlayerChunkPosition[0] == newPlayerChunkPosition[0])
+                && (oldPlayerChunkPosition[1] == newPlayerChunkPosition[1])
+                && (oldPlayerChunkPosition[2] == newPlayerChunkPosition[2]));
+            if (unloadNeeded) {
+                mainWorld.pauseChunkLoaderThreads();
+                std::cout << "UNLOAD\n";
+            }
+
+            float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+            mainWorld.updatePlayerPos(playerID, newPlayerPos, subBlockPosition, unloadNeeded);
+
+            if (unloadNeeded) {
+                mainWorld.releaseChunkLoaderThreads();
+            }
         }
     }
     break;

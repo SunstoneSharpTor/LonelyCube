@@ -71,7 +71,7 @@ public:
         return baseSize + m_payloadLength * sizeof(T);
     }
 
-    T* getPayloadAddress(unsigned int index) const {
-        return &(m_payload[0]);
+    const T* getPayloadAddress() const {
+        return m_payload.data();
     }
 };

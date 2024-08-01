@@ -345,7 +345,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 8;
+    unsigned short renderDistance = 32;
     
     ClientNetworking networking;
 

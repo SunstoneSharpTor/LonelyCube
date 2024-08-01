@@ -65,6 +65,8 @@ public:
         return m_players;
     }
     void waitIfRequired(unsigned char threadNum);
+    void pauseChunkLoaderThreads();
+    void releaseChunkLoaderThreads();
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
     void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *

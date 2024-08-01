@@ -82,6 +82,11 @@ public:
     inline unsigned short getRenderDistance() const {
         return m_renderDistance;
     }
+    inline void getBlockPosition(int* blockPosition) {
+        blockPosition[0] = m_blockPosition[0];
+        blockPosition[1] = m_blockPosition[1];
+        blockPosition[2] = m_blockPosition[2];
+    }
 };
 
 namespace std {

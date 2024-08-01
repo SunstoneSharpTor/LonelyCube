@@ -177,17 +177,7 @@ void ServerWorld::addPlayer(int* blockPosition, float* subBlockPosition, unsigne
 
 void ServerWorld::disconnectPlayer(unsigned short playerID) {
     std::cout << m_chunks.size() << std::endl;
-    // Wait for all the chunk loader threads to finish their jobs
-    m_threadsWait = true;
-    bool allThreadsWaiting = false;
-    while (!allThreadsWaiting) {
-        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
-        m_threadsWaitCV.wait(lock);
-        for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
-            allThreadsWaiting |= !m_threadWaiting[threadNum];
-        }
-        allThreadsWaiting = !allThreadsWaiting;
-    }
+    pauseChunkLoaderThreads();
 
     // Remove the player from all chunks that it had loaded
     m_playersMtx.lock();
@@ -227,12 +217,7 @@ void ServerWorld::disconnectPlayer(unsigned short playerID) {
     m_chunksMtx.unlock();
     m_playersMtx.unlock();
 
-    // Allow chunk loaded threads to continue work
-    m_threadsWait = false;
-    // lock release 
-    std::lock_guard<std::mutex> lock(m_threadsWaitMtx);
-    // notify consumer when done
-    m_threadsWaitCV.notify_all();
+    releaseChunkLoaderThreads();
     std::cout << playerID << " disconnected\n";
     std::cout << m_chunks.size() << std::endl;
 }
@@ -322,6 +307,29 @@ void ServerWorld::waitIfRequired(unsigned char threadNum) {
         }
         m_threadWaiting[threadNum] = false;
     }
+}
+
+void ServerWorld::pauseChunkLoaderThreads() {
+    // Wait for all the chunk loader threads to finish their jobs
+    m_threadsWait = true;
+    bool allThreadsWaiting = false;
+    while (!allThreadsWaiting) {
+        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
+        m_threadsWaitCV.wait(lock);
+        for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+            allThreadsWaiting |= !m_threadWaiting[threadNum];
+        }
+        allThreadsWaiting = !allThreadsWaiting;
+    }
+}
+
+void ServerWorld::releaseChunkLoaderThreads() {
+    // Allow chunk loaded threads to continue work
+    m_threadsWait = false;
+    // lock release 
+    std::lock_guard<std::mutex> lock(m_threadsWaitMtx);
+    // notify consumer when done
+    m_threadsWaitCV.notify_all();
 }
 
 void ServerWorld::tick() {
