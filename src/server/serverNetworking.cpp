@@ -63,7 +63,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         int blockPosition[3] =  { 0, 0, 0 };
         float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-        int playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
+        unsigned short playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
         // Send a response
         Packet<unsigned short, 1> responsePayload(0, PacketType::ClientConnection, 1);
         responsePayload[0] = playerID;
@@ -81,7 +81,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         }
         else {
             it->second.packetReceived(mainWorld.getTickNum());
-            std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
+            //std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
             // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
             //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
             //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);

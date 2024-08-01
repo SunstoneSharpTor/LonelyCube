@@ -30,7 +30,7 @@ private:
     bool m_singleplayer;
     bool m_integrated;
 	unsigned long long m_seed;
-    int m_nextPlayerID;
+    unsigned short m_nextPlayerID;
     unsigned short m_numChunkLoadingThreads;
     unsigned int m_gameTick;
     
@@ -55,8 +55,8 @@ private:
 public:
     ServerWorld(bool singleplayer, bool integrated, unsigned long long seed);
     void tick();
-    int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
-    int addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
+    void addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
+    unsigned short addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
     ServerPlayer& getPlayer(int playerID) {
         return m_players.at(playerID);

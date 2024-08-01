@@ -68,7 +68,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     switch (head.getPacketType()) {
     case PacketType::ClientConnection:
     {
-        Packet<int, 1> payload;
+        Packet<unsigned short, 1> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         mainWorld.setClientID(payload[0]);
         std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
