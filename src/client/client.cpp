@@ -104,16 +104,16 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
     //water shader
-    Shader waterShader("shaders/basicVertex.txt", "shaders/waterFragment.txt");
+    Shader waterShader("res/shaders/basicVertex.txt", "res/shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_texture", 0);
     waterShader.setUniform1f("u_renderDistance", (mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
 
     //set up the shader and the uniforms
-    Shader blockShader("shaders/basicVertex.txt", "shaders/basicFragment.txt");
+    Shader blockShader("res/shaders/basicVertex.txt", "res/shaders/basicFragment.txt");
     blockShader.bind();
 
-    Texture allBlockTextures("blockTextures.png");
+    Texture allBlockTextures("res/blockTextures.png");
     allBlockTextures.bind();
     blockShader.setUniform1i("u_texture", 0);
     blockShader.setUniform1f("u_renderDistance", (mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
@@ -147,7 +147,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     crosshairVA.addBuffer(crosshairVB, crosshairVBlayout);
     IndexBuffer crosshairIB(crosshairIndices, 12);
 
-    Shader crosshairShader("shaders/crosshairVertex.txt", "shaders/crosshairFragment.txt");
+    Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
     crosshairShader.bind();
     glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
     crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
@@ -160,7 +160,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
     IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
-    Shader blockOutlineShader("shaders/wireframeVertex.txt", "shaders/wireframeFragment.txt");
+    Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
 
     float cameraPos[3];
     cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
