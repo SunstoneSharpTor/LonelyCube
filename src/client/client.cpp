@@ -55,7 +55,7 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
     }
 }
 
-void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, ClientPlayer* mainPlayer) {
+void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThreadsRunning, ClientPlayer* mainPlayer, ClientNetworking& networking) {
     const int defaultWindowDimensions[2] = { 853, 480 };
     int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
 
@@ -171,7 +171,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
     double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
-    mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time);
+    mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time, networking);
     mainWorld->doRenderThreadJobs();
 
     //set up game loop
@@ -322,7 +322,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
             SDL_GL_SwapWindow(sdl_window);
 
-            mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, currentTime);
+            mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, currentTime, networking);
             float cameraPos[3];
             cameraPos[0] = mainPlayer->cameraBlockPosition[0] + mainPlayer->viewCamera.position[0];
             cameraPos[1] = mainPlayer->cameraBlockPosition[1] + mainPlayer->viewCamera.position[1];
@@ -331,6 +331,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
             frames++;
         }
+        mainWorld->updateMeshes();
         mainWorld->doRenderThreadJobs();
 
         loopRunning = *running;
@@ -345,7 +346,7 @@ void renderThread(ClientWorld* mainWorld, bool* running, bool* chunkLoaderThread
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 32;
+    unsigned short renderDistance = 6;
     
     ClientNetworking networking;
 
@@ -366,7 +367,7 @@ int main(int argc, char* argv[]) {
     bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
     std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
 
-    std::thread renderWorker(renderThread, &mainWorld, &running, chunkLoaderThreadsRunning, &mainPlayer);
+    std::thread renderWorker(renderThread, &mainWorld, &running, chunkLoaderThreadsRunning, &mainPlayer, std::ref(networking));
 
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {

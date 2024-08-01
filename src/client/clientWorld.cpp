@@ -199,6 +199,15 @@ void ClientWorld::doRenderThreadJobs() {
     }
 }
 
+void ClientWorld::updateMeshes() {
+    auto it = m_meshesToUpdate.begin();
+    while (it != m_meshesToUpdate.end()) {
+        unloadMesh(*it);
+        m_meshUpdates.insert(*it);
+        it = m_meshesToUpdate.erase(it);
+    }
+}
+
 void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     m_newPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
     m_newPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
@@ -529,8 +538,7 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     }
     
     for (auto& relitChunk : relitChunks) {
-        unloadMesh(relitChunk);
-        m_meshUpdates.insert(relitChunk);
+        m_meshesToUpdate.insert(relitChunk);
     }
     m_accessingArrIndicesVectorsMtx.unlock();
 }

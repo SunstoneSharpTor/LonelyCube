@@ -19,6 +19,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "client/clientNetworking.h"
 #include "client/clientWorld.h"
 #include "client/camera.h"
 
@@ -65,7 +66,7 @@ private:
     bool collidingWithBlock();
     
     bool intersectingBlock(int* blockPos);
-    ClientWorld* m_newWorld;
+    ClientWorld* m_mainWorld;
 
 public:
 	Camera viewCamera;
@@ -78,7 +79,7 @@ public:
 
     void setWorldMouseData(SDL_Window* window, int* windowDimensions);
 
-    void processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime);
+    void processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 
 }  // namespace client

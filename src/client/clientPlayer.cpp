@@ -17,6 +17,7 @@
 
 #include "client/clientPlayer.h"
 #include "core/constants.h"
+#include "core/packet.h"
 
 #include "core/pch.h"
 
@@ -49,7 +50,7 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
     m_lastPlaying = false;
     m_pausedMouseState = 0u;
 
-    m_newWorld = newWorld;
+    m_mainWorld = newWorld;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -92,7 +93,7 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
 
 
 
-void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime) {
+void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
     if (m_playing) {
@@ -114,9 +115,16 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimension
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_newWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
+                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                     m_timeSinceBlockBreak = 0.0f;
-                    m_newWorld->replaceBlock(breakBlockCoords, 0);
+                    m_mainWorld->replaceBlock(breakBlockCoords, 0);
+                    Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
+                    for (int i = 0; i < 3; i++) {
+                        payload[i] = breakBlockCoords[i];
+                    }
+                    payload[3] = 0;
+                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                    enet_peer_send(networking.getPeer(), 0, packet);
                 }
             }
         }
@@ -127,11 +135,18 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimension
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_newWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) == 2) {
+                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) == 2) {
                     if ((!intersectingBlock(placeBlockCoords)) || (!constants::collideable[m_blockHolding])) {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too
-                        m_newWorld->replaceBlock(placeBlockCoords, m_blockHolding);
+                        m_mainWorld->replaceBlock(placeBlockCoords, m_blockHolding);
+                        Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
+                        for (int i = 0; i < 3; i++) {
+                            payload[i] = placeBlockCoords[i];
+                        }
+                        payload[3] = m_blockHolding;
+                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                        enet_peer_send(networking.getPeer(), 0, packet);
                         m_timeSinceBlockPlace = 0.0f;
                     }
                 }
@@ -336,7 +351,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                     position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
                 }
 
-                short blockType = m_newWorld->getBlock(position);
+                short blockType = m_mainWorld->getBlock(position);
                 if (constants::collideable[blockType]) {
                     for (unsigned char direction = 0; direction < 6; direction++) {
                         penetration = m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2] - floor(m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2]);
@@ -347,7 +362,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                             for (unsigned char i = 0; i < 3; i++) {
                                 neighbouringBlockPosition[i] = position[i] + m_directions[direction * 3 + i];
                             }
-                            blockType = m_newWorld->getBlock(neighbouringBlockPosition);
+                            blockType = m_mainWorld->getBlock(neighbouringBlockPosition);
                             if ((!constants::collideable[blockType]) && (m_velocity[direction / 2] != 0.0f)) {
                                 minPenetration = penetration;
                                 axisOfLeastPenetration = direction;
@@ -389,7 +404,7 @@ bool ClientPlayer::collidingWithBlock() {
             position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
         }
 
-        short blockType = m_newWorld->getBlock(position);
+        short blockType = m_mainWorld->getBlock(position);
         if (constants::collideable[blockType]) {
             return true;
         }
@@ -416,7 +431,7 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
 }
 
 void ClientPlayer::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
-    m_newWorld->setMouseData(&m_lastMousePoll,
+    m_mainWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,
                           &m_yaw,

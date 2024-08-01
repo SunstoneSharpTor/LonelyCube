@@ -22,7 +22,7 @@
 #include "pch.h"
 
 enum PacketType {
-    ClientConnection, ChunkSent, ClientPosition
+    ClientConnection, ChunkSent, ClientPosition, BlockReplaced
 };
 
 template<typename T, unsigned int maxPayloadLength>

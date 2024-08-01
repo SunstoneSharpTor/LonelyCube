@@ -71,6 +71,7 @@ public:
     bool loadChunk(Position* chunkPosition);
     void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition);
+    void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
     unsigned char getBlock(const Position& position) const;
     void setBlock(const Position& position, unsigned char blockType);

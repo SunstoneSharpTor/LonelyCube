@@ -70,6 +70,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
     }
+    break;
     case PacketType::ClientPosition:
     {
         Packet<int, 3> payload;
@@ -97,7 +98,6 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
                 && (oldPlayerChunkPosition[2] == newPlayerChunkPosition[2]));
             if (unloadNeeded) {
                 mainWorld.pauseChunkLoaderThreads();
-                std::cout << "UNLOAD\n";
             }
 
             float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
@@ -107,6 +107,17 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
                 mainWorld.releaseChunkLoaderThreads();
             }
         }
+    }
+    break;
+    case PacketType::BlockReplaced:
+    {
+        Packet<int, 4> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        int blockCoords[3];
+        memcpy(blockCoords, payload.getPayloadAddress(), 3 * sizeof(int));
+        mainWorld.setBlock(blockCoords, payload[3]);
+        std::cout << payload.getPeerID() << std::endl;
+        mainWorld.broadcastBlockReplaced(blockCoords, payload[3], payload.getPeerID());
     }
     break;
     

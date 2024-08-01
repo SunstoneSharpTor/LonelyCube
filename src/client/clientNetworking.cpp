@@ -82,6 +82,16 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         mainWorld.loadChunkFromPacket(payload);
     }
     break;
+    case PacketType::BlockReplaced:
+    {
+        Packet<int, 4> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        int blockCoords[3];
+        memcpy(blockCoords, payload.getPayloadAddress(), 3 * sizeof(int));
+        mainWorld.replaceBlock(blockCoords, payload[3]);
+        std::cout << "AAAAAAA\n";
+    }
+    break;
     
     default:
         break;

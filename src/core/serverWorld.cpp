@@ -347,3 +347,21 @@ void ServerWorld::tick() {
     }
     m_gameTick++;
 }
+
+void ServerWorld::broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID) {
+    Packet<int, 4> payload(0, PacketType::BlockReplaced, 4);
+    for (int i = 0; i < 3; i++) {
+        payload[i] = blockCoords[i];
+    }
+    payload[3] = blockType;
+    Position chunkPosition;
+    chunkPosition.x = std::floor((float)blockCoords[0] / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)blockCoords[1] / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)blockCoords[2] / constants::CHUNK_SIZE);
+    for (auto& [playerID, player] : m_players) {
+        if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
+            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(player.getPeer(), 0, packet);
+        }
+    }
+}

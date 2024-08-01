@@ -56,7 +56,6 @@ private:
 	int m_playerChunkPosition[3];
 	int m_newPlayerChunkPosition[3];
 	int m_updatingPlayerChunkPosition[3];
-	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
 	//stores the location of each chunk in the array m_chunks, ordered by chunk number
 	Position m_neighbouringChunkOffets[6];
 	Position m_neighbouringChunkIncludingDiaganalOffsets[27];
@@ -84,7 +83,9 @@ private:
 	IndexBuffer* m_emptyIndexBuffer;
 	VertexArray* m_emptyVertexArray;
 	std::unordered_set<Position> m_unmeshedChunks;
-	std::unordered_set<Position>m_beingMeshesdChunks;
+	std::unordered_set<Position> m_beingMeshesdChunks;
+	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
+	std::unordered_set<Position> m_meshesToUpdate;
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
 	unsigned int* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value
@@ -139,6 +140,7 @@ public:
 		return m_numChunkLoadingThreads;
 	}
 	void doRenderThreadJobs();
+	void updateMeshes();
 	void updatePlayerPos(float playerX, float playerY, float playerZ);
 	void setMouseData(double* lastMousePoll,
 					  bool* playing,
