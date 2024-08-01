@@ -85,8 +85,17 @@ void ServerWorld::findChunksToLoad() {
             if (!player.allChunksLoaded()) {
                 int chunkPosition[3];
                 player.getNextChunkCoords(chunkPosition);
-                if (m_chunks.contains(Position(chunkPosition))) {
-                    m_chunks[chunkPosition].incrementPlayerCount();
+                auto it = m_chunks.find(Position(chunkPosition));
+                if (it != m_chunks.end()) {
+                    it->second.incrementPlayerCount();
+                    if (!m_integrated) {
+                        Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+                            * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
+                            Compression::compressChunk(payload, it->second);
+                        payload.setPeerID(playerID);
+                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                        !enet_peer_send(player.getPeer(), 0, packet);
+                    }
                 }
                 else if (!m_chunksBeingLoaded.contains(Position(chunkPosition))) {
                     m_chunksToBeLoaded.emplace(chunkPosition);
@@ -127,11 +136,7 @@ bool ServerWorld::loadChunk(Position* chunkPosition) {
                 if (!m_integrated) {
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-                    if (!enet_peer_send(player.getPeer(), 0, packet)) {
-    Position chunkPosition;
-    Compression::getChunkPosition(payload, chunkPosition);
-    std::cout << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << "\n";
-                    }
+                    if (!enet_peer_send(player.getPeer(), 0, packet));
                 }
             }
         }
