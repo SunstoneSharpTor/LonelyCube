@@ -32,7 +32,7 @@ private:
     unsigned int m_numChunks;  // The max number of chunks in the player's render distance
     int m_blockPosition[3];
     float m_subBlockPosition[3];
-    Position* m_unloadedChunks;
+    std::unique_ptr<Position[]> m_unloadedChunks;
     int m_playerChunkPosition[3];
     int m_playerChunkMovementOffset[3];
     int m_nextUnloadedChunk;
@@ -77,6 +77,10 @@ public:
 
     inline unsigned int getLastPacketTick() const {
         return m_lastPacketTick;
+    }
+
+    inline unsigned short getRenderDistance() const {
+        return m_renderDistance;
     }
 };
 

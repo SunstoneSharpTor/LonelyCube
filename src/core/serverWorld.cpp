@@ -192,8 +192,18 @@ void ServerWorld::disconnectPlayer(unsigned short playerID) {
     m_chunksToBeLoadedMtx.lock();
     m_chunksBeingLoadedMtx.lock();
     ServerPlayer& player = m_players.at(playerID);
+
+    int blockPosition[3];
+    player.getChunkPosition(blockPosition);
+    for (int i = 0; i < 3; i++) {
+        blockPosition[i] = (blockPosition[i] + player.getRenderDistance() * 2) * constants::CHUNK_SIZE;
+    }
+    float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+    player.updatePlayerPos(blockPosition, subBlockPosition);
+
     Position chunkPosition;
     bool chunkOutOfRange;
+    int i = 0;
     while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
         if (m_chunks.contains(chunkPosition)) {
             m_chunks.at(chunkPosition).decrementPlayerCount();
@@ -202,7 +212,9 @@ void ServerWorld::disconnectPlayer(unsigned short playerID) {
                 m_chunks.erase(chunkPosition);
             }
         }
+        i++;
     }
+    std::cout << i << " chunks checked\n";
     while (!m_chunksToBeLoaded.empty()) {
         m_chunksToBeLoaded.pop();
     }

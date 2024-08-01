@@ -74,13 +74,20 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     {
         Packet<int, 3> payload;
         memcpy(&payload, packet->data, packet->dataLength);
-        mainWorld.getPlayer(payload.getPeerID()).packetReceived(mainWorld.getTickNum());
-        std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
-        // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
-        //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
-        //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
-        // int subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-        // mainWorld.updatePlayerPos(head.getPeerID(), head.getPayloadAddress(), subBlockPosition, 
+        unsigned short playerID = payload.getPeerID();
+        auto it = mainWorld.getPlayers().find(playerID);
+        if (it == mainWorld.getPlayers().end()) {
+            
+        }
+        else {
+            it->second.packetReceived(mainWorld.getTickNum());
+            std::cout << payload[0] << ", " << payload[1] << ", " << payload[2] << std::endl;
+            // unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
+            //     && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
+            //     && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
+            // int subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
+            // mainWorld.updatePlayerPos(head.getPeerID(), head.getPayloadAddress(), subBlockPosition, 
+        }
     }
     break;
     

@@ -35,7 +35,7 @@ void ServerPlayer::initNumChunks() {
             }
         }
     }
-    m_unloadedChunks = new Position[m_numChunks];
+    m_unloadedChunks = std::make_unique<Position[]>(m_numChunks);
 }
 
 void ServerPlayer::initChunkPositions() {
@@ -50,7 +50,7 @@ void ServerPlayer::initChunkPositions() {
             }
         }
     }
-    std::sort(m_unloadedChunks, m_unloadedChunks + i,
+    std::sort(&(m_unloadedChunks[0]), &(m_unloadedChunks[0]) + i,
     [](Position a, Position b) {
         return a.x * a.x + a.y * a.y + a.z * a.z < b.x * b.x + b.y * b.y + b.z * b.z;
     });

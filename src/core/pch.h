@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <thread>

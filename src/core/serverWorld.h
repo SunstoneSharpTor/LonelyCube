@@ -35,7 +35,7 @@ private:
     unsigned int m_gameTick;
     
     std::unordered_map<Position, Chunk> m_chunks;
-    std::unordered_map<int, ServerPlayer> m_players;
+    std::unordered_map<unsigned short, ServerPlayer> m_players;
     std::queue<Position> m_chunksToBeLoaded;
     std::unordered_set<Position> m_chunksBeingLoaded;
 
@@ -60,6 +60,9 @@ public:
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
     ServerPlayer& getPlayer(int playerID) {
         return m_players.at(playerID);
+    }
+    std::unordered_map<unsigned short, ServerPlayer>& getPlayers() {
+        return m_players;
     }
     void waitIfRequired(unsigned char threadNum);
     void findChunksToLoad();
