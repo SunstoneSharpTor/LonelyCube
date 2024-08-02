@@ -51,8 +51,16 @@ void RenderThread::go(bool* running) {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    #ifdef GLES3
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        // Force usage of the GLES backend
+        SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
+    #else
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
@@ -88,7 +96,11 @@ void RenderThread::go(bool* running) {
 
     m_mainPlayer->setWorldMouseData(sdl_window, windowDimensions);
 
-    gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+    #ifdef GLES3
+        gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress);
+    #else
+        gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+    #endif
 
     //water shader
     Shader waterShader("res/shaders/basicVertex.txt", "res/shaders/waterFragment.txt");
@@ -175,7 +187,7 @@ void RenderThread::go(bool* running) {
     float lastFrameRateTime = frameStart + DT;
     bool loopRunning = *running;
     while (loopRunning) {
-        GLPrintErrors();
+        //GLPrintErrors();
         //toggle fullscreen if F11 pressed
         if (keyboardState[SDL_SCANCODE_F11] && (!lastF11)) {
             if (windowFullScreen) {

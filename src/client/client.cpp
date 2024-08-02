@@ -15,8 +15,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <glad/glad.h>
-#include <SDL2/SDL.h>
 #include <enet/enet.h>
 
 #include "core/pch.h"

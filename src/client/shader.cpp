@@ -40,6 +40,11 @@ shaderProgramSources Shader::parseShaders(const std::string& vertexFilePath, con
     std::ifstream fragmentStream(fragmentFilePath);
     std::ifstream* stream = &vertexStream;
     for (int shaderNum = 0; shaderNum < 2; shaderNum++) {
+        #ifdef GLES3
+            sources[shaderNum] << "#version 310 es\n";
+        #else
+            sources[shaderNum] << "#version 450 core\n";
+        #endif
         while (getline(*stream, line)) {
             sources[shaderNum] << line << "\n";
         }

@@ -15,7 +15,9 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#version 450 core
+#ifdef GL_ES
+precision highp float;
+#endif
 
 out vec4 colour;
 

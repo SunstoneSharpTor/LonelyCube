@@ -69,6 +69,11 @@ if (MINGW)
     target_link_libraries(server winmm ws2_32)
 endif (MINGW)
 
+# TODO: Change this to check for opengl/gles3 support when raspberry pi cmake version gets updated
+if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    add_compile_definitions(GLES3)
+endif()
+
 
 add_custom_command(TARGET client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
