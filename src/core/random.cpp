@@ -606,7 +606,7 @@ void seedNoise() {
         numbers[i] = i;
     }
     for (int i = 0; i < 256; i++) {
-        unsigned int location = PCG_Random32() % 256;
+        unsigned int location = PCG_Random32() % numbers.size();
         perm[location] = numbers[location];
         numbers.erase(numbers.begin() + location);
     }

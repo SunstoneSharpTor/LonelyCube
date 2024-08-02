@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.25.1)
 project(Minecraft VERSION 0.8.2 LANGUAGES C CXX)
 
+add_subdirectory(lib/enet-1.3.18)
+
 set(OSBitness 64)
 set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
@@ -66,8 +68,10 @@ if (MINGW)
     target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
                                  winmm ws2_32)
 elseif (UNIX)
-    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
-    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
+    target_link_libraries(client enet)
+    target_link_libraries(server enet)
+    #target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
+    #target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
 endif (MINGW)
 
 
