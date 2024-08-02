@@ -20,6 +20,7 @@ set(CLIENT_SOURCE_FILES
     src/client/indexBuffer.cpp
     src/client/meshBuilder.cpp
     src/client/renderer.cpp
+    src/client/renderThread.cpp
     src/client/clientPlayer.cpp
     src/client/shader.cpp
     src/client/stb_image.cpp

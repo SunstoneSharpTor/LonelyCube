@@ -15,9 +15,10 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "client/shader.h"
+
 #include "core/pch.h"
 
-#include "client/shader.h"
 #include "client/renderer.h"
 
 namespace client {

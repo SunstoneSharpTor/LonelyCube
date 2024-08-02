@@ -116,7 +116,6 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         int blockCoords[3];
         memcpy(blockCoords, payload.getPayloadAddress(), 3 * sizeof(int));
         mainWorld.setBlock(blockCoords, payload[3]);
-        std::cout << payload.getPeerID() << std::endl;
         mainWorld.broadcastBlockReplaced(blockCoords, payload[3], payload.getPeerID());
     }
     break;

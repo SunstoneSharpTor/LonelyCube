@@ -89,7 +89,6 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         int blockCoords[3];
         memcpy(blockCoords, payload.getPayloadAddress(), 3 * sizeof(int));
         mainWorld.replaceBlock(blockCoords, payload[3]);
-        std::cout << "AAAAAAA\n";
     }
     break;
     
