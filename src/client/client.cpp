@@ -26,6 +26,7 @@
 #include "client/renderThread.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
+#include "core/config.h"
 #include "core/packet.h"
 
 using namespace client;
@@ -45,19 +46,20 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
 
 int main(int argc, char* argv[]) {
     bool MULTIPLAYER = true;
-    unsigned short renderDistance = 6;
+
+    Config settings("res/settings.txt");
     
     ClientNetworking networking;
 
     if (MULTIPLAYER) {
-        if (!networking.establishConnection(renderDistance)) {
+        if (!networking.establishConnection(settings.getServerIP(), settings.getRenderDistance())) {
             MULTIPLAYER = false;
         }
     }
 
     unsigned int worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(renderDistance, worldSeed, !MULTIPLAYER, playerSpawnPoint);
+    ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !MULTIPLAYER, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld);
 

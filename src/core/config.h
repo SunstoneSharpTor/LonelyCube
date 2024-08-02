@@ -17,30 +17,18 @@
 
 #pragma once
 
-#include "enet/enet.h"
+#include "pch.h"
 
-#include "core/pch.h"
-
-#include "client/clientWorld.h"
-#include "core/packet.h"
-
-namespace client {
-
-class ClientNetworking {
+class Config {
 private:
-    ENetHost* m_host;
-    ENetPeer* m_peer;
-    std::mutex m_hostMtx;
+    unsigned short m_renderDistance;
+    std::string m_serverIP;
 public:
-    bool establishConnection(std::string& serverIP, unsigned short renderDistance);
-    void receivePacket(ENetPacket* packet, ClientWorld& mainWorld);
-    void receiveEvents(ClientWorld& mainWorld);
-    ENetPeer* getPeer() {
-        return m_peer;
+    Config(std::filesystem::path settingsPath);
+    unsigned short getRenderDistance() const {
+        return m_renderDistance;
     }
-    ENetHost* getHost() {
-      return m_host;
+    std::string& getServerIP() {
+        return m_serverIP;
     }
 };
-
-}  // namespace client

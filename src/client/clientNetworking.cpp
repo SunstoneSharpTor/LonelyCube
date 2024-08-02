@@ -24,7 +24,7 @@
 
 namespace client {
 
-bool ClientNetworking::establishConnection(unsigned short renderDistance) {
+bool ClientNetworking::establishConnection(std::string& serverIP, unsigned short renderDistance) {
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
     }
@@ -37,7 +37,7 @@ bool ClientNetworking::establishConnection(unsigned short renderDistance) {
 
     ENetAddress address;
 
-    enet_address_set_host(&address, "127.0.0.1");
+    enet_address_set_host(&address, serverIP.c_str());
     address.port = 5555;
 
     m_peer = enet_host_connect(m_host, &address, 1, 0);
@@ -47,7 +47,7 @@ bool ClientNetworking::establishConnection(unsigned short renderDistance) {
 
     ENetEvent event;
     if ((enet_host_service(m_host, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
-        std::cout << "Connection to 127.0.0.1 succeeded!" << std::endl;
+        std::cout << "Connection to " << serverIP << " succeeded!" << std::endl;
 
         Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
         payload[0] = renderDistance;

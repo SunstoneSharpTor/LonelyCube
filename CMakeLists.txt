@@ -30,6 +30,7 @@ set(CLIENT_SOURCE_FILES
     src/client/clientWorld.cpp
     src/core/chunk.cpp
     src/core/compression.cpp
+    src/core/config.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
