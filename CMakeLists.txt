@@ -59,19 +59,14 @@ add_executable(server ${SERVER_SOURCE_FILES})
 target_precompile_headers(server PRIVATE 
 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
+target_link_libraries(client enet)
+target_link_libraries(server enet)
+
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
     target_link_options(client PRIVATE -mconsole)
-
-    target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
-                                 winmm ws2_32)
-    target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/enet64.lib
-                                 winmm ws2_32)
-elseif (UNIX)
-    target_link_libraries(client enet)
-    target_link_libraries(server enet)
-    #target_link_libraries(client ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
-    #target_link_libraries(server ${CMAKE_SOURCE_DIR}/lib/enet-1.3.18/libenet.a)
+    target_link_libraries(client winmm ws2_32)
+    target_link_libraries(server winmm ws2_32)
 endif (MINGW)
 
 
