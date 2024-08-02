@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27.4)
+cmake_minimum_required(VERSION 3.25.1)
 project(Minecraft VERSION 0.8.2 LANGUAGES C CXX)
 
 set(OSBitness 64)
