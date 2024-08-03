@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25.1)
-project(Minecraft VERSION 0.8.2 LANGUAGES C CXX)
+project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 
 add_subdirectory(lib/enet-1.3.18)
 
