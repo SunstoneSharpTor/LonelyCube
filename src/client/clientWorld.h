@@ -1,4 +1,5 @@
 /*
+  Lonely Cube, a voxel game
   Copyright (C) 2024 Bertie Cartwright
 
   This program is free software: you can redistribute it and/or modify

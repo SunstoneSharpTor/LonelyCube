@@ -1,4 +1,5 @@
 /*
+  Lonely Cube, a voxel game
   Copyright (C) 2024 Bertie Cartwright
 
   This program is free software: you can redistribute it and/or modify
@@ -65,7 +66,7 @@ void RenderThread::go(bool* running) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     sdl_window = SDL_CreateWindow(
-        "Minecraft",
+        "Lonely Cube",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         windowDimensions[0],
