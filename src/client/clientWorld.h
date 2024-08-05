@@ -87,6 +87,7 @@ private:
 	std::unordered_set<Position> m_beingMeshesdChunks;
 	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
 	std::unordered_set<Position> m_meshesToUpdate;
+	std::queue<Position> m_recentChunksBuilt;
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
 	unsigned int* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value

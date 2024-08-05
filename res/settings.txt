@@ -1,2 +1,2 @@
-Render Distance: 24
+Render Distance: 10
 Server IP Address: 127.0.0.1

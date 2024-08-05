@@ -201,12 +201,15 @@ void ClientWorld::doRenderThreadJobs() {
 }
 
 void ClientWorld::updateMeshes() {
+    m_unmeshedChunksMtx.lock();
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
         unloadMesh(*it);
         m_meshUpdates.insert(*it);
+        m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
     }
+    m_unmeshedChunksMtx.unlock();
 }
 
 void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
@@ -269,6 +272,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(char threadNum) {
         if (m_integratedServer.loadChunk(&chunkPosition)) {
             m_unmeshedChunksMtx.lock();
             m_unmeshedChunks.insert(chunkPosition);
+            m_recentChunksBuilt.push(chunkPosition);
             m_unmeshedChunksMtx.unlock();
         }
     }
@@ -293,6 +297,7 @@ void ClientWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK
     m_integratedServer.loadChunkFromPacket(payload, chunkPosition);
     m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
+    m_recentChunksBuilt.push(chunkPosition);
     m_unmeshedChunksMtx.unlock();
 }
 
@@ -453,38 +458,42 @@ void ClientWorld::uploadChunkMesh(char threadNum) {
 }
 
 void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
-    m_unmeshedChunksMtx.lock();
-    auto it = m_unmeshedChunks.begin();
-    while (it != m_unmeshedChunks.end()) {
-        Position chunkPosition = *it;
-        if (chunkHasNeighbours(chunkPosition)) {
-            m_unmeshedChunks.erase(chunkPosition);
-            m_unmeshedChunksMtx.unlock();
-            Chunk& chunk = m_integratedServer.getChunk(chunkPosition);
-            if (!chunk.isSkylightUpToDate()) {
-                Chunk::s_checkingNeighbouringRelights.lock();
-                bool neighbourBeingRelit = true;
-                while (neighbourBeingRelit) {
-                    neighbourBeingRelit = false;
-                    for (unsigned int i = 0; i < 6; i++) {
-                        neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
+    if (m_recentChunksBuilt.size() > 0) {
+        m_unmeshedChunksMtx.lock();
+        if (m_recentChunksBuilt.size() > 0) {
+            Position newChunkPosition = m_recentChunksBuilt.front();
+            m_recentChunksBuilt.pop();
+            for (int i = 0; i < 27; i++) {
+                Position chunkPosition = newChunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i];
+                if (m_unmeshedChunks.contains(chunkPosition) && chunkHasNeighbours(chunkPosition)) {
+                    m_unmeshedChunks.erase(chunkPosition);
+                    m_unmeshedChunksMtx.unlock();
+                    Chunk& chunk = m_integratedServer.getChunk(chunkPosition);
+                    if (!chunk.isSkylightUpToDate()) {
+                        Chunk::s_checkingNeighbouringRelights.lock();
+                        bool neighbourBeingRelit = true;
+                        while (neighbourBeingRelit) {
+                            neighbourBeingRelit = false;
+                            for (unsigned int i = 0; i < 6; i++) {
+                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
+                            }
+                            if (neighbourBeingRelit) {
+                                std::this_thread::sleep_for(std::chrono::microseconds(100));
+                            }
+                        }
+                        chunk.setSkylightBeingRelit(true);
+                        chunk.clearSkyLight();
+                        bool neighbouringChunksToRelight[6];
+                        Lighting::calculateSkyLight(chunkPosition, m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+                        chunk.setSkylightBeingRelit(false);
                     }
-                    if (neighbourBeingRelit) {
-                        std::this_thread::sleep_for(std::chrono::microseconds(100));
-                    }
+                    addChunkMesh(chunkPosition, threadNum);
+                    m_unmeshedChunksMtx.lock();
                 }
-                chunk.setSkylightBeingRelit(true);
-                chunk.clearSkyLight();
-                bool neighbouringChunksToRelight[6];
-                Lighting::calculateSkyLight(chunkPosition, m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
-                chunk.setSkylightBeingRelit(false);
             }
-            addChunkMesh(chunkPosition, threadNum);
-            return;
         }
-        it++;
+        m_unmeshedChunksMtx.unlock();
     }
-    m_unmeshedChunksMtx.unlock();
 }
 
 unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
