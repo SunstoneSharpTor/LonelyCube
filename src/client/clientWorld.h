@@ -116,7 +116,7 @@ private:
 	int m_mouseCalls;
 	int m_numRelights;
 
-	ServerWorld m_integratedServer;
+	ServerWorld<true> m_integratedServer;
 	int m_clientID;
 
 	void unloadMesh(const Position& chunkPosition);

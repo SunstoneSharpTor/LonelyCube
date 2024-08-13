@@ -38,7 +38,7 @@ void receiveCommands(bool* running) {
     }
 }
 
-void chunkLoaderThread(ServerWorld* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, char threadNum) {
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
         Position chunkPosition;
@@ -59,7 +59,7 @@ int main (int argc, char** argv) {
     }
 
     unsigned int worldSeed = std::time(0);
-    ServerWorld mainWorld(false, false, worldSeed);
+    ServerWorld<false> mainWorld(worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
 
     unsigned char numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
