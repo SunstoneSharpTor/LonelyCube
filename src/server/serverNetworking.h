@@ -31,8 +31,8 @@ private:
     ENetHost* m_host;
 public:
     bool initServer(ENetAddress& address);
-    void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld& mainWorld);
-    void receiveEvents(ServerWorld& mainWorld);
+    void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld<false>& mainWorld);
+    void receiveEvents(ServerWorld<false>& mainWorld);
     ENetHost* getHost() {
       return m_host;
     }

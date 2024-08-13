@@ -53,7 +53,7 @@ bool ServerNetworking::initServer(ENetAddress& address) {
     return true;
 }
 
-void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld& mainWorld) {
+void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld<false>& mainWorld) {
     Packet<int, 0> head;
     memcpy(&head, packet->data, head.getSize());
     switch (head.getPacketType()) {
@@ -126,7 +126,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     }
 }
 
-void ServerNetworking::receiveEvents(ServerWorld& mainWorld) {
+void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
     ENetEvent event;
     while (enet_host_service (m_host, &event, 5) > 0) {
         switch (event.type) {
