@@ -16,27 +16,13 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoords;
 
-#include "client/clientNetworking.h"
-#include "client/clientPlayer.h"
-#include "client/clientWorld.h"
+out vec2 TexCoords;
 
-namespace client {
-
-class RenderThread {
-private:
-    ClientWorld* m_mainWorld;
-    bool* m_chunkLoaderThreadsRunning;
-    ClientPlayer* m_mainPlayer;
-    ClientNetworking& m_networking;
-public:
-    RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
-    mainPlayer, ClientNetworking& networking) : m_mainWorld(mainWorld),
-    m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning), m_mainPlayer(mainPlayer),
-    m_networking(networking) {}
-    void go(bool* running);
-    void renderSky();
-};
-
-}  // namespace client
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0); 
+    TexCoords = aTexCoords;
+}  

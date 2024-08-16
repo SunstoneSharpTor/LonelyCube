@@ -16,27 +16,17 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#ifdef GL_ES
+precision highp float;
+#endif
 
-#include "client/clientNetworking.h"
-#include "client/clientPlayer.h"
-#include "client/clientWorld.h"
+out vec4 FragColor;
+  
+in vec2 TexCoords;
 
-namespace client {
+uniform sampler2D screenTexture;
 
-class RenderThread {
-private:
-    ClientWorld* m_mainWorld;
-    bool* m_chunkLoaderThreadsRunning;
-    ClientPlayer* m_mainPlayer;
-    ClientNetworking& m_networking;
-public:
-    RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
-    mainPlayer, ClientNetworking& networking) : m_mainWorld(mainWorld),
-    m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning), m_mainPlayer(mainPlayer),
-    m_networking(networking) {}
-    void go(bool* running);
-    void renderSky();
-};
-
-}  // namespace client
+void main()
+{ 
+    FragColor = texture(screenTexture, TexCoords);
+}
