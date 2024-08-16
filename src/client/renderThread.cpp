@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include "client/clientNetworking.h"
+#include "client/frameBuffer.h"
 #include "client/renderer.h"
 #include "client/vertexBuffer.h"
 #include "client/indexBuffer.h"
@@ -103,19 +104,23 @@ void RenderThread::go(bool* running) {
         gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
     #endif
 
-    //water shader
+    // Water shader
     Shader waterShader("res/shaders/basicVertex.txt", "res/shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_texture", 0);
     waterShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
-
-    //set up the shader and the uniforms
+    // Block shader
     Shader blockShader("res/shaders/basicVertex.txt", "res/shaders/basicFragment.txt");
     blockShader.bind();
-
-    //screen shader
+    // Block outline shader
+    Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
+    // Crosshair shader
+    Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
+    crosshairShader.bind();
+    glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
+    crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
+    // Screen shader
     Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
-    waterShader.bind();
 
     Texture allBlockTextures("res/blockTextures.png");
     allBlockTextures.bind();
@@ -156,11 +161,6 @@ void RenderThread::go(bool* running) {
     crosshairVA.addBuffer(crosshairVB, crosshairVBlayout);
     IndexBuffer crosshairIB(crosshairIndices, 18);
 
-    Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
-    crosshairShader.bind();
-    glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
-    crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
-
     //set up block outline
     VertexArray blockOutlineVA;
     VertexBuffer blockOutlineVB(constants::WIREFRAME_CUBE_FACE_POSITIONS, 24 * sizeof(float));
@@ -169,37 +169,7 @@ void RenderThread::go(bool* running) {
     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
     IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
-    Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
-
-    // Set up frame buffer
-    unsigned int fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    unsigned int textureColourbuffer;
-    glGenTextures(1, &textureColourbuffer);
-    glBindTexture(GL_TEXTURE_2D, textureColourbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowDimensions[0], windowDimensions[1], 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColourbuffer, 0);
-    unsigned int textureDepthBuffer;
-    glGenTextures(1, &textureDepthBuffer);
-    glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, windowDimensions[0], windowDimensions[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, textureDepthBuffer, 0);
-    float screenCoords[24] = { -1.0f, -1.0f, 0.0f, 0.0f,
-                                        1.0f,  -1.0f, 1.0f,  0.0f,
-                                        -1.0f, 1.0f, 0.0f, 1.0f,
-                                       -1.0f, 1.0f, 0.0f, 1.0f,
-                                       1.0f,  -1.0f, 1.0f,  0.0f,
-                                        1.0f,  1.0f, 1.0f,  1.0f };
-
-    VertexArray screenVA;
-    VertexBuffer screenVB(screenCoords, 24 * sizeof(float));
-    VertexBufferLayout screenVBlayout;
-    screenVBlayout.push<float>(2);
-    screenVBlayout.push<float>(2);
-    screenVA.addBuffer(screenVB, screenVBlayout);
+    FrameBuffer<true> worldFrameBuffer(windowDimensions);
 
     float cameraPos[3];
     cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
@@ -277,10 +247,7 @@ void RenderThread::go(bool* running) {
         }
         if (windowevent_resized) {
             SDL_GetWindowSize(sdl_window, &windowDimensions[0], &windowDimensions[1]);
-            glBindTexture(GL_TEXTURE_2D, textureColourbuffer);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowDimensions[0], windowDimensions[1], 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-            glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, windowDimensions[0], windowDimensions[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+            worldFrameBuffer.resize(windowDimensions);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
@@ -346,11 +313,10 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
+            // Render the world to a texture
+            worldFrameBuffer.bind();
             glClearColor(0.57f, 0.70f, 1.0f, 1.0f);
             mainRenderer.clear();
-
             allBlockTextures.bind();
             //auto tp1 = std::chrono::high_resolution_clock::now();
             m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
@@ -359,19 +325,13 @@ void RenderThread::go(bool* running) {
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
+            worldFrameBuffer.unbind();
 
-            // second pass
-            glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+            // Draw the world texture
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
-            
             glDisable(GL_DEPTH_TEST);
-            screenShader.bind();
-            screenVA.bind();
-            glActiveTexture(0);
-            glBindTexture(GL_TEXTURE_2D, textureColourbuffer);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-
+            worldFrameBuffer.draw(screenShader);
             glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
             mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
