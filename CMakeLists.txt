@@ -19,17 +19,18 @@ set(CLIENT_SOURCE_FILES
     src/client/camera.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
+    src/client/clientPlayer.cpp
+    src/client/clientWorld.cpp
+    src/client/computeShader.cpp
     src/client/indexBuffer.cpp
     src/client/meshBuilder.cpp
     src/client/renderer.cpp
     src/client/renderThread.cpp
-    src/client/clientPlayer.cpp
     src/client/shader.cpp
     src/client/stb_image.cpp
     src/client/texture.cpp
     src/client/vertexArray.cpp
     src/client/vertexBuffer.cpp
-    src/client/clientWorld.cpp
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/config.cpp
