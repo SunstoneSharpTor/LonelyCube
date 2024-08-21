@@ -105,9 +105,9 @@ void FrameBuffer<zBuffer>::unbind() {
 template<bool zBuffer>
 void FrameBuffer<zBuffer>::draw(Shader& shader) {
     shader.bind();
-    m_screenVA.bind();
     glActiveTexture(0);
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
+    m_screenVA.bind();
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 

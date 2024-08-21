@@ -31,8 +31,9 @@ uniform sampler2D u_skyTexture;
 
 void main() {
     vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / textureSize(u_skyTexture, 0));
-    
     vec4 texColour = texture(u_blockTextures, v_texCoord);
+    if(texColour.a <= 252.4f/255.0f)
+        discard;
     vec4 texColourWithAlpha = texColour * v_brightness;
     texColourWithAlpha[3] = texColour[3];
     texColourWithAlpha = mix(skyColour, texColourWithAlpha, v_visibility);
