@@ -30,7 +30,8 @@ uniform sampler2D u_blockTextures;
 uniform sampler2D u_skyTexture;
 
 void main() {
-    vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / textureSize(u_skyTexture, 0));
+    vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / vec2(textureSize(u_skyTexture, 0)));
+    
     vec4 texColour = texture(u_blockTextures, v_texCoord);
     if(texColour.a <= 252.4f/255.0f)
         discard;

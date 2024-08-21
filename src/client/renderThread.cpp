@@ -346,7 +346,9 @@ void RenderThread::go(bool* running) {
             }
 
             // Render sky
-            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+            //glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+            GLPrintErrors();
             skyShader.bind();
             glDispatchCompute((unsigned int)(windowDimensions[0]), (unsigned int)(windowDimensions[1]), 1);
             // Make sure writing to image has finished before read
