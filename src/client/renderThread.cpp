@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include "client/clientNetworking.h"
+#include "client/computeShader.h"
 #include "client/frameBuffer.h"
 #include "client/renderer.h"
 #include "client/vertexBuffer.h"
@@ -105,13 +106,17 @@ void RenderThread::go(bool* running) {
     #endif
 
     // Water shader
-    Shader waterShader("res/shaders/basicVertex.txt", "res/shaders/waterFragment.txt");
+    Shader waterShader("res/shaders/blockVertex.txt", "res/shaders/waterFragment.txt");
     waterShader.bind();
-    waterShader.setUniform1i("u_texture", 0);
+    waterShader.setUniform1i("u_blockTextures", 0);
+    waterShader.setUniform1i("u_skyTexture", 1);
     waterShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
     // Block shader
-    Shader blockShader("res/shaders/basicVertex.txt", "res/shaders/basicFragment.txt");
+    Shader blockShader("res/shaders/blockVertex.txt", "res/shaders/blockFragment.txt");
     blockShader.bind();
+    blockShader.setUniform1i("u_blockTextures", 0);
+    blockShader.setUniform1i("u_skyTexture", 1);
+    blockShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
     // Block outline shader
     Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
     // Crosshair shader
@@ -121,11 +126,25 @@ void RenderThread::go(bool* running) {
     crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
     // Screen shader
     Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
+    screenShader.bind();
+    screenShader.setUniform1i("screenTexture", 0);
+    // Sky shader
+    ComputeShader skyShader("res/shaders/sky.txt");
+
+    float screenCoords[24] = { -1.0f, -1.0f, 0.0f, 0.0f,
+                                        1.0f,  -1.0f, 1.0f,  0.0f,
+                                        -1.0f, 1.0f, 0.0f, 1.0f,
+                                       -1.0f, 1.0f, 0.0f, 1.0f,
+                                       1.0f,  -1.0f, 1.0f,  0.0f,
+                                        1.0f,  1.0f, 1.0f,  1.0f };
+    VertexBufferLayout screenVBL;
+    VertexArray screenVA;
+    VertexBuffer screenVB(screenCoords, 24 * sizeof(float));
+    screenVBL.push<float>(2);
+    screenVBL.push<float>(2);
+    screenVA.addBuffer(screenVB, screenVBL);
 
     Texture allBlockTextures("res/blockTextures.png");
-    allBlockTextures.bind();
-    blockShader.setUniform1i("u_texture", 0);
-    blockShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
 
     Renderer mainRenderer;
 
@@ -170,6 +189,17 @@ void RenderThread::go(bool* running) {
     IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
+
+    // texture size
+    unsigned int skyTexture;
+    glGenTextures(1, &skyTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, skyTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
 
     float cameraPos[3];
     cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
@@ -248,6 +278,8 @@ void RenderThread::go(bool* running) {
         if (windowevent_resized) {
             SDL_GetWindowSize(sdl_window, &windowDimensions[0], &windowDimensions[1]);
             worldFrameBuffer.resize(windowDimensions);
+            glBindTexture(GL_TEXTURE_2D, skyTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
@@ -313,11 +345,27 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
+            // Render sky
+            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+            skyShader.bind();
+            glDispatchCompute((unsigned int)(windowDimensions[0]), (unsigned int)(windowDimensions[1]), 1);
+            // Make sure writing to image has finished before read
+            glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
             // Render the world to a texture
-            worldFrameBuffer.bind();
-            glClearColor(0.57f, 0.70f, 1.0f, 1.0f);
+            //worldFrameBuffer.bind();
             mainRenderer.clear();
+            // Draw the sky
+            screenShader.bind();
+            glActiveTexture(0);
+            glBindTexture(GL_TEXTURE_2D, skyTexture);
+            screenVA.bind();
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            // Render the world geometry
+            glEnable(GL_DEPTH_TEST);
             allBlockTextures.bind();
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, skyTexture);
             //auto tp1 = std::chrono::high_resolution_clock::now();
             m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
@@ -328,14 +376,15 @@ void RenderThread::go(bool* running) {
             worldFrameBuffer.unbind();
 
             // Draw the world texture
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            //glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
-            worldFrameBuffer.draw(screenShader);
+            //worldFrameBuffer.draw(screenShader);
+            // Draw the crosshair
             glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+            glActiveTexture(GL_TEXTURE0);
             mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_DEPTH_TEST);
 
             SDL_GL_SwapWindow(sdl_window);
 
