@@ -16,19 +16,29 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef GL_ES
-precision highp image2D;
-#endif
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(rgba32f, binding = 0) uniform writeonly image2D imgOutput;
+layout (rgba32f, binding = 0) uniform image2D skyImage;
+
+uniform int time;
+uniform mat4 inverseProjection;
+uniform mat4 inverseView;
 
 void main() {
+    vec2 textureSize = vec2(imageSize(skyImage));
     vec4 value = vec4(0.0, 0.0, 1.0, 1.0);
-    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
+    vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
+    vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
+
+    value.y = float(rayDir.y) * 5;
 	
-    value.x = float(texelCoord.x)/float(gl_NumWorkGroups.x);
-    value.y = float(texelCoord.y)/float(gl_NumWorkGroups.y);
-	
-    imageStore(imgOutput, texelCoord, value);
+    imageStore(skyImage, texelCoords, value);
+}
+
+float calculateLight(vec3 rayDir) {
+
+    return 0.0;
 }
