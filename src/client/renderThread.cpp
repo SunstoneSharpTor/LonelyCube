@@ -189,6 +189,7 @@ void RenderThread::go(bool* running) {
     IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
+    worldFrameBuffer.unbind();
 
     // texture size
     unsigned int skyTexture;
@@ -218,8 +219,8 @@ void RenderThread::go(bool* running) {
     SDL_GetWindowDisplayMode(sdl_window, &displayMode);
     int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
     double DT = 1.0 / FPS_CAP;
-    long frames = 0;
-    long lastFrameRateFrames = 0;
+    unsigned long long frames = 0;
+    unsigned long long lastFrameRateFrames = 0;
     end = std::chrono::steady_clock::now();
     time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
     double frameStart = time - DT;
@@ -313,17 +314,19 @@ void RenderThread::go(bool* running) {
             }
             
             //create model view projection matrix for the world
-            float FOV = 70.0;
-            FOV = FOV - FOV * (2.0 / 3.0) * m_mainPlayer->zoom;
-            glm::mat4 proj = glm::perspective(glm::radians(FOV), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
+            float fov = 70.0;
+            fov = fov - fov * (2.0 / 3.0) * m_mainPlayer->zoom;
+            glm::mat4 projection = glm::perspective(glm::radians(fov), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
+            glm::mat4 inverseProjection = glm::inverse(projection);
             glm::mat4 view;
             m_mainPlayer->viewCamera.getViewMatrix(&view);
+            glm::mat4 inverseView = glm::inverse(view);
             glm::mat4 model = (glm::mat4(1.0f));
-            glm::mat4 mvp = proj * view * model;
+            glm::mat4 mvp = projection * view * model;
             //update the MVP uniform
             blockShader.bind();
             blockShader.setUniformMat4f("u_modelView", view * model);
-            blockShader.setUniformMat4f("u_proj", proj);
+            blockShader.setUniformMat4f("u_proj", projection);
 
             int breakBlockCoords[3];
             int placeBlockCoords[3];
@@ -335,7 +338,7 @@ void RenderThread::go(bool* running) {
                     outlinePosition[i] = breakBlockCoords[i] - m_mainPlayer->cameraBlockPosition[i];
                 }
                 model = glm::translate(model, outlinePosition);
-                glm::mat4 mvp = proj * view * model;
+                glm::mat4 mvp = projection * view * model;
                 blockOutlineShader.bind();
                 blockOutlineShader.setUniformMat4f("u_MVP", mvp);
 
@@ -346,11 +349,14 @@ void RenderThread::go(bool* running) {
             }
 
             // Render sky
-            //glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-            GLPrintErrors();
+            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
             skyShader.bind();
-            glDispatchCompute((unsigned int)(windowDimensions[0]), (unsigned int)(windowDimensions[1]), 1);
+            skyShader.setUniform1i("time", frames);
+            skyShader.setUniformMat4f("inverseProjection", inverseProjection);
+            skyShader.setUniformMat4f("inverseView", inverseView);
+            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
+              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            //glDispatchCompute((unsigned int)(windowDimensions[0]), (unsigned int)(windowDimensions[1]), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -359,7 +365,7 @@ void RenderThread::go(bool* running) {
             mainRenderer.clear();
             // Draw the sky
             screenShader.bind();
-            glActiveTexture(0);
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             screenVA.bind();
             glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -369,13 +375,13 @@ void RenderThread::go(bool* running) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             //auto tp1 = std::chrono::high_resolution_clock::now();
-            m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, proj, m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], FOV, actualDT);
+            m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, projection, m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], fov, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
-            worldFrameBuffer.unbind();
+            //worldFrameBuffer.unbind();
 
             // Draw the world texture
             //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
