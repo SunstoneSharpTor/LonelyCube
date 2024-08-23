@@ -108,6 +108,10 @@ void ComputeShader::setUniformMat4f(const std::string& name, const glm::mat4& va
     glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, &value[0][0]);
 }
 
+void ComputeShader::setUniformVec3(const std::string& name, const glm::vec3& value) {
+    glUniform3fv(getUniformLocation(name), 1, &value[0]);
+}
+
 int ComputeShader::getUniformLocation(const std::string& name) {
     //if the location has already been cached, return the location from the hash table
     if (m_uniformLocationCache.find(name) != m_uniformLocationCache.end()) {
