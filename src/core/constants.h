@@ -31,7 +31,9 @@ namespace constants
 
 	constexpr unsigned char skyLightMaxValue{ 15 };
 
-	constexpr int visualTPS{240};
+	constexpr int visualTPS{ 240 };
+
+	constexpr unsigned int DAY_LENGTH{ 12000 };
 
 	constexpr float CUBE_FACE_POSITIONS[72] = { 1.0f, 0.0f, 0.0f,
 												0.0f, 0.0f, 0.0f,

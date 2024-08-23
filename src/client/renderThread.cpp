@@ -351,7 +351,10 @@ void RenderThread::go(bool* running) {
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
             skyShader.bind();
-            skyShader.setUniform1i("time", frames);
+            unsigned int timeOfDay = frames / 50 % constants::DAY_LENGTH;
+            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)timeOfDay /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)timeOfDay /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
             skyShader.setUniformMat4f("inverseProjection", inverseProjection);
             skyShader.setUniformMat4f("inverseView", inverseView);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
