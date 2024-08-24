@@ -50,11 +50,11 @@ void main() {
     vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
 
     value.y = distanceThroughAtmosphere(rayDir) / 100.0;
-    float sunDistance = dot(rayDir, sunDir);
-    value.x = dot(rayDir, sunDir);
+    float sunDistance = dot(rayDir, sunDir) + 1.0;
+    value.x = sunDistance;
 
-    if (sunDistance > 0.995) {
-        value = vec4(1.0f, 0.98f, 0.96f, 1.0f);
+    if (sunDistance > 1.995) {
+        value = vec4(100.0, 100.0, 70.0, 1.0);
     }
 	
     imageStore(skyImage, texelCoords, value);

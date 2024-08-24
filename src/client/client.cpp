@@ -44,21 +44,21 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
 }
 
 int main(int argc, char* argv[]) {
-    bool MULTIPLAYER = true;
-
     Config settings("res/settings.txt");
+
+    bool multiplayer = settings.getMultiplayer();
     
     ClientNetworking networking;
 
-    if (MULTIPLAYER) {
+    if (multiplayer) {
         if (!networking.establishConnection(settings.getServerIP(), settings.getRenderDistance())) {
-            MULTIPLAYER = false;
+            multiplayer = false;
         }
     }
 
     unsigned int worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !MULTIPLAYER, playerSpawnPoint);
+    ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld);
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
 
     std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        if (MULTIPLAYER) {
+        if (multiplayer) {
             chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer, std::ref(mainWorld), std::ref(networking), &running, threadNum);
         }
         else {
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (MULTIPLAYER) {
+    if (multiplayer) {
         auto lastMessage = std::chrono::steady_clock::now();
         while (running) {
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 
     delete chunkLoaderThreadsRunning;
 
-    if (MULTIPLAYER) {
+    if (multiplayer) {
         enet_peer_disconnect(networking.getPeer(), 0);
         ENetEvent event;
         while (enet_host_service(networking.getHost(), &event, 3000) > 0) {
