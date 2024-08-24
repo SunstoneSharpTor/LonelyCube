@@ -1,2 +1,3 @@
+Multiplayer: false
 Render Distance: 32
 Server IP Address: 127.0.0.1

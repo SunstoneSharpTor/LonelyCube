@@ -21,6 +21,12 @@
 #include "core/pch.h"
 
 Config::Config(std::filesystem::path settingsPath) {
+    // Set defaults
+    m_renderDistance = 8;
+    m_serverIP = "127.0.0.1";
+    m_multiplayer = false;
+
+    // Parse file
     std::string line, field, value;
     std::ifstream stream(settingsPath);
     while (std::getline(stream, line)) {
@@ -35,6 +41,17 @@ Config::Config(std::filesystem::path settingsPath) {
         }
         if (field == "serveripaddress") {
             m_serverIP = value;
+        }
+        if (field == "multiplayer") {
+            value.erase(std::remove_if(value.begin(), value.end(), isspace), value.end());
+            std::transform(value.begin(), value.end(), value.begin(),
+                [](unsigned char c){ return std::tolower(c); });
+            if (value == "true") {
+                m_multiplayer = true;
+            }
+            else {
+                m_multiplayer = false;
+            }
         }
     }
     stream.close();

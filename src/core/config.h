@@ -24,6 +24,7 @@ class Config {
 private:
     unsigned short m_renderDistance;
     std::string m_serverIP;
+    bool m_multiplayer;
 public:
     Config(std::filesystem::path settingsPath);
     unsigned short getRenderDistance() const {
@@ -31,5 +32,8 @@ public:
     }
     std::string& getServerIP() {
         return m_serverIP;
+    }
+    bool getMultiplayer() const {
+        return m_multiplayer;
     }
 };
