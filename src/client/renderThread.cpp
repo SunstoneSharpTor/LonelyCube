@@ -128,8 +128,10 @@ void RenderThread::go(bool* running) {
     Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
     screenShader.bind();
     screenShader.setUniform1i("screenTexture", 0);
+    screenShader.setUniform1f("exposure", 1.0f);
     // Sky shader
     ComputeShader skyShader("res/shaders/sky.txt");
+    ComputeShader skyBlit("res/shaders/skyBlit.txt");
 
     float screenCoords[24] = { -1.0f, -1.0f, 0.0f, 0.0f,
                                         1.0f,  -1.0f, 1.0f,  0.0f,
@@ -200,7 +202,7 @@ void RenderThread::go(bool* running) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
 
     float cameraPos[3];
     cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
@@ -280,7 +282,7 @@ void RenderThread::go(bool* running) {
             SDL_GetWindowSize(sdl_window, &windowDimensions[0], &windowDimensions[1]);
             worldFrameBuffer.resize(windowDimensions);
             glBindTexture(GL_TEXTURE_2D, skyTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
@@ -349,7 +351,7 @@ void RenderThread::go(bool* running) {
             }
 
             // Render sky
-            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+            glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyShader.bind();
             unsigned int timeOfDay = frames / 50 % constants::DAY_LENGTH;
             skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)timeOfDay /
@@ -359,19 +361,24 @@ void RenderThread::go(bool* running) {
             skyShader.setUniformMat4f("inverseView", inverseView);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
-            //glDispatchCompute((unsigned int)(windowDimensions[0]), (unsigned int)(windowDimensions[1]), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
             // Render the world to a texture
-            //worldFrameBuffer.bind();
+            worldFrameBuffer.bind();
             mainRenderer.clear();
             // Draw the sky
-            screenShader.bind();
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, skyTexture);
-            screenVA.bind();
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+            skyBlit.bind();
+            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
+              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            // Make sure writing to image has finished before read
+            glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            // screenShader.bind();
+            // glActiveTexture(GL_TEXTURE0);
+            // glBindTexture(GL_TEXTURE_2D, skyTexture);
+            // screenVA.bind();
+            // glDrawArrays(GL_TRIANGLES, 0, 6);
             // Render the world geometry
             glEnable(GL_DEPTH_TEST);
             allBlockTextures.bind();
@@ -384,13 +391,13 @@ void RenderThread::go(bool* running) {
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
-            //worldFrameBuffer.unbind();
+            worldFrameBuffer.unbind();
 
             // Draw the world texture
-            //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            //glClear(GL_COLOR_BUFFER_BIT);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
-            //worldFrameBuffer.draw(screenShader);
+            worldFrameBuffer.draw(screenShader);
             // Draw the crosshair
             glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
             glActiveTexture(GL_TEXTURE0);

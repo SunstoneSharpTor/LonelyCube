@@ -160,6 +160,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
     waterShader.bind();
     waterShader.setUniformMat4f("u_proj", projMatrix);
     waterShader.setUniform1f("u_renderDistance", m_fogDistance);
+    glDisable(GL_CULL_FACE);
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.waterIndexBuffer->getCount() > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
@@ -178,6 +179,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
         }
     }
     m_renderingFrame = false;
+    glEnable(GL_CULL_FACE);
 }
 
 void ClientWorld::doRenderThreadJobs() {
@@ -413,6 +415,7 @@ void ClientWorld::uploadChunkMesh(char threadNum) {
     VertexBufferLayout layout;
     layout.push<float>(3);
     layout.push<float>(2);
+    layout.push<float>(1);
     layout.push<float>(1);
 
     VertexArray *va, *waterVa;

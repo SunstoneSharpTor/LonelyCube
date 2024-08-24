@@ -177,15 +177,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
         }
 
         if (m_chunk.getBlock(block) == 4) {
-            //TODO
-            //find whether there is a block above the water to see if the water should be rendered as a full block or a surface block
-            bool waterAbove;
-            if (block >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-                int blockCoords[3];
-                //wip
-            }
-
-            float texCoords[8];
+           float texCoords[8];
             getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
             for (short vertex = 0; vertex < 4; vertex++) {
                 for (short element = 0; element < 3; element++) {
@@ -193,66 +185,21 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                     (*numWaterVertices)++;
                 }
                 waterVertices[*numWaterVertices] = texCoords[vertex * 2];
-                (*numWaterVertices)++;
-                waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
-                (*numWaterVertices)++;
-                unsigned int blockNum = blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-                + blockCoords[2] * constants::CHUNK_SIZE + blockCoords[0];
-                waterVertices[*numWaterVertices] = (1.0f / 16.0f) * (m_chunk.getSkyLight(blockNum) + 1);
-                (*numWaterVertices)++;
+                waterVertices[*numWaterVertices + 1] = texCoords[vertex * 2 + 1];
+                waterVertices[*numWaterVertices + 2] = 1.0f;
+                waterVertices[*numWaterVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
+                (*numWaterVertices) += 4;
             }
 
             //index buffer
-            int trueNumVertices = *numWaterVertices / 6;
+            int trueNumVertices = *numWaterVertices / 7;
             waterIndices[*numWaterIndices] = trueNumVertices - 4;
-            (*numWaterIndices)++;
-            waterIndices[*numWaterIndices] = trueNumVertices - 3;
-            (*numWaterIndices)++;
-            waterIndices[*numWaterIndices] = trueNumVertices - 2;
-            (*numWaterIndices)++;
-            waterIndices[*numWaterIndices] = trueNumVertices - 4;
-            (*numWaterIndices)++;
-            waterIndices[*numWaterIndices] = trueNumVertices - 2;
-            (*numWaterIndices)++;
-            waterIndices[*numWaterIndices] = trueNumVertices - 1;
-            (*numWaterIndices)++;
-
-            if (neighbouringBlock == 5) {
-                firstPositionIndex = 48;
-                firstAdjacentBlockIndex = 0;
-                textureNum = 4;
-                neighbouringBlockCoordsOffset = 0;
-                blockCoords[1]++;
-
-                getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
-                for (short vertex = 0; vertex < 4; vertex++) {
-                    for (short element = 0; element < 3; element++) {
-                        waterVertices[*numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
-                        (*numWaterVertices)++;
-                    }
-                    waterVertices[*numWaterVertices] = texCoords[vertex * 2];
-                    (*numWaterVertices)++;
-                    waterVertices[*numWaterVertices] = texCoords[vertex * 2 + 1];
-                    (*numWaterVertices)++;
-                    waterVertices[*numWaterVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
-                    (*numWaterVertices)++;
-                }
-                
-                //index buffer
-                trueNumVertices = *numWaterVertices / 6;
-                waterIndices[*numWaterIndices] = trueNumVertices - 4;
-                (*numWaterIndices)++;
-                waterIndices[*numWaterIndices] = trueNumVertices - 3;
-                (*numWaterIndices)++;
-                waterIndices[*numWaterIndices] = trueNumVertices - 2;
-                (*numWaterIndices)++;
-                waterIndices[*numWaterIndices] = trueNumVertices - 4;
-                (*numWaterIndices)++;
-                waterIndices[*numWaterIndices] = trueNumVertices - 2;
-                (*numWaterIndices)++;
-                waterIndices[*numWaterIndices] = trueNumVertices - 1;
-                (*numWaterIndices)++;
-            }
+            waterIndices[*numWaterIndices + 1] = trueNumVertices - 3;
+            waterIndices[*numWaterIndices + 2] = trueNumVertices - 2;
+            waterIndices[*numWaterIndices + 3] = trueNumVertices - 4;
+            waterIndices[*numWaterIndices + 4] = trueNumVertices - 2;
+            waterIndices[*numWaterIndices + 5] = trueNumVertices - 1;
+            *numWaterIndices += 6;
         }
         else {
             float texCoords[8];
@@ -263,11 +210,10 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                     (*numVertices)++;
                 }
                 vertices[*numVertices] = texCoords[vertex * 2];
-                (*numVertices)++;
-                vertices[*numVertices] = texCoords[vertex * 2 + 1];
-                (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
-                (*numVertices)++;
+                vertices[*numVertices + 1] = texCoords[vertex * 2 + 1];
+                vertices[*numVertices + 2] = 1.0f;
+                vertices[*numVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
+                (*numVertices) += 4;
             }
 
             //ambient occlusion
@@ -284,19 +230,17 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                 if (constants::castsShadows[blockType]) {
                     unsigned char type = m_chunk.getBlock(block);
                     float val = constants::shadowReceiveAmount[type];
-                    int vertexNum = *numVertices - (19 - adjacentBlockToFace / 2 * 6);
+                    int vertexNum = *numVertices - (23 - adjacentBlockToFace / 2 * 7);
                     vertices[vertexNum] *= val;
-                    //vertices[*numVertices - (19 - adjacentBlockToFace / 2 * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
                     if ((adjacentBlockToFace % 2) != 0) {
-                        vertexNum = *numVertices - (19 - ((adjacentBlockToFace / 2 + 1) % 4) * 6);
+                        vertexNum = *numVertices - (23 - ((adjacentBlockToFace / 2 + 1) % 4) * 7);
                         vertices[vertexNum] *= val;
-                        //vertices[*numVertices - (19 - ((adjacentBlockToFace / 2 + 1) % 4) * 6)] *= constants::shadowReceiveAmount[m_chunk.getBlock(block)];
                     }
                 }
             }
 
             //index buffer
-            int trueNumVertices = *numVertices / 6;
+            int trueNumVertices = *numVertices / 7;
             indices[*numIndices] = trueNumVertices - 4;
             (*numIndices)++;
             indices[*numIndices] = trueNumVertices - 3;
@@ -326,18 +270,17 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
                     (*numVertices)++;
                 }
                 vertices[*numVertices] = texCoords[vertex * 2];
-                (*numVertices)++;
-                vertices[*numVertices] = texCoords[vertex * 2 + 1];
-                (*numVertices)++;
-                vertices[*numVertices] = (1.0f / 16.0f) * (m_chunk.getWorldSkyLight(neighbouringBlockPos) + 1);
-                (*numVertices)++;
+                vertices[*numVertices + 1] = texCoords[vertex * 2 + 1];
+                vertices[*numVertices + 2] = 1.0f;
+                vertices[*numVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
+                (*numVertices) += 4;
             }
 
             //TODO
             //lighting for X-shaped meshes
 
             //index buffer
-            int trueNumVertices = *numVertices / 6;
+            int trueNumVertices = *numVertices / 7;
             indices[*numIndices] = trueNumVertices - 4;
             (*numIndices)++;
             indices[*numIndices] = trueNumVertices - 3;
