@@ -52,10 +52,6 @@ void main() {
     value.y = distanceThroughAtmosphere(rayDir) / 100.0;
     float sunDistance = dot(rayDir, sunDir) + 1.0;
     value.x = sunDistance;
-
-    if (sunDistance > 1.995) {
-        value = vec4(100.0, 100.0, 70.0, 1.0);
-    }
 	
     imageStore(skyImage, texelCoords, value);
 }

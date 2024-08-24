@@ -16,15 +16,42 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(rgba32f, binding = 0) uniform image2D imgOutput;
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba16f, binding = 0) uniform image2D skyImage;
+
+uniform vec3 sunDir;
+uniform mat4 inverseProjection;
+uniform mat4 inverseView;
+
+const int NUM_IN_SCATTERING_POINTS = 10;
+const float PLANET_RADIUS = 100.0;
+const float ATMOSPHERE_RADIUS = 120.0;
+
+float distanceThroughAtmosphere(vec3 rayDir) {
+    vec3 spereCentre = vec3(0, 0, 0);
+    float spereRadius = ATMOSPHERE_RADIUS;
+    vec3 rayOrigin = vec3(0, PLANET_RADIUS, 0);
+    vec3 offset = rayOrigin - spereCentre;
+    float b = 2 * dot(offset, rayDir);
+    float c = dot(offset, offset) - spereRadius * spereRadius;
+    float d = b * b - 4 * c;
+    float s = sqrt(d);
+    return (-b + s) / 2;
+}
 
 void main() {
+    vec2 textureSize = vec2(imageSize(skyImage));
     vec4 value = vec4(0.0, 0.0, 1.0, 1.0);
-    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
+    vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
+    vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
+
+    value.y = distanceThroughAtmosphere(rayDir) / 100.0;
+    float sunDistance = dot(rayDir, sunDir) + 1.0;
+    value.x = sunDistance;
 	
-    value.x = float(texelCoord.x)/float(gl_NumWorkGroups.x);
-    value.y = float(texelCoord.y)/float(gl_NumWorkGroups.y);
-	
-    imageStore(imgOutput, texelCoord, value);
+    imageStore(skyImage, texelCoords, value);
 }

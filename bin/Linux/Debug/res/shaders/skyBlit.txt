@@ -16,27 +16,12 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef GL_ES
-precision highp float;
-#endif
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-out vec4 FragColor;
-  
-in vec2 TexCoords;
+layout (rgba16f, binding = 0) uniform image2D skyImage;
+layout (rgba16f, binding = 1) uniform image2D targetImage;
 
-uniform sampler2D screenTexture;
-uniform float exposure;
-
-void main()
-{
-    const float gamma = 2.2;
-    vec3 hdrColor = texture(screenTexture, TexCoords).rgb;
-  
-    // exposure tone mapping
-    vec3 mapped = vec3(1.0) - exp(-hdrColor * exposure);
-    
-    // gamma correction 
-    mapped = pow(mapped, vec3(1.0 / gamma));
-  
-    FragColor = vec4(mapped, 1.0);
+void main() {
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+    imageStore(targetImage, texelCoords, imageLoad(skyImage, texelCoords));
 }
