@@ -18,7 +18,7 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (rgba32f, binding = 0) uniform image2D skyImage;
+layout (rgba16f, binding = 0) uniform image2D skyImage;
 
 uniform vec3 sunDir;
 uniform mat4 inverseProjection;
@@ -27,15 +27,6 @@ uniform mat4 inverseView;
 const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
 const float ATMOSPHERE_RADIUS = 120.0;
-
-float calculateLight(vec3 rayDir) {
-    //vec3 inscatterPoint(0.0, 0.0, 0.0);
-    //for (int i = 0; i < NUM_IN_SCATTERING_POINTS; i++) {
-        //inscatterPoint += rayDir / 
-    //}
-
-    return 0.0;
-}
 
 float distanceThroughAtmosphere(vec3 rayDir) {
     vec3 spereCentre = vec3(0, 0, 0);
@@ -62,7 +53,7 @@ void main() {
     float sunDistance = dot(rayDir, sunDir);
     value.x = dot(rayDir, sunDir);
 
-    if (sunDistance > 0.99) {
+    if (sunDistance > 0.995) {
         value = vec4(1.0f, 0.98f, 0.96f, 1.0f);
     }
 	

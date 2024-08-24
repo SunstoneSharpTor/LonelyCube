@@ -45,6 +45,9 @@ public:
     void unbind();
     void resize(int* frameSize);
     void draw(Shader& shader);
+    unsigned int getTextureColourBuffer() {
+        return m_textureColourbuffer;
+    }
 };
 
 template<bool zBuffer>
@@ -53,7 +56,7 @@ FrameBuffer<zBuffer>::FrameBuffer(int* frameSize) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_rendererID);
     glGenTextures(1, &m_textureColourbuffer);
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frameSize[0], frameSize[1], 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -85,7 +88,7 @@ FrameBuffer<zBuffer>::~FrameBuffer() {
 template<bool zBuffer>
 void FrameBuffer<zBuffer>::resize(int* frameSize) {
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frameSize[0], frameSize[1], 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     if(zBuffer) {
         glBindTexture(GL_TEXTURE_2D, m_textureDepthBuffer);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, frameSize[0], frameSize[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
@@ -105,7 +108,7 @@ void FrameBuffer<zBuffer>::unbind() {
 template<bool zBuffer>
 void FrameBuffer<zBuffer>::draw(Shader& shader) {
     shader.bind();
-    glActiveTexture(0);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
     m_screenVA.bind();
     glDrawArrays(GL_TRIANGLES, 0, 6);

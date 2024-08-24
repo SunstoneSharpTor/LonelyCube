@@ -158,14 +158,14 @@ namespace constants
 							    true //tall grass
 	};
 
-	constexpr float shadowReceiveAmount[8] = { 0.65f, //air
-											   0.65f, //dirt
-											   0.65f, //grass
-											   0.65f, //stone
-											   0.65f, //water
-											   0.65f, //oak log
-											   0.85f, //oak leaves
-											   0.65f //tall grass
+	constexpr float shadowReceiveAmount[8] = { 0.45f, //air
+											   0.45f, //dirt
+											   0.45f, //grass
+											   0.45f, //stone
+											   0.45f, //water
+											   0.45f, //oak log
+											   0.7f, //oak leaves
+											   0.45f //tall grass
 	};
 }
 #endif
