@@ -48,6 +48,9 @@ public:
     unsigned int getTextureColourBuffer() {
         return m_textureColourbuffer;
     }
+    unsigned int getTextureDepthBuffer() {
+        return m_textureDepthBuffer;
+    }
 };
 
 template<bool zBuffer>
