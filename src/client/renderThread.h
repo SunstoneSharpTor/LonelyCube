@@ -30,13 +30,14 @@ private:
     bool* m_chunkLoaderThreadsRunning;
     ClientPlayer* m_mainPlayer;
     ClientNetworking& m_networking;
+
+    float calculateBrightness(const float* points, unsigned int numPoints, unsigned int time);
 public:
     RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
     mainPlayer, ClientNetworking& networking) : m_mainWorld(mainWorld),
     m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning), m_mainPlayer(mainPlayer),
     m_networking(networking) {}
     void go(bool* running);
-    void renderSky();
 };
 
 }  // namespace client
