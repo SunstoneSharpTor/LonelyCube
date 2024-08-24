@@ -131,20 +131,9 @@ void RenderThread::go(bool* running) {
     screenShader.setUniform1f("exposure", 1.0f);
     // Sky shader
     ComputeShader skyShader("res/shaders/sky.txt");
-    ComputeShader skyBlit("res/shaders/skyBlit.txt");
-
-    float screenCoords[24] = { -1.0f, -1.0f, 0.0f, 0.0f,
-                                        1.0f,  -1.0f, 1.0f,  0.0f,
-                                        -1.0f, 1.0f, 0.0f, 1.0f,
-                                       -1.0f, 1.0f, 0.0f, 1.0f,
-                                       1.0f,  -1.0f, 1.0f,  0.0f,
-                                        1.0f,  1.0f, 1.0f,  1.0f };
-    VertexBufferLayout screenVBL;
-    VertexArray screenVA;
-    VertexBuffer screenVB(screenCoords, 24 * sizeof(float));
-    screenVBL.push<float>(2);
-    screenVBL.push<float>(2);
-    screenVA.addBuffer(screenVB, screenVBL);
+    ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
+    // Sun shader
+    ComputeShader sunShader("res/shaders/sun.txt");
 
     Texture allBlockTextures("res/blockTextures.png");
 
@@ -230,7 +219,6 @@ void RenderThread::go(bool* running) {
     float lastFrameRateTime = frameStart + DT;
     bool loopRunning = *running;
     while (loopRunning) {
-        //GLPrintErrors();
         //toggle fullscreen if F11 pressed
         if (keyboardState[SDL_SCANCODE_F11] && (!lastF11)) {
             if (windowFullScreen) {
@@ -297,6 +285,7 @@ void RenderThread::go(bool* running) {
         lastWindowFullScreen = windowFullScreen;
 
         //render if a frame is needed
+        GLPrintErrors();
         end = std::chrono::steady_clock::now();
         double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         if (currentTime > frameStart + DT) {
@@ -369,16 +358,25 @@ void RenderThread::go(bool* running) {
             mainRenderer.clear();
             // Draw the sky
             glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-            skyBlit.bind();
+            skyBlitShader.bind();
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-            // screenShader.bind();
-            // glActiveTexture(GL_TEXTURE0);
-            // glBindTexture(GL_TEXTURE_2D, skyTexture);
-            // screenVA.bind();
-            // glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            // Draw the sun
+            glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+            sunShader.bind();
+            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)timeOfDay /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)timeOfDay /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
+            sunShader.setUniformMat4f("inverseProjection", inverseProjection);
+            sunShader.setUniformMat4f("inverseView", inverseView);
+            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
+              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            // Make sure writing to image has finished before read
+            glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
             // Render the world geometry
             glEnable(GL_DEPTH_TEST);
             allBlockTextures.bind();

@@ -124,6 +124,7 @@ int ComputeShader::getUniformLocation(const std::string& name) {
     }
     //cache the uniform location
     m_uniformLocationCache[name] = location;
+        GLPrintErrors();
     return location;
 }
 
