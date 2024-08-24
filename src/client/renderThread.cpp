@@ -339,12 +339,16 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
+            unsigned int timeOfDay = (frames / 5 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            // Calculate ground luminance
+            float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
+            std::cout << timeOfDay << ": " << groundLuminance << "\n";
+
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyShader.bind();
-            unsigned int timeOfDay = frames / 50 % constants::DAY_LENGTH;
-            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)timeOfDay /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)timeOfDay /
+            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)(timeOfDay - 3000) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)(timeOfDay - 3000) /
                 constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
             skyShader.setUniformMat4f("inverseProjection", inverseProjection);
             skyShader.setUniformMat4f("inverseView", inverseView);
@@ -367,8 +371,8 @@ void RenderThread::go(bool* running) {
             // Draw the sun
             glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             sunShader.bind();
-            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)timeOfDay /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)timeOfDay /
+            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)(timeOfDay - 3000) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)(timeOfDay - 3000) /
                 constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
@@ -426,8 +430,28 @@ void RenderThread::go(bool* running) {
     SDL_Quit();
 }
 
-void RenderThread::renderSky() {
-
+float RenderThread::calculateBrightness(const float* points, unsigned int numPoints, unsigned int time) {
+    unsigned int preceedingPoint = numPoints * 2 - 2;
+    unsigned int succeedingPoint = 0;
+    if (time < points[numPoints * 2 - 2]) {
+        int i = 0;
+        while (i < numPoints * 2 && points[i] < time) {
+            i += 2;
+            preceedingPoint = i - 2;
+            succeedingPoint = i;
+        }
+    }
+    float preceedingTime = points[preceedingPoint];
+    float succeedingTime = points[succeedingPoint];
+    if (preceedingTime < succeedingTime) {
+        float offset = (float)constants::DAY_LENGTH - preceedingTime;
+        preceedingTime = 0;
+        time = (time + (int)offset) % constants::DAY_LENGTH;
+        succeedingTime += offset;
+    }
+    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
+    
+    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
 }
 
 }  // namespace client
