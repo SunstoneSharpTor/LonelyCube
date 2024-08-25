@@ -23,6 +23,7 @@ layout (rgba16f, binding = 0) uniform image2D skyImage;
 uniform vec3 sunDir;
 uniform mat4 inverseProjection;
 uniform mat4 inverseView;
+uniform float brightness;
 
 const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
@@ -53,5 +54,5 @@ void main() {
     float sunDistance = dot(rayDir, sunDir) + 1.0;
     value.x = sunDistance;
 	
-    imageStore(skyImage, texelCoords, value);
+    imageStore(skyImage, texelCoords, vec4(value.rgb * brightness, 1.0));
 }

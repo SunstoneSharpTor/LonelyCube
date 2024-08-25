@@ -128,7 +128,9 @@ private:
 
 public:
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos);
-	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT);
+	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
+		viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
+		float skyLightIntensity, double DT);
 	void loadChunksAroundPlayerSingleplayer(char threadNum);
 	void loadChunksAroundPlayerMultiplayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);

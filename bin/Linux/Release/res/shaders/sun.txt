@@ -23,6 +23,7 @@ layout (rgba16f, binding = 0) uniform image2D frameBuffer;
 uniform vec3 sunDir;
 uniform mat4 inverseProjection;
 uniform mat4 inverseView;
+uniform float brightness;
 
 void main() {
     vec2 textureSize = vec2(imageSize(frameBuffer));
@@ -34,6 +35,6 @@ void main() {
 
     float sunDistance = dot(rayDir, sunDir) + 1.0;
     if (sunDistance > 1.995) {
-        imageStore(frameBuffer, texelCoords, vec4(100.0, 100.0, 70.0, 1.0));
+        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 1.0, 0.7) * brightness, 1.0));
     }
 }

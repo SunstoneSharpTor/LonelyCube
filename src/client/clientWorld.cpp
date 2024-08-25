@@ -111,7 +111,9 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     }
 }
 
-void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov, double DT) {
+void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader,
+    glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float
+    fov, float skyLightIntensity, double DT) {
     Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
@@ -119,6 +121,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
     //render blocks
     blockShader.bind();
     blockShader.setUniformMat4f("u_proj", projMatrix);
+    blockShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
     m_timeByDTs += DT;
     while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
         double fac = 0.006;
@@ -159,6 +162,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
     //render water
     waterShader.bind();
     waterShader.setUniformMat4f("u_proj", projMatrix);
+    waterShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
     waterShader.setUniform1f("u_renderDistance", m_fogDistance);
     glDisable(GL_CULL_FACE);
     for (const auto& [chunkPosition, mesh] : m_meshes) {

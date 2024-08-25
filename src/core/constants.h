@@ -35,16 +35,22 @@ namespace constants
 
     constexpr unsigned int DAY_LENGTH{ 12000 };
 
-    constexpr unsigned int NUM_GROUND_LUMINANCE_POINTS{ 7 };
+    constexpr unsigned int NUM_GROUND_LUMINANCE_POINTS{ 13 };
     constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
-	// Time | Luminance
-        1500.0f, 0.45f,
+    // Time | Luminance
+        1800.0f, 0.25f,
+        2400.0f, 1.0f,
+        2500.0f, 3.0f,
+        2850.0f, 25.0f,
         3000.0f, 400.0f,
         5000.0f, 100000.0f,
         6000.0f, 110000.0f,
         7000.0f, 100000.0f,
         9000.0f, 400.0f,
-        10500.0f, 0.25f };
+        9150.0f, 25.0f,
+        9500.0f, 3.0f,
+        9600.0f, 1.0f,
+        10200.0f, 0.25f };
 
     constexpr float CUBE_FACE_POSITIONS[72] = { 1.0f, 0.0f, 0.0f,
                                                 0.0f, 0.0f, 0.0f,
