@@ -339,19 +339,22 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            unsigned int timeOfDay = (frames / 5 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            unsigned int timeOfDay = (frames / 3 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             std::cout << timeOfDay << ": " << groundLuminance << "\n";
+            screenShader.bind();
+            screenShader.setUniform1f("exposure", std::max(1.0f / 100000.0f, std::min(1.0f / groundLuminance, 1.0f / 25.0f)));
 
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyShader.bind();
-            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)(timeOfDay - 3000) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)(timeOfDay - 3000) /
+            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
                 constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
             skyShader.setUniformMat4f("inverseProjection", inverseProjection);
             skyShader.setUniformMat4f("inverseView", inverseView);
+            skyShader.setUniform1f("brightness", groundLuminance * 1.5f);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -371,11 +374,12 @@ void RenderThread::go(bool* running) {
             // Draw the sun
             glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             sunShader.bind();
-            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)(timeOfDay - 3000) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)(timeOfDay - 3000) /
+            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
                 constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
+            skyShader.setUniform1f("brightness", groundLuminance * 20);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -387,7 +391,9 @@ void RenderThread::go(bool* running) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             //auto tp1 = std::chrono::high_resolution_clock::now();
-            m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, projection, m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] / (float)windowDimensions[1], fov, actualDT);
+            m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, projection,
+                m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] /
+                (float)windowDimensions[1], fov, groundLuminance, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
             if (lookingAtBlock) {
@@ -443,7 +449,7 @@ float RenderThread::calculateBrightness(const float* points, unsigned int numPoi
     }
     float preceedingTime = points[preceedingPoint];
     float succeedingTime = points[succeedingPoint];
-    if (preceedingTime < succeedingTime) {
+    if (succeedingTime < preceedingTime) {
         float offset = (float)constants::DAY_LENGTH - preceedingTime;
         preceedingTime = 0;
         time = (time + (int)offset) % constants::DAY_LENGTH;
