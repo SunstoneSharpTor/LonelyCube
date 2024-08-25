@@ -24,10 +24,14 @@ uniform vec3 sunDir;
 uniform mat4 inverseProjection;
 uniform mat4 inverseView;
 uniform float brightness;
+uniform vec3 sunGlowColour;
+uniform float sunGlowAmount;
 
 const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
 const float ATMOSPHERE_RADIUS = 120.0;
+const vec3 SKY_TOP_COLOUR = vec3(0.05, 0.25, 1.0);
+const vec3 HORIZON_COLOUR = vec3(0.4, 0.50, 1.0);
 
 float distanceThroughAtmosphere(vec3 rayDir) {
     vec3 spereCentre = vec3(0, 0, 0);
@@ -43,16 +47,16 @@ float distanceThroughAtmosphere(vec3 rayDir) {
 
 void main() {
     vec2 textureSize = vec2(imageSize(skyImage));
-    vec4 value = vec4(0.0, 0.0, 1.0, 1.0);
+    vec3 value = SKY_TOP_COLOUR;
     ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
     vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
     vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
 
-    value.y = distanceThroughAtmosphere(rayDir) / 100.0;
-    float sunDistance = dot(rayDir, sunDir) + 1.0;
-    value.x = sunDistance;
+    value += HORIZON_COLOUR * distanceThroughAtmosphere(rayDir) / 100.0;
+    float sunDistance = (dot(rayDir, sunDir) + 1.0) * sunGlowAmount;
+    value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
 	
-    imageStore(skyImage, texelCoords, vec4(value.rgb * brightness, 1.0));
+    imageStore(skyImage, texelCoords, vec4(value * brightness, 1.0));
 }

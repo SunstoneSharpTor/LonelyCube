@@ -285,7 +285,7 @@ void RenderThread::go(bool* running) {
         lastWindowFullScreen = windowFullScreen;
 
         //render if a frame is needed
-        GLPrintErrors();
+        //GLPrintErrors();
         end = std::chrono::steady_clock::now();
         double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         if (currentTime > frameStart + DT) {
@@ -339,22 +339,25 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            unsigned int timeOfDay = (frames / 3 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            unsigned int timeOfDay = (frames / 5 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
-            std::cout << timeOfDay << ": " << groundLuminance << "\n";
+            // std::cout << timeOfDay << ": " << groundLuminance << "\n";
             screenShader.bind();
             screenShader.setUniform1f("exposure", std::max(1.0f / 100000.0f, std::min(1.0f / groundLuminance, 1.0f / 25.0f)));
 
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyShader.bind();
-            skyShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
+            glm::vec3 sunDirection(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
                 constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
+                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
+            skyShader.setUniformVec3("sunDir", sunDirection);
             skyShader.setUniformMat4f("inverseProjection", inverseProjection);
             skyShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 1.5f);
+            skyShader.setUniform1f("brightness", groundLuminance);
+            skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.0f, 0.5f, 0.1f));
+            skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 2.0f));
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -374,9 +377,7 @@ void RenderThread::go(bool* running) {
             // Draw the sun
             glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             sunShader.bind();
-            sunShader.setUniformVec3("sunDir", glm::vec3(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f));
+            sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
             skyShader.setUniform1f("brightness", groundLuminance * 20);
