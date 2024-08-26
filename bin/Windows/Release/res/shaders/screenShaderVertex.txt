@@ -16,25 +16,13 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef GL_ES
-precision highp float;
-#endif
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoords;
 
-layout(location = 0) out vec4 colour;
+out vec2 TexCoords;
 
-in vec2 v_texCoord;
-in float v_brightness;
-in float v_visibility;
-
-uniform sampler2D u_blockTextures;
-uniform sampler2D u_skyTexture;
-
-void main() {
-    vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / vec2(textureSize(u_skyTexture, 0)));
-    
-    vec4 texColour = texture(u_blockTextures, v_texCoord);
-    vec4 texColourWithAlpha = texColour * v_brightness;
-    texColourWithAlpha[3] = texColour[3];
-    texColourWithAlpha = mix(skyColour, texColourWithAlpha, v_visibility);
-    colour = texColourWithAlpha;
-};
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0); 
+    TexCoords = aTexCoords;
+}  
