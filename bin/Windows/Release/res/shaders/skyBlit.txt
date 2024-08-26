@@ -16,25 +16,12 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef GL_ES
-precision highp float;
-#endif
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(location = 0) out vec4 colour;
-
-in vec2 v_texCoord;
-in float v_brightness;
-in float v_visibility;
-
-uniform sampler2D u_blockTextures;
-uniform sampler2D u_skyTexture;
+layout (rgba16f, binding = 0) uniform image2D skyImage;
+layout (rgba16f, binding = 1) uniform image2D targetImage;
 
 void main() {
-    vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / vec2(textureSize(u_skyTexture, 0)));
-    
-    vec4 texColour = texture(u_blockTextures, v_texCoord);
-    vec4 texColourWithAlpha = texColour * v_brightness;
-    texColourWithAlpha[3] = texColour[3];
-    texColourWithAlpha = mix(skyColour, texColourWithAlpha, v_visibility);
-    colour = texColourWithAlpha;
-};
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+    imageStore(targetImage, texelCoords, imageLoad(skyImage, texelCoords));
+}
