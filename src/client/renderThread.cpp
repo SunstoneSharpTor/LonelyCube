@@ -356,7 +356,7 @@ void RenderThread::go(bool* running) {
             skyShader.setUniformMat4f("inverseProjection", inverseProjection);
             skyShader.setUniformMat4f("inverseView", inverseView);
             skyShader.setUniform1f("brightness", groundLuminance);
-            skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.0f, 0.35f, 0.15f));
+            skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.5f, 0.6f, 0.13f));
             skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 12.0f));
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
