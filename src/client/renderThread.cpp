@@ -339,7 +339,7 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            unsigned int timeOfDay = (frames / 2 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            unsigned int timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
@@ -359,7 +359,7 @@ void RenderThread::go(bool* running) {
             skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.5f, 0.6f, 0.13f));
             skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 12.0f));
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
-              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+                (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 

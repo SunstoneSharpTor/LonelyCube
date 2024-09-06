@@ -98,8 +98,14 @@ int main(int argc, char* argv[]) {
         }
     }
     else {
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
         while (running) {
             mainWorld.loadChunksAroundPlayerSingleplayer(0);
+            auto currentTime = std::chrono::steady_clock::now();
+            if (currentTime >= nextTick) {
+                mainWorld.tick();
+                nextTick += std::chrono::milliseconds(100);
+            }
         }
     }
     chunkLoaderThreadsRunning[0] = false;

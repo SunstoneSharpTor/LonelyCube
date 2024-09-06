@@ -164,6 +164,12 @@ public:
 	}
 	void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload);
+	inline void tick() {
+		m_integratedServer.tick();
+	}
+    inline unsigned int getTickNum() {
+        return m_integratedServer.getTickNum();
+    }
 };
 
 }  // namespace client
