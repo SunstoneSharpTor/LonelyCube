@@ -56,9 +56,8 @@ void main() {
 
     float rayDistanceThroughAtmosphere = distanceThroughAtmosphere(rayDir);
     value += HORIZON_COLOUR * rayDistanceThroughAtmosphere / 110.0;
-    float sunDistance = (dot(rayDir, sunDir) + 2.0) * 0.3333 * min(rayDistanceThroughAtmosphere -
+    float sunDistance = (dot(rayDir, sunDir) + 3.0) * 0.25 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
-    sunDistance = sqrt(sunDistance);
     value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
 	
     imageStore(skyImage, texelCoords, vec4(value * brightness, 1.0));
