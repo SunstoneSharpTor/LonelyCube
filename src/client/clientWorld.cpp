@@ -594,8 +594,8 @@ void ClientWorld::processMouseInput() {
 
             m_viewCamera->updateRotationVectors(*m_yaw, *m_pitch);
         }
-        if ((abs(localCursorPosition[0] - m_windowDimensions[0] / 2) > m_windowDimensions[0] / 16)
-            || (abs(localCursorPosition[1] - m_windowDimensions[1] / 2) > m_windowDimensions[1] / 16)) {
+        if ((abs(localCursorPosition[0] - (int)m_windowDimensions[0] / 2) > m_windowDimensions[0] / 16)
+            || (abs(localCursorPosition[1] - (int)m_windowDimensions[1] / 2) > m_windowDimensions[1] / 16)) {
             SDL_WarpMouseInWindow(m_window, m_windowDimensions[0] / 2, m_windowDimensions[1] / 2);
             m_lastMousePos[0] = m_windowDimensions[0] / 2;
             m_lastMousePos[1] = m_windowDimensions[1] / 2;
@@ -615,7 +615,7 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     int* lastMousePos,
     Camera* viewCamera,
     SDL_Window* window,
-    int* windowDimensions) {
+    unsigned int* windowDimensions) {
     m_lastMousePoll = lastMousePoll;
     m_playing = playing;
     m_lastPlaying = lastPlaying;

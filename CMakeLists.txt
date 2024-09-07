@@ -16,6 +16,7 @@ include_directories(. ./src ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
+    src/client/bloom.cpp
     src/client/camera.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
