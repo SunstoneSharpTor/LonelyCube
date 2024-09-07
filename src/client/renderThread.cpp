@@ -105,35 +105,31 @@ void RenderThread::go(bool* running) {
         gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
     #endif
 
-    // Water shader
+    // Create shaders
     Shader waterShader("res/shaders/blockVertex.txt", "res/shaders/waterFragment.txt");
     waterShader.bind();
     waterShader.setUniform1i("u_blockTextures", 0);
     waterShader.setUniform1i("u_skyTexture", 1);
     waterShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
-    // Block shader
     Shader blockShader("res/shaders/blockVertex.txt", "res/shaders/blockFragment.txt");
     blockShader.bind();
     blockShader.setUniform1i("u_blockTextures", 0);
     blockShader.setUniform1i("u_skyTexture", 1);
     blockShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
-    // Block outline shader
     Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
-    // Crosshair shader
     Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
     crosshairShader.bind();
     glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
     crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
-    // Screen shader
     Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
     screenShader.bind();
     screenShader.setUniform1i("screenTexture", 0);
     screenShader.setUniform1f("exposure", 1.0f);
-    // Sky shader
     ComputeShader skyShader("res/shaders/sky.txt");
     ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
-    // Sun shader
     ComputeShader sunShader("res/shaders/sun.txt");
+    ComputeShader bloomDownsampleShader("res/shaders/bloomDownsample.txt");
+    ComputeShader bloomUpsampleShader("res/shaders/bloomUpsample.txt");
 
     Texture allBlockTextures("res/blockTextures.png");
 
@@ -357,7 +353,7 @@ void RenderThread::go(bool* running) {
             skyShader.setUniformMat4f("inverseView", inverseView);
             skyShader.setUniform1f("brightness", groundLuminance);
             skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.5f, 0.6f, 0.13f));
-            skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 12.0f));
+            skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 16.0f));
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
