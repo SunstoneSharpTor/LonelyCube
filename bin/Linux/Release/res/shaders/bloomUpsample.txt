@@ -31,9 +31,9 @@ uniform float filterRadius;
 
 void main()
 {
-    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec2 outTexelSize = 1.0 / vec2(imageSize(upsampleImage));
-    vec2 texelCoord = outTexelSize * (vec2(texelCoords) * 0.5 + vec2(0.25, 0.25));
+    ivec2 upsampleTexelCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 upsampleTexelSize = 1.0 / vec2(imageSize(upsampleImage));
+    vec2 srcTexelCoord = upsampleTexelSize * vec2(upsampleTexelCoords);
 
     // The filter kernel is applied with a radius, specified in texture
     // coordinates, so that the radius will vary across mip resolutions.
@@ -45,26 +45,27 @@ void main()
     // d - e - f
     // g - h - i
     // === ('e' is the current texel) ===
-    vec3 a = texture(srcTexture, vec2(texelCoord.x - x, texelCoord.y + y)).rgb;
-    vec3 b = texture(srcTexture, vec2(texelCoord.x,     texelCoord.y + y)).rgb;
-    vec3 c = texture(srcTexture, vec2(texelCoord.x + x, texelCoord.y + y)).rgb;
+    vec3 a = texture(srcTexture, vec2(srcTexelCoord.x - x, srcTexelCoord.y + y)).rgb;
+    vec3 b = texture(srcTexture, vec2(srcTexelCoord.x,     srcTexelCoord.y + y)).rgb;
+    vec3 c = texture(srcTexture, vec2(srcTexelCoord.x + x, srcTexelCoord.y + y)).rgb;
 
-    vec3 d = texture(srcTexture, vec2(texelCoord.x - x, texelCoord.y)).rgb;
-    vec3 e = texture(srcTexture, vec2(texelCoord.x,     texelCoord.y)).rgb;
-    vec3 f = texture(srcTexture, vec2(texelCoord.x + x, texelCoord.y)).rgb;
+    vec3 d = texture(srcTexture, vec2(srcTexelCoord.x - x, srcTexelCoord.y)).rgb;
+    vec3 e = texture(srcTexture, vec2(srcTexelCoord.x,     srcTexelCoord.y)).rgb;
+    vec3 f = texture(srcTexture, vec2(srcTexelCoord.x + x, srcTexelCoord.y)).rgb;
 
-    vec3 g = texture(srcTexture, vec2(texelCoord.x - x, texelCoord.y - y)).rgb;
-    vec3 h = texture(srcTexture, vec2(texelCoord.x,     texelCoord.y - y)).rgb;
-    vec3 i = texture(srcTexture, vec2(texelCoord.x + x, texelCoord.y - y)).rgb;
+    vec3 g = texture(srcTexture, vec2(srcTexelCoord.x - x, srcTexelCoord.y - y)).rgb;
+    vec3 h = texture(srcTexture, vec2(srcTexelCoord.x,     srcTexelCoord.y - y)).rgb;
+    vec3 i = texture(srcTexture, vec2(srcTexelCoord.x + x, srcTexelCoord.y - y)).rgb;
 
     // Apply weighted distribution, by using a 3x3 tent filter:
     //  1   | 1 2 1 |
     // -- * | 2 4 2 |
     // 16   | 1 2 1 |
-    vec3 upsample = e*4.0;
+    vec3 upsample = imageLoad(upsampleImage, upsampleTexelCoords).rgb;
+    upsample = e*4.0;
     upsample += (b+d+f+h)*2.0;
     upsample += (a+c+g+i);
     upsample *= 1.0 / 16.0;
 
-    imageStore(upsampleImage, texelCoords, vec4(upsample, 1.0));
+    imageStore(upsampleImage, upsampleTexelCoords, vec4(upsample, 1.0));
 }

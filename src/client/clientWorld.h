@@ -77,7 +77,7 @@ private:
 	int* m_lastMousePos;
 	Camera* m_viewCamera;
 	SDL_Window* m_window;
-	int* m_windowDimensions;
+	unsigned int* m_windowDimensions;
 
 	std::unordered_map<Position, MeshData> m_meshes;
 	VertexBuffer* m_emptyVertexBuffer;
@@ -154,7 +154,7 @@ public:
 					  int* lastMousePos,
 					  Camera* viewCamera,
 					  SDL_Window* window,
-					  int* windowDimensions);
+					  unsigned int* windowDimensions);
 	void processMouseInput();
 	inline void setClientID(int ID) {
 		m_clientID = ID;

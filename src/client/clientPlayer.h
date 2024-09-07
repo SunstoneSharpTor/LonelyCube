@@ -78,9 +78,10 @@ public:
 
     ClientPlayer(int* position, ClientWorld* newWorld);
 
-    void setWorldMouseData(SDL_Window* window, int* windowDimensions);
+    void setWorldMouseData(SDL_Window* window, unsigned int* windowDimensions);
 
-    void processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
+    void processUserInput(SDL_Window* sdl_window, unsigned int* windowDimensions, bool*
+      windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 
 }  // namespace client

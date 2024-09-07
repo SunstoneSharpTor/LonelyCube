@@ -94,7 +94,8 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
 
 
 
-void ClientPlayer::processUserInput(SDL_Window* sdl_window, int* windowDimensions, bool* windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
+void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windowDimensions, bool*
+    windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
     if (m_playing) {
@@ -431,7 +432,7 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
     return false;
 }
 
-void ClientPlayer::setWorldMouseData(SDL_Window* window, int* windowDimensions) {
+void ClientPlayer::setWorldMouseData(SDL_Window* window, unsigned int* windowDimensions) {
     m_mainWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,

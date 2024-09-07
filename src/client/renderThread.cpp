@@ -25,6 +25,7 @@
 #include "core/pch.h"
 #include <time.h>
 
+#include "client/bloom.h"
 #include "client/clientNetworking.h"
 #include "client/computeShader.h"
 #include "client/frameBuffer.h"
@@ -47,7 +48,8 @@ namespace client {
 
 void RenderThread::go(bool* running) {
     const int defaultWindowDimensions[2] = { 853, 480 };
-    int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
+    unsigned int windowDimensions[2] = { (unsigned int)defaultWindowDimensions[0],
+        (unsigned int)defaultWindowDimensions[1] };
 
     SDL_Window* sdl_window;
     SDL_GLContext context;
@@ -79,10 +81,6 @@ void RenderThread::go(bool* running) {
     bool VSYNC = false;
     if ((!VSYNC) || SDL_GL_SetSwapInterval(-1) != 0) {
         SDL_GL_SetSwapInterval(0);
-        std::cout << "vsync not enabled\n";
-    }
-    else {
-        std::cout << "vsync enabled\n";
     }
 
     bool windowMaximised = false;
@@ -129,7 +127,14 @@ void RenderThread::go(bool* running) {
     ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
     ComputeShader sunShader("res/shaders/sun.txt");
     ComputeShader bloomDownsampleShader("res/shaders/bloomDownsample.txt");
+    bloomDownsampleShader.bind();
+    bloomDownsampleShader.setUniform1i("srcTexture", 0);
     ComputeShader bloomUpsampleShader("res/shaders/bloomUpsample.txt");
+    bloomUpsampleShader.bind();
+    bloomUpsampleShader.setUniform1i("srcTexture", 0);
+    ComputeShader bloomBlitShader("res/shaders/bloomBlit.txt");
+    bloomBlitShader.bind();
+    bloomBlitShader.setUniform1i("srcTexture", 0);
 
     Texture allBlockTextures("res/blockTextures.png");
 
@@ -177,8 +182,9 @@ void RenderThread::go(bool* running) {
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
     worldFrameBuffer.unbind();
+    Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, 7,
+        bloomDownsampleShader, bloomUpsampleShader, bloomBlitShader);
 
-    // texture size
     unsigned int skyTexture;
     glGenTextures(1, &skyTexture);
     glActiveTexture(GL_TEXTURE0);
@@ -263,7 +269,10 @@ void RenderThread::go(bool* running) {
             }
         }
         if (windowevent_resized) {
-            SDL_GetWindowSize(sdl_window, &windowDimensions[0], &windowDimensions[1]);
+            int windowSize[2];
+            SDL_GetWindowSize(sdl_window, &windowSize[0], &windowSize[1]);
+            windowDimensions[0] = windowSize[0];
+            windowDimensions[1] = windowSize[1];
             worldFrameBuffer.resize(windowDimensions);
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
@@ -376,7 +385,7 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 20);
+            skyShader.setUniform1f("brightness", groundLuminance * 200);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
               (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -396,6 +405,8 @@ void RenderThread::go(bool* running) {
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
+
+            bloom.render(0.005f, 1.0f);
             worldFrameBuffer.unbind();
 
             // Draw the world texture

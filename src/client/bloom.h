@@ -22,9 +22,11 @@
 
 #include "glm/glm.hpp"
 
+#include "client/computeShader.h"
+
 namespace client {
 
-struct bloomMip {
+struct BloomMip {
     glm::vec2 size;
     glm::ivec2 intSize;
     unsigned int texture;
@@ -33,11 +35,22 @@ struct bloomMip {
 class Bloom {
 public:
 private:
-    unsigned int m_texture;
-    std::vector<bloomMip> m_mipChain;
+    ComputeShader& m_downsampleShader;
+    ComputeShader& m_upsampleShader;
+    ComputeShader& m_blitShader;
+    std::vector<BloomMip> m_mipChain;
+    unsigned int m_srcTexture;
+
+    void renderDownsamples();
+    void renderUpsamples(float filterRadius);
 public:
-    Bloom(unsigned int windowSize[2], unsigned int mipChainLength);
+    Bloom(unsigned int srcTexture, unsigned int windowSize[2], unsigned int mipChainLength,
+        ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader);
     ~Bloom();
+    inline const std::vector<BloomMip>& getMipChain() const {
+        return m_mipChain;
+    }
+    void render(float filterRadius, float strength);
 };
 
 }  // namespace client
