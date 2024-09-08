@@ -39,18 +39,21 @@ private:
     ComputeShader& m_upsampleShader;
     ComputeShader& m_blitShader;
     std::vector<BloomMip> m_mipChain;
-    unsigned int m_srcTexture;
+    BloomMip m_srcTexture;
 
+    void createMips(glm::ivec2 firstMipSize);
+    void deleteMips();
     void renderDownsamples();
     void renderUpsamples(float filterRadius);
 public:
-    Bloom(unsigned int srcTexture, unsigned int windowSize[2], unsigned int mipChainLength,
+    Bloom(unsigned int srcTexture, unsigned int windowSize[2],
         ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader);
     ~Bloom();
     inline const std::vector<BloomMip>& getMipChain() const {
         return m_mipChain;
     }
     void render(float filterRadius, float strength);
+    void resize(unsigned int windowSize[2]);
 };
 
 }  // namespace client

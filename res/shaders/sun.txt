@@ -35,6 +35,6 @@ void main() {
 
     float sunDistance = dot(rayDir, sunDir) + 1.0;
     if (sunDistance > 1.9995) {
-        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 0.8, 0.35) * brightness, 1.0));
+        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 0.7, 0.35) * brightness, 1.0));
     }
 }
