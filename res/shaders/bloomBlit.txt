@@ -24,7 +24,7 @@ uniform float strength;
 
 void main() {
     ivec2 targetTexelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec2 srcTexelCoords = vec2(targetTexelCoords) / vec2(imageSize(targetImage));
+    vec2 srcTexelCoords = (vec2(targetTexelCoords) + vec2(0.5, 0.5)) / vec2(imageSize(targetImage));
     vec3 colour = imageLoad(targetImage, targetTexelCoords).rgb;
     colour += texture(srcTexture, srcTexelCoords).rgb * strength;
     imageStore(targetImage, targetTexelCoords, vec4(colour, 1.0));

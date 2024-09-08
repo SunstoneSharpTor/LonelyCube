@@ -344,12 +344,13 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            unsigned int timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            unsigned int timeOfDay = (m_mainWorld->getTickNum() * 10 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
             screenShader.bind();
-            screenShader.setUniform1f("exposure", std::max(1.0f / 100000.0f, std::min(1.0f / groundLuminance, 1.0f / 25.0f)));
+            float exposure = std::max(1.0f / 100000.0f, std::min(1.0f / groundLuminance, 1.0f / 25.0f));
+            screenShader.setUniform1f("exposure", exposure);
 
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -385,9 +386,9 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 200);
+            skyShader.setUniform1f("brightness", groundLuminance * 200000);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
-              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+                (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -406,7 +407,7 @@ void RenderThread::go(bool* running) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
 
-            bloom.render(0.005f, 1.0f);
+            bloom.render(0.005f, 0.05f);
             worldFrameBuffer.unbind();
 
             // Draw the world texture

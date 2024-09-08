@@ -33,7 +33,7 @@ void main()
 {
     ivec2 upsampleTexelCoords = ivec2(gl_GlobalInvocationID.xy);
     vec2 upsampleTexelSize = 1.0 / vec2(imageSize(upsampleImage));
-    vec2 srcTexelCoord = upsampleTexelSize * vec2(upsampleTexelCoords);
+    vec2 srcTexelCoord = upsampleTexelSize * (vec2(upsampleTexelCoords) + vec2(0.5f, 0.5f));
 
     // The filter kernel is applied with a radius, specified in texture
     // coordinates, so that the radius will vary across mip resolutions.
@@ -61,11 +61,11 @@ void main()
     //  1   | 1 2 1 |
     // -- * | 2 4 2 |
     // 16   | 1 2 1 |
-    vec3 upsample = imageLoad(upsampleImage, upsampleTexelCoords).rgb;
-    upsample = e*4.0;
+    vec3 upsample = e*4.0;
     upsample += (b+d+f+h)*2.0;
     upsample += (a+c+g+i);
     upsample *= 1.0 / 16.0;
 
-    imageStore(upsampleImage, upsampleTexelCoords, vec4(upsample, 1.0));
+    vec3 colour = imageLoad(upsampleImage, upsampleTexelCoords).rgb + upsample;
+    imageStore(upsampleImage, upsampleTexelCoords, vec4(colour, 1.0));
 }
