@@ -182,8 +182,8 @@ void RenderThread::go(bool* running) {
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
     worldFrameBuffer.unbind();
-    Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, 10,
-        bloomDownsampleShader, bloomUpsampleShader, bloomBlitShader);
+    Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, bloomDownsampleShader,
+        bloomUpsampleShader, bloomBlitShader);
 
     unsigned int skyTexture;
     glGenTextures(1, &skyTexture);
@@ -277,6 +277,7 @@ void RenderThread::go(bool* running) {
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+            bloom.resize(windowDimensions);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
             windowFlags = SDL_GetWindowFlags(sdl_window);
@@ -386,7 +387,7 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 4000);
+            skyShader.setUniform1f("brightness", groundLuminance * 1500);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -406,9 +407,9 @@ void RenderThread::go(bool* running) {
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
+            worldFrameBuffer.unbind();
 
             bloom.render(0.005f, 0.005f);
-            worldFrameBuffer.unbind();
 
             // Draw the world texture
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

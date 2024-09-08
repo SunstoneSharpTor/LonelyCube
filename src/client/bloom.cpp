@@ -24,19 +24,89 @@
 
 namespace client {
 
-Bloom::Bloom(unsigned int srcTexture, unsigned int windowSize[2], unsigned int mipChainLength,
-    ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader) :
-    m_srcTexture(srcTexture), m_downsampleShader(downsampleShader),
-    m_upsampleShader(upsampleShader), m_blitShader(blitShader) {
+Bloom::Bloom(unsigned int srcTexture, unsigned int windowSize[2], ComputeShader& downsampleShader,
+    ComputeShader& upsampleShader, ComputeShader& blitShader) :
+    m_downsampleShader(downsampleShader), m_upsampleShader(upsampleShader),
+    m_blitShader(blitShader) {
     glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
     glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
 
-    m_mipChain.push_back(BloomMip());
-    m_mipChain[0].size = mipSize;
-    m_mipChain[0].intSize = mipIntSize;
-    m_mipChain[0].texture = srcTexture;
+    m_srcTexture.size = mipSize;
+    m_srcTexture.intSize = mipIntSize;
+    m_srcTexture.texture = srcTexture;
 
-    for (unsigned int i = 1; i < mipChainLength + 1; i++) {
+    createMips(mipIntSize);
+}
+
+Bloom::~Bloom() {
+    deleteMips();
+}
+
+void Bloom::renderDownsamples() {
+    m_downsampleShader.bind();
+
+    // Bind srcTexture (HDR color buffer) as initial texture input
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_srcTexture.texture);
+
+    // Progressively downsample through the mip chain
+    for (int i = 0; i < m_mipChain.size(); i++) {
+        const BloomMip& mip = m_mipChain[i];
+        glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+        glDispatchCompute((unsigned int)((mip.intSize.x + 7) / 8),
+            (unsigned int)((mip.intSize.y + 7) / 8), 1);
+        // Make sure writing to image has finished before read
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        // Set current mip as texture input for next iteration
+        glBindTexture(GL_TEXTURE_2D, mip.texture);
+    }
+}
+
+void Bloom::renderUpsamples(float filterRadius) {
+    m_upsampleShader.bind();
+    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
+
+    for (int i = m_mipChain.size() - 1; i > 0; i--) {
+        const BloomMip& mip = m_mipChain[i];
+        const BloomMip& nextMip = m_mipChain[i-1];
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mip.texture);
+        glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+        glDispatchCompute((unsigned int)((nextMip.intSize.x + 7) / 8),
+            (unsigned int)((nextMip.intSize.y + 7) / 8), 1);
+        // Make sure writing to image has finished before read
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+}
+
+void Bloom::render(float filterRadius, float strength) {
+    renderDownsamples();
+    renderUpsamples(filterRadius);
+
+    //glClear(GL_COLOR_BUFFER_BIT);  // Use to test the bloom image before it's composited
+
+    m_blitShader.bind();
+    m_blitShader.setUniform1f("strength", strength);
+    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
+
+    const BloomMip& mip = m_mipChain[1];
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mip.texture);
+    glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+    glDispatchCompute((unsigned int)((m_srcTexture.intSize.x + 7) / 8),
+        (unsigned int)((m_srcTexture.intSize.y + 7) / 8), 1);
+    // Make sure writing to image has finished before read
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void Bloom::createMips(glm::ivec2 firstMipSize) {
+    glm::ivec2 mipIntSize = firstMipSize;
+    glm::vec2 mipSize = firstMipSize;
+
+    while (mipIntSize.x > 1 && mipIntSize.y > 1) {
         BloomMip mip;
 
         mipSize *= 0.5f;
@@ -58,71 +128,18 @@ Bloom::Bloom(unsigned int srcTexture, unsigned int windowSize[2], unsigned int m
     }
 }
 
-Bloom::~Bloom() {
+void Bloom::deleteMips() {
     for (int i = 0; i < m_mipChain.size(); i++) {
         glDeleteTextures(1, &m_mipChain[i].texture);
-        m_mipChain[i].texture = 0;
     }
+    m_mipChain.clear();
 }
 
-void Bloom::renderDownsamples() {
-    m_downsampleShader.bind();
-
-    // Bind srcTexture (HDR color buffer) as initial texture input
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_mipChain[0].texture);
-
-    // Progressively downsample through the mip chain
-    for (int i = 1; i < m_mipChain.size(); i++) {
-        const BloomMip& mip = m_mipChain[i];
-        glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((unsigned int)((mip.intSize.x + 7) / 8),
-            (unsigned int)((mip.intSize.y + 7) / 8), 1);
-        // Make sure writing to image has finished before read
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-        // Set current mip as texture input for next iteration
-        glBindTexture(GL_TEXTURE_2D, mip.texture);
-    }
-}
-
-void Bloom::renderUpsamples(float filterRadius) {
-    m_upsampleShader.bind();
-    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
-
-    for (int i = m_mipChain.size() - 1; i > 1; i--) {
-        const BloomMip& mip = m_mipChain[i];
-        const BloomMip& nextMip = m_mipChain[i-1];
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mip.texture);
-        glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((unsigned int)((nextMip.intSize.x + 7) / 8),
-            (unsigned int)((nextMip.intSize.y + 7) / 8), 1);
-        // Make sure writing to image has finished before read
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    }
-}
-
-void Bloom::render(float filterRadius, float strength) {
-    renderDownsamples();
-    renderUpsamples(filterRadius);
-
-            //glClear(GL_COLOR_BUFFER_BIT);
-
-    m_blitShader.bind();
-    m_blitShader.setUniform1f("strength", strength);
-    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
-
-    const BloomMip& mip = m_mipChain[1];
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mip.texture);
-    glBindImageTexture(0, m_mipChain[0].texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    glDispatchCompute((unsigned int)((m_mipChain[0].intSize.x + 7) / 8),
-        (unsigned int)((m_mipChain[0].intSize.y + 7) / 8), 1);
-    // Make sure writing to image has finished before read
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+void Bloom::resize(unsigned int windowSize[2]) {
+    deleteMips();
+    m_srcTexture.intSize = glm::ivec2(windowSize[0], windowSize[1]);
+    m_srcTexture.size = m_srcTexture.intSize;
+    createMips(m_srcTexture.intSize);
 }
 
 }  // namespace client
