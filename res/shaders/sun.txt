@@ -34,7 +34,7 @@ void main() {
     vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
 
     float sunDistance = dot(rayDir, sunDir) + 1.0;
-    if (sunDistance > 1.996) {
-        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 1.0, 0.7) * brightness, 1.0));
+    if (sunDistance > 1.999) {
+        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 0.8, 0.35) * brightness, 1.0));
     }
 }
