@@ -59,7 +59,7 @@ FrameBuffer<zBuffer>::FrameBuffer(unsigned int* frameSize) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_rendererID);
     glGenTextures(1, &m_textureColourbuffer);
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

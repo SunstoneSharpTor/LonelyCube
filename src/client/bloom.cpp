@@ -108,17 +108,17 @@ void Bloom::render(float filterRadius, float strength) {
     renderDownsamples();
     renderUpsamples(filterRadius);
 
-            glClear(GL_COLOR_BUFFER_BIT);
+            //glClear(GL_COLOR_BUFFER_BIT);
 
     m_blitShader.bind();
     m_blitShader.setUniform1f("strength", strength);
     m_upsampleShader.setUniform1f("filterRadius", filterRadius);
 
-    const BloomMip& mip = m_mipChain[4];
+    const BloomMip& mip = m_mipChain[1];
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mip.texture);
-    glBindImageTexture(0, m_srcTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+    glBindImageTexture(0, m_mipChain[0].texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
     glDispatchCompute((unsigned int)((m_mipChain[0].intSize.x + 7) / 8),
         (unsigned int)((m_mipChain[0].intSize.y + 7) / 8), 1);
     // Make sure writing to image has finished before read
