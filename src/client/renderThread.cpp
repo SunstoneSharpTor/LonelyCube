@@ -182,7 +182,7 @@ void RenderThread::go(bool* running) {
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
     worldFrameBuffer.unbind();
-    Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, 5,
+    Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, 10,
         bloomDownsampleShader, bloomUpsampleShader, bloomBlitShader);
 
     unsigned int skyTexture;
@@ -349,7 +349,7 @@ void RenderThread::go(bool* running) {
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
             screenShader.bind();
-            float exposure = std::max(1.0f / 1000.0f, std::min(1.0f / groundLuminance, 1.0f / 0.25f));
+            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.025f));
             screenShader.setUniform1f("exposure", exposure);
 
             // Render sky
@@ -386,7 +386,7 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 500);
+            skyShader.setUniform1f("brightness", groundLuminance * 4000);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read

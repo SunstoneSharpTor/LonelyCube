@@ -38,19 +38,19 @@ namespace constants
     constexpr unsigned int NUM_GROUND_LUMINANCE_POINTS{ 13 };
     constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
     // Time | Luminance
-        1800.0f, 0.0025f,
-        2400.0f, 0.01f,
-        2500.0f, 0.03f,
-        2850.0f, 0.25f,
-        3000.0f, 4.0f,
-        5000.0f, 100.0f,
-        6000.0f, 110.0f,
-        7000.0f, 100.0f,
-        9000.0f, 4.0f,
-        9150.0f, 0.25f,
-        9500.0f, 0.03f,
-        9600.0f, 0.01f,
-        10200.0f, 0.0025f };
+        1800.0f, 0.00025f,
+        2400.0f, 0.001f,
+        2500.0f, 0.003f,
+        2850.0f, 0.025f,
+        3000.0f, 0.4f,
+        5000.0f, 10.0f,
+        6000.0f, 11.0f,
+        7000.0f, 10.0f,
+        9000.0f, 0.4f,
+        9150.0f, 0.025f,
+        9500.0f, 0.003f,
+        9600.0f, 0.001f,
+        10200.0f, 0.00025f };
 
     constexpr float CUBE_FACE_POSITIONS[72] = { 1.0f, 0.0f, 0.0f,
                                                 0.0f, 0.0f, 0.0f,
