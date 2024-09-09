@@ -26,34 +26,28 @@
 
 namespace client {
 
-struct BloomMip {
+struct LuminanceMip {
     glm::vec2 size;
     glm::ivec2 intSize;
     unsigned int texture;
 };
 
-class Bloom {
+class Luminance {
 public:
 private:
+    ComputeShader& m_luminanceShader;
     ComputeShader& m_downsampleShader;
-    ComputeShader& m_upsampleShader;
-    ComputeShader& m_blitShader;
-    std::vector<BloomMip> m_mipChain;
-    BloomMip m_srcTexture;
+    std::vector<LuminanceMip> m_mipChain;
+    LuminanceMip m_srcTexture;
 
     void createMips(glm::ivec2 srcTextureSize);
     void deleteMips();
-    void renderDownsamples();
-    void renderUpsamples(float filterRadius);
 public:
-    Bloom(unsigned int srcTexture, unsigned int windowSize[2],
-        ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader);
-    ~Bloom();
-    void render(float filterRadius, float strength);
+    Luminance(unsigned int srcTexture, unsigned int windowSize[2], ComputeShader& luminanceShader,
+        ComputeShader& downsampleShader);
+    ~Luminance();
+    float calculate();
     void resize(unsigned int windowSize[2]);
-    BloomMip getSmallestMip() {
-        return m_mipChain[m_mipChain.size() - 1];
-    }
 };
 
 }  // namespace client

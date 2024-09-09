@@ -24,6 +24,7 @@ set(CLIENT_SOURCE_FILES
     src/client/clientWorld.cpp
     src/client/computeShader.cpp
     src/client/indexBuffer.cpp
+    src/client/luminance.cpp
     src/client/meshBuilder.cpp
     src/client/renderer.cpp
     src/client/renderThread.cpp
