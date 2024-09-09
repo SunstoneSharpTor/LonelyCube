@@ -54,6 +54,9 @@ public:
     }
     void render(float filterRadius, float strength);
     void resize(unsigned int windowSize[2]);
+    BloomMip getSmallestMip() {
+        return m_mipChain[m_mipChain.size() - 1];
+    }
 };
 
 }  // namespace client

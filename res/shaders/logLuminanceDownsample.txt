@@ -1,0 +1,46 @@
+/*
+  Lonely Cube, a voxel game
+  Copyright (C) 2024 Bertie Cartwright
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// This shader finds the luminance of a pixel, takes the log of that, then averages it with 3
+// adjacent pixels to find the colour of each pixel of the downsample
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba16f, binding = 0) uniform image2D srcImage;
+layout (r16f, binding = 1) uniform image2D downsampleImage;
+
+void main() {
+    ivec2 downsampleTexelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 srcTexelCoord = downsampleTexelCoord * 2;
+
+    // Calculate the luminance using values weighted to what our eyes are sensetive to then divide
+    // by 4
+    vec4 srcColour = imageLoad(srcImage, srcTexelCoord);
+    float downsample = log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+
+    srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(1, 0));
+    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+
+    srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(1, 1));
+    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+
+    srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(0, 1));
+    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+
+    imageStore(downsampleImage, downsampleTexelCoord, vec4(downsample, 0.0, 0.0, 0.0));
+}

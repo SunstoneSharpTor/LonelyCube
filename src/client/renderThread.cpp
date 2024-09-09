@@ -135,6 +135,8 @@ void RenderThread::go(bool* running) {
     ComputeShader bloomBlitShader("res/shaders/bloomBlit.txt");
     bloomBlitShader.bind();
     bloomBlitShader.setUniform1i("srcTexture", 0);
+    ComputeShader logLuminanceDownsampleShader("res/shaders/logLuminanceDownsample.txt");
+    ComputeShader simpleDownsampleShader("res/shaders/simpleDownsample.txt");
 
     Texture allBlockTextures("res/blockTextures.png");
 
@@ -349,9 +351,6 @@ void RenderThread::go(bool* running) {
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
-            screenShader.bind();
-            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.0025f));
-            screenShader.setUniform1f("exposure", exposure);
 
             // Render sky
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -413,6 +412,20 @@ void RenderThread::go(bool* running) {
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
             worldFrameBuffer.unbind();
+
+            BloomMip smallestMip = bloom.getSmallestMip();
+            float image[smallestMip.intSize.x * smallestMip.intSize.y * 4];
+            glBindTexture(GL_TEXTURE_2D, smallestMip.texture);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, image);
+            float luminance = 0.0f;
+            for (int i = 0; i < smallestMip.intSize.x * smallestMip.intSize.y; i += 4) {
+                luminance += image[i] + image[i + 1] + image[i + 2];
+            }
+            luminance /= smallestMip.intSize.x * smallestMip.intSize.y * 3;
+            //std::cout << luminance << "\n";
+            screenShader.bind();
+            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.0025f));
+            screenShader.setUniform1f("exposure", exposure);
 
             // Draw the world texture
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
