@@ -29,6 +29,7 @@
 #include "client/clientNetworking.h"
 #include "client/computeShader.h"
 #include "client/frameBuffer.h"
+#include "client/luminance.h"
 #include "client/renderer.h"
 #include "client/vertexBuffer.h"
 #include "client/indexBuffer.h"
@@ -186,6 +187,8 @@ void RenderThread::go(bool* running) {
     worldFrameBuffer.unbind();
     Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, bloomDownsampleShader,
         bloomUpsampleShader, bloomBlitShader);
+    Luminance luminance(worldFrameBuffer.getTextureColourBuffer(), windowDimensions,
+        logLuminanceDownsampleShader, simpleDownsampleShader);
 
     unsigned int skyTexture;
     glGenTextures(1, &skyTexture);
@@ -413,16 +416,7 @@ void RenderThread::go(bool* running) {
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
             worldFrameBuffer.unbind();
 
-            BloomMip smallestMip = bloom.getSmallestMip();
-            float image[smallestMip.intSize.x * smallestMip.intSize.y * 4];
-            glBindTexture(GL_TEXTURE_2D, smallestMip.texture);
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, image);
-            float luminance = 0.0f;
-            for (int i = 0; i < smallestMip.intSize.x * smallestMip.intSize.y; i += 4) {
-                luminance += image[i] + image[i + 1] + image[i + 2];
-            }
-            luminance /= smallestMip.intSize.x * smallestMip.intSize.y * 3;
-            //std::cout << luminance << "\n";
+            std::cout << luminance.calculate() << "\n";
             screenShader.bind();
             float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.0025f));
             screenShader.setUniform1f("exposure", exposure);

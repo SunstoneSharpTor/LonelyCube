@@ -33,5 +33,5 @@ void main() {
     downsample += imageLoad(srcImage, srcTexelCoord + ivec2(1, 1)).r;
     downsample += imageLoad(srcImage, srcTexelCoord + ivec2(0, 1)).r;
 
-    imageStore(downsampleImage, downsampleTexelCoord, vec4(downsample * 0.25, 0.0, 0.0, 0.0));
+    imageStore(downsampleImage, downsampleTexelCoord, vec4(1.0, 1.0, 1.0, 1.0));
 }
