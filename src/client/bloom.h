@@ -41,7 +41,7 @@ private:
     std::vector<BloomMip> m_mipChain;
     BloomMip m_srcTexture;
 
-    void createMips(glm::ivec2 firstMipSize);
+    void createMips(glm::ivec2 srcTextureSize);
     void deleteMips();
     void renderDownsamples();
     void renderUpsamples(float filterRadius);

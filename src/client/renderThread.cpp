@@ -350,7 +350,7 @@ void RenderThread::go(bool* running) {
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
             screenShader.bind();
-            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.025f));
+            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.0025f));
             screenShader.setUniform1f("exposure", exposure);
 
             // Render sky
@@ -403,13 +403,16 @@ void RenderThread::go(bool* running) {
                 m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] /
                 (float)windowDimensions[1], fov, groundLuminance, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
-            //cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+            //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
             if (lookingAtBlock) {
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
-            worldFrameBuffer.unbind();
 
+            //auto tp1 = std::chrono::high_resolution_clock::now();
             bloom.render(0.005f, 0.005f);
+            //auto tp2 = std::chrono::high_resolution_clock::now();
+            //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+            worldFrameBuffer.unbind();
 
             // Draw the world texture
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
