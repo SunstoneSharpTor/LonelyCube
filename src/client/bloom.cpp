@@ -91,7 +91,7 @@ void Bloom::render(float filterRadius, float strength) {
     m_blitShader.setUniform1f("strength", strength);
     m_upsampleShader.setUniform1f("filterRadius", filterRadius);
 
-    const BloomMip& mip = m_mipChain[1];
+    const BloomMip& mip = m_mipChain[0];
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mip.texture);
@@ -102,9 +102,9 @@ void Bloom::render(float filterRadius, float strength) {
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Bloom::createMips(glm::ivec2 firstMipSize) {
-    glm::ivec2 mipIntSize = firstMipSize;
-    glm::vec2 mipSize = firstMipSize;
+void Bloom::createMips(glm::ivec2 srcTextureSize) {
+    glm::ivec2 mipIntSize = srcTextureSize;
+    glm::vec2 mipSize = srcTextureSize;
 
     while (mipIntSize.x > 1 && mipIntSize.y > 1) {
         BloomMip mip;
@@ -121,8 +121,10 @@ void Bloom::createMips(glm::ivec2 firstMipSize) {
             GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        glTextureParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
         m_mipChain.emplace_back(mip);
     }
