@@ -16,25 +16,32 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#include "client/vertexBuffer.h"
-#include "client/vertexBufferLayout.h"
+#include "client/graphics/vertexBuffer.h"
+#include "client/graphics/renderer.h"
 
 namespace client {
 
-class VertexArray {
-private:
-	unsigned int m_rendererID;
-public:
-	VertexArray(bool empty);
-	VertexArray();
-	~VertexArray();
+VertexBuffer::VertexBuffer() {
+    m_rendererID = 0;
+}
 
-	void addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
+VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
+    glGenBuffers(1, &m_rendererID);
+    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+}
 
-	void bind() const;
-	void unbind() const;
-};
+VertexBuffer::~VertexBuffer() {
+    if (m_rendererID != 0) {
+        glDeleteBuffers(1, &m_rendererID);
+    }
+}
+
+void VertexBuffer::bind() const {
+    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
+}
+void VertexBuffer::unbind() const {
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 }  // namespace client

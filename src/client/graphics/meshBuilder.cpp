@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/meshBuilder.h"
+#include "client/graphics/meshBuilder.h"
 
 #include "core/pch.h"
 

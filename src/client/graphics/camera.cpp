@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/camera.h"
+#include "client/graphics/camera.h"
 
 namespace client {
 

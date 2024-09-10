@@ -18,13 +18,13 @@
 
 #pragma once
 
-#include "client/renderer.h"
-#include "client/vertexBuffer.h"
-#include "client/indexBuffer.h"
-#include "client/vertexArray.h"
-#include "client/shader.h"
-#include "client/texture.h"
-#include "client/camera.h"
+#include "client/graphics/renderer.h"
+#include "client/graphics/vertexBuffer.h"
+#include "client/graphics/indexBuffer.h"
+#include "client/graphics/vertexArray.h"
+#include "client/graphics/shader.h"
+#include "client/graphics/texture.h"
+#include "client/graphics/camera.h"
 #include "core/chunk.h"
 #include "core/packet.h"
 #include "core/position.h"

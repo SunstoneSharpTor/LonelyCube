@@ -18,27 +18,23 @@
 
 #pragma once
 
-#include <glad/glad.h>
-
-#include "client/vertexArray.h"
-#include "client/indexBuffer.h"
-#include "client/shader.h"
+#include "client/graphics/vertexBuffer.h"
+#include "client/graphics/vertexBufferLayout.h"
 
 namespace client {
 
-void GLClearError();
-
-void GLPrintErrors();
-
-class Renderer {
+class VertexArray {
+private:
+	unsigned int m_rendererID;
 public:
-	void clear() const;
+	VertexArray(bool empty);
+	VertexArray();
+	~VertexArray();
 
-	void draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
+	void addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
 
-	void drawWireframe(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
-
-	void setOpenGlOptions() const;
+	void bind() const;
+	void unbind() const;
 };
 
 }  // namespace client

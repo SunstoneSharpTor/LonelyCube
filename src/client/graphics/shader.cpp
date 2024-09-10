@@ -16,11 +16,11 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/shader.h"
+#include "client/graphics/shader.h"
 
 #include "core/pch.h"
 
-#include "client/renderer.h"
+#include "client/graphics/renderer.h"
 
 namespace client {
 

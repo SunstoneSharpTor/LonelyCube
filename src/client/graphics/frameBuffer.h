@@ -22,10 +22,10 @@
 
 #include "core/pch.h"
 
-#include "shader.h"
-#include "vertexArray.h"
-#include "vertexBuffer.h"
-#include "vertexBufferLayout.h"
+#include "client/graphics/shader.h"
+#include "client/graphics/vertexArray.h"
+#include "client/graphics/vertexBuffer.h"
+#include "client/graphics/vertexBufferLayout.h"
 
 namespace client {
 

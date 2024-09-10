@@ -18,25 +18,27 @@
 
 #pragma once
 
-#include "client/renderer.h"
+#include <glad/glad.h>
+
+#include "client/graphics/vertexArray.h"
+#include "client/graphics/indexBuffer.h"
+#include "client/graphics/shader.h"
 
 namespace client {
 
-class Texture {
-private:
-	unsigned int m_rendererID;
-	std::string m_filePath;
-	unsigned char* m_localBuffer;
-	int m_width, m_height, m_BPP;
+void GLClearError();
+
+void GLPrintErrors();
+
+class Renderer {
 public:
-	Texture(const std::string& path);
-	~Texture();
+	void clear() const;
 
-	void bind(unsigned int slot = 0) const;
-	void unbind() const;
+	void draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
 
-	inline int getWidth() const { return m_width; }
-	inline int getHeight() const { return m_height; }
+	void drawWireframe(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
+
+	void setOpenGlOptions() const;
 };
 
 }  // namespace client

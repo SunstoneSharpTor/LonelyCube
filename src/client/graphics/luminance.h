@@ -22,7 +22,7 @@
 
 #include "glm/glm.hpp"
 
-#include "client/computeShader.h"
+#include "client/graphics/computeShader.h"
 
 namespace client {
 

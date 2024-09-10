@@ -17,9 +17,9 @@
 */
 
 #include <glad/glad.h>
-#include "client/stb_image.h"
+#include "client/graphics/stb_image.h"
 
-#include "client/texture.h"
+#include "client/graphics/texture.h"
 
 namespace client {
 

@@ -25,18 +25,18 @@
 #include "core/pch.h"
 #include <time.h>
 
-#include "client/bloom.h"
 #include "client/clientNetworking.h"
-#include "client/computeShader.h"
-#include "client/frameBuffer.h"
-#include "client/luminance.h"
-#include "client/renderer.h"
-#include "client/vertexBuffer.h"
-#include "client/indexBuffer.h"
-#include "client/vertexArray.h"
-#include "client/shader.h"
-#include "client/texture.h"
-#include "client/camera.h"
+#include "client/graphics/bloom.h"
+#include "client/graphics/computeShader.h"
+#include "client/graphics/frameBuffer.h"
+#include "client/graphics/luminance.h"
+#include "client/graphics/renderer.h"
+#include "client/graphics/vertexBuffer.h"
+#include "client/graphics/indexBuffer.h"
+#include "client/graphics/vertexArray.h"
+#include "client/graphics/shader.h"
+#include "client/graphics/texture.h"
+#include "client/graphics/camera.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
 #include "core/chunk.h"
@@ -434,7 +434,6 @@ void RenderThread::go(bool* running) {
                 exposure += ((targetExposure > exposure) * 2 - 1) * std::min(std::abs(targetExposure - exposure), (targetExposure - exposure) * (targetExposure - exposure) * fac);
                 exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
-            std::cout << exposure << "\n";
             screenShader.setUniform1f("exposure", exposure);
 
             // Draw the world texture
