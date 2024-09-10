@@ -57,8 +57,9 @@ float Luminance::calculate() {
         const LuminanceMip& srcMip = m_mipChain[i - 1];
         const LuminanceMip& outputMip = m_mipChain[i];
 
-        glBindImageTexture(0, srcMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
-        glBindImageTexture(1, outputMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, srcMip.texture);
+        glBindImageTexture(0, outputMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
         glDispatchCompute((unsigned int)((outputMip.intSize.x + 7) / 8),
             (unsigned int)((outputMip.intSize.y + 7) / 8), 1);
         // Make sure writing to image has finished before read
@@ -67,8 +68,8 @@ float Luminance::calculate() {
 
     float luminance;
     glBindTexture(GL_TEXTURE_2D, m_mipChain[m_mipChain.size() - 1].texture);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_HALF_FLOAT, &luminance);
-    return luminance;
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, &luminance);
+    return std::exp(luminance - 64.0f);
 }
 
 void Luminance::createMips(glm::ivec2 srcTextureSize) {
@@ -87,12 +88,12 @@ void Luminance::createMips(glm::ivec2 srcTextureSize) {
         glGenTextures(1, &mip.texture);
         glBindTexture(GL_TEXTURE_2D, mip.texture);
         // we are downscaling an HDR color buffer, so we need a float texture format
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, (int)mipSize.x, (int)mipSize.y, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, mipIntSize.x, mipIntSize.y, 0,
             GL_RED, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
         glTextureParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 

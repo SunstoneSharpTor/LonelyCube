@@ -30,17 +30,18 @@ void main() {
 
     // Calculate the luminance using values weighted to what our eyes are sensetive to then divide
     // by 4
+    // Add 0.00001 to the luminance to prevent taking the log of 0
     vec4 srcColour = imageLoad(srcImage, srcTexelCoord);
-    float downsample = log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+    float downsample = log((srcColour.r * 0.3) + (srcColour.g * 0.59) + (srcColour.b * 0.11) + 0.00001);
 
     srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(1, 0));
-    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+    downsample += log((srcColour.r * 0.3) + (srcColour.g * 0.59) + (srcColour.b * 0.11) + 0.00001);
 
     srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(1, 1));
-    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+    downsample += log((srcColour.r * 0.3) + (srcColour.g * 0.59) + (srcColour.b * 0.11) + 0.00001);
 
     srcColour = imageLoad(srcImage, srcTexelCoord + ivec2(0, 1));
-    downsample += log((srcColour.r * 0.075) + (srcColour.g * 0.1475) + (srcColour.b * 0.0275));
+    downsample += log((srcColour.r * 0.3) + (srcColour.g * 0.59) + (srcColour.b * 0.11) + 0.00001);
 
-    imageStore(downsampleImage, downsampleTexelCoord, vec4(downsample, 0.0, 0.0, 0.0));
+    imageStore(downsampleImage, downsampleTexelCoord, vec4(downsample * 0.25 + 64.0, 0.0, 0.0, 0.0));
 }
