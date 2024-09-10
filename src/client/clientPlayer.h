@@ -22,7 +22,7 @@
 
 #include "client/clientNetworking.h"
 #include "client/clientWorld.h"
-#include "client/camera.h"
+#include "client/graphics/camera.h"
 
 namespace client {
 

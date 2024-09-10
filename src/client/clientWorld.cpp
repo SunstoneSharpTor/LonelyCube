@@ -22,7 +22,7 @@
 #include <time.h>
 #include <random>
 
-#include "client/meshBuilder.h"
+#include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
 #include "core/lighting.h"
 #include "core/random.h"

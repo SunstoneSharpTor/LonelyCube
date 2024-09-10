@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/bloom.h"
+#include "client/graphics/bloom.h"
 
 #include "glad/glad.h"
 

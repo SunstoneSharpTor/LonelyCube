@@ -16,8 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/vertexArray.h"
-#include "client/renderer.h"
+#include "client/graphics/vertexArray.h"
+#include "client/graphics/renderer.h"
 
 namespace client {
 

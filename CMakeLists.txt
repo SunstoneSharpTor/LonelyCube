@@ -16,23 +16,23 @@ include_directories(. ./src ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
-    src/client/bloom.cpp
-    src/client/camera.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
     src/client/clientWorld.cpp
-    src/client/computeShader.cpp
-    src/client/indexBuffer.cpp
-    src/client/luminance.cpp
-    src/client/meshBuilder.cpp
-    src/client/renderer.cpp
+    src/client/graphics/bloom.cpp
+    src/client/graphics/camera.cpp
+    src/client/graphics/computeShader.cpp
+    src/client/graphics/indexBuffer.cpp
+    src/client/graphics/luminance.cpp
+    src/client/graphics/meshBuilder.cpp
+    src/client/graphics/renderer.cpp
+    src/client/graphics/shader.cpp
+    src/client/graphics/stb_image.cpp
+    src/client/graphics/texture.cpp
+    src/client/graphics/vertexArray.cpp
+    src/client/graphics/vertexBuffer.cpp
     src/client/renderThread.cpp
-    src/client/shader.cpp
-    src/client/stb_image.cpp
-    src/client/texture.cpp
-    src/client/vertexArray.cpp
-    src/client/vertexBuffer.cpp
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/config.cpp

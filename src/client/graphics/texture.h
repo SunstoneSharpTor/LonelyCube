@@ -16,32 +16,27 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/vertexBuffer.h"
-#include "client/renderer.h"
+#pragma once
+
+#include "client/graphics/renderer.h"
 
 namespace client {
 
-VertexBuffer::VertexBuffer() {
-    m_rendererID = 0;
-}
+class Texture {
+private:
+	unsigned int m_rendererID;
+	std::string m_filePath;
+	unsigned char* m_localBuffer;
+	int m_width, m_height, m_BPP;
+public:
+	Texture(const std::string& path);
+	~Texture();
 
-VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
-    glGenBuffers(1, &m_rendererID);
-    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
-}
+	void bind(unsigned int slot = 0) const;
+	void unbind() const;
 
-VertexBuffer::~VertexBuffer() {
-    if (m_rendererID != 0) {
-        glDeleteBuffers(1, &m_rendererID);
-    }
-}
-
-void VertexBuffer::bind() const {
-    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
-}
-void VertexBuffer::unbind() const {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
+	inline int getWidth() const { return m_width; }
+	inline int getHeight() const { return m_height; }
+};
 
 }  // namespace client
