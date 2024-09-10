@@ -430,10 +430,11 @@ void RenderThread::go(bool* running) {
             float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
-                float fac = 0.01;
-                exposure = exposure * (1.0 - fac) + targetExposure * fac;
+                float fac = 0.004;
+                exposure += ((targetExposure > exposure) * 2 - 1) * std::min(std::abs(targetExposure - exposure), (targetExposure - exposure) * (targetExposure - exposure) * fac);
                 exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
+            std::cout << exposure << "\n";
             screenShader.setUniform1f("exposure", exposure);
 
             // Draw the world texture
