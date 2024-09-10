@@ -355,7 +355,7 @@ void RenderThread::go(bool* running) {
                 lookingAtBlock = false;
             }
 
-            unsigned int timeOfDay = (m_mainWorld->getTickNum() * 10 + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            unsigned int timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
@@ -427,7 +427,7 @@ void RenderThread::go(bool* running) {
 
 
             screenShader.bind();
-            float targetExposure = std::max(1.0f / 10.0f, std::min(0.3f / luminanceVal, 1.0f / 0.0025f));
+            float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
                 float fac = 0.01;
