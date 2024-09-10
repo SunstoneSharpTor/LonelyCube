@@ -21,17 +21,13 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (r16f, binding = 0) uniform image2D srcImage;
-layout (r16f, binding = 1) uniform image2D downsampleImage;
+layout (r16f, binding = 0) uniform image2D downsampleImage;
+uniform sampler2D srcTexture;
 
 void main() {
     ivec2 downsampleTexelCoord = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 srcTexelCoord = downsampleTexelCoord * 2;
+    vec2 downsampleTexelSize = 1.0 / vec2(imageSize(downsampleImage));
+    vec2 srcTexelCoord = downsampleTexelSize * (vec2(downsampleTexelCoord) + vec2(1.0, 1.0));
 
-    float downsample = imageLoad(srcImage, srcTexelCoord).r;
-    downsample += imageLoad(srcImage, srcTexelCoord + ivec2(1, 0)).r;
-    downsample += imageLoad(srcImage, srcTexelCoord + ivec2(1, 1)).r;
-    downsample += imageLoad(srcImage, srcTexelCoord + ivec2(0, 1)).r;
-
-    imageStore(downsampleImage, downsampleTexelCoord, vec4(1.0, 1.0, 1.0, 1.0));
+    imageStore(downsampleImage, downsampleTexelCoord, texture(srcTexture, srcTexelCoord));
 }

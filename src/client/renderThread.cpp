@@ -138,6 +138,8 @@ void RenderThread::go(bool* running) {
     bloomBlitShader.setUniform1i("srcTexture", 0);
     ComputeShader logLuminanceDownsampleShader("res/shaders/logLuminanceDownsample.txt");
     ComputeShader simpleDownsampleShader("res/shaders/simpleDownsample.txt");
+    simpleDownsampleShader.bind();
+    simpleDownsampleShader.setUniform1i("srcTexture", 0);
 
     Texture allBlockTextures("res/blockTextures.png");
 
@@ -213,6 +215,8 @@ void RenderThread::go(bool* running) {
     m_mainWorld->doRenderThreadJobs();
 
     //set up game loop
+    float exposure = 0.0;
+    float exposureTimeByDTs = 0.0;
     SDL_DisplayMode displayMode;
     SDL_GetWindowDisplayMode(sdl_window, &displayMode);
     int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
@@ -283,6 +287,7 @@ void RenderThread::go(bool* running) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
             bloom.resize(windowDimensions);
+            luminance.resize(windowDimensions);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
             windowFlags = SDL_GetWindowFlags(sdl_window);
@@ -406,19 +411,29 @@ void RenderThread::go(bool* running) {
                 (float)windowDimensions[1], fov, groundLuminance, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
-            if (lookingAtBlock) {
-                mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
-            }
 
             //auto tp1 = std::chrono::high_resolution_clock::now();
             bloom.render(0.005f, 0.005f);
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+
+            float luminanceVal = luminance.calculate();
+            //std::cout << luminanceVal << "\n";
+
+            if (lookingAtBlock) {
+                mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
+            }
             worldFrameBuffer.unbind();
 
-            std::cout << luminance.calculate() << "\n";
+
             screenShader.bind();
-            float exposure = std::max(1.0f / 10.0f, std::min(1.0f / groundLuminance, 1.0f / 0.0025f));
+            float targetExposure = std::max(1.0f / 10.0f, std::min(0.3f / luminanceVal, 1.0f / 0.0025f));
+            exposureTimeByDTs += actualDT;
+            while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
+                float fac = 0.01;
+                exposure = exposure * (1.0 - fac) + targetExposure * fac;
+                exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
+            }
             screenShader.setUniform1f("exposure", exposure);
 
             // Draw the world texture
