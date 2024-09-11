@@ -31,18 +31,26 @@ uniform float u_renderDistance;
 uniform float u_skyLightIntensity;
 
 const float fogStart = 0.4f;
-const float density = 1.85f;
+const float fogDensity = 1.85f;
+const float minDarknessAmbientLight = 0.00002;
 
 void main() {
+    const float maxDarknessAmbientLight = min(0.001f, u_skyLightIntensity);
+
     vec4 positionRelativeToCam = u_modelView * position;
     gl_Position = u_proj * positionRelativeToCam;
     v_texCoord = texCoord;
-    v_brightness = u_skyLightIntensity / (1.0 + (15 - skyLightLevel) * (15 - skyLightLevel) * 0.2);
+    float factor = skyLightLevel * skyLightLevel * skyLightLevel / 3375.0;
+    //factor *= factor;
+    v_brightness = u_skyLightIntensity / (1.0 + (15 - skyLightLevel) * (15 - skyLightLevel) * 0.2)
+        * factor + maxDarknessAmbientLight / (1.0 + (15 - skyLightLevel) * (15 - skyLightLevel) *
+        0.2) * (1.0 - factor);
+    v_brightness = max(v_brightness, minDarknessAmbientLight);
     v_brightness *= ambientOcclusion;
 
     float distance = length(positionRelativeToCam.xyz);
     float normalisedDistance = clamp(distance - u_renderDistance * fogStart, 0.0f, u_renderDistance * (1.0f - fogStart)) / (u_renderDistance * (1.0f - fogStart));
-    v_visibility = normalisedDistance * density;
+    v_visibility = normalisedDistance * fogDensity;
     v_visibility = exp(-v_visibility * v_visibility);
     v_visibility *= clamp((u_renderDistance - distance) / u_renderDistance, 0.0f, 0.04f) * 25.0f;
 };

@@ -39,6 +39,7 @@ set(CLIENT_SOURCE_FILES
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
+    src/core/resourcePack.cpp
     src/core/terrainGen.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
@@ -52,6 +53,7 @@ set(SERVER_SOURCE_FILES
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
+    src/core/resourcePack.cpp
     src/core/terrainGen.cpp
     src/server/server.cpp
     src/server/serverNetworking.cpp)

@@ -1,0 +1,33 @@
+/*
+  Lonely Cube, a voxel game
+  Copyright (C) 2024 Bertie Cartwright
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// This shader performs downsampling on a single-channel texture by taking the mean of a 2x2 pixel
+// area
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (r16f, binding = 0) uniform image2D downsampleImage;
+uniform sampler2D srcTexture;
+
+void main() {
+    ivec2 downsampleTexelCoord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 downsampleTexelSize = 1.0 / vec2(imageSize(downsampleImage));
+    vec2 srcTexelCoord = downsampleTexelSize * (vec2(downsampleTexelCoord) + vec2(1.0, 1.0));
+
+    imageStore(downsampleImage, downsampleTexelCoord, texture(srcTexture, srcTexelCoord));
+}
