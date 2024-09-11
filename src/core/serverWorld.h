@@ -27,6 +27,7 @@
 #include "core/constants.h"
 #include "core/packet.h"
 #include "core/random.h"
+#include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
 
@@ -37,6 +38,7 @@ private:
     unsigned short m_nextPlayerID;
     unsigned short m_numChunkLoadingThreads;
     unsigned int m_gameTick;
+    ResourcePack m_resourcePack;
     
     std::unordered_map<Position, Chunk> m_chunks;
     std::unordered_map<unsigned short, ServerPlayer> m_players;
@@ -100,7 +102,7 @@ public:
 
 template<bool integrated>
 ServerWorld<integrated>::ServerWorld(unsigned long long seed) : m_seed(seed), m_nextPlayerID(0),
-    m_gameTick(0), m_threadsWait(false) {
+    m_gameTick(0), m_resourcePack("res/resourcePack"), m_threadsWait(false) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
     // TODO:
@@ -108,7 +110,7 @@ ServerWorld<integrated>::ServerWorld(unsigned long long seed) : m_seed(seed), m_
     m_chunks.reserve(16777214);
     m_players.reserve(32);
 
-    m_numChunkLoadingThreads = std::max(1u, std::min(8u, std::thread::hardware_concurrency()));
+    m_numChunkLoadingThreads = std::max(1u, std::min(32u, std::thread::hardware_concurrency()));
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
     std::fill(m_threadWaiting, m_threadWaiting + m_numChunkLoadingThreads, false);
 }

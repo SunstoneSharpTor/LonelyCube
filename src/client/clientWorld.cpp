@@ -31,7 +31,9 @@
 
 namespace client {
 
-static bool chunkMeshUploaded[8] = { false, false, false, false, false, false, false, false };
+static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false, false };
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
