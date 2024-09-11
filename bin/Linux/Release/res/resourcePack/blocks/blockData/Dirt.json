@@ -1,0 +1,6 @@
+{
+    "transparrent": false,
+    "collidable": true,
+    "model": "cube",
+    "textureIndices": [0,0,0,0,0,0]
+}
