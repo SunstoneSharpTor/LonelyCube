@@ -37,7 +37,7 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
-    const Position& playerPos) : m_integratedServer(seed) {
+    const Position& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -89,7 +89,6 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
-    m_singleplayer = singleplayer;
     int playerBlockPosition[3] = { 0, 0, 0 };
     float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
     m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);

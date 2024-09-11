@@ -36,4 +36,12 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
         stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
     }
     stream.close();
+
+    // Parse block data
+    for (unsigned char i = 0; i < 255; i++) {
+        if (m_blockData[i].name.size() == 0) {
+            continue;
+        }
+        std::ifstream stream(resourcePackPath/"blocks/blockData"/(m_blockData[i].name + ".json"));
+    }
 }

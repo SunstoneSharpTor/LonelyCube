@@ -170,6 +170,9 @@ public:
     inline unsigned int getTickNum() {
         return m_integratedServer.getTickNum();
     }
+	inline bool isSinglePlayer() {
+		return m_singleplayer;
+	}
 };
 
 }  // namespace client
