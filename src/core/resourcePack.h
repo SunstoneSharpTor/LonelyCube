@@ -23,21 +23,23 @@
 const unsigned char maxNumFaces = 6;
 
 struct Face {
-    float coords[12];
     unsigned char UVcoords[8];
     unsigned char cullFace;
     bool ambientOcclusion;
+    float coords[12];
 };
 
 struct BlockModel {
     unsigned char numFaces;
+    std::string name;
     Face faces[maxNumFaces];
+    float boundingBoxVertices[24];
 };
 
 struct BlockData {
     std::string name;
     unsigned char modelID;
-    unsigned short faceTextures[maxNumFaces];
+    unsigned short faceTextureIndices[maxNumFaces];
     bool transparent;
     bool dimsLight;
     bool collidable;
@@ -47,6 +49,8 @@ class ResourcePack {
 private:
     BlockModel m_blockModels[256];
     BlockData m_blockData[256];
+
+    bool isTrue(std::basic_istream<char>& stream) const;
 public:
     ResourcePack(std::filesystem::path resourcePackPath);
     const BlockData* const getBlockData() const {
