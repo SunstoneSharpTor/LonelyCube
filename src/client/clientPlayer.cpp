@@ -44,14 +44,14 @@ const int ClientPlayer::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
+ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
     m_pausedMouseState = 0u;
 
-    m_mainWorld = newWorld;
+    m_mainWorld = mainWorld;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -92,8 +92,6 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* newWorld) {
     m_lastMousePoll = 0.0f;
 }
 
-
-
 void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windowDimensions, bool*
     windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
     float DT = 1.0f/(float)constants::visualTPS;
@@ -120,13 +118,15 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
                 if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                     m_timeSinceBlockBreak = 0.0f;
                     m_mainWorld->replaceBlock(breakBlockCoords, 0);
-                    Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
-                    for (int i = 0; i < 3; i++) {
-                        payload[i] = breakBlockCoords[i];
+                    if (!m_mainWorld->isSinglePlayer()) {
+                        Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
+                        for (int i = 0; i < 3; i++) {
+                            payload[i] = breakBlockCoords[i];
+                        }
+                        payload[3] = 0;
+                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                        enet_peer_send(networking.getPeer(), 0, packet);
                     }
-                    payload[3] = 0;
-                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-                    enet_peer_send(networking.getPeer(), 0, packet);
                 }
             }
         }
@@ -141,15 +141,17 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
                     if ((!intersectingBlock(placeBlockCoords)) || (!constants::collideable[m_blockHolding])) {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too
-                        m_mainWorld->replaceBlock(placeBlockCoords, m_blockHolding);
-                        Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
-                        for (int i = 0; i < 3; i++) {
-                            payload[i] = placeBlockCoords[i];
-                        }
-                        payload[3] = m_blockHolding;
-                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-                        enet_peer_send(networking.getPeer(), 0, packet);
                         m_timeSinceBlockPlace = 0.0f;
+                        m_mainWorld->replaceBlock(placeBlockCoords, m_blockHolding);
+                        if (!m_mainWorld->isSinglePlayer()) {
+                            Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
+                            for (int i = 0; i < 3; i++) {
+                                payload[i] = placeBlockCoords[i];
+                            }
+                            payload[3] = m_blockHolding;
+                            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                            enet_peer_send(networking.getPeer(), 0, packet);
+                        }
                     }
                 }
             }

@@ -20,20 +20,32 @@
 
 #include "pch.h"
 
-struct BlockModel {
+const unsigned char maxNumFaces = 6;
 
+struct Face {
+    float coords[12];
+    unsigned char UVcoords[8];
+    unsigned char cullFace;
+    bool ambientOcclusion;
+};
+
+struct BlockModel {
+    unsigned char numFaces;
+    Face faces[maxNumFaces];
 };
 
 struct BlockData {
     std::string name;
     unsigned char modelID;
-    unsigned short faceTextures[6];
+    unsigned short faceTextures[maxNumFaces];
     bool transparent;
     bool dimsLight;
+    bool collidable;
 };
 
 class ResourcePack {
 private:
+    BlockModel m_blockModels[256];
     BlockData m_blockData[256];
 public:
     ResourcePack(std::filesystem::path resourcePackPath);
