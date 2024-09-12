@@ -1,26 +1,30 @@
 {
-    "boundingBox": [2,0,2, 14,14,14],
+    "boundingBox": [1,0,1, 15,14,15],
     "faces":
     [
         {
             "coordinates": [16,0,16, 0,0,0, 0,16,0, 16,16,16],
             "uv": [0,0, 16,16],
-            "ambientOcclusion": true
+            "ambientOcclusion": true,
+            "lighting": "this"
         },
         {
             "coordinates": [0,0,0, 16,0,16, 16,16,16, 0,16,0],
             "uv": [0,0, 16,16],
-            "ambientOcclusion": true
+            "ambientOcclusion": true,
+            "lighting": "this"
         },
         {
             "coordinates": [16,0,0, 0,0,16, 0,16,16, 16,16,0],
             "uv": [0,0, 16,16],
-            "ambientOcclusion": true
+            "ambientOcclusion": true,
+            "lighting": "this"
         },
         {
             "coordinates": [0,0,16, 16,0,0, 16,16,0, 0,16,16],
             "uv": [0,0, 16,16],
-            "ambientOcclusion": true
+            "ambientOcclusion": true,
+            "lighting": "this"
         }
     ]
 }

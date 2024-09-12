@@ -38,11 +38,12 @@ private:
     unsigned int* m_numWaterVertices;
     unsigned int* m_waterIndices;
     unsigned int* m_numWaterIndices;
+    int m_chunkPosition[3];
+    int m_chunkWorldCoords[3];
 
-    static const short s_neighbouringBlocks[6];
-    static const short s_neighbouringBlocksX[6];
-    static const short s_neighbouringBlocksY[6];
-    static const short s_neighbouringBlocksZ[6];
+    static const short s_neighbouringBlocksX[7];
+    static const short s_neighbouringBlocksY[7];
+    static const short s_neighbouringBlocksZ[7];
     static const float s_cubeTextureCoordinates[48];
     static const float s_xTextureCoordinates[32];
     static const short s_blockIdToTextureNum[48];
@@ -51,9 +52,9 @@ private:
     static const short s_adjacentBlocksToFaceOffestsY[48];
     static const short s_adjacentBlocksToFaceOffestsZ[48];
 
-    void getTextureCoordinates(float* coords, const short textureNum);
+    void getTextureCoordinates(float* coords, float* textureBox, const short textureNum);
 
-    void addFaceToMesh(unsigned int block, unsigned char faceNum);
+    void addFaceToMesh(unsigned int block, unsigned char blockType, unsigned char faceNum);
 
     inline void findBlockCoordsInChunk(int* blockPos, unsigned int block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
@@ -64,11 +65,7 @@ private:
 public:
     MeshBuilder(Chunk& chunk, ResourcePack& resourcePack, float* vertices, unsigned int*
         numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices,
-        unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices)
-        : m_chunk(chunk), m_resourcePack(resourcePack), m_vertices(vertices),
-        m_numVertices(numVertices), m_indices(indices), m_numIndices(numIndices),
-        m_waterVertices(waterVertices), m_numWaterVertices(numWaterVertices),
-        m_waterIndices(waterIndices), m_numWaterIndices(numWaterIndices) {}
+        unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices);
 
     void buildMesh();
 };

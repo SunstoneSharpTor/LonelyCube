@@ -1,0 +1,40 @@
+/*
+  Lonely Cube, a voxel game
+  Copyright (C) 2024 Bertie Cartwright
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba16f, binding = 0) uniform image2D frameBuffer;
+
+uniform vec3 sunDir;
+uniform mat4 inverseProjection;
+uniform mat4 inverseView;
+uniform float brightness;
+
+void main() {
+    vec2 textureSize = vec2(imageSize(frameBuffer));
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
+    vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
+    vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
+
+    float sunDistance = dot(rayDir, sunDir) + 1.0;
+    if (sunDistance > 1.9995) {
+        imageStore(frameBuffer, texelCoords, vec4(vec3(1.0, 0.7, 0.35) * brightness, 1.0));
+    }
+}

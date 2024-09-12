@@ -151,6 +151,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 unsigned char faceNum = 0;
                 while (true) {  // Runs once per face
                     // Set defaults
+                    m_blockModels[modelID].faces[faceNum].lightingBlock = 6;
                     m_blockModels[modelID].faces[faceNum].cullFace = -1;
                     m_blockModels[modelID].faces[faceNum].ambientOcclusion = true;
 
@@ -164,6 +165,31 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                         if (field == "ambientOcclusion") {
                             m_blockModels[modelID].faces[faceNum].ambientOcclusion =
                                 isTrue(faceStream);
+                        }
+                        if (field == "lighting") {
+                            faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
+                            std::getline(faceStream, value, '"');
+                            if (value == "posY") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 5;
+                            }
+                            else if (value == "posZ") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 4;
+                            }
+                            else if (value == "posX") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 3;
+                            }
+                            else if (value == "negX") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 2;
+                            }
+                            else if (value == "negZ") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 1;
+                            }
+                            else if (value == "negY") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 0;
+                            }
+                            else if (value == "this") {
+                                m_blockModels[modelID].faces[faceNum].lightingBlock = 6;
+                            }
                         }
                         if (field == "cullFace") {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
@@ -208,7 +234,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             std::stringstream line(value);
                             unsigned char i = 0;
                             while (i < 4 && std::getline(line, value, ',')) {
-                                m_blockModels[modelID].faces[faceNum].UVcoords[i] = std::stoi(value);
+                                m_blockModels[modelID].faces[faceNum].UVcoords[i] = (float)std::stoi(value) / 16;
                                 i++;
                             }
                             if (i < 4) {
