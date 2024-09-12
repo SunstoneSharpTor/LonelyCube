@@ -92,11 +92,11 @@ public:
 
     void unload();
 
-    inline char getBlock(const unsigned int block) const {
+    inline unsigned char getBlock(const unsigned int block) const {
         return m_blocks[block * (!m_singleBlockType)];
     }
 
-    inline char getBlockUnchecked(unsigned int block) {
+    inline unsigned char getBlockUnchecked(unsigned int block) {
         return m_blocks[block];
     }
 

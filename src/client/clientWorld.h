@@ -136,7 +136,7 @@ public:
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
 	void replaceBlock(int* blockCoords, unsigned char blockType);
-	unsigned short getBlock(int* blockCoords);
+	unsigned char getBlock(int* blockCoords);
 	inline int getRenderDistance() {
 		return m_renderDistance;
 	}

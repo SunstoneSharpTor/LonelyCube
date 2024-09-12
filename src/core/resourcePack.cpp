@@ -56,7 +56,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             continue;
         }
         // Set defaults
-        m_blockData[blockID].modelID = 0;
+        m_blockData[blockID].model = m_blockModels;
         bool transparent = false;
         bool dimsLight = false;
         bool collidable = true;
@@ -94,7 +94,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                     }
                     modelID++;
                 }
-                m_blockData[blockID].modelID = modelID;
+                m_blockData[blockID].model = m_blockModels + modelID;
             }
             if (field == "textureIndices") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
