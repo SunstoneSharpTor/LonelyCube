@@ -1,0 +1,26 @@
+{
+    "boundingBox": [2,0,2, 14,14,14],
+    "faces":
+    [
+        {
+            "coordinates": [16,0,16, 0,0,0, 0,16,0, 16,16,16],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true
+        },
+        {
+            "coordinates": [0,0,0, 16,0,16, 16,16,16, 0,16,0],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true
+        },
+        {
+            "coordinates": [16,0,0, 0,0,16, 0,16,16, 16,16,0],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true
+        },
+        {
+            "coordinates": [0,0,16, 16,0,0, 16,16,0, 0,16,16],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true
+        }
+    ]
+}

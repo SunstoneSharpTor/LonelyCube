@@ -177,7 +177,7 @@ void MeshBuilder::addFaceToMesh(float* vertices, unsigned int* numVertices, unsi
         }
 
         if (m_chunk.getBlock(block) == 4) {
-           float texCoords[8];
+            float texCoords[8];
             getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
             for (short vertex = 0; vertex < 4; vertex++) {
                 for (short element = 0; element < 3; element++) {
