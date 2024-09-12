@@ -98,6 +98,9 @@ public:
     inline unsigned int getTickNum() {
         return m_gameTick;
     }
+    inline ResourcePack& getResourcePack() {
+        return m_resourcePack;
+    }
 };
 
 template<bool integrated>

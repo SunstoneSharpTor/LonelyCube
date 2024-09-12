@@ -38,7 +38,7 @@ struct BlockModel {
 
 struct BlockData {
     std::string name;
-    unsigned char modelID;
+    BlockModel* model;
     unsigned short faceTextureIndices[maxNumFaces];
     bool transparent;
     bool dimsLight;
@@ -53,7 +53,7 @@ private:
     bool isTrue(std::basic_istream<char>& stream) const;
 public:
     ResourcePack(std::filesystem::path resourcePackPath);
-    const BlockData* const getBlockData() const {
-        return m_blockData;
+    const BlockData& getBlockData(unsigned char blockType) const {
+        return m_blockData[blockType];
     }
 };

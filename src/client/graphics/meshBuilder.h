@@ -22,12 +22,22 @@
 
 #include "core/chunk.h"
 #include "core/constants.h"
+#include "core/resourcePack.h"
 
 namespace client {
 
 class MeshBuilder {
 private:
     Chunk& m_chunk;
+    ResourcePack& m_resourcePack;
+    float* m_vertices;
+    unsigned int* m_numVertices;
+    unsigned int* m_indices;
+    unsigned int* m_numIndices;
+    float* m_waterVertices;
+    unsigned int* m_numWaterVertices;
+    unsigned int* m_waterIndices;
+    unsigned int* m_numWaterIndices;
 
     static const short s_neighbouringBlocks[6];
     static const short s_neighbouringBlocksX[6];
@@ -43,10 +53,7 @@ private:
 
     void getTextureCoordinates(float* coords, const short textureNum);
 
-    void addFaceToMesh(float* vertices, unsigned int* numVertices,
-        unsigned int* indices, unsigned int* numIndices, float* waterVertices,
-        unsigned int* numWaterVertices, unsigned int* waterIndices,
-        unsigned int* numWaterIndices, unsigned int block, short neighbouringBlock);
+    void addFaceToMesh(unsigned int block, unsigned char faceNum);
 
     inline void findBlockCoordsInChunk(int* blockPos, unsigned int block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
@@ -55,11 +62,15 @@ private:
     }
 
 public:
-    MeshBuilder(Chunk& chunk) : m_chunk(chunk) {}
+    MeshBuilder(Chunk& chunk, ResourcePack& resourcePack, float* vertices, unsigned int*
+        numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices,
+        unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices)
+        : m_chunk(chunk), m_resourcePack(resourcePack), m_vertices(vertices),
+        m_numVertices(numVertices), m_indices(indices), m_numIndices(numIndices),
+        m_waterVertices(waterVertices), m_numWaterVertices(numWaterVertices),
+        m_waterIndices(waterIndices), m_numWaterIndices(numWaterIndices) {}
 
-    void buildMesh(float* vertices, unsigned int* numVertices, unsigned int* indices,
-        unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices,
-        unsigned int* waterIndices, unsigned int* numWaterIndices);
+    void buildMesh();
 };
 
 }  // namespace client
