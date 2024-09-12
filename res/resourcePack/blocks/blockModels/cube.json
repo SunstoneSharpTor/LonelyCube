@@ -3,37 +3,37 @@
     "faces":
     [
         {
-            "coordinates": [0,0,0, 16,0,16],
+            "coordinates": [0,0,0, 16,0,0, 16,0,16, 0,0,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "negY"
         },
         {
-            "coordinates": [0,16,0, 16,16,16],
+            "coordinates": [0,16,16, 16,16,16, 16,16,0, 0,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "posY"
         },
         {
-            "coordinates": [0,0,0, 0,16,16],
+            "coordinates": [0,0,0, 0,0,16, 0,16,16, 0,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "negX"
         },
         {
-            "coordinates": [16,0,0, 16,16,16],
+            "coordinates": [16,0,16, 16,0,0, 16,16,0, 16,16,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "posX"
         },
         {
-            "coordinates": [0,0,0, 16,16,0],
+            "coordinates": [16,0,0, 0,0,0, 0,16,0, 16,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "negZ"
         },
         {
-            "coordinates": [0,0,16, 16,16,16],
+            "coordinates": [0,0,16, 16,0,16, 16,16,16, 0,16,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
             "cullFace": "posZ"

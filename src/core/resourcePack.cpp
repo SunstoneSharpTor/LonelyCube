@@ -23,7 +23,8 @@
 bool ResourcePack::isTrue(std::basic_istream<char>& stream) const {
     std::string value;
     std::getline(stream, value, '\n');
-    value.erase(std::remove_if(value.begin(), value.end(), isspace), value.end());
+    value.erase(std::remove_if(value.begin(), value.end(), [](char c) { return !isalpha(c); }),
+        value.end());
     std::transform(value.begin(), value.end(), value.begin(),
         [](unsigned char c){ return std::tolower(c); });
     if (value == "true") {
@@ -63,7 +64,8 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             m_blockData[blockID].faceTextureIndices[i] = 0;
         }
 
-        std::ifstream stream(resourcePackPath/"blocks/blockData"/(m_blockData[blockID].name + ".json"));
+        std::ifstream stream(resourcePackPath/"blocks/blockData"/(m_blockData[blockID].name +
+            ".json"));
         if (!stream.is_open()) {
             continue;
         }
@@ -134,7 +136,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 unsigned char i = 0;
                 while (i < 6 && std::getline(line, value, ',')) {
                     // Slightly scale up the point to prevent z-fighting with the block
-                    bounds[i] = ((float)std::stoi(value) - 0.5f) * 1.002f + 0.5f;
+                    bounds[i] = ((float)std::stoi(value) / 16 - 0.5f) * 1.002f + 0.5f;
                     i++;
                 }
                 if (i < 6) {
@@ -148,6 +150,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             if (field == "faces") {
                 unsigned char faceNum = 0;
                 while (true) {  // Runs once per face
+                    // Set defaults
+                    m_blockModels[modelID].faces[faceNum].cullFace = -1;
+                    m_blockModels[modelID].faces[faceNum].ambientOcclusion = true;
+
                     stream.ignore(std::numeric_limits<std::streamsize>::max(), '{');
                     std::string face;
                     std::getline(stream, face, '}');
@@ -185,39 +191,28 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                             std::getline(faceStream, value, ']');
                             std::stringstream line(value);
-                            float coords[6];
                             unsigned char i = 0;
-                            while (i < 6 && std::getline(line, value, ',')) {
+                            while (i < 12 && std::getline(line, value, ',')) {
                                 // Slightly scale up the point to prevent tiny holes in the mesh
-                                coords[i] = ((float)std::stoi(value) - 0.5f) * 1.0008f + 0.5f;
+                                m_blockModels[modelID].faces[faceNum].coords[i] =
+                                    ((float)std::stoi(value) / 16 - 0.5f) * 1.0008f + 0.5f;
                                 i++;
                             }
-                            if (i < 6) {
+                            if (i < 12) {
                                 continue;
-                            }
-                            unsigned char indices[12] = {3,1,2,0,1,5,0,4,5,3,4,2};
-                            for (unsigned char i = 0; i < 12; i++) {
-                                m_blockModels[modelID].faces[faceNum].coords[i] =
-                                    coords[indices[i]];
                             }
                         }
                         if (field == "uv") {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                             std::getline(faceStream, value, ']');
                             std::stringstream line(value);
-                            float coords[4];
                             unsigned char i = 0;
                             while (i < 4 && std::getline(line, value, ',')) {
-                                coords[i] = std::stoi(value);
+                                m_blockModels[modelID].faces[faceNum].UVcoords[i] = std::stoi(value);
                                 i++;
                             }
                             if (i < 4) {
                                 continue;
-                            }
-                            unsigned char indices[12] = {3,1,2,0,1,5,0,4,5,3,4,2};
-                            for (unsigned char i = 0; i < 12; i++) {
-                                m_blockModels[modelID].faces[faceNum].coords[i] =
-                                    coords[indices[i]];
                             }
                         }
                     }

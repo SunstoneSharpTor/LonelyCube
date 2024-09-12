@@ -23,8 +23,8 @@
 const unsigned char maxNumFaces = 6;
 
 struct Face {
-    unsigned char UVcoords[8];
-    unsigned char cullFace;
+    unsigned char UVcoords[4];
+    signed char cullFace;
     bool ambientOcclusion;
     float coords[12];
 };
