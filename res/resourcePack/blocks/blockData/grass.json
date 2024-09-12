@@ -2,5 +2,5 @@
     "transparrent": false,
     "collidable": true,
     "model": "cube",
-    "textureIndices": [2,0,1,1,1,1]
+    "textureIndices": [0,1,2,2,2,2]
 }

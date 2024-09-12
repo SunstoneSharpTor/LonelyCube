@@ -6,36 +6,42 @@
             "coordinates": [0,0,0, 16,0,0, 16,0,16, 0,0,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "negY",
             "cullFace": "negY"
         },
         {
             "coordinates": [0,16,16, 16,16,16, 16,16,0, 0,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "posY",
             "cullFace": "posY"
         },
         {
             "coordinates": [0,0,0, 0,0,16, 0,16,16, 0,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "negX",
             "cullFace": "negX"
         },
         {
             "coordinates": [16,0,16, 16,0,0, 16,16,0, 16,16,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "posX",
             "cullFace": "posX"
         },
         {
             "coordinates": [16,0,0, 0,0,0, 0,16,0, 16,16,0],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "negZ",
             "cullFace": "negZ"
         },
         {
             "coordinates": [0,0,16, 16,0,16, 16,16,16, 0,16,16],
             "uv": [0,0, 16,16],
             "ambientOcclusion": true,
+            "lighting": "posZ",
             "cullFace": "posZ"
         }
     ]
