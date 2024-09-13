@@ -1,0 +1,64 @@
+/*
+  Lonely Cube, a voxel game
+  Copyright (C) 2024 Bertie Cartwright
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba16f, binding = 0) uniform image2D skyImage;
+
+uniform vec3 sunDir;
+uniform mat4 inverseProjection;
+uniform mat4 inverseView;
+uniform float brightness;
+uniform vec3 sunGlowColour;
+uniform float sunGlowAmount;
+
+const int NUM_IN_SCATTERING_POINTS = 10;
+const float PLANET_RADIUS = 100.0;
+const float ATMOSPHERE_RADIUS = 120.0;
+const vec3 SKY_TOP_COLOUR = vec3(0.05, 0.15, 1.0);
+const vec3 HORIZON_COLOUR = vec3(0.3, 0.35, 0.8);
+
+float distanceThroughAtmosphere(vec3 rayDir) {
+    vec3 spereCentre = vec3(0, 0, 0);
+    float spereRadius = ATMOSPHERE_RADIUS;
+    vec3 rayOrigin = vec3(0, PLANET_RADIUS, 0);
+    vec3 offset = rayOrigin - spereCentre;
+    float b = 2 * dot(offset, rayDir);
+    float c = dot(offset, offset) - spereRadius * spereRadius;
+    float d = b * b - 4 * c;
+    float s = sqrt(d);
+    return (-b + s) / 2;
+}
+
+void main() {
+    vec2 textureSize = vec2(imageSize(skyImage));
+    ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
+    vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
+    vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
+
+    float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
+    vec3 value = SKY_TOP_COLOUR * (1.0f - rayDistanceThroughAtmosphere / 90.0);
+    value += HORIZON_COLOUR * rayDistanceThroughAtmosphere / 90.0;
+    float sunDistance = (dot(rayDir, sunDir) + 3.0) * 0.25 * min(rayDistanceThroughAtmosphere -
+        (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
+    value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
+	
+    imageStore(skyImage, texelCoords, vec4(value * brightness, 1.0));
+}
