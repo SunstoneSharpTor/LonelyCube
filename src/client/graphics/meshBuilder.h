@@ -54,6 +54,10 @@ private:
 
     void getTextureCoordinates(float* coords, float* textureBox, const short textureNum);
 
+    float getAmbientOcclusion(int* blockCoords, float* pointCoords, char direction);
+
+    float getSmoothSkyLight(int* blockCoords, float* pointCoords, char direction);
+
     void addFaceToMesh(unsigned int block, unsigned char blockType, unsigned char faceNum);
 
     inline void findBlockCoordsInChunk(int* blockPos, unsigned int block) {

@@ -43,6 +43,7 @@ struct BlockData {
     unsigned short faceTextureIndices[maxNumFaces];
     bool transparent;
     bool dimsLight;
+    bool castsAmbientOcclusion;
     bool collidable;
 };
 

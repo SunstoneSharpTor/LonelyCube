@@ -1,5 +1,6 @@
 {
     "transparrent": true,
     "dimsLight": false,
-    "collidable": false
+    "collidable": false,
+    "castsAmbientOcclusion": false
 }

@@ -251,6 +251,7 @@ void RenderThread::go(bool* running) {
         //poll events
         SDL_Event windowEvent;
         Uint32 windowFlags;
+        windowevent_resized = false;
         while (SDL_PollEvent(&windowEvent)) {
             switch (windowEvent.type) {
             case SDL_QUIT:
@@ -286,6 +287,7 @@ void RenderThread::go(bool* running) {
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+            std::cout << "WINDOW DIMS: " << windowDimensions[0] << ", " << windowDimensions[1] << "\n";
             bloom.resize(windowDimensions);
             luminance.resize(windowDimensions);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);

@@ -1,6 +1,7 @@
 {
     "transparrent": false,
     "collidable": true,
+    "castsAmbientOcclusion": true,
     "model": "cube",
     "textureIndices": [3,3,3,3,3,3]
 }
