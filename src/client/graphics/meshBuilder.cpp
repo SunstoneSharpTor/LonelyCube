@@ -138,10 +138,14 @@ void MeshBuilder::addFaceToMesh(unsigned int block, unsigned char blockType, uns
     Face faceData = blockData.model->faces[faceNum];
     int blockCoords[3];
     int lightingBlockPos[3];
+    int worldBlockPos[3];
     findBlockCoordsInChunk(blockCoords, block);
     lightingBlockPos[0] = m_chunkWorldCoords[0] + blockCoords[0] + s_neighbouringBlocksX[faceData.lightingBlock];
     lightingBlockPos[1] = m_chunkWorldCoords[1] + blockCoords[1] + s_neighbouringBlocksY[faceData.lightingBlock];
     lightingBlockPos[2] = m_chunkWorldCoords[2] + blockCoords[2] + s_neighbouringBlocksZ[faceData.lightingBlock];
+    worldBlockPos[0] = m_chunkWorldCoords[0] + blockCoords[0];
+    worldBlockPos[1] = m_chunkWorldCoords[1] + blockCoords[1];
+    worldBlockPos[2] = m_chunkWorldCoords[2] + blockCoords[2];
     if (blockType == 4) {
         float texCoords[8];
         getTextureCoordinates(texCoords, faceData.UVcoords, blockData.faceTextureIndices[faceNum]);
@@ -152,8 +156,8 @@ void MeshBuilder::addFaceToMesh(unsigned int block, unsigned char blockType, uns
             }
             m_waterVertices[*m_numWaterVertices] = texCoords[vertex * 2];
             m_waterVertices[*m_numWaterVertices + 1] = texCoords[vertex * 2 + 1];
-            m_waterVertices[*m_numWaterVertices + 2] = 1.0f;
-            m_waterVertices[*m_numWaterVertices + 3] = m_chunk.getWorldSkyLight(lightingBlockPos);
+            m_waterVertices[*m_numWaterVertices + 2] = getSmoothSkyLight(worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock);
+            m_waterVertices[*m_numWaterVertices + 3] = 1.0f;
             (*m_numWaterVertices) += 4;
         }
 
@@ -177,8 +181,10 @@ void MeshBuilder::addFaceToMesh(unsigned int block, unsigned char blockType, uns
             }
             m_vertices[*m_numVertices] = texCoords[vertex * 2];
             m_vertices[*m_numVertices + 1] = texCoords[vertex * 2 + 1];
-            m_vertices[*m_numVertices + 2] = 1.0f;
-            m_vertices[*m_numVertices + 3] = m_chunk.getWorldSkyLight(lightingBlockPos);
+            m_vertices[*m_numVertices + 2] = getSmoothSkyLight(worldBlockPos, faceData.coords +
+                vertex * 3, faceData.lightingBlock) * getAmbientOcclusion(worldBlockPos,
+                faceData.coords + vertex * 3, faceData.lightingBlock);
+            m_vertices[*m_numVertices + 3] = 1.0f;
             (*m_numVertices) += 4;
         }
 
@@ -220,179 +226,6 @@ void MeshBuilder::addFaceToMesh(unsigned int block, unsigned char blockType, uns
         m_indices[*m_numIndices] = trueNumVertices - 1;
         (*m_numIndices)++;
     }
-
-    /*int chunkPosition[3];
-    m_chunk.getChunkPosition(chunkPosition);
-    int blockCoords[3];
-    int neighbouringBlockPos[3];
-    findBlockCoordsInChunk(blockCoords, block);
-    neighbouringBlockPos[0] = chunkPosition[0] * constants::CHUNK_SIZE + blockCoords[0] + s_neighbouringBlocksX[neighbouringBlock];
-    neighbouringBlockPos[1] = chunkPosition[1] * constants::CHUNK_SIZE + blockCoords[1] + s_neighbouringBlocksY[neighbouringBlock];
-    neighbouringBlockPos[2] = chunkPosition[2] * constants::CHUNK_SIZE + blockCoords[2] + s_neighbouringBlocksZ[neighbouringBlock];
-
-    if (constants::cubeMesh[m_chunk.getBlock(block)]) {
-        short firstPositionIndex;
-        short firstAdjacentBlockIndex;
-        short textureNum;
-        short neighbouringBlockCoordsOffset;
-        switch (neighbouringBlock) {
-            case 0:
-                firstPositionIndex = 48;
-                firstAdjacentBlockIndex = 0;
-                textureNum = 4;
-                neighbouringBlockCoordsOffset = 0;
-                break;
-            case 1:
-                firstPositionIndex = 0;
-                firstAdjacentBlockIndex = 8;
-                textureNum = 2;
-                neighbouringBlockCoordsOffset = 1;
-                break;
-            case 2:
-                firstPositionIndex = 24;
-                firstAdjacentBlockIndex = 16;
-                textureNum = 0;
-                neighbouringBlockCoordsOffset = 2;
-                break;
-            case 3:
-                firstPositionIndex = 36;
-                firstAdjacentBlockIndex = 24;
-                textureNum = 1;
-                neighbouringBlockCoordsOffset = 3;
-                break;
-            case 4:
-                firstPositionIndex = 12;
-                firstAdjacentBlockIndex = 32;
-                textureNum = 3;
-                neighbouringBlockCoordsOffset = 4;
-                break;
-            default: //5
-                firstPositionIndex = 60;
-                firstAdjacentBlockIndex = 40;
-                textureNum = 5;
-                neighbouringBlockCoordsOffset = 5;
-                break;
-        }
-
-        if (m_chunk.getBlock(block) == 4) {
-            float texCoords[8];
-            getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
-            for (short vertex = 0; vertex < 4; vertex++) {
-                for (short element = 0; element < 3; element++) {
-                    m_waterVertices[*m_numWaterVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
-                    (*m_numWaterVertices)++;
-                }
-                m_waterVertices[*m_numWaterVertices] = texCoords[vertex * 2];
-                m_waterVertices[*m_numWaterVertices + 1] = texCoords[vertex * 2 + 1];
-                m_waterVertices[*m_numWaterVertices + 2] = 1.0f;
-                m_waterVertices[*m_numWaterVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
-                (*m_numWaterVertices) += 4;
-            }
-
-            //index buffer
-            int trueNumVertices = *m_numWaterVertices / 7;
-            m_waterIndices[*m_numWaterIndices] = trueNumVertices - 4;
-            m_waterIndices[*m_numWaterIndices + 1] = trueNumVertices - 3;
-            m_waterIndices[*m_numWaterIndices + 2] = trueNumVertices - 2;
-            m_waterIndices[*m_numWaterIndices + 3] = trueNumVertices - 4;
-            m_waterIndices[*m_numWaterIndices + 4] = trueNumVertices - 2;
-            m_waterIndices[*m_numWaterIndices + 5] = trueNumVertices - 1;
-            *m_numWaterIndices += 6;
-        }
-        else {
-            float texCoords[8];
-            getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + textureNum]);
-            for (short vertex = 0; vertex < 4; vertex++) {
-                for (short element = 0; element < 3; element++) {
-                    m_vertices[*m_numVertices] = constants::CUBE_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
-                    (*m_numVertices)++;
-                }
-                m_vertices[*m_numVertices] = texCoords[vertex * 2];
-                m_vertices[*m_numVertices + 1] = texCoords[vertex * 2 + 1];
-                m_vertices[*m_numVertices + 2] = 1.0f;
-                m_vertices[*m_numVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
-                (*m_numVertices) += 4;
-            }
-
-            //ambient occlusion
-            short blockType;
-            for (unsigned char adjacentBlockToFace = 0; adjacentBlockToFace < 8; adjacentBlockToFace++) {
-                int blockCoords[3];
-                blockCoords[0] = block % constants::CHUNK_SIZE;
-                blockCoords[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
-                blockCoords[2] = (block - blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE) / constants::CHUNK_SIZE;
-                blockCoords[0] += chunkPosition[0] * constants::CHUNK_SIZE + s_neighbouringBlocksX[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsX[firstAdjacentBlockIndex + adjacentBlockToFace];
-                blockCoords[1] += chunkPosition[1] * constants::CHUNK_SIZE + s_neighbouringBlocksY[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsY[firstAdjacentBlockIndex + adjacentBlockToFace];
-                blockCoords[2] += chunkPosition[2] * constants::CHUNK_SIZE + s_neighbouringBlocksZ[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsZ[firstAdjacentBlockIndex + adjacentBlockToFace];
-                blockType = m_chunk.getWorldBlock(blockCoords);
-                if (constants::castsShadows[blockType]) {
-                    unsigned char type = m_chunk.getBlock(block);
-                    float val = constants::shadowReceiveAmount[type];
-                    int vertexNum = *m_numVertices - (23 - adjacentBlockToFace / 2 * 7);
-                    m_vertices[vertexNum] *= val;
-                    if ((adjacentBlockToFace % 2) != 0) {
-                        vertexNum = *m_numVertices - (23 - ((adjacentBlockToFace / 2 + 1) % 4) * 7);
-                        m_vertices[vertexNum] *= val;
-                    }
-                }
-            }
-
-            //index buffer
-            int trueNumVertices = *m_numVertices / 7;
-           m_indices[*m_numIndices] = trueNumVertices - 4;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 3;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 2;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 4;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 2;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 1;
-            (*m_numIndices)++;
-        }
-    } 
-    else { //if the block is not a cube mesh
-        //TODO:
-        //make it so that it only adds the mesh if the mesh has not already been added (as only one "face" needs to be visible for them all to be visible
-        float texCoords[8];
-        short firstPositionIndex;
-
-        for (unsigned char face = 0; face < 4; face++) {
-            firstPositionIndex = face * 12;
-            getTextureCoordinates(texCoords, s_blockIdToTextureNum[m_chunk.getBlock(block) * 6 + face]);
-            for (short vertex = 0; vertex < 4; vertex++) {
-                for (short element = 0; element < 3; element++) {
-                    m_vertices[*m_numVertices] = constants::X_FACE_POSITIONS[firstPositionIndex + vertex * 3 + element] + blockCoords[element];
-                    (*m_numVertices)++;
-                }
-                m_vertices[*m_numVertices] = texCoords[vertex * 2];
-                m_vertices[*m_numVertices + 1] = texCoords[vertex * 2 + 1];
-                m_vertices[*m_numVertices + 2] = 1.0f;
-                m_vertices[*m_numVertices + 3] = m_chunk.getWorldSkyLight(neighbouringBlockPos);
-                (*m_numVertices) += 4;
-            }
-
-            //TODO
-            //lighting for X-shaped meshes
-
-            //index buffer
-            int trueNumVertices = *m_numVertices / 7;
-           m_indices[*m_numIndices] = trueNumVertices - 4;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 3;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 2;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 4;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 2;
-            (*m_numIndices)++;
-           m_indices[*m_numIndices] = trueNumVertices - 1;
-            (*m_numIndices)++;
-        }
-    }*/
 }
 
 void MeshBuilder::getTextureCoordinates(float* coords, float* textureBox, const short textureNum) {
@@ -404,6 +237,74 @@ void MeshBuilder::getTextureCoordinates(float* coords, float* textureBox, const 
     coords[5] = coords[1] + 0.03125f - (textureBox[1] + 1.0f - textureBox[3]) * 0.03125;
     coords[6] = coords[0];
     coords[7] = coords[5];
+}
+
+float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, char direction) {
+    if (direction == 6) {
+        return m_chunk.getWorldSkyLight(blockCoords) / 15.0f;
+    }
+    else {
+        const int mask1[4] = { 0, 1, 0, 1 };
+        const int mask2[4] = { 0, 0, 1, 1 };
+
+        int cornerOffset[3];
+        for (char i = 0; i < 3; i++) {
+            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+        }
+
+        int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction] != 0);
+        int unfixed1 = fixed == 0;
+        int unfixed2 = 2 - (fixed == 2);
+
+        int testBlockCoords[3];
+        testBlockCoords[fixed] = blockCoords[fixed] + (direction > 2) * 2 - 1;
+        float brightness = 0;
+        int transparrentBlocks = 0;
+        for (char i = 0; i < 4; i++) {
+            testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
+            testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
+            bool transparrentBlock = m_resourcePack.getBlockData(m_chunk.getWorldBlock(testBlockCoords)).transparent;
+            brightness += m_chunk.getWorldSkyLight(testBlockCoords) * transparrentBlock;
+            transparrentBlocks += transparrentBlock;
+        }
+        return brightness / transparrentBlocks / 15.0f;
+    }
+}
+
+float MeshBuilder::getAmbientOcclusion(int* blockCoords, float* pointCoords, char direction) {
+    if (direction == 6) {
+        return 1.0f;
+    }
+    else {
+        const int mask1[3] = { 1, 0, 1 };
+        const int mask2[3] = { 0, 1, 1 };
+        const int corners[3] = { 0, 0, 1 };
+
+        int cornerOffset[3];
+        for (char i = 0; i < 3; i++) {
+            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+        }
+
+        int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction] != 0);
+        int unfixed1 = fixed == 0;
+        int unfixed2 = 2 - (fixed == 2);
+
+        int testBlockCoords[3];
+        testBlockCoords[fixed] = blockCoords[fixed] + (direction > 2) * 2 - 1;
+        int numSideOccluders = 0;
+        int numCornerOccluders = 0;
+        for (char i = 0; i < 3; i++) {
+            testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
+            testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
+            bool occluder = m_resourcePack.getBlockData(m_chunk.getWorldBlock(testBlockCoords)).castsAmbientOcclusion;
+            bool corner = corners[i];
+            numSideOccluders += occluder * (1 - corner);
+            numCornerOccluders += occluder * (corner);
+        }
+        numCornerOccluders |= numSideOccluders == 2;
+        // Square root the value as it is going to be squared by the shader
+        return std::sqrt((7.0f - numSideOccluders - numCornerOccluders)) / 2.6458f;  // sqrt(7) = 2.6458
+    }
 }
 
 void MeshBuilder::buildMesh() {

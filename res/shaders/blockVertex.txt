@@ -18,8 +18,8 @@
 
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec2 texCoord;
-layout(location = 2) in float ambientOcclusion;
-layout(location = 3) in float skyLightLevel;
+layout(location = 2) in float skyLightLevel;
+layout(location = 3) in float blockLightLevel;
 
 out vec2 v_texCoord;
 out float v_brightness;
@@ -40,16 +40,16 @@ void main() {
     vec4 positionRelativeToCam = u_modelView * position;
     gl_Position = u_proj * positionRelativeToCam;
     v_texCoord = texCoord;
-    float factor = skyLightLevel * skyLightLevel * skyLightLevel / 3375.0;
+    float factor = skyLightLevel * skyLightLevel * skyLightLevel;
     //factor *= factor;
-    v_brightness = u_skyLightIntensity / (1.0 + (15 - skyLightLevel) * (15 - skyLightLevel) * 0.2)
-        * factor + maxDarknessAmbientLight / (1.0 + (15 - skyLightLevel) * (15 - skyLightLevel) *
-        0.2) * (1.0 - factor);
+    v_brightness = u_skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45)
+        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) *
+        45) * (1.0 - factor);
     v_brightness = max(v_brightness, minDarknessAmbientLight);
-    v_brightness *= ambientOcclusion;
 
     float distance = length(positionRelativeToCam.xyz);
-    float normalisedDistance = clamp(distance - u_renderDistance * fogStart, 0.0f, u_renderDistance * (1.0f - fogStart)) / (u_renderDistance * (1.0f - fogStart));
+    float normalisedDistance = clamp(distance - u_renderDistance * fogStart, 0.0f, u_renderDistance
+      * (1.0f - fogStart)) / (u_renderDistance * (1.0f - fogStart));
     v_visibility = normalisedDistance * fogDensity;
     v_visibility = exp(-v_visibility * v_visibility);
     v_visibility *= clamp((u_renderDistance - distance) / u_renderDistance, 0.0f, 0.04f) * 25.0f;

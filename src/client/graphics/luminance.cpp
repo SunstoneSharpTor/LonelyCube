@@ -110,8 +110,10 @@ void Luminance::deleteMips() {
 
 void Luminance::resize(unsigned int windowSize[2]) {
     deleteMips();
-    m_srcTexture.intSize = glm::ivec2(windowSize[0], windowSize[1]);
-    m_srcTexture.size = m_srcTexture.intSize;
+    glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
+    glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
+    m_srcTexture.size = mipSize;
+    m_srcTexture.intSize = mipIntSize;
     createMips(m_srcTexture.intSize);
 }
 

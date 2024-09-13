@@ -57,9 +57,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
         }
         // Set defaults
         m_blockData[blockID].model = m_blockModels;
-        bool transparent = false;
-        bool dimsLight = false;
-        bool collidable = true;
+        m_blockData[blockID].transparent = false;
+        m_blockData[blockID].dimsLight = false;
+        m_blockData[blockID].collidable = true;
+        m_blockData[blockID].castsAmbientOcclusion = true;
         for (int i = 0; i < maxNumFaces; i++) {
             m_blockData[blockID].faceTextureIndices[i] = 0;
         }
@@ -78,6 +79,9 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             }
             if (field == "dimsLight") {
                 m_blockData[blockID].dimsLight = isTrue(stream);
+            }
+            if (field == "castsAmbientOcclusion") {
+                m_blockData[blockID].castsAmbientOcclusion = isTrue(stream);
             }
             if (field == "collidable") {
                 m_blockData[blockID].collidable = isTrue(stream);
@@ -136,7 +140,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 unsigned char i = 0;
                 while (i < 6 && std::getline(line, value, ',')) {
                     // Slightly scale up the point to prevent z-fighting with the block
-                    bounds[i] = ((float)std::stoi(value) / 16 - 0.5f) * 1.002f + 0.5f;
+                    bounds[i] = ((float)std::stoi(value) / 16 - 0.5f) * 1.004f + 0.5f;
                     i++;
                 }
                 if (i < 6) {
