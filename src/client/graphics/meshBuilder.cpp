@@ -25,100 +25,11 @@
 
 namespace client{
 
-//define the face positions constant:
-const float MeshBuilder::s_cubeTextureCoordinates[48] = { 0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1,
-                                                    
-                                                    0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1,
-                                                    
-                                                    0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1,
-                                                    
-                                                    0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1,
-                                                    
-                                                    0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1,
-                                                    
-                                                    0, 0,
-                                                    1, 0,
-                                                    1, 1,
-                                                    0, 1 };
-
-const float MeshBuilder::s_xTextureCoordinates[32] = { 0, 0,
-                                                 1, 0,
-                                                 1, 1,
-                                                 0, 1,
-                                                 
-                                                 0, 0,
-                                                 1, 0,
-                                                 1, 1,
-                                                 0, 1,
-                                                 
-                                                 0, 0,
-                                                 1, 0,
-                                                 1, 1,
-                                                 0, 1,
-                                                 
-                                                 0, 0,
-                                                 1, 0,
-                                                 1, 1,
-                                                 0, 1 };
-
-const short MeshBuilder::s_blockIdToTextureNum[48] = { 0, 0, 0, 0, 0, 0, //air
-                                                 0, 0, 0, 0, 0, 0, //dirt
-                                                 2, 2, 2, 2, 0, 1, //grass
-                                                 3, 3, 3, 3, 3, 3, //stone
-                                                 4, 4, 4, 4, 4, 4, //water
-                                                 5, 5, 5, 5, 6, 6, //oak log
-                                                 7, 7, 7, 7, 7, 7, //oak leaves
-                                                 8, 8, 8, 8, 8, 8 //tall grass
-                                                 };
-
 const short MeshBuilder::s_neighbouringBlocksX[7] = { 0, 0, -1, 1, 0, 0,  0 };
 
 const short MeshBuilder::s_neighbouringBlocksY[7] = { -1, 0, 0, 0, 0, 1,  0 };
 
 const short MeshBuilder::s_neighbouringBlocksZ[7] = { 0, -1, 0, 0, 1, 0,  0 };
-
-const short MeshBuilder::s_adjacentBlocksToFaceOffests[48] = { -1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + 1, 1, 1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE - 1, -1,
-                                                          1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - 1, -1, -1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1, 1,
-                                                          -constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - constants::CHUNK_SIZE, -constants::CHUNK_SIZE,
-                                                          constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + constants::CHUNK_SIZE, constants::CHUNK_SIZE,
-                                                          -1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + 1, 1, 1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - 1, -1,
-                                                          -1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + 1, 1, 1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE - 1, -1 };
-
-const short MeshBuilder::s_adjacentBlocksToFaceOffestsX[48] = { -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          1, 0, -1, -1, -1, 0, 1, 1,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1 };
-
-const short MeshBuilder::s_adjacentBlocksToFaceOffestsY[48] = { 0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0 };
-
-const short MeshBuilder::s_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          1, 0, -1, -1, -1, 0, 1, 1,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          1, 1, 1, 0, -1, -1, -1, 0 };
 
 MeshBuilder::MeshBuilder(Chunk& chunk, ResourcePack& resourcePack, float* vertices, unsigned int*
     numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices,
@@ -188,43 +99,15 @@ void MeshBuilder::addFaceToMesh(unsigned int block, unsigned char blockType, uns
             (*m_numVertices) += 4;
         }
 
-        //ambient occlusion
-        /*short blockType;
-        for (unsigned char adjacentBlockToFace = 0; adjacentBlockToFace < 8; adjacentBlockToFace++) {
-            int blockCoords[3];
-            blockCoords[0] = block % constants::CHUNK_SIZE;
-            blockCoords[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
-            blockCoords[2] = (block - blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE) / constants::CHUNK_SIZE;
-            blockCoords[0] += chunkPosition[0] * constants::CHUNK_SIZE + s_neighbouringBlocksX[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsX[firstAdjacentBlockIndex + adjacentBlockToFace];
-            blockCoords[1] += chunkPosition[1] * constants::CHUNK_SIZE + s_neighbouringBlocksY[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsY[firstAdjacentBlockIndex + adjacentBlockToFace];
-            blockCoords[2] += chunkPosition[2] * constants::CHUNK_SIZE + s_neighbouringBlocksZ[neighbouringBlockCoordsOffset] + s_adjacentBlocksToFaceOffestsZ[firstAdjacentBlockIndex + adjacentBlockToFace];
-            blockType = m_chunk.getWorldBlock(blockCoords);
-            if (constants::castsShadows[blockType]) {
-                unsigned char type = m_chunk.getBlock(block);
-                float val = constants::shadowReceiveAmount[type];
-                int vertexNum = *m_numVertices - (23 - adjacentBlockToFace / 2 * 7);
-                m_vertices[vertexNum] *= val;
-                if ((adjacentBlockToFace % 2) != 0) {
-                    vertexNum = *m_numVertices - (23 - ((adjacentBlockToFace / 2 + 1) % 4) * 7);
-                    m_vertices[vertexNum] *= val;
-                }
-            }
-        }*/
-
         //index buffer
         int trueNumVertices = *m_numVertices / 7;
         m_indices[*m_numIndices] = trueNumVertices - 4;
-        (*m_numIndices)++;
-        m_indices[*m_numIndices] = trueNumVertices - 3;
-        (*m_numIndices)++;
-        m_indices[*m_numIndices] = trueNumVertices - 2;
-        (*m_numIndices)++;
-        m_indices[*m_numIndices] = trueNumVertices - 4;
-        (*m_numIndices)++;
-        m_indices[*m_numIndices] = trueNumVertices - 2;
-        (*m_numIndices)++;
-        m_indices[*m_numIndices] = trueNumVertices - 1;
-        (*m_numIndices)++;
+        m_indices[*m_numIndices + 1] = trueNumVertices - 3;
+        m_indices[*m_numIndices + 2] = trueNumVertices - 2;
+        m_indices[*m_numIndices + 3] = trueNumVertices - 4;
+        m_indices[*m_numIndices + 4] = trueNumVertices - 2;
+        m_indices[*m_numIndices + 5] = trueNumVertices - 1;
+        (*m_numIndices) += 6;
     }
 }
 
@@ -246,6 +129,7 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, char 
     else {
         const int mask1[4] = { 0, 1, 0, 1 };
         const int mask2[4] = { 0, 0, 1, 1 };
+        const int edges[4] = { 0, 1, 1, 0 };
 
         int cornerOffset[3];
         for (char i = 0; i < 3; i++) {
@@ -260,12 +144,17 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, char 
         testBlockCoords[fixed] = blockCoords[fixed] + (direction > 2) * 2 - 1;
         float brightness = 0;
         int transparrentBlocks = 0;
+        int numEdgesBlocked = 0;
         for (char i = 0; i < 4; i++) {
             testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
             bool transparrentBlock = m_resourcePack.getBlockData(m_chunk.getWorldBlock(testBlockCoords)).transparent;
             brightness += m_chunk.getWorldSkyLight(testBlockCoords) * transparrentBlock;
             transparrentBlocks += transparrentBlock;
+            numEdgesBlocked += !transparrentBlock * edges[i];
+            if (numEdgesBlocked == 2) {
+                break;
+            }
         }
         return brightness / transparrentBlocks / 15.0f;
     }

@@ -513,18 +513,35 @@ unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockP
         for (unsigned char ii = 0; ii < 3; ii++) {
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
         }
-        short blockType = getBlock(blockPos);
+        unsigned char blockType = getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
+            bool hit = true;
             for (unsigned char ii = 0; ii < 3; ii++) {
-                breakBlockCoords[ii] = blockPos[ii];
+                if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().getBlockData(blockType).model
+                    ->boundingBoxVertices[ii] || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().
+                    getBlockData(blockType).model->boundingBoxVertices[ii + 15]) {
+                    hit = false;
+                }
             }
+            if (hit) {
+                for (unsigned char ii = 0; ii < 3; ii++) {
+                    breakBlockCoords[ii] = blockPos[ii];
+                }
+                
+                bool equal = true;
+                while (equal) {
+                    rayPos -= direction * 0.025f;
+                    for (unsigned char ii = 0; ii < 3; ii++) {
+                        placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
+                        equal &= placeBlockCoords[ii] == blockPos[ii];
+                    }
+                }
 
-            rayPos -= direction * 0.025f;
-
-            for (unsigned char ii = 0; ii < 3; ii++) {
-                placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
+                for (unsigned char ii = 0; ii < 3; ii++) {
+                    placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
+                }
+                return blockType;
             }
-            return 2;
         }
         steps++;
     }

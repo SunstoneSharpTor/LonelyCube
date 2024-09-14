@@ -173,6 +173,9 @@ public:
 	inline bool isSinglePlayer() {
 		return m_singleplayer;
 	}
+    inline ResourcePack& getResourcePack() {
+        return m_integratedServer.getResourcePack();
+    }
 };
 
 }  // namespace client
