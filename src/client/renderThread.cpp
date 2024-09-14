@@ -178,11 +178,8 @@ void RenderThread::go(bool* running) {
     IndexBuffer crosshairIB(crosshairIndices, 18);
 
     //set up block outline
-    VertexArray blockOutlineVA;
-    VertexBuffer blockOutlineVB(constants::WIREFRAME_CUBE_FACE_POSITIONS, 24 * sizeof(float));
     VertexBufferLayout blockOutlineVBL;
     blockOutlineVBL.push<float>(3);
-    blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
     IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
@@ -287,7 +284,6 @@ void RenderThread::go(bool* running) {
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
-            std::cout << "WINDOW DIMS: " << windowDimensions[0] << ", " << windowDimensions[1] << "\n";
             bloom.resize(windowDimensions);
             luminance.resize(windowDimensions);
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
@@ -339,8 +335,10 @@ void RenderThread::go(bool* running) {
 
             int breakBlockCoords[3];
             int placeBlockCoords[3];
-            bool lookingAtBlock;
-            if (m_mainWorld->shootRay(m_mainPlayer->viewCamera.position, m_mainPlayer->cameraBlockPosition, m_mainPlayer->viewCamera.front, breakBlockCoords, placeBlockCoords)) {
+            unsigned char lookingAtBlock = m_mainWorld->shootRay(m_mainPlayer->viewCamera.position,
+                m_mainPlayer->cameraBlockPosition, m_mainPlayer->viewCamera.front,
+                breakBlockCoords, placeBlockCoords);
+            if (lookingAtBlock) {
                 //create the model view projection matrix for the outline
                 glm::vec3 outlinePosition;
                 for (unsigned char i = 0; i < 3; i++) {
@@ -350,11 +348,6 @@ void RenderThread::go(bool* running) {
                 glm::mat4 mvp = projection * view * model;
                 blockOutlineShader.bind();
                 blockOutlineShader.setUniformMat4f("u_MVP", mvp);
-
-                lookingAtBlock = true;
-            }
-            else {
-                lookingAtBlock = false;
             }
 
             unsigned int timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
@@ -420,9 +413,12 @@ void RenderThread::go(bool* running) {
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
             float luminanceVal = luminance.calculate();
-            //std::cout << luminanceVal << "\n";
 
             if (lookingAtBlock) {
+                VertexArray blockOutlineVA;
+                VertexBuffer blockOutlineVB((*m_mainWorld).getResourcePack().getBlockData(
+                    lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
+                blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
                 mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
             }
             worldFrameBuffer.unbind();

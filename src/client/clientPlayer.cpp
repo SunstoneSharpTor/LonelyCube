@@ -137,7 +137,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) == 2) {
+                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) != 0) {
                     if ((!intersectingBlock(placeBlockCoords)) || (!constants::collideable[m_blockHolding])) {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too

@@ -44,14 +44,7 @@ private:
     static const short s_neighbouringBlocksX[7];
     static const short s_neighbouringBlocksY[7];
     static const short s_neighbouringBlocksZ[7];
-    static const float s_cubeTextureCoordinates[48];
-    static const float s_xTextureCoordinates[32];
-    static const short s_blockIdToTextureNum[48];
-    static const short s_adjacentBlocksToFaceOffests[48];
-    static const short s_adjacentBlocksToFaceOffestsX[48];
-    static const short s_adjacentBlocksToFaceOffestsY[48];
-    static const short s_adjacentBlocksToFaceOffestsZ[48];
-
+    
     void getTextureCoordinates(float* coords, float* textureBox, const short textureNum);
 
     float getAmbientOcclusion(int* blockCoords, float* pointCoords, char direction);
