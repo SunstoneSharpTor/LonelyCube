@@ -136,7 +136,8 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, char 
             cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
         }
 
-        int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction] != 0);
+        int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction]
+            != 0);
         int unfixed1 = fixed == 0;
         int unfixed2 = 2 - (fixed == 2);
 
@@ -145,16 +146,14 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, char 
         float brightness = 0;
         int transparrentBlocks = 0;
         int numEdgesBlocked = 0;
-        for (char i = 0; i < 4; i++) {
+        for (char i = 0; i < 4 && numEdgesBlocked < 2; i++) {
             testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
-            bool transparrentBlock = m_resourcePack.getBlockData(m_chunk.getWorldBlock(testBlockCoords)).transparent;
+            bool transparrentBlock =
+                m_resourcePack.getBlockData(m_chunk.getWorldBlock(testBlockCoords)).transparent;
             brightness += m_chunk.getWorldSkyLight(testBlockCoords) * transparrentBlock;
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
-            if (numEdgesBlocked == 2) {
-                break;
-            }
         }
         return brightness / transparrentBlocks / 15.0f;
     }

@@ -38,7 +38,7 @@ constexpr unsigned int DAY_LENGTH{ 12000 };
 
 constexpr unsigned int NUM_GROUND_LUMINANCE_POINTS{ 13 };
 constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
-// Time | Luminance
+    // Time | Luminance
     1800.0f, 0.000025f,
     2400.0f, 0.0001f,
     2500.0f, 0.0003f,

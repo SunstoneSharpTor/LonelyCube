@@ -20,6 +20,7 @@
 
 #include <cmath>
 
+#include "core/block.h"
 #include "core/random.h"
 
 //define world generation constants
@@ -143,7 +144,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	}
 
 	//reduce continentalness slightly to increase ocean size
-	m_continentalness = (m_continentalness - 0.3f);
+	m_continentalness -= 0.3f;
 	//calculate the height of the cliff noise
 	const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
 	const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
@@ -162,9 +163,9 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	}
 	//calculate how much of the cliffs noise to use and how much of the original continentalness noise to use
 	//this is done by reducing the cliffs near rivers and high peaks and valleys areas
-	float cliffFactor = std::max(std::min(std::abs(m_riversNoise) / 1.5f - 0.1f, 0.4f - (m_peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
+	m_cliffFactor = std::max(std::min(std::abs(m_riversNoise) / 1.5f - 0.1f, 0.4f - (m_peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
 	//combine continentalness with the cliffs noise
-	m_continentalness = m_continentalness * (1.0f - cliffFactor) + cliffContinentalness * cliffFactor;
+	m_continentalness = m_continentalness * (1.0f - m_cliffFactor) + cliffContinentalness * m_cliffFactor;
 
 	//calculate the height of the rivers
 	//increse the noise by 1 to try to avoid crossections of two rivers
@@ -173,9 +174,9 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	m_riversNoise = std::pow(std::abs(m_riversNoise), (1.55f - std::min(m_continentalness + 0.4f, 0.5f)) * 1.15f);
 	//calculate the river errosion using the equation 1 / (nx - 1) + 1
 	//this is the value that the rest of the terrain height will be multiplied by to create low terrain near rivers
-	float riverErrosion = 1.0f / (-2.0f * std::abs(m_riversNoise) - 1.0f) + 1.0f;
+	m_riverErrosion = 1.0f / (-2.0f * std::abs(m_riversNoise) - 1.0f) + 1.0f;
 	//calculate the value that determines where the extra bumps for the river bed will be added
-	float invertedRiverErrosion = 1.0f - riverErrosion;
+	float invertedRiverErrosion = 1.0f - m_riverErrosion;
 	float riverBumpsNoiseMultiplier1 = invertedRiverErrosion * invertedRiverErrosion;
 	riverBumpsNoiseMultiplier1 *= riverBumpsNoiseMultiplier1;
 	float riverBumpsNoiseMultiplier2 = riverBumpsNoiseMultiplier1 * riverBumpsNoiseMultiplier1;
@@ -183,7 +184,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	//reduce the multiplier near river mouths to give the look that the river is actually part of the ocean near river mouths
 	riverBumpsNoiseMultiplier2 *= (1.1f - std::min(-m_continentalness + 0.4f, 1.0f)) * 0.9f;
 	//calculate the heigt of the river using the equation m / (nx^p - 1) + 1
-	float riversHeight = -6.0f / (1.0f + 1000000.0f * m_riversNoise * m_riversNoise * m_riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
+	m_riversHeight = -6.0f / (1.0f + 1000000.0f * m_riversNoise * m_riversNoise * m_riversNoise) + riverBumpsNoise * riverBumpsNoiseMultiplier2;
 
 	//scale the peaks and valleys location noise to be an S-shape and between the values of 0 and 1.4
 	//using equation -1 / (mx^n + 1) + 1
@@ -196,19 +197,19 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 
 	//calculate whether the block is close to the foot of a cliff
 	//this is used to reduce the influence of peaksAndValleysHeight near cliff bases so that they are at a sensible depth
-	float atCliffBase = std::pow(cliffFactor, 0.5f) * std::max(0.0f, (1.0f - 2.0f * std::abs(cliffContinentalness - cliffDepth)));
+	m_atCliffBase = std::pow(m_cliffFactor, 0.5f) * std::max(0.0f, (1.0f - 2.0f * std::abs(cliffContinentalness - cliffDepth)));
 	//calculate the height of the terrain before rivers are added
-	float nonRiverHeight = m_continentalness * 30.0f + 2.0f + m_peaksAndValleysHeight * (1.0f - atCliffBase);
+	m_nonRiverHeight = m_continentalness * 30.0f + 2.0f + m_peaksAndValleysHeight * (1.0f - m_atCliffBase);
 	//calculate how much of the river errosion needs to be applied
 	//without this step, rivers would not disapear at oceans
-	float fac = (std::min(std::max(nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
-	riverErrosion = riverErrosion * fac + 1.0f - fac;
+	float fac = (std::min(std::max(m_nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
+	m_riverErrosion = m_riverErrosion * fac + 1.0f - fac;
 	//calculate how much of the river height needs to be applied
 	//without this step, rivers would not disapear at oceans
-	fac = (std::min(std::max(nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
-	riversHeight = riversHeight * fac;
+	fac = (std::min(std::max(m_nonRiverHeight, -4.0f), 0.0f) + 4.0f) / 4.0f;
+	m_riversHeight *= fac;
 	//add rivers to the terrain height
-	return nonRiverHeight * riverErrosion + riversHeight;
+	return m_nonRiverHeight * m_riverErrosion + m_riversHeight;
 }
 
 void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
@@ -252,15 +253,18 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 	for (int z = -MAX_STRUCTURE_RADIUS; z < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; z++) {
 		for (int x = -MAX_STRUCTURE_RADIUS; x < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; x++) {
 			int height = -1 + sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
-			heightMap[(z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS)] = height;
+			unsigned int heightMapIndex = (z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS);
+			heightMap[heightMapIndex] = height;
 			
+			bool isBeach = m_continentalness < -0.2f;
+
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
 				unsigned int blockNum = z * constants::CHUNK_SIZE + x;
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
 					if (y > height) {
 						if (y < 0) {
-                            chunk.setBlockUnchecked(blockNum, 4);
-                            chunk.setSkyLight(blockNum, 15 + std::max(y - 1, -15));
+                            chunk.setBlockUnchecked(blockNum, water);
+                            chunk.setSkyLight(blockNum, 15 + std::max(y - 0, -15));
 						}
 						else {
                             chunk.setSkyLight(blockNum, 15);
@@ -268,17 +272,17 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 					}
 					else if (y == height) {
 						if (y < -1) {
-							chunk.setBlockUnchecked(blockNum, 1);
+							chunk.setBlockUnchecked(blockNum, isBeach ? sand : dirt);
 						}
 						else {
-							chunk.setBlockUnchecked(blockNum, 2);
+							chunk.setBlockUnchecked(blockNum, isBeach ? sand : grass);
 						}
 					}
 					else if (y > (height - 3)) {
-						chunk.setBlockUnchecked(blockNum, 3);
+						chunk.setBlockUnchecked(blockNum, stone);
 					}
 					else {
-						chunk.setBlockUnchecked(blockNum, 3);
+						chunk.setBlockUnchecked(blockNum, stone);
 					}
 					chunk.setSingleBlockType(chunk.isSingleBlockType()
 						&& ((blockNum == 0) || (chunk.getBlockUnchecked(blockNum) == lastBlockTypeInChunk)));
@@ -291,7 +295,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 			int worldZ = z + chunkMinCoords[2];
 
 			//add trees
-			if ((m_peaksAndValleysLocation > 0.23f) && (m_peaksAndValleysHeight < 120.0f) && (height > -2) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height)) {
+			if ((m_peaksAndValleysLocation > 0.23f) && (m_peaksAndValleysHeight < 120.0f) && (height > -2) && (chunkMinCoords[1] < (height + 8)) && ((chunkMaxCoords[1]) > height) && !isBeach) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
 				if (worldZ > worldX) {
@@ -382,7 +386,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 
 			//add grass
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)
-				&& (height > -2) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height)) {
+				&& (height > -2) && (chunkMinCoords[1] < (height + 2)) && (chunkMaxCoords[1] > height) && !isBeach) {
 				//convert the 2d block coordinate into a unique integer that can be used as the seed for the PRNG
 				int blockNumberInWorld;
 				if (worldZ > worldX) {
