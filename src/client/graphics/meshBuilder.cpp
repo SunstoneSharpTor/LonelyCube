@@ -218,7 +218,7 @@ void MeshBuilder::buildMesh() {
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
                         unsigned char neighbouringBlockType = m_chunk.getWorldBlock(neighbouringBlockPos);
-                        if ((neighbouringBlockType != 4) && (constants::transparent[neighbouringBlockType])) {
+                        if ((neighbouringBlockType != 4) && (m_resourcePack.getBlockData(neighbouringBlockType).transparent)) {
                             addFaceToMesh(blockNum, blockType, faceNum);
                         }
                     }
@@ -229,7 +229,8 @@ void MeshBuilder::buildMesh() {
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[cullFace];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
-                        if (cullFace < 0 || constants::transparent[m_chunk.getWorldBlock(neighbouringBlockPos)]) {
+                        // TODO: investigate splitting up the line below into multiple lines of code (causes bugs)
+                        if (cullFace < 0 || m_resourcePack.getBlockData(m_chunk.getWorldBlock(neighbouringBlockPos)).transparent) {
                             addFaceToMesh(blockNum, blockType, faceNum);
                         }
                     }

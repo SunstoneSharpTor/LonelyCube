@@ -128,7 +128,7 @@ void Chunk::setBlock(unsigned int block, unsigned char blockType) {
         delete[] temp;
     }
     m_blocks[block] = blockType;
-    setSkyLight(block, 0 * !(constants::castsShadows[blockType]));
+    // setSkyLight(block, 0 * !(constants::castsShadows[blockType]));
 }
 
 unsigned char Chunk::getWorldBlock(int* blockCoords) {

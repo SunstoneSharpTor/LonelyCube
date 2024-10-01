@@ -305,7 +305,7 @@ void RenderThread::go(bool* running) {
         if (currentTime > frameStart + DT) {
             double actualDT = currentTime - frameStart;
             if (currentTime - lastFrameRateTime > 1) {
-                std::cout << (frames - lastFrameRateFrames) / (1.0) << " FPS\n";
+                std::cout << frames - lastFrameRateFrames << " FPS\n";
                 std::cout << m_mainPlayer->viewCamera.position[0] + m_mainPlayer->cameraBlockPosition[0] << ", " << m_mainPlayer->viewCamera.position[1] + m_mainPlayer->cameraBlockPosition[1] << ", " << m_mainPlayer->viewCamera.position[2] + m_mainPlayer->cameraBlockPosition[2] << "\n";
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = frames;
@@ -366,7 +366,7 @@ void RenderThread::go(bool* running) {
             skyShader.setUniformMat4f("inverseView", inverseView);
             skyShader.setUniform1f("brightness", groundLuminance);
             skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.5f, 0.6f, 0.13f));
-            skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 16.0f));
+            skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f));
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -389,7 +389,7 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            skyShader.setUniform1f("brightness", groundLuminance * 1500);
+            sunShader.setUniform1f("brightness", groundLuminance * 1500);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -454,6 +454,7 @@ void RenderThread::go(bool* running) {
             cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
             m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
 
+            *m_frameTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - end).count();
             frames++;
         }
         m_mainWorld->updateMeshes();

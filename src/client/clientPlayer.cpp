@@ -44,14 +44,13 @@ const int ClientPlayer::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld) {
+ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& resourcePack) :
+    m_mainWorld(mainWorld), m_resourcePack(resourcePack) {
     m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
     m_pausedMouseState = 0u;
-
-    m_mainWorld = mainWorld;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -138,7 +137,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
                 if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) != 0) {
-                    if ((!intersectingBlock(placeBlockCoords)) || (!constants::collideable[m_blockHolding])) {
+                    if ((!intersectingBlock(placeBlockCoords)) || (!m_resourcePack.getBlockData(m_blockHolding).collidable)) {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too
                         m_timeSinceBlockPlace = 0.0f;
@@ -264,6 +263,8 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             m_blockHolding = 6;
         } if (m_keyboardState[SDL_SCANCODE_7]) {
             m_blockHolding = 7;
+        } if (m_keyboardState[SDL_SCANCODE_8]) {
+            m_blockHolding = 8;
         } if (m_keyboardState[SDL_SCANCODE_C]) {
             zoom = true;
         }
@@ -356,7 +357,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                 }
 
                 short blockType = m_mainWorld->getBlock(position);
-                if (constants::collideable[blockType]) {
+                if (m_resourcePack.getBlockData(blockType).collidable) {
                     for (unsigned char direction = 0; direction < 6; direction++) {
                         penetration = m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2] - floor(m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2]);
                         if (direction % 2 == 0) {
@@ -367,7 +368,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                                 neighbouringBlockPosition[i] = position[i] + m_directions[direction * 3 + i];
                             }
                             blockType = m_mainWorld->getBlock(neighbouringBlockPosition);
-                            if ((!constants::collideable[blockType]) && (m_velocity[direction / 2] != 0.0f)) {
+                            if ((!m_resourcePack.getBlockData(blockType).collidable) && (m_velocity[direction / 2] != 0.0f)) {
                                 minPenetration = penetration;
                                 axisOfLeastPenetration = direction;
                                 resolved = false;
@@ -409,7 +410,7 @@ bool ClientPlayer::collidingWithBlock() {
         }
 
         short blockType = m_mainWorld->getBlock(position);
-        if (constants::collideable[blockType]) {
+        if (m_resourcePack.getBlockData(blockType).collidable) {
             return true;
         }
     }

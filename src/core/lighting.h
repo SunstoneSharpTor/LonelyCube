@@ -22,8 +22,10 @@
 
 #include "core/chunk.h"
 #include "core/position.h"
+#include "core/resourcePack.h"
 
 class Lighting {
 public:
-    static void calculateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit);
+    static void calculateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
+        worldChunks, bool* neighbouringChunksToBeRelit, ResourcePack& resourcePack);
 };

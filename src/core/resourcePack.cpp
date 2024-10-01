@@ -61,6 +61,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
         m_blockData[blockID].dimsLight = false;
         m_blockData[blockID].collidable = true;
         m_blockData[blockID].castsAmbientOcclusion = true;
+        m_blockData[blockID].castsShadows = true;
         for (int i = 0; i < maxNumFaces; i++) {
             m_blockData[blockID].faceTextureIndices[i] = 0;
         }
@@ -85,6 +86,9 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             }
             if (field == "collidable") {
                 m_blockData[blockID].collidable = isTrue(stream);
+            }
+            if (field == "castsShadows") {
+                m_blockData[blockID].castsShadows = isTrue(stream);
             }
             if (field == "model") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
@@ -140,7 +144,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 unsigned char i = 0;
                 while (i < 6 && std::getline(line, value, ',')) {
                     // Slightly scale up the point to prevent z-fighting with the block
-                    bounds[i] = ((float)std::stoi(value) / 16 - 0.5f) * 1.006f + 0.5f;
+                    bounds[i] = ((float)std::stoi(value) / 16 - 0.5f) * 1.004f + 0.5f;
                     i++;
                 }
                 if (i < 6) {
