@@ -3,6 +3,7 @@
     "collidable": true,
     "dimsLight": true,
     "castsAmbientOcclusion": false,
+    "castsShadows": false,
     "model": "cube",
     "textureIndices": [7,7,7,7,7,7]
 }

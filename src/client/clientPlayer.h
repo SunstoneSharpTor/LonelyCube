@@ -23,6 +23,7 @@
 #include "client/clientNetworking.h"
 #include "client/clientWorld.h"
 #include "client/graphics/camera.h"
+#include "core/resourcePack.h"
 
 namespace client {
 
@@ -61,13 +62,14 @@ private:
 
     int m_hitboxMinBlock[3];
     glm::vec3 m_hitboxMinOffset;
+    ResourcePack& m_resourcePack;
+    ClientWorld* m_mainWorld;
 
     void resolveHitboxCollisions(float DT);
 
     bool collidingWithBlock();
     
     bool intersectingBlock(int* blockPos);
-    ClientWorld* m_mainWorld;
 
 public:
 	Camera viewCamera;
@@ -76,7 +78,7 @@ public:
 
     unsigned short m_blockHolding;
 
-    ClientPlayer(int* position, ClientWorld* newWorld);
+    ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
 
     void setWorldMouseData(SDL_Window* window, unsigned int* windowDimensions);
 

@@ -62,7 +62,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
     
-    m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads();
+    m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads() - 1;
     
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
@@ -89,7 +89,7 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
-    int playerBlockPosition[3] = { 0, 0, 0 };
+    int playerBlockPosition[3] = { playerPos.x, playerPos.y, playerPos.z };
     float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
     m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
 
@@ -491,7 +491,9 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                         chunk.setSkylightBeingRelit(true);
                         chunk.clearSkyLight();
                         bool neighbouringChunksToRelight[6];
-                        Lighting::calculateSkyLight(chunkPosition, m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+                        Lighting::calculateSkyLight(chunkPosition, m_integratedServer.
+                            getWorldChunks(), neighbouringChunksToRelight, m_integratedServer.
+                            getResourcePack());
                         chunk.setSkylightBeingRelit(false);
                     }
                     addChunkMesh(chunkPosition, threadNum);
@@ -665,7 +667,8 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
     blockPos[1]--;
     while (blockPos[1] - constants::skyLightMaxValue + 1 >= lowestLoadedBlockInColumn) {
         unsigned char blockType = getBlock(blockPos);
-        if (constants::dimsLight[blockType] || (!constants::transparent[blockType])) {
+        if (m_integratedServer.getResourcePack().getBlockData(blockType).dimsLight ||
+            (!m_integratedServer.getResourcePack().getBlockData(blockType).transparent)) {
             blockPos[1]--;
             break;
         }
@@ -751,7 +754,8 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
             continue;
         }
         
-        Lighting::calculateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(), neighbouringChunksToRelight);
+        Lighting::calculateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(),
+            neighbouringChunksToRelight, m_integratedServer.getResourcePack());
         if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
             relitChunks->push_back(chunksToBeRelit[0]);
         }
@@ -770,6 +774,18 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
         numChunksRelit++;
     }
     std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
+}
+
+void ClientWorld::setThreadWaiting(unsigned char threadNum, bool value) {
+    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
+        m_threadWaiting[threadNum] = true;
+        // locking 
+        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+        // waiting 
+        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
+        m_threadWaiting[threadNum] = false;
+    }
+	m_threadWaiting[threadNum] = value;
 }
 
 }  // namespace client

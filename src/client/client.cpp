@@ -30,16 +30,47 @@
 
 using namespace client;
 
-void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char threadNum) {
+void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char threadNum, int*
+    numThreadsBeingUsed) {
     while (*running) {
+        while (threadNum >= *numThreadsBeingUsed && *running) {
+            mainWorld.setThreadWaiting(threadNum, true);
+            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            mainWorld.setThreadWaiting(threadNum, false);
+        }
         mainWorld.loadChunksAroundPlayerSingleplayer(threadNum);
     }
 }
 
-void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool* running, char threadNum) {
+void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool*
+    running, char threadNum, int* numThreadsBeingUsed) {
     while (*running) {
+        while (threadNum >= *numThreadsBeingUsed && *running) {
+            mainWorld.setThreadWaiting(threadNum, true);
+            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            mainWorld.setThreadWaiting(threadNum, false);
+        }
         mainWorld.loadChunksAroundPlayerMultiplayer(threadNum);
         networking.receiveEvents(mainWorld);
+    }
+}
+
+void manageThreads(float* chunkLoadTimes, int numChunkLoaderThreads, int* numThreadsBeingUsed) {
+    if (*numThreadsBeingUsed > 1) {
+        chunkLoadTimes[*numThreadsBeingUsed - 2] *= 0.95f;
+    }
+    if (*numThreadsBeingUsed < numChunkLoaderThreads) {
+        chunkLoadTimes[*numThreadsBeingUsed] *= 0.9f;
+    }
+    if (*numThreadsBeingUsed > 1 &&
+        chunkLoadTimes[*numThreadsBeingUsed - 2] < chunkLoadTimes[*numThreadsBeingUsed - 1]) {
+        (*numThreadsBeingUsed)--;
+        std::cout << *numThreadsBeingUsed << " threads being used\n";
+    }
+    else if (*numThreadsBeingUsed < numChunkLoaderThreads && chunkLoadTimes[*numThreadsBeingUsed] <
+        chunkLoadTimes[*numThreadsBeingUsed - 1] && chunkLoadTimes[*numThreadsBeingUsed] > chunkLoadTimes[*numThreadsBeingUsed - 2]) {
+        (*numThreadsBeingUsed)++;
+        std::cout << *numThreadsBeingUsed << " threads being used\n";
     }
 }
 
@@ -60,32 +91,50 @@ int main(int argc, char* argv[]) {
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
-    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld);
+    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.getResourcePack());
 
     bool running = true;
+    int frameTime;
 
     bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
     std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
 
-    RenderThread renderThread(&mainWorld, chunkLoaderThreadsRunning, &mainPlayer, networking);
+    RenderThread renderThread(&mainWorld, chunkLoaderThreadsRunning, &mainPlayer, networking, &frameTime);
 
     std::thread renderWorker(&RenderThread::go, renderThread, &running);
 
-    std::thread* chunkLoaderThreads = new std::thread[mainWorld.getNumChunkLoaderThreads() - 1];
+    std::unique_ptr<float[]> chunkLoadTimes = std::make_unique<float[]>(mainWorld.getNumChunkLoaderThreads());
+    std::fill(chunkLoadTimes.get(), chunkLoadTimes.get() + mainWorld.getNumChunkLoaderThreads(), 0.0f);
+    int numThreadsBeingUsed = mainWorld.getNumChunkLoaderThreads();
+    
+    std::unique_ptr<std::thread[]> chunkLoaderThreads = std::make_unique<std::thread[]>(mainWorld.getNumChunkLoaderThreads() - 1);
     for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         if (multiplayer) {
-            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer, std::ref(mainWorld), std::ref(networking), &running, threadNum);
+            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer,
+                std::ref(mainWorld), std::ref(networking), &running, threadNum,
+                &numThreadsBeingUsed);
         }
         else {
-            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadSingleplayer, std::ref(mainWorld), &running, threadNum);
+            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadSingleplayer,
+            std::ref(mainWorld), &running, threadNum, &numThreadsBeingUsed);
         }
     }
 
     if (multiplayer) {
         auto lastMessage = std::chrono::steady_clock::now();
         while (running) {
+            auto startTime = std::chrono::steady_clock::now();
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
             auto currentTime = std::chrono::steady_clock::now();
+
+            // Manage threads
+            chunkLoadTimes[numThreadsBeingUsed - 1] = chunkLoadTimes[
+                 - 1] * 0.9999f
+                + std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime - startTime).
+                count() * 0.0001f;
+            //manageThreads(chunkLoadTimes.get(), mainWorld.getNumChunkLoaderThreads(),
+            //    &numThreadsBeingUsed);
+
             if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastMessage) > std::chrono::milliseconds(100)) {
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
@@ -101,8 +150,17 @@ int main(int argc, char* argv[]) {
         auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
         while (running) {
             mainWorld.loadChunksAroundPlayerSingleplayer(0);
+
+            chunkLoadTimes[numThreadsBeingUsed - 1] -= 1.0f;
+
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
+                if (mainWorld.getTickNum() % 10 == 0) {
+                    //manageThreads(chunkLoadTimes.get(), mainWorld.getNumChunkLoaderThreads(),
+                    //    &numThreadsBeingUsed);
+                    chunkLoadTimes[numThreadsBeingUsed - 1] = 1000.0f;
+                }
+
                 mainWorld.tick();
                 nextTick += std::chrono::milliseconds(100);
             }

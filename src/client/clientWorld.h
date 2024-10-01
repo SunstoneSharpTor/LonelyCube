@@ -176,6 +176,7 @@ public:
     inline ResourcePack& getResourcePack() {
         return m_integratedServer.getResourcePack();
     }
+	void setThreadWaiting(unsigned char threadNum, bool value);
 };
 
 }  // namespace client
