@@ -389,7 +389,7 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformVec3("sunDir", sunDirection);
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
-            sunShader.setUniform1f("brightness", groundLuminance * 1500);
+            sunShader.setUniform1f("brightness", groundLuminance * 1000);
             glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
@@ -428,7 +428,7 @@ void RenderThread::go(bool* running) {
             float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
-                float fac = 0.004;
+                float fac = 0.008;
                 exposure += ((targetExposure > exposure) * 2 - 1) * std::min(std::abs(targetExposure - exposure), (targetExposure - exposure) * (targetExposure - exposure) * fac);
                 exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
             }

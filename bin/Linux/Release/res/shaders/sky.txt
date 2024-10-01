@@ -56,7 +56,11 @@ void main() {
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
     vec3 value = SKY_TOP_COLOUR * (1.0f - rayDistanceThroughAtmosphere / 90.0);
     value += HORIZON_COLOUR * rayDistanceThroughAtmosphere / 90.0;
-    float sunDistance = (dot(rayDir, sunDir) + 3.0) * 0.25 * min(rayDistanceThroughAtmosphere -
+    float dotProd = dot(rayDir, sunDir) + 4.0;
+    dotProd *= dotProd;
+    dotProd *= dotProd;
+    dotProd *= dotProd;
+    float sunDistance = dotProd * 0.000003 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
     value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
 	
