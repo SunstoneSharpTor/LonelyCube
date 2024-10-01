@@ -38,10 +38,17 @@ private:
 	float* m_RIVERS_n;
 	float* m_RIVER_BUMPS_n;
 
+	// Data about a particular column in the world
 	float m_peaksAndValleysHeight;
 	float m_continentalness;
 	float m_peaksAndValleysLocation;
 	float m_riversNoise;
+	float m_cliffContinentalness;
+	float m_cliffFactor;
+	float m_riverErrosion;
+    float m_riversHeight;
+	float m_atCliffBase;
+	float m_nonRiverHeight;
 
 	static void calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale);
 
