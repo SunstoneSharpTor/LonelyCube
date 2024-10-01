@@ -26,42 +26,6 @@ std::mutex Chunk::s_checkingNeighbouringRelights;
 
 const short Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
-const short Chunk::m_neighbouringBlocksX[6] = { 0, 0, -1, 1, 0, 0 };
-
-const short Chunk::m_neighbouringBlocksY[6] = { -1, 0, 0, 0, 0, 1 };
-
-const short Chunk::m_neighbouringBlocksZ[6] = { 0, -1, 0, 0, 1, 0 };
-
-const int Chunk::m_neighbouringChunkBlockOffsets[6] = { constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1), constants::CHUNK_SIZE - 1, -(constants::CHUNK_SIZE - 1), -(constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) };
-
-const short Chunk::m_adjacentBlocksToFaceOffests[48] = { -1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + 1, 1, 1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE - 1, -1,
-                                                          1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - 1, -1, -1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1, 1,
-                                                          -constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - constants::CHUNK_SIZE, -constants::CHUNK_SIZE,
-                                                          constants::CHUNK_SIZE - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE + constants::CHUNK_SIZE, constants::CHUNK_SIZE,
-                                                          -1 - (constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -(constants::CHUNK_SIZE * constants::CHUNK_SIZE) + 1, 1, 1 + constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE, constants::CHUNK_SIZE * constants::CHUNK_SIZE - 1, -1,
-                                                          -1 + constants::CHUNK_SIZE, constants::CHUNK_SIZE, constants::CHUNK_SIZE + 1, 1, 1 - constants::CHUNK_SIZE, -constants::CHUNK_SIZE, -constants::CHUNK_SIZE - 1, -1 };
-
-const short Chunk::m_adjacentBlocksToFaceOffestsX[48] = { -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          1, 0, -1, -1, -1, 0, 1, 1,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1 };
-
-const short Chunk::m_adjacentBlocksToFaceOffestsY[48] = { 0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0 };
-
-const short Chunk::m_adjacentBlocksToFaceOffestsZ[48] = { -1, -1, -1, 0, 1, 1, 1, 0,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          -1, 0, 1, 1, 1, 0, -1, -1,
-                                                          1, 0, -1, -1, -1, 0, 1, 1,
-                                                          0, 0, 0, 0, 0, 0, 0, 0,
-                                                          1, 1, 1, 0, -1, -1, -1, 0 };
-
 Chunk::Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks) : m_worldChunks(worldChunks) {
     inUse = true;
     m_singleBlockType = false;
