@@ -31,6 +31,11 @@ private:
 	static const float s_PV_HEIGHT;
 	static const float s_RIVER_BUMPS_HEIGHT;
 
+	static const float s_cliffTop; //the original value of continentalness where the tops of the cliffs are
+	static const float s_cliffBase; //the original value of continentalness where the bases of the cliffs are
+	static const float s_cliffHeight; //the new value of continentalness that the tops of cliffs will be set to
+	static const float s_cliffDepth; //the new value of continentalness that the bases of cliffs will be set to
+
 	float* m_PV_n;
 	float* m_PV_d;
 	float* m_CONTINENTALNESS_n;
@@ -39,17 +44,19 @@ private:
 	float* m_RIVER_BUMPS_n;
 
 	// Data about a particular column in the world
-	float m_peaksAndValleysHeight;
+	float m_atCliffBase;
+	float m_bumpsNoise;
 	float m_continentalness;
-	float m_peaksAndValleysLocation;
-	float m_preCliffContinentalness;
-	float m_riversNoise;
 	float m_cliffContinentalness;
 	float m_cliffFactor;
+	float m_height;
+	float m_nonRiverHeight;
+	float m_peaksAndValleysLocation;
+	float m_preCliffContinentalness;
+	float m_peaksAndValleysHeight;
 	float m_riverErrosion;
     float m_riversHeight;
-	float m_atCliffBase;
-	float m_nonRiverHeight;
+	float m_riversNoise;
 
 	static void calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale);
 
