@@ -264,7 +264,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 					if (y > height) {
 						if (y < 0) {
                             chunk.setBlockUnchecked(blockNum, water);
-                            chunk.setSkyLight(blockNum, 15 + std::max(y - 0, -15));
+                            chunk.setSkyLight(blockNum, 16 + std::max(y, -15));
 						}
 						else {
                             chunk.setSkyLight(blockNum, 15);
