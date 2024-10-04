@@ -185,6 +185,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
     }
     m_renderingFrame = false;
     glEnable(GL_CULL_FACE);
+    m_mouseCalls += 100;
 }
 
 void ClientWorld::doRenderThreadJobs() {
