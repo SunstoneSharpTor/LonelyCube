@@ -42,6 +42,7 @@ private:
 	float m_peaksAndValleysHeight;
 	float m_continentalness;
 	float m_peaksAndValleysLocation;
+	float m_preCliffContinentalness;
 	float m_riversNoise;
 	float m_cliffContinentalness;
 	float m_cliffFactor;

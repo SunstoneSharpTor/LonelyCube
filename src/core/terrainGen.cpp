@@ -116,9 +116,9 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	noiseGridIndex = z * size + x;
 
 	//sum the continentalness terrain noises
-	m_continentalness = 0.0f;
+	m_preCliffContinentalness = 0.0f;
 	for (int octaveNum = 0; octaveNum < s_CONTINENTALNESS_NUM_OCTAVES; octaveNum++) {
-		m_continentalness += m_CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum]
+		m_preCliffContinentalness += m_CONTINENTALNESS_n[noiseGridIndex + size * size * octaveNum]
 			* 1.0f / (float)(1 << octaveNum);
 	}
 
@@ -144,7 +144,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	}
 
 	//reduce continentalness slightly to increase ocean size
-	m_continentalness -= 0.3f;
+	m_preCliffContinentalness -= 0.3f;
 	//calculate the height of the cliff noise
 	const float cliffTop = -0.4f; //the original value of continentalness where the tops of the cliffs are
 	const float cliffBase = -0.42f; //the original value of continentalness where the bases of the cliffs are
@@ -152,20 +152,20 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	const float cliffDepth = -0.08f; //the new value of continentalness that the bases of cliffs will be set to
 	float cliffContinentalness;
 	//use the y = mx + c formula to transform the original continentalness value to the cliffs value
-	if (m_continentalness > cliffTop) {
-		cliffContinentalness = (1.0f - cliffHeight) / (1.0f - cliffTop) * (m_continentalness - cliffTop) + cliffHeight;
+	if (m_preCliffContinentalness > cliffTop) {
+		cliffContinentalness = (1.0f - cliffHeight) / (1.0f - cliffTop) * (m_preCliffContinentalness - cliffTop) + cliffHeight;
 	}
-	else if (m_continentalness < cliffBase) {
-		cliffContinentalness = (-1.0f - cliffDepth) / (-1.0f - cliffBase) * (m_continentalness - cliffBase) + cliffDepth;
+	else if (m_preCliffContinentalness < cliffBase) {
+		cliffContinentalness = (-1.0f - cliffDepth) / (-1.0f - cliffBase) * (m_preCliffContinentalness - cliffBase) + cliffDepth;
 	}
 	else {
-		cliffContinentalness = (cliffHeight - cliffDepth) / (cliffTop - cliffBase) * (m_continentalness - cliffTop) + cliffHeight;
+		cliffContinentalness = (cliffHeight - cliffDepth) / (cliffTop - cliffBase) * (m_preCliffContinentalness - cliffTop) + cliffHeight;
 	}
 	//calculate how much of the cliffs noise to use and how much of the original continentalness noise to use
 	//this is done by reducing the cliffs near rivers and high peaks and valleys areas
 	m_cliffFactor = std::max(std::min(std::abs(m_riversNoise) / 1.5f - 0.1f, 0.4f - (m_peaksAndValleysLocation + 1.1f) / 2.5f), 0.0f) * 2.0f;
 	//combine continentalness with the cliffs noise
-	m_continentalness = m_continentalness * (1.0f - m_cliffFactor) + cliffContinentalness * m_cliffFactor;
+	m_continentalness = m_preCliffContinentalness * (1.0f - m_cliffFactor) + cliffContinentalness * m_cliffFactor;
 
 	//calculate the height of the rivers
 	//increse the noise by 1 to try to avoid crossections of two rivers
