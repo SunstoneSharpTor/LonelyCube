@@ -273,7 +273,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 			}
 			int columnsRandom = PCG_Hash32(blockNumberInWorld + seed);
 
-			float beachFac = m_height + m_cliffFactor * m_cliffFactor * 25.0f + (std::abs(m_continentalness + 0.12f) - 0.12f) * 16.0f;
+			float beachFac = m_height + m_cliffFactor * m_cliffFactor * 25.0f + (std::abs(m_continentalness + 0.15f) - 0.15f) * 16.0f;
 			bool isBeach = (m_preCliffContinentalness < s_cliffBase + 0.0004f) * (m_cliffFactor > 0.04f)
 				|| (beachFac < 1.3f + 1.25f * ((6.5025f - beachFac * beachFac) * 8.5f > (float)(columnsRandom & 0b1111)));
 
