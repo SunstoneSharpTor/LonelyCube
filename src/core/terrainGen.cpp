@@ -195,7 +195,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	//flatten out peaks and valleys location near continentalness 0 to create long beaches
 	//using equation -1 / (mx^n + 1) + 1
 	float pccSquared = m_preCliffContinentalness * m_preCliffContinentalness;
-	m_peaksAndValleysLocation *= -1.0f / (80.0f * pccSquared * pccSquared + 1.0f) + 1.0f;
+	m_peaksAndValleysLocation *= -0.75f / (1024.0f * pccSquared * pccSquared + 1.0f) + 1.0f;
 	//scale the peaks and valleys height based on the peaks and valleys location noise
 	m_peaksAndValleysHeight += 80.0f; //promotes all areas with high peaks and valleys to have a high y-value
 	m_peaksAndValleysHeight *= m_peaksAndValleysLocation;
@@ -273,7 +273,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 			}
 			int columnsRandom = PCG_Hash32(blockNumberInWorld + seed);
 
-			float beachFac = m_height + m_cliffFactor * m_cliffFactor * 25.0f + (std::abs(m_continentalness + 0.15f) - 0.15f) * 16.0f;
+			float beachFac = m_height + m_cliffFactor * m_cliffFactor * 25.0f + (std::abs(m_continentalness + 0.15f) - 0.15f) * 12.0f;
 			bool isBeach = (m_preCliffContinentalness < s_cliffBase + 0.0004f) * (m_cliffFactor > 0.04f)
 				|| (beachFac < 1.3f + 1.25f * ((6.5025f - beachFac * beachFac) * 8.5f > (float)(columnsRandom & 0b1111)));
 
