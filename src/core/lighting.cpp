@@ -55,7 +55,30 @@ void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chun
         unsigned int blockNum = (blockPosition.x - pos.x * constants::CHUNK_SIZE) + (blockPosition.y
             - pos.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE +
             (blockPosition.z - pos.z * constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-        lightQueue.push(blockNum);
+        if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[5])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[5]);
+        }
+        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) < (constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[4])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[4]);
+        }
+        if ((blockNum % constants::CHUNK_SIZE) < (constants::CHUNK_SIZE - 1)
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[3])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[3]);
+        }
+        if ((blockNum % constants::CHUNK_SIZE) >= 1
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[2])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[2]);
+        }
+        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) >= constants::CHUNK_SIZE
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[1])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[1]);
+        }
+        if (blockNum >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE)
+            && resourcePack.getBlockData(chunk.getBlock(blockNum + chunk.neighbouringBlocks[0])).transparent) {
+            lightQueue.push(blockNum + chunk.neighbouringBlocks[0]);
+        }
     }
     //add the light values from chunk borders to the light queue
     unsigned int blockNum = 0;
@@ -154,7 +177,8 @@ void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chun
     }
     while (!lightQueue.empty()) {
         unsigned int blockNum = lightQueue.front();
-        unsigned char skyLight = chunk.getSkyLight(blockNum) - 1;
+        unsigned char skyLight = chunk.getSkyLight(blockNum);
+        skyLight -= 1 * skyLight > 0;
         lightQueue.pop();
         if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
             unsigned int neighbouringBlockNum = blockNum + chunk.neighbouringBlocks[5];
@@ -319,7 +343,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[0]).getSkyLight(
                 blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) + 1;
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -332,7 +356,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[1]).getSkyLight(
                 blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) + 1;
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -346,7 +370,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[2]).getSkyLight(
                 blockNum + constants::CHUNK_SIZE - 1) + 1;
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -359,7 +383,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[3]).getSkyLight(
                 blockNum - constants::CHUNK_SIZE + 1) + 1;
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -372,7 +396,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[4]).getSkyLight(
                 blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) + 1;
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -386,11 +410,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             signed char currentskyLight = chunk.getSkyLight(blockNum);
             signed char neighbouringskyLight = worldChunks.at(neighbouringChunkPositions[5]).getSkyLight(
                 blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1)) + 1;
-            //propogate direct skylight down without reducing its intensity
-            neighbouringskyLight -= (neighbouringskyLight == 16)
-                * !(resourcePack.getBlockData(worldChunks.at(neighbouringChunkPositions[5]).getBlock(
-                blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))).dimsLight);
-            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight) * resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
+            bool newLowestSkyLight = (currentskyLight > neighbouringskyLight);
             if (newLowestSkyLight) {
                 lightQueue.push(blockNum);
             }
@@ -472,6 +492,7 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
         if (highestNeighbourSkyLight > skyLight) {
             chunk.setSkyLight(blockNum, highestNeighbourSkyLight);
         }
+        continue;
         // Add the neighbouring blocks to the queue if they have a low enough sky light
         if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
             unsigned int neighbouringBlockNum = blockNum + chunk.neighbouringBlocks[5];
