@@ -412,8 +412,7 @@ void RenderThread::go(bool* running) {
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
-            float luminanceVal = luminance.calculate();
-
+            // Draw the block outline
             if (lookingAtBlock) {
                 VertexArray blockOutlineVA;
                 VertexBuffer blockOutlineVB((*m_mainWorld).getResourcePack().getBlockData(
@@ -423,8 +422,8 @@ void RenderThread::go(bool* running) {
             }
             worldFrameBuffer.unbind();
 
-
-            screenShader.bind();
+            // Update auto exposure
+            float luminanceVal = luminance.calculate();
             float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
@@ -432,6 +431,7 @@ void RenderThread::go(bool* running) {
                 exposure += ((targetExposure > exposure) * 2 - 1) * std::min(std::abs(targetExposure - exposure), (targetExposure - exposure) * (targetExposure - exposure) * fac);
                 exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
+            screenShader.bind();
             screenShader.setUniform1f("exposure", exposure);
 
             // Draw the world texture

@@ -492,7 +492,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                         chunk.setSkylightBeingRelit(true);
                         chunk.clearSkyLight();
                         bool neighbouringChunksToRelight[6];
-                        Lighting::calculateSkyLight(chunkPosition, m_integratedServer.
+                        Lighting::propagateSkyLight(chunkPosition, m_integratedServer.
                             getWorldChunks(), neighbouringChunksToRelight, m_integratedServer.
                             getResourcePack());
                         chunk.setSkylightBeingRelit(false);
@@ -558,11 +558,12 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     chunkPosition.z = std::floor((float)blockCoords[2] / constants::CHUNK_SIZE);
     
     std::cout << (unsigned int)m_integratedServer.getSkyLight(blockCoords) << " light level\n";
-    m_integratedServer.setBlock(Position(blockCoords), blockType);
+    unsigned char originalBlockType = m_integratedServer.getBlock(blockCoords);
+    m_integratedServer.setBlock(blockCoords, blockType);
 
     std::vector<Position> relitChunks;
     auto tp1 = std::chrono::high_resolution_clock::now();
-    relightChunksAroundBlock(blockCoords, &relitChunks);
+    relightChunksAroundBlock(blockCoords, originalBlockType, blockType, &relitChunks);
     auto tp2 = std::chrono::high_resolution_clock::now();
     std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
@@ -649,8 +650,66 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     m_startTime = std::chrono::steady_clock::now();
 }
 
-void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<Position>* relitChunks) {
-    //find the lowest block in the column that is loaded
+void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char originalBlock,
+    unsigned char newBlock, std::vector<Position>* relitChunks) {
+    // Determine whether light or darkness needs to be propagated (or both)
+    BlockData oldBlockData = m_integratedServer.getResourcePack().getBlockData(originalBlock);
+    BlockData newBlockData = m_integratedServer.getResourcePack().getBlockData(newBlock);
+    bool darkness = (oldBlockData.transparent && !newBlockData.transparent) ||
+        ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
+    bool light = !oldBlockData.transparent && newBlockData.transparent;
+
+    int numChunksRelit = 0;
+    int numSpreads = 0;
+
+    if (light) {
+    // Add the chunk containing the modified block to the vector
+    std::vector<Position> chunksToBeRelit;
+    chunksToBeRelit.emplace_back(
+    std::floor((float)blockCoords[0] / constants::CHUNK_SIZE),
+    std::floor((float)blockCoords[1] / constants::CHUNK_SIZE),
+    std::floor((float)blockCoords[2] / constants::CHUNK_SIZE));
+    while (chunksToBeRelit.size() > 0) {
+        bool neighbouringChunksToRelight[6];
+        Position neighbouringChunkPositions[6];
+        bool neighbouringChunksLoaded = true;
+        //check that the chunk has its neighbours loaded so that it can be lit
+        for (char ii = 0; ii < 6; ii++) {
+            neighbouringChunkPositions[ii] = chunksToBeRelit[0] + m_neighbouringChunkOffets[ii];
+            if (!m_integratedServer.chunkLoaded(neighbouringChunkPositions[ii])) {
+                neighbouringChunksLoaded = false;
+                break;
+            }
+        }
+        //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+        if (!neighbouringChunksLoaded) {
+            m_integratedServer.getChunk(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+            std::vector<Position>::iterator it = chunksToBeRelit.begin();
+            chunksToBeRelit.erase(it);
+            continue;
+        }
+        
+        Lighting::propagateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(),
+            neighbouringChunksToRelight, m_integratedServer.getResourcePack());
+        if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
+            relitChunks->push_back(chunksToBeRelit[0]);
+        }
+        std::vector<Position>::iterator it = chunksToBeRelit.begin();
+        chunksToBeRelit.erase(it);
+        //add the neighbouring chunks that were marked as needing recalculating to the queue
+        for (char i = 0; i < 6; i++) {
+            if (!neighbouringChunksToRelight[i]) {
+                continue;
+            }
+            if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
+                chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
+                numSpreads++;
+            }
+        }
+        numChunksRelit++;
+    }
+    std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
+    /*//find the lowest block in the column that is loaded
     int lowestChunkInWorld = m_playerChunkPosition[1] - m_renderDistance;
     int chunkCoords[3] = { 0, 0, 0 };
     for (char i = 0; i < 3; i++) {
@@ -755,7 +814,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
             continue;
         }
         
-        Lighting::calculateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(),
+        Lighting::propagateSkyLight(chunksToBeRelit[0], m_integratedServer.getWorldChunks(),
             neighbouringChunksToRelight, m_integratedServer.getResourcePack());
         if (std::find(relitChunks->begin(), relitChunks->end(), chunksToBeRelit[0]) == relitChunks->end()) {
             relitChunks->push_back(chunksToBeRelit[0]);
@@ -774,7 +833,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, std::vector<P
         }
         numChunksRelit++;
     }
-    std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";
+    std::cout << numChunksRelit << " chunks relit with " << numSpreads << " spreads\n";*/
 }
 
 void ClientWorld::setThreadWaiting(unsigned char threadNum, bool value) {

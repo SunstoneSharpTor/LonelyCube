@@ -24,7 +24,7 @@ struct Position {
     int x, y, z;
 
     Position(int x, int y, int z) : x(x), y(y), z(z) {};
-    Position(int* position) : x(position[0]), y(position[1]), z(position[2]) {};
+    Position(const int* position) : x(position[0]), y(position[1]), z(position[2]) {};
     Position() {};
 
     inline Position operator+(const Position& other) const {
