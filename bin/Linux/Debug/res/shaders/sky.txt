@@ -30,8 +30,8 @@ uniform float sunGlowAmount;
 const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
 const float ATMOSPHERE_RADIUS = 120.0;
-const vec3 SKY_TOP_COLOUR = vec3(0.05, 0.15, 1.0);
-const vec3 HORIZON_COLOUR = vec3(0.3, 0.35, 0.8);
+const vec3 SKY_TOP_COLOUR = vec3(0.15, 0.25, 0.94);
+const vec3 HORIZON_COLOUR = vec3(0.35, 0.4, 0.75);
 
 float distanceThroughAtmosphere(vec3 rayDir) {
     vec3 spereCentre = vec3(0, 0, 0);
@@ -56,7 +56,11 @@ void main() {
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
     vec3 value = SKY_TOP_COLOUR * (1.0f - rayDistanceThroughAtmosphere / 90.0);
     value += HORIZON_COLOUR * rayDistanceThroughAtmosphere / 90.0;
-    float sunDistance = (dot(rayDir, sunDir) + 3.0) * 0.25 * min(rayDistanceThroughAtmosphere -
+    float dotProd = dot(rayDir, sunDir) + 4.0;
+    dotProd *= dotProd;
+    dotProd *= dotProd;
+    dotProd *= dotProd;
+    float sunDistance = dotProd * 0.000003 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
     value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
 	
