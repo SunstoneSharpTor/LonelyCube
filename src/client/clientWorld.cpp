@@ -576,7 +576,9 @@ void ClientWorld::replaceBlock(int* blockCoords, unsigned char blockType) {
     }
     
     for (auto& relitChunk : relitChunks) {
-        m_meshesToUpdate.insert(relitChunk);
+        if (chunkHasNeighbours(relitChunk)) {
+            m_meshesToUpdate.insert(relitChunk);
+        }
     }
     m_accessingArrIndicesVectorsMtx.unlock();
 }
@@ -659,15 +661,16 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char
     // Determine whether light or darkness needs to be propagated (or both)
     BlockData oldBlockData = m_integratedServer.getResourcePack().getBlockData(originalBlock);
     BlockData newBlockData = m_integratedServer.getResourcePack().getBlockData(newBlock);
-    bool darkness = (oldBlockData.transparent && !newBlockData.transparent) ||
+    bool darken = (oldBlockData.transparent && !newBlockData.transparent) ||
         ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
-    bool light = !oldBlockData.transparent && newBlockData.transparent;
+    bool lighten = (!oldBlockData.transparent && newBlockData.transparent) ||
+        (oldBlockData.dimsLight && !newBlockData.dimsLight);
 
     int numChunksLightened = 0;
     int numChunksDarkened = 0;
     int numSpreads = 0;
 
-    if (light) {
+    if (lighten) {
         // Add the chunk containing the modified block to the vector
         std::vector<Position> chunksToBeRelit;
         chunksToBeRelit.emplace_back(
@@ -720,7 +723,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char
             numChunksLightened++;
         }
     }
-    if (false) {//darkness) {
+    if (darken) {
         // Add the chunk containing the modified block to the vector
         std::vector<Position> chunksToBeRelit;
         chunksToBeRelit.emplace_back(
@@ -730,12 +733,11 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char
         unsigned int blockNum = (blockCoords[0] - chunksToBeRelit[0].x * constants::CHUNK_SIZE) + (blockCoords[1]
             - chunksToBeRelit[0].y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE +
             (blockCoords[2] - chunksToBeRelit[0].z * constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-        m_integratedServer.getChunk(chunksToBeRelit[0]).setSkyLight(blockNum, 0);
         while (chunksToBeRelit.size() > 0) {
             bool neighbouringChunksToRelight[6];
             Position neighbouringChunkPositions[6];
             bool neighbouringChunksLoaded = true;
-            //check that the chunk has its neighbours loaded so that it can be lit
+            // Check that the chunk has its neighbours loaded so that it can be lit
             for (char ii = 0; ii < 6; ii++) {
                 neighbouringChunkPositions[ii] = chunksToBeRelit[0] + m_neighbouringChunkOffets[ii];
                 if (!m_integratedServer.chunkLoaded(neighbouringChunkPositions[ii])) {
@@ -751,7 +753,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char
                 continue;
             }
             
-            if (numChunksLightened == 0) {
+            if (numChunksDarkened == 0) {
                 Lighting::propagateSkyDarkness(chunksToBeRelit[0], m_integratedServer.getWorldChunks(),
                     neighbouringChunksToRelight, m_integratedServer.getResourcePack(), blockCoords);
             }
@@ -774,7 +776,7 @@ void ClientWorld::relightChunksAroundBlock(const int* blockCoords, unsigned char
                     numSpreads++;
                 }
             }
-            numChunksLightened++;
+            numChunksDarkened++;
         }
     }
     std::cout << numChunksLightened + numChunksDarkened << " chunks relit with " << numSpreads << " spreads\n";
