@@ -29,13 +29,11 @@ public:
     // Propagates the skylight through the chunk
     static void propagateSkyLight(Position chunkPosition,
         std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit,
-        ResourcePack& resourcePack, Position blockPosition =
-        Position(constants::WORLD_BORDER_DISTANCE * 2, constants::WORLD_BORDER_DISTANCE * 2,
-        constants::WORLD_BORDER_DISTANCE * 2));
+        ResourcePack& resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE * constants::CHUNK_SIZE);
     // Propagates the absence of skylight through the chunk
     static void propagateSkyDarkness(Position chunkPosition,
         std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit,
-        ResourcePack& resourcePack, Position blockPosition =
-        Position(constants::WORLD_BORDER_DISTANCE * 2, constants::WORLD_BORDER_DISTANCE * 2,
-        constants::WORLD_BORDER_DISTANCE * 2));
+        ResourcePack& resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE * constants::CHUNK_SIZE);
 };

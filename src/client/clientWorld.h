@@ -124,7 +124,7 @@ private:
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unmeshChunks();
-	void relightChunksAroundBlock(const int* blockCoords, unsigned char originalBlock, unsigned
+	void relightChunksAroundBlock(Position blockCoords, unsigned char originalBlock, unsigned
 		char newBlock, std::vector<Position>* relitChunks);
 
 public:
