@@ -27,13 +27,13 @@
 class Lighting {
 public:
     // Propagates the skylight through the chunk
-    static void propagateSkyLight(Position chunkPosition,
-        std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit,
-        ResourcePack& resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE *
-        constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    static void propagateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
+        worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
+        resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE);
     // Propagates the absence of skylight through the chunk
-    static void propagateSkyDarkness(Position chunkPosition,
-        std::unordered_map<Position, Chunk>& worldChunks, bool* neighbouringChunksToBeRelit,
-        ResourcePack& resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE *
-        constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    static void propagateSkyDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
+        worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
+        resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE);
 };
