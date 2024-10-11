@@ -31,6 +31,14 @@ struct Position {
         return { x + other.x, y + other.y, z + other.z };
     }
 
+    inline Position operator-(const Position& other) const {
+        return { x - other.x, y - other.y, z - other.z };
+    }
+
+    inline Position operator*(const int scalar) const {
+        return { x * scalar, y * scalar, z * scalar };
+    }
+
     inline bool operator==(const Position& other) const {
         return (x == other.x) && (y == other.y) && (z == other.z);
     }

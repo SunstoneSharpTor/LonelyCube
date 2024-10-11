@@ -24,7 +24,8 @@
 #include "core/position.h"
 
 void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
-    bool* neighbouringChunksToBeRelit, ResourcePack& resourcePack, unsigned int modifiedBlock) {
+    bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack& resourcePack, unsigned
+    int modifiedBlock) {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
     Position neighbouringChunkPositions[6] = { Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2]),
@@ -299,7 +300,8 @@ void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chun
 }
 
 void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
-    bool* neighbouringChunksToBeRelit, ResourcePack& resourcePack, unsigned int modifiedBlock) {
+    bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack& resourcePack, unsigned
+    int modifiedBlock) {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
     Position neighbouringChunkPositions[6] = { Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2]),

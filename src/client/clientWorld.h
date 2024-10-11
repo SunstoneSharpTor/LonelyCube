@@ -121,11 +121,14 @@ private:
 
 	void unloadMesh(const Position& chunkPosition);
 	bool chunkHasNeighbours(const Position& chunkPosition);
+	// Adds chunks to the vector if the modified block is in or bordering the chunk
+	void addChunksToRemesh(std::vector<Position>& chunksToRemesh, const Position& modifiedBlockPos,
+		const Position& modifiedBlockChunk);
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unmeshChunks();
-	void relightChunksAroundBlock(Position blockCoords, unsigned char originalBlock, unsigned
-		char newBlock, std::vector<Position>* relitChunks);
+	void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
+		unsigned char originalBlock, unsigned char newBlock, std::vector<Position>* relitChunks);
 
 public:
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos);
@@ -136,8 +139,10 @@ public:
 	void loadChunksAroundPlayerMultiplayer(char threadNum);
 	void buildMeshesForNewChunksWithNeighbours(char threadNum);
 	unsigned char shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
-	void replaceBlock(int* blockCoords, unsigned char blockType);
-	unsigned char getBlock(int* blockCoords);
+	void replaceBlock(const Position& blockCoords, unsigned char blockType);
+	inline unsigned char getBlock(int* blockCoords) {
+		return m_integratedServer.getBlock(Position(blockCoords));
+	}
 	inline int getRenderDistance() {
 		return m_renderDistance;
 	}
