@@ -128,7 +128,7 @@ private:
 	void uploadChunkMesh(char threadNum);
 	void unmeshChunks();
 	void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
-		unsigned char originalBlock, unsigned char newBlock, std::vector<Position>* relitChunks);
+		unsigned char originalBlock, unsigned char newBlock, std::vector<Position>& relitChunks);
 
 public:
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos);
