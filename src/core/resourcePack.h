@@ -45,7 +45,6 @@ struct BlockData {
     bool dimsLight;
     bool castsAmbientOcclusion;
     bool collidable;
-    bool castsShadows;
 };
 
 class ResourcePack {
