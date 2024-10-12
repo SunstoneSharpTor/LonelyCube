@@ -93,14 +93,6 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
     m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
 
-    //calculate the offset chunk numbers for the neighbouring chunks
-    m_neighbouringChunkOffets[0] = { 0, -1, 0 };
-    m_neighbouringChunkOffets[1] = { 0, 0, -1 };
-    m_neighbouringChunkOffets[2] = { -1, 0, 0 };
-    m_neighbouringChunkOffets[3] = { 1, 0, 0 };
-    m_neighbouringChunkOffets[4] = { 0, 0, 1 };
-    m_neighbouringChunkOffets[5] = { 0, 1, 0 };
-
     int i = 0;
     for (int x = -1; x < 2; x++) {
         for (int y = -1; y < 2; y++) {
@@ -513,7 +505,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                         while (neighbourBeingRelit) {
                             neighbourBeingRelit = false;
                             for (unsigned int i = 0; i < 6; i++) {
-                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + m_neighbouringChunkOffets[i]).isSkyBeingRelit();
+                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyBeingRelit();
                             }
                             if (neighbourBeingRelit) {
                                 std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -596,7 +588,8 @@ void ClientWorld::replaceBlock(const Position& blockCoords, unsigned char blockT
     addChunksToRemesh(chunksToRemesh, blockCoords, chunkPosition);
 
     auto tp1 = std::chrono::high_resolution_clock::now();
-    relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType, chunksToRemesh);
+    Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
+        chunksToRemesh, m_integratedServer.getWorldChunks(), m_integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
     std::cout << chunksToRemesh.size() << " chunks remeshed\n";
     std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
@@ -680,35 +673,6 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     m_window = window;
     m_windowDimensions = windowDimensions;
     m_startTime = std::chrono::steady_clock::now();
-}
-
-void ClientWorld::relightChunksAroundBlock(const Position& blockCoords, const Position&
-    chunkPosition, unsigned char originalBlock, unsigned char newBlock, std::vector<Position>&
-    chunksToRemesh) {
-    // Determine whether light or darkness needs to be propagated (or both)
-    BlockData oldBlockData = m_integratedServer.getResourcePack().getBlockData(originalBlock);
-    BlockData newBlockData = m_integratedServer.getResourcePack().getBlockData(newBlock);
-    bool darken = (oldBlockData.transparent && !newBlockData.transparent) ||
-        ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
-    bool lighten = (!oldBlockData.transparent && newBlockData.transparent) ||
-        (oldBlockData.dimsLight && !newBlockData.dimsLight);
-
-    unsigned int modifiedBlockNum = blockCoords.x - chunkPosition.x * constants::CHUNK_SIZE
-        + (blockCoords.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
-        * constants::CHUNK_SIZE + (blockCoords.z - chunkPosition.z * constants::CHUNK_SIZE)
-        * constants::CHUNK_SIZE;
-    int numChunksLightened = 0;
-    int numChunksDarkened = 0;
-    int numSpreads = 0;
-    if (lighten) {
-        Lighting::propagateSkyLight(blockCoords, m_integratedServer.getWorldChunks(),
-            chunksToRemesh, m_integratedServer.getResourcePack());
-    }
-    if (darken) {
-        Lighting::propagateSkyLight(blockCoords, m_integratedServer.getWorldChunks(),
-            chunksToRemesh, m_integratedServer.getResourcePack());
-    }
-    std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
 }
 
 void ClientWorld::setThreadWaiting(unsigned char threadNum, bool value) {

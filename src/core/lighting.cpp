@@ -23,331 +23,6 @@
 #include "core/chunk.h"
 #include "core/position.h"
 
-void Lighting::propagateSkyLight(Position updatedBlockPos, std::unordered_map<Position, Chunk>&
-    worldChunks, std::vector<Position>& chunksToRemesh, ResourcePack& resourcePack) {
-    std::queue<Position> lightQueue;
-    lightQueue.push(updatedBlockPos);
-    lightQueue.push(updatedBlockPos + Position(-1, 0, 0));
-    lightQueue.push(updatedBlockPos + Position(1, 0, 0));
-    lightQueue.push(updatedBlockPos + Position(0, -1, 0));
-    lightQueue.push(updatedBlockPos + Position(0, 1, 0));
-    lightQueue.push(updatedBlockPos + Position(0, 0, -1));
-    lightQueue.push(updatedBlockPos + Position(0, 0, 1));
-    std::array <Chunk*, 7> chunks;
-    Position chunkPosition;
-    chunkPosition.x = (updatedBlockPos.x + (updatedBlockPos.x < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.x < 0);
-    chunkPosition.y = (updatedBlockPos.y + (updatedBlockPos.y < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.y < 0);
-    chunkPosition.z = (updatedBlockPos.z + (updatedBlockPos.z < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.z < 0);
-    if (!worldChunks.contains(chunkPosition)) {
-        return;
-    }
-    Position lastChunkPos = chunkPosition + Position(1, 0, 0);
-    while (!lightQueue.empty()) {
-        Position blockPos = lightQueue.front();
-        lightQueue.pop();
-        chunkPosition.x = (blockPos.x + (blockPos.x < 0)) / constants::CHUNK_SIZE -
-            (blockPos.x < 0);
-        chunkPosition.y = (blockPos.y + (blockPos.y < 0)) / constants::CHUNK_SIZE -
-            (blockPos.y < 0);
-        chunkPosition.z = (blockPos.z + (blockPos.z < 0)) / constants::CHUNK_SIZE -
-            (blockPos.z < 0);
-        if (chunkPosition != lastChunkPos) {
-            //check that the chunk has its neighbours loaded so that it can be lit
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            for (char ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunkPosition + s_neighbouringChunkOffets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunkPosition).setSkyLightToBeOutdated();
-                continue;
-            }
-
-            chunks[6] = &worldChunks.at(chunkPosition);
-            chunks[0] = &worldChunks.at(chunkPosition + Position(0, -1, 0));
-            chunks[1] = &worldChunks.at(chunkPosition + Position(0, 0, -1));
-            chunks[2] = &worldChunks.at(chunkPosition + Position(-1, 0, 0));
-            chunks[3] = &worldChunks.at(chunkPosition + Position(1, 0, 0));
-            chunks[4] = &worldChunks.at(chunkPosition + Position(0, 0, 1));
-            chunks[5] = &worldChunks.at(chunkPosition + Position(0, 1, 0));
-        }
-        unsigned int blockNum = blockPos.x - chunkPosition.x * constants::CHUNK_SIZE
-            + (blockPos.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
-            * constants::CHUNK_SIZE + (blockPos.z - chunkPosition.z * constants::CHUNK_SIZE)
-            * constants::CHUNK_SIZE;
-        unsigned char skyLight = chunks[6]->getSkyLight(blockNum);
-        skyLight -= 1 * skyLight > 0;
-        if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[5];
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (0, 1, 0));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum - constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            bool transparent = resourcePack.getBlockData(chunks[5]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[5]->getSkyLight(neighbouringBlockNum) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[5]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (0, 1, 0));
-            }
-        }
-        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) < (constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[4];
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (0, 0, 1));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            bool transparent = resourcePack.getBlockData(chunks[4]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[4]->getSkyLight(neighbouringBlockNum) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[4]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (0, 0, 1));
-            }
-        }
-        if ((blockNum % constants::CHUNK_SIZE) < (constants::CHUNK_SIZE - 1)) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[3];
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (1, 0, 0));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum =  blockNum - (constants::CHUNK_SIZE - 1);
-            bool transparent = resourcePack.getBlockData(chunks[3]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[3]->getSkyLight(
-                blockNum - (constants::CHUNK_SIZE - 1)) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[3]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos + Position (1, 0, 0));
-            }
-        }
-        if ((blockNum % constants::CHUNK_SIZE) >= 1) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[2];
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (1, 0, 0));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + (constants::CHUNK_SIZE - 1);
-            bool transparent = resourcePack.getBlockData(chunks[2]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[2]->getSkyLight(neighbouringBlockNum) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[2]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (1, 0, 0));
-            }
-        }
-        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) >= constants::CHUNK_SIZE) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[1];
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (0, 0, 1));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            bool transparent = resourcePack.getBlockData(chunks[1]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[1]->getSkyLight(neighbouringBlockNum) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[1]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (0, 0, 1));
-            }
-        }
-        if (blockNum >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[0];
-            skyLight += (skyLight == 14) * !(resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).dimsLight);
-            unsigned char neighbouringskyLight = chunks[6]->getSkyLight(neighbouringBlockNum);
-            bool newHighestSkyLight = (neighbouringskyLight < skyLight) * resourcePack.getBlockData(chunks[6]->getBlock(neighbouringBlockNum)).transparent;
-            if (newHighestSkyLight) {
-                chunks[6]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (0, 1, 0));
-            }
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            bool dimsLight = resourcePack.getBlockData(chunks[0]->getBlock(neighbouringBlockNum)).dimsLight;
-            skyLight += (skyLight == 14) * !(dimsLight);
-            bool transparent = resourcePack.getBlockData(chunks[0]->getBlock(neighbouringBlockNum)).transparent;
-            bool newHighestSkyLight = chunks[0]->getSkyLight(neighbouringBlockNum) < skyLight;
-            if (transparent && newHighestSkyLight) {
-                chunks[0]->setSkyLight(neighbouringBlockNum, skyLight);
-                lightQueue.push(blockPos - Position (0, 1, 0));
-            }
-        }
-    }
-}
-
-void Lighting::propagateSkyDarkness(Position updatedBlockPos, std::unordered_map<Position, Chunk>&
-    worldChunks, std::vector<Position>& chunksToRemesh, ResourcePack& resourcePack) {
-    std::queue<Position> lightQueue;
-    lightQueue.push(updatedBlockPos);
-    std::array <Chunk*, 7> chunks;
-    Position chunkPosition;
-    chunkPosition.x = (updatedBlockPos.x + (updatedBlockPos.x < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.x < 0);
-    chunkPosition.y = (updatedBlockPos.y + (updatedBlockPos.y < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.y < 0);
-    chunkPosition.z = (updatedBlockPos.z + (updatedBlockPos.z < 0)) / constants::CHUNK_SIZE -
-        (updatedBlockPos.z < 0);
-    if (!worldChunks.contains(chunkPosition)) {
-        return;
-    }
-    // else {
-    //     unsigned int blockNum = updatedBlockPos.x - chunkPosition.x * constants::CHUNK_SIZE
-    //         + (updatedBlockPos.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
-    //         * constants::CHUNK_SIZE + (updatedBlockPos.z - chunkPosition.z * constants::CHUNK_SIZE)
-    //         * constants::CHUNK_SIZE;
-    //     worldChunks.at(chunkPosition).setSkyLight(blockNum, 15);
-    // }
-    Position lastChunkPos = chunkPosition + Position(1, 0, 0);
-    while (!lightQueue.empty()) {
-        Position blockPos = lightQueue.front();
-        lightQueue.pop();
-        chunkPosition.x = (blockPos.x + (blockPos.x < 0)) / constants::CHUNK_SIZE -
-            (blockPos.x < 0);
-        chunkPosition.y = (blockPos.y + (blockPos.y < 0)) / constants::CHUNK_SIZE -
-            (blockPos.y < 0);
-        chunkPosition.z = (blockPos.z + (blockPos.z < 0)) / constants::CHUNK_SIZE -
-            (blockPos.z < 0);
-        if (chunkPosition != lastChunkPos) {
-            //check that the chunk has its neighbours loaded so that it can be lit
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            for (char ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunkPosition + s_neighbouringChunkOffets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunkPosition).setSkyLightToBeOutdated();
-                continue;
-            }
-
-            chunks[6] = &worldChunks.at(chunkPosition);
-            chunks[0] = &worldChunks.at(chunkPosition + Position(0, -1, 0));
-            chunks[1] = &worldChunks.at(chunkPosition + Position(0, 0, -1));
-            chunks[2] = &worldChunks.at(chunkPosition + Position(-1, 0, 0));
-            chunks[3] = &worldChunks.at(chunkPosition + Position(1, 0, 0));
-            chunks[4] = &worldChunks.at(chunkPosition + Position(0, 0, 1));
-            chunks[5] = &worldChunks.at(chunkPosition + Position(0, 1, 0));
-        }
-        unsigned int blockNum = blockPos.x - chunkPosition.x * constants::CHUNK_SIZE
-            + (blockPos.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
-            * constants::CHUNK_SIZE + (blockPos.z - chunkPosition.z * constants::CHUNK_SIZE)
-            * constants::CHUNK_SIZE;
-        // Find the new value of the block
-        unsigned char skyLight = chunks[6]->getSkyLight(blockNum);
-        unsigned char neighbouringSkyLights[6];
-        if (blockNum < (constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[5];
-            neighbouringSkyLights[5] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum - constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[5] = chunks[5]->getSkyLight(neighbouringBlockNum);
-        }
-        unsigned char highestNeighbourSkyLight = neighbouringSkyLights[5];
-        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) < (constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1))) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[4];
-            neighbouringSkyLights[4] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum - constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[4] = chunks[4]->getSkyLight(neighbouringBlockNum);
-        }
-        highestNeighbourSkyLight = std::max(highestNeighbourSkyLight, neighbouringSkyLights[4]);
-        if ((blockNum % constants::CHUNK_SIZE) < (constants::CHUNK_SIZE - 1)) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[3];
-            neighbouringSkyLights[3] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum - (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[3] = chunks[3]->getSkyLight(neighbouringBlockNum);
-        }
-        highestNeighbourSkyLight = std::max(highestNeighbourSkyLight, neighbouringSkyLights[3]);
-        if ((blockNum % constants::CHUNK_SIZE) >= 1) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[2];
-            neighbouringSkyLights[2] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[2] = chunks[2]->getSkyLight(neighbouringBlockNum);
-        }
-        highestNeighbourSkyLight = std::max(highestNeighbourSkyLight, neighbouringSkyLights[2]);
-        if ((blockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) >= constants::CHUNK_SIZE) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[1];
-            neighbouringSkyLights[1] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[1] = chunks[1]->getSkyLight(neighbouringBlockNum);
-        }
-        highestNeighbourSkyLight = std::max(highestNeighbourSkyLight, neighbouringSkyLights[1]);
-        if (blockNum >= (constants::CHUNK_SIZE * constants::CHUNK_SIZE)) {
-            unsigned int neighbouringBlockNum = blockNum + chunks[6]->neighbouringBlocks[0];
-            neighbouringSkyLights[0] = chunks[6]->getSkyLight(neighbouringBlockNum);
-        }
-        else {
-            unsigned int neighbouringBlockNum = blockNum + constants::CHUNK_SIZE * constants::CHUNK_SIZE * (constants::CHUNK_SIZE - 1);
-            neighbouringSkyLights[0] = chunks[0]->getSkyLight(neighbouringBlockNum);
-        }
-        highestNeighbourSkyLight = std::max(highestNeighbourSkyLight, neighbouringSkyLights[0]);
-        bool skyAccess = neighbouringSkyLights[5] == 15 && !resourcePack.getBlockData(chunks[6]->getBlock(blockNum)).dimsLight;
-        highestNeighbourSkyLight -= !skyAccess && highestNeighbourSkyLight > 0;
-        highestNeighbourSkyLight *= resourcePack.getBlockData(chunks[6]->getBlock(blockNum)).transparent;
-        if (highestNeighbourSkyLight < skyLight) {
-            chunks[6]->setSkyLight(blockNum, highestNeighbourSkyLight);
-            // Add the neighbouring blocks to the queue if they have a low enough sky light
-            highestNeighbourSkyLight += highestNeighbourSkyLight == 0;
-            if (neighbouringSkyLights[5] < skyLight && neighbouringSkyLights[5] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(0, 1, 0));
-            }
-            if (neighbouringSkyLights[4] < skyLight && neighbouringSkyLights[4] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(0, 0, 1));
-            }
-            if (neighbouringSkyLights[3] < skyLight && neighbouringSkyLights[3] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(1, 0, 0));
-            }
-            if (neighbouringSkyLights[2] < skyLight && neighbouringSkyLights[2] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(-1, 0, 0));
-            }
-            if (neighbouringSkyLights[1] < skyLight && neighbouringSkyLights[1] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(0, 0, -1));
-            }
-            if ((neighbouringSkyLights[0] < skyLight || skyLight == 15) && neighbouringSkyLights[0] >= highestNeighbourSkyLight) {
-                lightQueue.push(blockPos + Position(0, -1, 0));
-            }
-        }
-    }
-}
-
 void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack& resourcePack, unsigned
     int modifiedBlock) {
@@ -615,13 +290,6 @@ void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chun
             }
         }
     }
-    
-    //(*m_worldInfo.numRelights)--;
-    chunk.setSkyLightToBeUpToDate();
-    //m_calculatingSkylight = false;
-    // lock release
-    // std::lock_guard<std::mutex> lock(chunk.accessingSkylightMtx);
-    // m_accessingSkylightCV.notify_all();
 }
 
 void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
@@ -860,11 +528,128 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
             }
         }
     }
-    
-    //(*m_worldInfo.numRelights)--;
-    chunk.setSkyLightToBeUpToDate();
-    //m_calculatingSkylight = false;
-    // lock release
-    // std::lock_guard<std::mutex> lock(chunk.accessingSkylightMtx);
-    // m_accessingSkylightCV.notify_all();
+}
+
+void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Position&
+    chunkPosition, unsigned char originalBlock, unsigned char newBlock, std::vector<Position>&
+    chunksToRemesh, std::unordered_map<Position, Chunk>& worldChunks,  ResourcePack& resourcePack)
+{
+    // Determine whether light or darkness needs to be propagated (or both)
+    BlockData oldBlockData = resourcePack.getBlockData(originalBlock);
+    BlockData newBlockData = resourcePack.getBlockData(newBlock);
+    bool darken = (oldBlockData.transparent && !newBlockData.transparent) ||
+        ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
+    bool lighten = (!oldBlockData.transparent && newBlockData.transparent) ||
+        (oldBlockData.dimsLight && !newBlockData.dimsLight);
+
+    unsigned int modifiedBlockNum = blockCoords.x - chunkPosition.x * constants::CHUNK_SIZE
+        + (blockCoords.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
+        * constants::CHUNK_SIZE + (blockCoords.z - chunkPosition.z * constants::CHUNK_SIZE)
+        * constants::CHUNK_SIZE;
+    int numChunksLightened = 0;
+    int numChunksDarkened = 0;
+    int numSpreads = 0;
+    if (lighten) {
+        // Add the chunk containing the modified block to the vector
+        std::vector<Position> chunksToBeRelit;
+        chunksToBeRelit.emplace_back(chunkPosition);
+        while (chunksToBeRelit.size() > 0) {
+            bool neighbouringChunksToRelight[6];
+            bool nearbyChunksToRemesh[7];
+            Position neighbouringChunkPositions[6];
+            bool neighbouringChunksLoaded = true;
+            //check that the chunk has its neighbours loaded so that it can be lit
+            for (char ii = 0; ii < 6; ii++) {
+                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
+                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
+                    neighbouringChunksLoaded = false;
+                    break;
+                }
+            }
+            //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+            if (!neighbouringChunksLoaded) {
+                worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+                std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                chunksToBeRelit.erase(it);
+                continue;
+            }
+            
+            if (numChunksLightened == 0) {
+                propagateSkyLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
+                    nearbyChunksToRemesh, resourcePack, modifiedBlockNum);
+            }
+            else {
+                propagateSkyLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
+                    nearbyChunksToRemesh, resourcePack);
+            }
+            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
+                chunksToRemesh.push_back(chunksToBeRelit[0]);
+            }
+            std::vector<Position>::iterator it = chunksToBeRelit.begin();
+            chunksToBeRelit.erase(it);
+            //add the neighbouring chunks that were marked as needing recalculating to the queue
+            for (char i = 0; i < 6; i++) {
+                if (!neighbouringChunksToRelight[i]) {
+                    continue;
+                }
+                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
+                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
+                    numSpreads++;
+                }
+            }
+            numChunksLightened++;
+        }
+    }
+    if (darken) {
+        // Add the chunk containing the modified block to the vector
+        std::vector<Position> chunksToBeRelit;
+        chunksToBeRelit.emplace_back(chunkPosition);
+        while (chunksToBeRelit.size() > 0) {
+            bool neighbouringChunksToRelight[6];
+            bool nearbyChunksToRemesh[7];
+            Position neighbouringChunkPositions[6];
+            bool neighbouringChunksLoaded = true;
+            // Check that the chunk has its neighbours loaded so that it can be lit
+            for (char ii = 0; ii < 6; ii++) {
+                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
+                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
+                    neighbouringChunksLoaded = false;
+                    break;
+                }
+            }
+            // If the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+            if (!neighbouringChunksLoaded) {
+                worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+                std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                chunksToBeRelit.erase(it);
+                continue;
+            }
+            
+            if (numChunksDarkened == 0) {
+                propagateSkyDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
+                    nearbyChunksToRemesh, resourcePack, modifiedBlockNum);
+            }
+            else {
+                propagateSkyDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
+                    nearbyChunksToRemesh, resourcePack);
+            }
+            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
+                chunksToRemesh.push_back(chunksToBeRelit[0]);
+            }
+            std::vector<Position>::iterator it = chunksToBeRelit.begin();
+            chunksToBeRelit.erase(it);
+            // Add the neighbouring chunks that were marked as needing recalculating to the queue
+            for (char i = 0; i < 6; i++) {
+                if (!neighbouringChunksToRelight[i]) {
+                    continue;
+                }
+                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
+                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
+                    numSpreads++;
+                }
+            }
+            numChunksDarkened++;
+        }
+    }
+    std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
 }
