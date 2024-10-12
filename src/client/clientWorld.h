@@ -51,14 +51,19 @@ struct MeshData {
 
 class ClientWorld {
 private:
+	static const inline std::array<Position, 6> s_neighbouringChunkOffsets = { Position(0, -1, 0),
+        Position(0, 0, -1),
+        Position(-1, 0, 0),
+        Position(1, 0, 0),
+        Position(0, 0, 1),
+        Position(0, 1, 0) };
+
 	bool m_singleplayer;
 	unsigned short m_renderDistance;
 	unsigned short m_renderDiameter;
 	int m_playerChunkPosition[3];
 	int m_newPlayerChunkPosition[3];
 	int m_updatingPlayerChunkPosition[3];
-	//stores the location of each chunk in the array m_chunks, ordered by chunk number
-	Position m_neighbouringChunkOffets[6];
 	Position m_neighbouringChunkIncludingDiaganalOffsets[27];
 	unsigned short m_numChunkLoadingThreads;
 	bool m_renderingFrame;
@@ -127,8 +132,6 @@ private:
 	void addChunkMesh(const Position& chunkPosition, char threadNum);
 	void uploadChunkMesh(char threadNum);
 	void unmeshChunks();
-	void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
-		unsigned char originalBlock, unsigned char newBlock, std::vector<Position>& relitChunks);
 
 public:
 	ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer, const Position& playerPos);
