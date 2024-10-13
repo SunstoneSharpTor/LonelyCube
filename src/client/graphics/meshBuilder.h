@@ -23,13 +23,14 @@
 #include "core/chunk.h"
 #include "core/constants.h"
 #include "core/resourcePack.h"
+#include "core/serverWorld.h"
 
 namespace client {
 
 class MeshBuilder {
 private:
     Chunk& m_chunk;
-    ResourcePack& m_resourcePack;
+    ServerWorld<true>& m_serverWorld;
     float* m_vertices;
     unsigned int* m_numVertices;
     unsigned int* m_indices;
@@ -60,7 +61,7 @@ private:
     }
 
 public:
-    MeshBuilder(Chunk& chunk, ResourcePack& resourcePack, float* vertices, unsigned int*
+    MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, unsigned int*
         numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices,
         unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices);
 

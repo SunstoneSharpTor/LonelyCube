@@ -26,7 +26,7 @@ std::mutex Chunk::s_checkingNeighbouringRelights;
 
 const short Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
-Chunk::Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks) : m_worldChunks(worldChunks) {
+Chunk::Chunk(Position position) {
     inUse = true;
     m_singleBlockType = false;
     m_singleSkyLightVal = false;
@@ -93,33 +93,6 @@ void Chunk::setBlock(unsigned int block, unsigned char blockType) {
     }
     m_blocks[block] = blockType;
     // setSkyLight(block, 0 * !(constants::castsShadows[blockType]));
-}
-
-unsigned char Chunk::getWorldBlock(int* blockCoords) {
-    int chunkCoords[3];
-    unsigned int blockPosInChunk[3];
-    for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
-        // chunkCoords[i] = -1 * (blockCoords[i] < 0) + blockCoords[i] / constants::CHUNK_SIZE;
-        blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    }
-
-    unsigned int blockNumber = getBlockNumber(blockPosInChunk);
-
-    return m_worldChunks->at(chunkCoords).getBlock(blockNumber);
-}
-
-unsigned char Chunk::getWorldSkyLight(int* blockCoords) {
-    int chunkCoords[3];
-    unsigned int blockPosInChunk[3];
-    for (unsigned char i = 0; i < 3; i++) {
-        chunkCoords[i] = std::floor((float)blockCoords[i] / constants::CHUNK_SIZE);
-        blockPosInChunk[i] = blockCoords[i] - chunkCoords[i] * constants::CHUNK_SIZE;
-    }
-
-    unsigned int blockNumber = getBlockNumber(blockPosInChunk);
-
-    return m_worldChunks->at(chunkCoords).getSkyLight(blockNumber);
 }
 
 void Chunk::clearBlocksAndLight() {
