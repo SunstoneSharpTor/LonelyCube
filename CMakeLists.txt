@@ -82,12 +82,8 @@ add_custom_command(TARGET client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/res
             ${FullOutputDir}/res)
-add_custom_command(TARGET client POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rm
-            ${FullOutputDir}/res/SDL2.dll)
-if (MINGW)
+if (NOT MINGW)
     add_custom_command(TARGET client POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_SOURCE_DIR}/res/SDL2.dll
-                ${FullOutputDir})
+        COMMAND ${CMAKE_COMMAND} -E rm
+                ${FullOutputDir}/res/SDL2.dll)
 endif (MINGW)
