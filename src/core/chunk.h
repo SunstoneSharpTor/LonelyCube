@@ -25,10 +25,9 @@
 
 class Chunk {
 private:
-    unsigned char* m_blocks;
+    std::array<unsigned char*, constants::CHUNK_SIZE> m_blocks;
+    std::array<short, constants::CHUNK_SIZE> m_layerBlockTypes;
     unsigned char* m_skyLight;
-    bool m_singleBlockType;
-    bool m_singleSkyLightVal;
     bool m_skyLightUpToDate;
     unsigned short m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
@@ -68,19 +67,16 @@ private:
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
     }
 
-    void addFaceToMesh(float* vertices, unsigned int* numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices, unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices, unsigned int block, unsigned char neighbouringBlock);
-
     void getTextureCoordinates(float* coords, short textureNum);
 
 public:
     static std::mutex s_checkingNeighbouringRelights;
-    
-    bool inUse;
 
     static const short neighbouringBlocks[6];
 
     inline static unsigned int getBlockNumber(unsigned int* blockCoords) {
-        return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
+        return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE +
+            blockCoords[2] * constants::CHUNK_SIZE;
     }
 
     Chunk(Position position);
@@ -92,17 +88,23 @@ public:
     void unload();
 
     inline unsigned char getBlock(const unsigned int block) const {
-        return m_blocks[block * (!m_singleBlockType)];
+        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        if (m_layerBlockTypes[layerNum] == 256) {
+            return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
+        }
+        return m_layerBlockTypes[layerNum];
     }
 
     inline unsigned char getBlockUnchecked(unsigned int block) {
-        return m_blocks[block];
+        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
     }
 
     void setBlock(unsigned int block, unsigned char blockType);
 
     inline void setBlockUnchecked(unsigned int block, unsigned char blockType) {
-        m_blocks[block] = blockType;
+        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)] = blockType;
     }
 
     inline unsigned char getSkyLight(const unsigned int block) const {
@@ -115,8 +117,6 @@ public:
         m_skyLight[block / 2] &= 0b00001111 << (4 * evenBlockNum);
         m_skyLight[block / 2] |= value << (4 * oddBlockNum);
     }
-
-    void clearBlocksAndLight();
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;
@@ -152,14 +152,6 @@ public:
 
     inline unsigned short getPlayerCount() const {
         return m_playerCount;
-    }
-
-    inline bool isSingleBlockType() {
-        return m_singleBlockType;
-    }
-
-    inline void setSingleBlockType(bool val) {
-        m_singleBlockType = val;
     }
     
     void clearSkyLight();
