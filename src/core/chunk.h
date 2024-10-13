@@ -33,7 +33,6 @@ private:
     unsigned short m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_calculatingSkylight;
-    std::unordered_map<Position, Chunk>* m_worldChunks;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
 
@@ -84,7 +83,7 @@ public:
         return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE + blockCoords[2] * constants::CHUNK_SIZE;
     }
 
-    Chunk(Position position, std::unordered_map<Position, Chunk>* worldChunks);
+    Chunk(Position position);
 
     Chunk();
 
@@ -118,10 +117,6 @@ public:
     }
 
     void clearBlocksAndLight();
-
-    unsigned char getWorldBlock(int* blockCoords);
-
-    unsigned char getWorldSkyLight(int* blockCoords);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;

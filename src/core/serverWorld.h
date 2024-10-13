@@ -199,7 +199,7 @@ bool ServerWorld<integrated>::loadChunk(Position* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        m_chunks[*chunkPosition] = { *chunkPosition, &m_chunks };
+        m_chunks[*chunkPosition] = { *chunkPosition };
         Chunk& chunk = m_chunks.at(*chunkPosition);
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
@@ -235,7 +235,7 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<unsigned char, 9 * cons
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
-    m_chunks[chunkPosition] = { chunkPosition, &m_chunks };
+    m_chunks[chunkPosition] = { chunkPosition };
     Chunk& chunk = m_chunks.at(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
