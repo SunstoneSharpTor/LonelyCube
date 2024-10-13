@@ -2,7 +2,6 @@
     "transparrent": true,
     "collidable": false,
     "castsAmbientOcclusion": false,
-    "castsShadows": false,
     "model": "cross",
     "textureIndices": [8,8,8,8,8,8]
 }

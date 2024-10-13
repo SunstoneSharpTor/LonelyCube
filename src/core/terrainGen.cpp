@@ -220,7 +220,6 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 
 void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 	chunk.setSkyLightToBeOutdated();
-    chunk.clearBlocksAndLight();
 
 	//calculate coordinates of the chunk
     int chunkPosition[3];
@@ -231,8 +230,6 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 		chunkMinCoords[i] = chunkPosition[i] * constants::CHUNK_SIZE;
 		chunkMaxCoords[i] = chunkMinCoords[i] + constants::CHUNK_SIZE;
 	}
-
-	chunk.setSingleBlockType(true);
 
 	const int MAX_STRUCTURE_RADIUS = 3;
 	const int HEIGHT_MAP_SIZE = constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS * 2;
@@ -286,6 +283,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
                             chunk.setSkyLight(blockNum, 16 + std::max(y, -15));
 						}
 						else {
+							chunk.setBlockUnchecked(blockNum, air);
                             chunk.setSkyLight(blockNum, 15);
 						}
 					}
@@ -293,28 +291,32 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						if (y < -1) {
 							if (isBeach) {
 								chunk.setBlockUnchecked(blockNum, sand);
+                            	chunk.setSkyLight(blockNum, 0);
 							}
 							else {
 								chunk.setBlockUnchecked(blockNum, dirt);
+                            	chunk.setSkyLight(blockNum, 0);
 							}
 						}
 						else {
 							if (isBeach) {
 								chunk.setBlockUnchecked(blockNum, sand);
+                            	chunk.setSkyLight(blockNum, 0);
 							}
 							else {
 								chunk.setBlockUnchecked(blockNum, grass);
+                            	chunk.setSkyLight(blockNum, 0);
 							}
 						}
 					}
 					else if (y > (height - 3)) {
 						chunk.setBlockUnchecked(blockNum, stone);
+                        chunk.setSkyLight(blockNum, 0);
 					}
 					else {
 						chunk.setBlockUnchecked(blockNum, stone);
+                        chunk.setSkyLight(blockNum, 0);
 					}
-					chunk.setSingleBlockType(chunk.isSingleBlockType()
-						&& ((blockNum == 0) || (chunk.getBlockUnchecked(blockNum) == lastBlockTypeInChunk)));
 					lastBlockTypeInChunk = chunk.getBlockUnchecked(blockNum);
 					blockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;
 				}
@@ -365,7 +367,6 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 							//if the block is in the chunk
 							if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
 								chunk.setBlockUnchecked(treeBlockNum, 1 + (logHeight >= 0) * (4 + (logHeight >= trunkHeight)));
-								chunk.setSingleBlockType(false);
 								chunk.setSkyLight(treeBlockNum, (15 << (4 * !(treeBlockNum % 2))) | (15 * (logHeight >= trunkHeight)));
 							}
 							treeBlockPos[1]++;
@@ -378,9 +379,8 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						for (unsigned char i = 0; i < 4; i++) {
 							for (unsigned char ii = 0; ii < 2; ii++) {
 								if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
-								treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+									treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 									chunk.setBlockUnchecked(treeBlockNum, 6);
-									chunk.setSingleBlockType(false);
 								}
 								treeBlockPos[1]++;
 							}
@@ -395,10 +395,9 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 							for (treeBlockPos[0] = treeBasePos[0] - 2; treeBlockPos[0] < treeBasePos[0] + 3; treeBlockPos[0]++) {
 								for (unsigned char ii = 0; ii < 2; ii++) {
 									if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
-									treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-										if ((chunk.getBlockUnchecked(treeBlockNum) == 0) || (chunk.getBlockUnchecked(treeBlockNum) == 7)) {
+										treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+										if (chunk.getBlockUnchecked(treeBlockNum) == 0) {
 											chunk.setBlockUnchecked(treeBlockNum, 6);
-											chunk.setSingleBlockType(false);
 										}
 									}
 									treeBlockPos[1]++;
@@ -426,7 +425,6 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 					int blockNum = x % constants::CHUNK_SIZE + (height + 1) % constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + z * constants::CHUNK_SIZE;
 					if (chunk.getBlockUnchecked(blockNum) == 0) {
 						chunk.setBlockUnchecked(blockNum, 7);
-						chunk.setSingleBlockType(false);
 					}
 				}
 			}
