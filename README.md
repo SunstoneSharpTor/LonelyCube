@@ -1,10 +1,10 @@
 # Lonely Cube
 
 Lonely Cube is a Minecraft-like voxel game written in C++. The end
-goal of this project is to create a survival game, inspired mostly
-by Minecraft Beta. The goal is not to copy Minecraft, but to create
-a minimalist game that focuses on creativity, cool terrain generation
-and the lonely sort of feeling that Minecraft Beta has.
+goal of this project is to create a sandbox survival game, inspired
+mostly by Minecraft Beta. The goal is not to copy Minecraft, but to
+create a minimalist game that focuses on creativity, cool terrain
+generation and the lonely sort of feeling that Minecraft Beta has.
 
 ## Aims
 
@@ -28,8 +28,8 @@ The game currently supports building on Linux and Windows using
 CMake and GCC. You will need to have SDL2 development packages
 installed before building. You can find how to do that
 [here](https://wiki.libsdl.org/SDL2/Installation). On Windows, ensure
-that the CMAKE_PREFIX_PATH environment variable points to a version
-of the SDL2-devel-2.x.x-mingw folder.
+that the CMAKE_PREFIX_PATH environment variable points to a folder
+containing a version of the SDL2-devel-2.x.x-mingw folder.
 
 Download the repo, then navigate to the top-level folder in a command
 line/terminal and run the following commands to build the project:
