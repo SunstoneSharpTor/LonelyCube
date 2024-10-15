@@ -32,7 +32,7 @@ uniform float u_skyLightIntensity;
 
 const float fogStart = 0.4f;
 const float fogDensity = 1.85f;
-const float minDarknessAmbientLight = 0.00002;
+const float minDarknessAmbientLight = 0.00002f;
 
 void main() {
     const float maxDarknessAmbientLight = min(0.001f, u_skyLightIntensity);

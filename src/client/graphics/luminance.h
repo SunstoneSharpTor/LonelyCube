@@ -16,6 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef GLES3
+
 #pragma once
 
 #include "core/pch.h"
@@ -51,3 +53,5 @@ public:
 };
 
 }  // namespace client
+
+#endif

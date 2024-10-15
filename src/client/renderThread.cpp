@@ -184,10 +184,12 @@ void RenderThread::go(bool* running) {
 
     FrameBuffer<true> worldFrameBuffer(windowDimensions);
     worldFrameBuffer.unbind();
+    #ifndef GLES3
     Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, bloomDownsampleShader,
         bloomUpsampleShader, bloomBlitShader);
     Luminance luminance(worldFrameBuffer.getTextureColourBuffer(), windowDimensions,
         logLuminanceDownsampleShader, simpleDownsampleShader);
+    #endif
 
     unsigned int skyTexture;
     glGenTextures(1, &skyTexture);
@@ -284,8 +286,10 @@ void RenderThread::go(bool* running) {
             glBindTexture(GL_TEXTURE_2D, skyTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+            #ifndef GLES3
             bloom.resize(windowDimensions);
             luminance.resize(windowDimensions);
+            #endif
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
             windowFlags = SDL_GetWindowFlags(sdl_window);
@@ -408,7 +412,9 @@ void RenderThread::go(bool* running) {
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
             //auto tp1 = std::chrono::high_resolution_clock::now();
+            #ifndef GLES3
             bloom.render(0.005f, 0.005f);
+            #endif
             //auto tp2 = std::chrono::high_resolution_clock::now();
             //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
@@ -423,7 +429,11 @@ void RenderThread::go(bool* running) {
             worldFrameBuffer.unbind();
 
             // Update auto exposure
+            #ifndef GLES3
             float luminanceVal = luminance.calculate();
+            #else
+            float luminanceVal = groundLuminance;
+            #endif
             float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {

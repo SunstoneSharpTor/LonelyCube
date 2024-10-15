@@ -16,6 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef GLES3
+
 #include "client/graphics/luminance.h"
 
 #include "glad/glad.h"
@@ -118,3 +120,5 @@ void Luminance::resize(unsigned int windowSize[2]) {
 }
 
 }  // namespace client
+
+#endif

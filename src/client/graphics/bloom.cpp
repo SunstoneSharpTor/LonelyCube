@@ -16,6 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef GLES3
+
 #include "client/graphics/bloom.h"
 
 #include "glad/glad.h"
@@ -147,3 +149,5 @@ void Bloom::resize(unsigned int windowSize[2]) {
 }
 
 }  // namespace client
+
+#endif
