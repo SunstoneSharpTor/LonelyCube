@@ -63,7 +63,10 @@ void Chunk::unload()
 {
     for (unsigned int layer = 0; layer < constants::CHUNK_SIZE; layer++)
     {
-        delete[] m_blocks[layer];
+        if (m_layerBlockTypes[layer] == 256)
+        {
+            delete[] m_blocks[layer];
+        }
     }
     delete[] m_skyLight;
     m_skyLight = new unsigned char[0];

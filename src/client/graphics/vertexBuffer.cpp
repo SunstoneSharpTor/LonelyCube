@@ -32,9 +32,11 @@ VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
 }
 
 VertexBuffer::~VertexBuffer() {
+    #ifndef GLES3
     if (m_rendererID != 0) {
         glDeleteBuffers(1, &m_rendererID);
     }
+    #endif
 }
 
 void VertexBuffer::bind() const {

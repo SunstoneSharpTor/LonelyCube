@@ -92,17 +92,47 @@ FrameBuffer<zBuffer>::FrameBuffer(unsigned int* frameSize) {
 
 template<bool zBuffer>
 FrameBuffer<zBuffer>::~FrameBuffer() {
+    #ifndef GLES3
     glDeleteFramebuffers(1, &m_rendererID);
+    glDeleteTextures(1, &m_textureColourbuffer);
+    if (zBuffer)
+        glDeleteTextures(1, &m_textureDepthBuffer);
+    #endif
 }
 
 template<bool zBuffer>
 void FrameBuffer<zBuffer>::resize(unsigned int* frameSize) {
+    #ifndef GLES3
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     if(zBuffer) {
         glBindTexture(GL_TEXTURE_2D, m_textureDepthBuffer);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, frameSize[0], frameSize[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
     }
+    #else
+    // Delete the frame buffer and textures
+    glDeleteFramebuffers(1, &m_rendererID);
+    glDeleteTextures(1, &m_textureColourbuffer);
+    if (zBuffer)
+        glDeleteTextures(1, &m_textureDepthBuffer);
+    // Recreate the frame buffer and textures
+    glGenFramebuffers(1, &m_rendererID);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_rendererID);
+    glGenTextures(1, &m_textureColourbuffer);
+    glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_textureColourbuffer, 0);
+    if (zBuffer) {
+        glGenTextures(1, &m_textureDepthBuffer);
+        glBindTexture(GL_TEXTURE_2D, m_textureDepthBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, frameSize[0], frameSize[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_textureDepthBuffer, 0);
+    }
+    #endif
 }
 
 template<bool zBuffer>

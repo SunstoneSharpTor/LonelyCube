@@ -52,7 +52,9 @@ Texture::Texture(const std::string& path) : m_rendererID(0), m_filePath(path), m
 }
 
 Texture::~Texture() {
+    #ifndef GLES3
     glDeleteTextures(1, &m_rendererID);
+    #endif
 }
 
 void Texture::bind(unsigned int slot /* = 0 */ ) const {
