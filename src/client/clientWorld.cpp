@@ -193,7 +193,9 @@ void ClientWorld::doRenderThreadJobs() {
         }
     }
     //process the mouse input occasionally
-    if (++m_mouseCalls > 500) {
+    // TODO: Make the number of mouse calls to wait depend on the number of meshed chunks and the
+    //       frame rate
+    if (++m_mouseCalls > 20) {
         processMouseInput();
         m_mouseCalls = 0;
     }
