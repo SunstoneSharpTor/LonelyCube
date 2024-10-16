@@ -124,6 +124,7 @@ void RenderThread::go(bool* running) {
     screenShader.bind();
     screenShader.setUniform1i("screenTexture", 0);
     screenShader.setUniform1f("exposure", 1.0f);
+    #ifndef GLES3
     ComputeShader skyShader("res/shaders/sky.txt");
     ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
     ComputeShader sunShader("res/shaders/sun.txt");
@@ -140,6 +141,7 @@ void RenderThread::go(bool* running) {
     ComputeShader simpleDownsampleShader("res/shaders/simpleDownsample.txt");
     simpleDownsampleShader.bind();
     simpleDownsampleShader.setUniform1i("srcTexture", 0);
+    #endif
 
     Texture allBlockTextures("res/resourcePack/blocks/blockTextures.png");
 
@@ -189,7 +191,6 @@ void RenderThread::go(bool* running) {
         bloomUpsampleShader, bloomBlitShader);
     Luminance luminance(worldFrameBuffer.getTextureColourBuffer(), windowDimensions,
         logLuminanceDownsampleShader, simpleDownsampleShader);
-    #endif
 
     unsigned int skyTexture;
     glGenTextures(1, &skyTexture);
@@ -200,6 +201,9 @@ void RenderThread::go(bool* running) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
+    #else
+    FrameBuffer<false> skyFrameBuffer(windowDimensions);
+    #endif
 
     float cameraPos[3];
     cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
@@ -283,12 +287,14 @@ void RenderThread::go(bool* running) {
             windowDimensions[0] = windowSize[0];
             windowDimensions[1] = windowSize[1];
             worldFrameBuffer.resize(windowDimensions);
-            glBindTexture(GL_TEXTURE_2D, skyTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
             #ifndef GLES3
+            glBindTexture(GL_TEXTURE_2D, skyTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
             bloom.resize(windowDimensions);
             luminance.resize(windowDimensions);
+            #else
+            skyFrameBuffer.resize(windowDimensions);
             #endif
             crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
             crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
@@ -360,6 +366,7 @@ void RenderThread::go(bool* running) {
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
 
             // Render sky
+            #ifndef GLES3
             glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyShader.bind();
             glm::vec3 sunDirection(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
@@ -375,10 +382,18 @@ void RenderThread::go(bool* running) {
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            #else
+            glm::vec3 skyColour(0.3f, 0.4f, 0.95f);
+            skyColour *= groundLuminance;
+            skyFrameBuffer.bind();
+            glClearColor(skyColour.r, skyColour.g, skyColour.b, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            #endif
 
             // Render the world to a texture
             worldFrameBuffer.bind();
             mainRenderer.clear();
+            #ifndef GLES3
             // Draw the sky
             glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyBlitShader.bind();
@@ -398,12 +413,17 @@ void RenderThread::go(bool* running) {
                 (unsigned int)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            #endif
 
             // Render the world geometry
             glEnable(GL_DEPTH_TEST);
             allBlockTextures.bind();
             glActiveTexture(GL_TEXTURE1);
+            #ifndef GLES3
             glBindTexture(GL_TEXTURE_2D, skyTexture);
+            #else
+            glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
+            #endif
             //auto tp1 = std::chrono::high_resolution_clock::now();
             m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, projection,
                 m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] /
@@ -432,7 +452,7 @@ void RenderThread::go(bool* running) {
             #ifndef GLES3
             float luminanceVal = luminance.calculate();
             #else
-            float luminanceVal = groundLuminance;
+            float luminanceVal = groundLuminance / 10;
             #endif
             float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
             exposureTimeByDTs += actualDT;

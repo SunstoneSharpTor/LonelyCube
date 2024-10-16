@@ -33,9 +33,11 @@ IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count) : m_count
 }
 
 IndexBuffer::~IndexBuffer() {
+    #ifndef GLES3
     if (m_rendererID != 0) {
         glDeleteBuffers(1, &m_rendererID);
     }
+    #endif
 }
 
 void IndexBuffer::bind() const {

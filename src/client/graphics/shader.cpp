@@ -31,7 +31,9 @@ Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFil
 }
 
 Shader::~Shader() {
+    #ifndef GLES3
     glDeleteProgram(m_rendererID);
+    #endif
 }
 
 shaderProgramSources Shader::parseShaders(const std::string& vertexFilePath, const std::string& fragmentFilePath) {
