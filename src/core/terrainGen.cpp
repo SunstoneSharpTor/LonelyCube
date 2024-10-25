@@ -251,6 +251,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 
 	int heightMap[HEIGHT_MAP_SIZE * HEIGHT_MAP_SIZE];
 
+	chunk.clearBlocksAndLight();
 	int blockPos[3];
 	unsigned int lastBlockTypeInChunk = 0;
 	for (int z = -MAX_STRUCTURE_RADIUS; z < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; z++) {
@@ -283,7 +284,6 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
                             chunk.setSkyLight(blockNum, 16 + std::max(y, -15));
 						}
 						else {
-							chunk.setBlockUnchecked(blockNum, air);
                             chunk.setSkyLight(blockNum, 15);
 						}
 					}
@@ -291,31 +291,25 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						if (y < -1) {
 							if (isBeach) {
 								chunk.setBlockUnchecked(blockNum, sand);
-                            	chunk.setSkyLight(blockNum, 0);
 							}
 							else {
 								chunk.setBlockUnchecked(blockNum, dirt);
-                            	chunk.setSkyLight(blockNum, 0);
 							}
 						}
 						else {
 							if (isBeach) {
 								chunk.setBlockUnchecked(blockNum, sand);
-                            	chunk.setSkyLight(blockNum, 0);
 							}
 							else {
 								chunk.setBlockUnchecked(blockNum, grass);
-                            	chunk.setSkyLight(blockNum, 0);
 							}
 						}
 					}
 					else if (y > (height - 3)) {
 						chunk.setBlockUnchecked(blockNum, stone);
-                        chunk.setSkyLight(blockNum, 0);
 					}
 					else {
 						chunk.setBlockUnchecked(blockNum, stone);
-                        chunk.setSkyLight(blockNum, 0);
 					}
 					lastBlockTypeInChunk = chunk.getBlockUnchecked(blockNum);
 					blockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;

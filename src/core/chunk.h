@@ -156,6 +156,8 @@ public:
     
     void clearSkyLight();
 
+    void clearBlocksAndLight();
+
     void uncompressBlocks();
 
     void compressBlocks();
