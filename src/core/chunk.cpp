@@ -79,6 +79,18 @@ void Chunk::clearSkyLight() {
     }
 }
 
+void Chunk::clearBlocksAndLight() {
+    //reset all sky light values in the chunk to 0
+    for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
+        m_skyLight[blockNum] = 0;
+    }
+    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++) {
+        for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE; blockNum++) {
+            m_blocks[layerNum][blockNum] = 0;
+        }
+    }
+}
+
 void Chunk::setBlock(unsigned int block, unsigned char blockType)
 {
     unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
