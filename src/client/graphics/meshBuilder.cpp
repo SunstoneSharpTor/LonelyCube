@@ -223,8 +223,18 @@ void MeshBuilder::buildMesh()
     int blockPos[3];
     int neighbouringBlockPos[3];
     int blockNum = 0;
+    int layerNum = 0;
     for (blockPos[1] = chunkPosition[1] * constants::CHUNK_SIZE; blockPos[1] < (chunkPosition[1] + 1) * constants::CHUNK_SIZE; blockPos[1]++)
     {
+        unsigned short layerBlockType = m_chunk.getLayerBlockType(layerNum);
+        if (layerBlockType < 256 && layerNum > 0 && layerNum < constants::CHUNK_SIZE - 1 &&
+            m_chunk.getLayerBlockType(layerNum - 1) == layerBlockType &&
+            m_chunk.getLayerBlockType(layerNum + 1) == layerBlockType)
+        {
+            blockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;
+            layerNum++;
+            continue;
+        }
         for (blockPos[2] = chunkPosition[2] * constants::CHUNK_SIZE; blockPos[2] < (chunkPosition[2] + 1) * constants::CHUNK_SIZE; blockPos[2]++)
         {
             for (blockPos[0] = chunkPosition[0] * constants::CHUNK_SIZE; blockPos[0] < (chunkPosition[0] + 1) * constants::CHUNK_SIZE; blockPos[0]++)
@@ -274,6 +284,7 @@ void MeshBuilder::buildMesh()
                 blockNum++;
             }
         }
+        layerNum++;
     }
 }
 

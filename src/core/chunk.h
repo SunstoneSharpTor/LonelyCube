@@ -153,6 +153,10 @@ public:
     inline unsigned short getPlayerCount() const {
         return m_playerCount;
     }
+
+    inline unsigned short getLayerBlockType(unsigned int layerNum) {
+        return m_layerBlockTypes[layerNum];
+    }
     
     void clearSkyLight();
 

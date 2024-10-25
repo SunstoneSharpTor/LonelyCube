@@ -326,8 +326,8 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 				else {
 					blockNumberInWorld = (worldX + constants::WORLD_BORDER_DISTANCE) * (worldX + constants::WORLD_BORDER_DISTANCE) + (worldZ + constants::WORLD_BORDER_DISTANCE);
 				}
-				int random = PCG_Hash32(blockNumberInWorld + seed) % 40u;
-				if (random == 0) {
+				int random = PCG_Hash32(blockNumberInWorld + seed);
+				if (random % 40u == 0) {
 					bool nearbyTree = false;
 					for (int checkZ = worldZ - 3; checkZ <= worldZ; checkZ++) {
 						for (int checkX = worldX - 3; checkX <= worldX + 3; checkX++) {
@@ -337,8 +337,8 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 							else {
 								blockNumberInWorld = (checkX + constants::WORLD_BORDER_DISTANCE) * (checkX + constants::WORLD_BORDER_DISTANCE) + (checkZ + constants::WORLD_BORDER_DISTANCE);
 							}
-							int random = PCG_Hash32(blockNumberInWorld + seed) % 40u;
-							if ((random == 0) && (!((checkX == worldX) && (checkZ == worldZ)))) {
+							int newRandom = PCG_Hash32(blockNumberInWorld + seed) % 40u;
+							if ((newRandom == 0) && (!((checkX == worldX) && (checkZ == worldZ)))) {
 								nearbyTree = true;
 								checkZ = worldZ + 1;
 								break;
@@ -356,7 +356,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						treeBasePos[2] = treeBlockPos[2] = worldZ;
 						int treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 						//build the trunk
-						int trunkHeight = 3 + PCG_Hash32(blockNumberInWorld + seed) % 3;
+						int trunkHeight = 3 + random % 3;
 						for (int logHeight = -1; logHeight < trunkHeight + 2; logHeight++) {
 							//if the block is in the chunk
 							if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
@@ -367,6 +367,32 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 							treeBlockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;
 							treeBlockNum = treeBlockNum % (constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE);
 						}
+						// // Build the leaves
+						// int columnRandoms[4] = {
+						// 	PCG_Hash32(blockNumberInWorld + seed + 1),
+						// 	PCG_Hash32(blockNumberInWorld + seed + 2),
+						// 	PCG_Hash32(blockNumberInWorld + seed + 3),
+						// 	PCG_Hash32(blockNumberInWorld + seed + 4)
+						// };
+						// int randomOffset = 0;
+						// treeBlockPos[1] = treeBasePos[1] + 2 + (random % 38 > 14);
+						// for (int logHeight = 2; logHeight < trunkHeight + random % 3; logHeight++) {
+						// 	treeBlockPos[0] = treeBasePos[0] - 1;
+						// 	treeBlockPos[2] = treeBasePos[2];
+						// 	for (unsigned char i = 0; i < 4; i++) {
+						// 		if (PCG_Hash32(blockNumberInWorld + seed + randomOffset) % 10 > 0) {
+						// 			if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
+						// 				treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
+						// 				chunk.setBlockUnchecked(treeBlockNum, 6);
+						// 			}
+						// 		}
+						// 		treeBlockPos[0] += 1 + (i / 2) * -2;
+						// 		treeBlockPos[2] += 1 + ((i + 1) / 2) * -2;
+						// 		randomOffset++;
+						// 	}
+						// 	treeBlockPos[1]++;
+						// }
+
 						//build the upper leaves
 						treeBlockPos[0] -= 1;
 						treeBlockPos[1] -= 2;
