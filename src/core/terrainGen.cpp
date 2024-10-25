@@ -451,5 +451,5 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 		}
 	}
 
-    chunk.compressBlocks();
+    chunk.compressBlocksAndLight();
 }

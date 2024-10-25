@@ -217,9 +217,6 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     m_newPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
     m_newPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
     m_newPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
-    // m_newPlayerChunkPosition[0] = -1 * (playerX < 0) + playerX / constants::CHUNK_SIZE;
-    // m_newPlayerChunkPosition[1] = -1 * (playerY < 0) + playerY / constants::CHUNK_SIZE;
-    // m_newPlayerChunkPosition[2] = -1 * (playerZ < 0) + playerZ / constants::CHUNK_SIZE;
 
     unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
         && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
@@ -341,9 +338,6 @@ void ClientWorld::unmeshChunks() {
 
 bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     for (unsigned char i = 0; i < 27; i++) {
-        // std::cout << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).x << ", "
-        //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).y << ", "
-        //            << (chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]).z << "\n";
         if (!(m_integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }

@@ -35,8 +35,9 @@ Chunk::Chunk(Position position) {
     {
         m_blocks[layerNum] = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_layerBlockTypes[layerNum] = 256;
+        m_skyLight[layerNum] = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+        m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
     }
-    m_skyLight = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
 
     m_position[0] = position.x;
     m_position[1] = position.y;
@@ -61,32 +62,57 @@ void Chunk::getChunkPosition(int* coordinates) const {
 
 void Chunk::unload()
 {
-    for (unsigned int layer = 0; layer < constants::CHUNK_SIZE; layer++)
+    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
     {
-        if (m_layerBlockTypes[layer] == 256)
+        if (m_layerBlockTypes[layerNum] == 256)
         {
-            delete[] m_blocks[layer];
+            delete[] m_blocks[layerNum];
+        }
+        if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
+        {
+            delete[] m_skyLight[layerNum];
         }
     }
-    delete[] m_skyLight;
-    m_skyLight = new unsigned char[0];
 }
 
-void Chunk::clearSkyLight() {
+void Chunk::clearSkyLight()
+{
     //reset all sky light values in the chunk to 0
-    for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
-        m_skyLight[blockNum] = 0;
+    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
+    {
+        if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
+        {
+            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
+            m_skyLight[layerNum] = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+        }
+        for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++)
+        {
+            m_skyLight[layerNum][blockNum] = 0;
+        }
     }
 }
 
 void Chunk::clearBlocksAndLight() {
     //reset all sky light values in the chunk to 0
-    for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++) {
-        m_skyLight[blockNum] = 0;
-    }
-    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++) {
-        for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE; blockNum++) {
+    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
+    {
+        if (m_layerBlockTypes[layerNum] != 256)
+        {
+            m_layerBlockTypes[layerNum] = 256;
+            m_blocks[layerNum] = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        }
+        if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
+        {
+            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
+            m_skyLight[layerNum] = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+        }
+        for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE; blockNum++)
+        {
             m_blocks[layerNum][blockNum] = 0;
+        }
+        for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++)
+        {
+            m_skyLight[layerNum][blockNum] = 0;
         }
     }
 }
@@ -114,30 +140,48 @@ void Chunk::setBlock(unsigned int block, unsigned char blockType)
     }
 }
 
-void Chunk::uncompressBlocks() {
-    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
+void Chunk::setSkyLight(unsigned int block, unsigned char value)
+{
+    unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
     {
-        if (m_layerBlockTypes[layerNum] != 256)
+        bool oddBlockNum = block % 2;
+        bool evenBlockNum = !oddBlockNum;
+        unsigned int index = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE) / 2;
+        m_skyLight[layerNum][index] &= 0b00001111 << (4 * evenBlockNum);
+        m_skyLight[layerNum][index] |= value << (4 * oddBlockNum);
+    }
+    else
+    {
+        if (value != m_layerSkyLightValues[layerNum])
         {
-            m_blocks[layerNum] = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-            for (unsigned int blockNum = 0; blockNum < (constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE); blockNum++)
+            m_skyLight[layerNum] =
+                new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+            unsigned char doubledUpValue = (m_layerSkyLightValues[layerNum] << 4) +
+                m_layerSkyLightValues[layerNum];
+            for (unsigned int blockNum = 0; blockNum < ((constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE + 1) / 2); blockNum++)
             {
-                m_blocks[layerNum][blockNum] = m_layerBlockTypes[layerNum];
+                m_skyLight[layerNum][blockNum] = doubledUpValue;
             }
-            m_layerBlockTypes[layerNum] = 256;
+            bool oddBlockNum = block % 2;
+            bool evenBlockNum = !oddBlockNum;
+            unsigned int index = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE) / 2;
+            m_skyLight[layerNum][index] &= 0b00001111 << (4 * evenBlockNum);
+            m_skyLight[layerNum][index] |= value << (4 * oddBlockNum);
+            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
         }
     }
 }
 
-void Chunk::compressBlocks() {
+void Chunk::compressBlocksAndLight() {
     for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
     {
         if (m_layerBlockTypes[layerNum] == 256)
         {
             bool simpleLayer = true;
-            for (unsigned int blockNum = 1; blockNum < (constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE) && simpleLayer; blockNum++)
+            for (unsigned int blockNum = 1; blockNum < constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE && simpleLayer; blockNum++)
             {
                 simpleLayer &= m_blocks[layerNum][blockNum] == m_blocks[layerNum][0];
             }
@@ -146,6 +190,48 @@ void Chunk::compressBlocks() {
                 m_layerBlockTypes[layerNum] = m_blocks[layerNum][0];
                 delete[] m_blocks[layerNum];
             }
+        }
+        if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
+        {
+            bool simpleLayer = (m_skyLight[layerNum][0] & 0b1111) == m_skyLight[layerNum][0] >> 4;
+            for (unsigned int blockNum = 1; blockNum < (constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE + 1) / 2 && simpleLayer; blockNum++)
+            {
+                simpleLayer &= m_skyLight[layerNum][blockNum] == m_skyLight[layerNum][0];
+            }
+            if (simpleLayer)
+            {
+                m_layerSkyLightValues[layerNum] = m_skyLight[layerNum][0] >> 4;
+                delete[] m_skyLight[layerNum];
+            }
+        }
+    }
+}
+
+void Chunk::uncompressBlocksAndLight() {
+    for (unsigned int layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
+    {
+        if (m_layerBlockTypes[layerNum] != 256)
+        {
+            m_blocks[layerNum] = new unsigned char[constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+            for (unsigned int blockNum = 0; blockNum < constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE; blockNum++)
+            {
+                m_blocks[layerNum][blockNum] = m_layerBlockTypes[layerNum];
+            }
+            m_layerBlockTypes[layerNum] = 256;
+        }
+        if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
+        {
+            m_skyLight[layerNum] = new unsigned char[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+            unsigned char doubledUpValue = (m_layerSkyLightValues[layerNum] << 4) +
+                m_layerSkyLightValues[layerNum];
+            for (unsigned int blockNum = 0; blockNum < (constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE + 1) / 2; blockNum++)
+            {
+                m_skyLight[layerNum][blockNum] = doubledUpValue;
+            }
+            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
         }
     }
 }
