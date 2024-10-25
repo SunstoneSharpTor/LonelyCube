@@ -27,7 +27,8 @@ class Chunk {
 private:
     std::array<unsigned char*, constants::CHUNK_SIZE> m_blocks;
     std::array<short, constants::CHUNK_SIZE> m_layerBlockTypes;
-    unsigned char* m_skyLight;
+    std::array<unsigned char*, constants::CHUNK_SIZE> m_skyLight;
+    std::array<unsigned char, constants::CHUNK_SIZE> m_layerSkyLightValues;
     bool m_skyLightUpToDate;
     unsigned short m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
@@ -108,15 +109,15 @@ public:
     }
 
     inline unsigned char getSkyLight(const unsigned int block) const {
-        return (m_skyLight[block / 2] >> (4 * (block % 2))) & 0b1111;
+        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1) {
+            return (m_skyLight[layerNum][block % (constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE) / 2] >> (4 * (block % 2))) & 0b1111;
+        }
+        return m_layerSkyLightValues[layerNum];
     }
     
-    inline void setSkyLight(unsigned int block, unsigned char value) {
-        bool oddBlockNum = block % 2;
-        bool evenBlockNum = !oddBlockNum;
-        m_skyLight[block / 2] &= 0b00001111 << (4 * evenBlockNum);
-        m_skyLight[block / 2] |= value << (4 * oddBlockNum);
-    }
+    void setSkyLight(unsigned int block, unsigned char value);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;
@@ -162,7 +163,7 @@ public:
 
     void clearBlocksAndLight();
 
-    void uncompressBlocks();
+    void compressBlocksAndLight();
 
-    void compressBlocks();
+    void uncompressBlocksAndLight();
 };

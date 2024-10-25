@@ -83,8 +83,7 @@ public:
     void setBlock(const Position& position, unsigned char blockType);
     unsigned char getSkyLight(const Position& position) const;
     inline Chunk& getChunk(const Position& chunkPosition) {
-        Chunk& chunk = m_chunks.at(chunkPosition);
-        return chunk;
+        return m_chunks.at(chunkPosition);
     }
     inline bool chunkLoaded(const Position& chunkPosition) {
         return m_chunks.contains(chunkPosition);
