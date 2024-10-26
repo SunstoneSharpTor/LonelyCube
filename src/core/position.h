@@ -42,6 +42,18 @@ struct Position {
     inline bool operator==(const Position& other) const {
         return (x == other.x) && (y == other.y) && (z == other.z);
     }
+
+    inline void operator+=(const Position& other) {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+    }
+
+    inline void operator-=(const Position& other) {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+    }
 };
 
 namespace std {

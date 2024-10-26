@@ -86,4 +86,4 @@ if (NOT MINGW)
     add_custom_command(TARGET client POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E rm
                 ${FullOutputDir}/res/SDL2.dll)
-endif (MINGW)
+endif (NOT MINGW)
