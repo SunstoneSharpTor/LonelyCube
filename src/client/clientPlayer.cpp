@@ -265,6 +265,8 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             m_blockHolding = 7;
         } if (m_keyboardState[SDL_SCANCODE_8]) {
             m_blockHolding = 8;
+        } if (m_keyboardState[SDL_SCANCODE_9]) {
+            m_blockHolding = 9;
         } if (m_keyboardState[SDL_SCANCODE_C]) {
             zoom = true;
         }
