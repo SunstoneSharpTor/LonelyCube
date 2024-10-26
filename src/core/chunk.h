@@ -165,5 +165,7 @@ public:
 
     void compressBlocksAndLight();
 
+    void compressSkyLight();
+
     void uncompressBlocksAndLight();
 };

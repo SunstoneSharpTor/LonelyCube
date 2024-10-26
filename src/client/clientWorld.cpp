@@ -514,6 +514,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                         Lighting::propagateSkyLight(chunkPosition, m_integratedServer.
                             getWorldChunks(), neighbouringChunksToRelight, chunksToRemesh,
                             m_integratedServer.getResourcePack());
+                        chunk.setSkyLightToBeUpToDate();
                         chunk.setSkylightBeingRelit(false);
                     }
                     addChunkMesh(chunkPosition, threadNum);
