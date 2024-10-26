@@ -27,10 +27,10 @@
 
 class ServerPlayer {
 private:
-    unsigned short m_renderDistance;
-    unsigned short m_renderDiameter;
+    uint16_t m_renderDistance;
+    uint16_t m_renderDiameter;
     float m_minUnloadedChunkDistance;
-    unsigned int m_numChunks;  // The max number of chunks in the player's render distance
+    uint32_t m_numChunks;  // The max number of chunks in the player's render distance
     int m_blockPosition[3];
     float m_subBlockPosition[3];
     std::unique_ptr<Position[]> m_unloadedChunks;
@@ -39,7 +39,7 @@ private:
     int m_nextUnloadedChunk;
     int m_playerID;
     ENetPeer* m_peer;
-    unsigned int m_lastPacketTick;
+    uint32_t m_lastPacketTick;
     std::unordered_set<Position> m_loadedChunks;
     std::unordered_set<Position>::iterator m_processedChunk;
 
@@ -47,8 +47,8 @@ private:
     void initNumChunks();
 public:
     ServerPlayer() {};
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer, unsigned int gameTick);
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
+    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick);
+    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance);
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
@@ -72,15 +72,15 @@ public:
         return m_loadedChunks.contains(chunkPosition);
     }
 
-    inline void packetReceived(unsigned int gameTick) {
+    inline void packetReceived(uint32_t gameTick) {
         m_lastPacketTick = gameTick;
     }
 
-    inline unsigned int getLastPacketTick() const {
+    inline uint32_t getLastPacketTick() const {
         return m_lastPacketTick;
     }
 
-    inline unsigned short getRenderDistance() const {
+    inline uint16_t getRenderDistance() const {
         return m_renderDistance;
     }
     inline void getBlockPosition(int* blockPosition) {

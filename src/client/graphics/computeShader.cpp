@@ -50,8 +50,8 @@ std::string ComputeShader::parseShader(const std::string& filePath) {
     return source.str();
 }
 
-unsigned int ComputeShader::compileShader(const std::string& source) {
-    unsigned int id = glCreateShader(GL_COMPUTE_SHADER);
+uint32_t ComputeShader::compileShader(const std::string& source) {
+    uint32_t id = glCreateShader(GL_COMPUTE_SHADER);
     const char* src = source.c_str();
     glShaderSource(id, 1, &src, nullptr);
     glCompileShader(id);
@@ -71,9 +71,9 @@ unsigned int ComputeShader::compileShader(const std::string& source) {
     return id;
 }
 
-unsigned int ComputeShader::createShader(const std::string& shader) {
-    unsigned int program = glCreateProgram();
-    unsigned int cs = compileShader(shader);
+uint32_t ComputeShader::createShader(const std::string& shader) {
+    uint32_t program = glCreateProgram();
+    uint32_t cs = compileShader(shader);
 
     glAttachShader(program, cs);
     glLinkProgram(program);

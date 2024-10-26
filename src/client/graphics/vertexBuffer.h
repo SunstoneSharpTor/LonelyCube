@@ -22,10 +22,10 @@ namespace client {
 
 class VertexBuffer {
 private:
-	unsigned int m_rendererID;
+	uint32_t m_rendererID;
 public:
 	VertexBuffer();
-	VertexBuffer(const void* data, unsigned int size);
+	VertexBuffer(const void* data, uint32_t size);
 	~VertexBuffer();
 
 	void bind() const;

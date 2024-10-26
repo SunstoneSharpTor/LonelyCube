@@ -32,38 +32,38 @@ private:
     Chunk& m_chunk;
     ServerWorld<true>& m_serverWorld;
     float* m_vertices;
-    unsigned int* m_numVertices;
-    unsigned int* m_indices;
-    unsigned int* m_numIndices;
+    uint32_t* m_numVertices;
+    uint32_t* m_indices;
+    uint32_t* m_numIndices;
     float* m_waterVertices;
-    unsigned int* m_numWaterVertices;
-    unsigned int* m_waterIndices;
-    unsigned int* m_numWaterIndices;
+    uint32_t* m_numWaterVertices;
+    uint32_t* m_waterIndices;
+    uint32_t* m_numWaterIndices;
     int m_chunkPosition[3];
     int m_chunkWorldCoords[3];
 
-    static const short s_neighbouringBlocksX[7];
-    static const short s_neighbouringBlocksY[7];
-    static const short s_neighbouringBlocksZ[7];
+    static const int16_t s_neighbouringBlocksX[7];
+    static const int16_t s_neighbouringBlocksY[7];
+    static const int16_t s_neighbouringBlocksZ[7];
     
-    void getTextureCoordinates(float* coords, float* textureBox, const short textureNum);
+    void getTextureCoordinates(float* coords, float* textureBox, const int16_t textureNum);
 
-    float getAmbientOcclusion(int* blockCoords, float* pointCoords, char direction);
+    float getAmbientOcclusion(int* blockCoords, float* pointCoords, int8_t direction);
 
-    float getSmoothSkyLight(int* blockCoords, float* pointCoords, char direction);
+    float getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_t direction);
 
-    void addFaceToMesh(unsigned int block, unsigned char blockType, unsigned char faceNum);
+    void addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceNum);
 
-    inline void findBlockCoordsInChunk(int* blockPos, unsigned int block) {
+    inline void findBlockCoordsInChunk(int* blockPos, uint32_t block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
     }
 
 public:
-    MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, unsigned int*
-        numVertices, unsigned int* indices, unsigned int* numIndices, float* waterVertices,
-        unsigned int* numWaterVertices, unsigned int* waterIndices, unsigned int* numWaterIndices);
+    MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t*
+        numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
+        uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices);
 
     void buildMesh();
 };

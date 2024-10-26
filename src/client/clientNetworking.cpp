@@ -25,7 +25,7 @@
 
 namespace client {
 
-bool ClientNetworking::establishConnection(std::string& serverIP, unsigned short renderDistance) {
+bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t renderDistance) {
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
     }
@@ -69,7 +69,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     switch (head.getPacketType()) {
     case PacketType::ClientConnection:
     {
-        Packet<unsigned short, 1> payload;
+        Packet<uint16_t, 1> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         mainWorld.setClientID(payload[0]);
         std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
@@ -77,7 +77,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     break;
     case PacketType::ChunkSent:
     {
-        Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
             constants::CHUNK_SIZE> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         mainWorld.loadChunkFromPacket(payload);

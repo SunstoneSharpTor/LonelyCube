@@ -57,7 +57,7 @@ Texture::~Texture() {
     #endif
 }
 
-void Texture::bind(unsigned int slot /* = 0 */ ) const {
+void Texture::bind(uint32_t slot /* = 0 */ ) const {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, m_rendererID);
 }

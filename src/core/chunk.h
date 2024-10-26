@@ -25,30 +25,30 @@
 
 class Chunk {
 private:
-    std::array<unsigned char*, constants::CHUNK_SIZE> m_blocks;
-    std::array<short, constants::CHUNK_SIZE> m_layerBlockTypes;
-    std::array<unsigned char*, constants::CHUNK_SIZE> m_skyLight;
-    std::array<unsigned char, constants::CHUNK_SIZE> m_layerSkyLightValues;
+    std::array<uint8_t*, constants::CHUNK_SIZE> m_blocks;
+    std::array<int16_t, constants::CHUNK_SIZE> m_layerBlockTypes;
+    std::array<uint8_t*, constants::CHUNK_SIZE> m_skyLight;
+    std::array<uint8_t, constants::CHUNK_SIZE> m_layerSkyLightValues;
     bool m_skyLightUpToDate;
-    unsigned short m_playerCount; // The number of players that are rendering this chunk
+    uint16_t m_playerCount; // The number of players that are rendering this chunk
     int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_calculatingSkylight;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
 
-    static const short m_neighbouringBlocksX[6];
-    static const short m_neighbouringBlocksY[6];
-    static const short m_neighbouringBlocksZ[6];
+    static const int16_t m_neighbouringBlocksX[6];
+    static const int16_t m_neighbouringBlocksY[6];
+    static const int16_t m_neighbouringBlocksZ[6];
     static const float m_cubeTextureCoordinates[48];
     static const float m_xTextureCoordinates[32];
-    static const short m_blockIdToTextureNum[48];
+    static const int16_t m_blockIdToTextureNum[48];
     static const int m_neighbouringChunkBlockOffsets[6];
-    static const short m_adjacentBlocksToFaceOffests[48];
-    static const short m_adjacentBlocksToFaceOffestsX[48];
-    static const short m_adjacentBlocksToFaceOffestsY[48];
-    static const short m_adjacentBlocksToFaceOffestsZ[48];
+    static const int16_t m_adjacentBlocksToFaceOffests[48];
+    static const int16_t m_adjacentBlocksToFaceOffestsX[48];
+    static const int16_t m_adjacentBlocksToFaceOffestsY[48];
+    static const int16_t m_adjacentBlocksToFaceOffestsZ[48];
 
-    inline void findBlockCoordsInWorld(int* blockPos, unsigned int block) {
+    inline void findBlockCoordsInWorld(int* blockPos, uint32_t block) {
         int chunkCoords[3];
         getChunkPosition(chunkCoords);
         blockPos[0] = block % constants::CHUNK_SIZE + chunkCoords[0] * constants::CHUNK_SIZE;
@@ -56,26 +56,26 @@ private:
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
     }
 
-    inline static void findBlockCoordsInChunk(float* blockPos, unsigned int block) {
+    inline static void findBlockCoordsInChunk(float* blockPos, uint32_t block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
     }
 
-    inline static void findBlockCoordsInChunk(unsigned short* blockPos, unsigned int block) {
+    inline static void findBlockCoordsInChunk(uint16_t* blockPos, uint32_t block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
     }
 
-    void getTextureCoordinates(float* coords, short textureNum);
+    void getTextureCoordinates(float* coords, int16_t textureNum);
 
 public:
     static std::mutex s_checkingNeighbouringRelights;
 
-    static const short neighbouringBlocks[6];
+    static const int16_t neighbouringBlocks[6];
 
-    inline static unsigned int getBlockNumber(unsigned int* blockCoords) {
+    inline static uint32_t getBlockNumber(uint32_t* blockCoords) {
         return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE +
             blockCoords[2] * constants::CHUNK_SIZE;
     }
@@ -88,28 +88,28 @@ public:
 
     void unload();
 
-    inline unsigned char getBlock(const unsigned int block) const {
-        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    inline uint8_t getBlock(const uint32_t block) const {
+        uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         if (m_layerBlockTypes[layerNum] == 256) {
             return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
         }
         return m_layerBlockTypes[layerNum];
     }
 
-    inline unsigned char getBlockUnchecked(unsigned int block) {
-        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    inline uint8_t getBlockUnchecked(uint32_t block) {
+        uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
     }
 
-    void setBlock(unsigned int block, unsigned char blockType);
+    void setBlock(uint32_t block, uint8_t blockType);
 
-    inline void setBlockUnchecked(unsigned int block, unsigned char blockType) {
-        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    inline void setBlockUnchecked(uint32_t block, uint8_t blockType) {
+        uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)] = blockType;
     }
 
-    inline unsigned char getSkyLight(const unsigned int block) const {
-        unsigned int layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    inline uint8_t getSkyLight(const uint32_t block) const {
+        uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1) {
             return (m_skyLight[layerNum][block % (constants::CHUNK_SIZE *
                 constants::CHUNK_SIZE) / 2] >> (4 * (block % 2))) & 0b1111;
@@ -117,7 +117,7 @@ public:
         return m_layerSkyLightValues[layerNum];
     }
     
-    void setSkyLight(unsigned int block, unsigned char value);
+    void setSkyLight(uint32_t block, uint8_t value);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;
@@ -151,11 +151,11 @@ public:
         return m_playerCount == 0;
     }
 
-    inline unsigned short getPlayerCount() const {
+    inline uint16_t getPlayerCount() const {
         return m_playerCount;
     }
 
-    inline unsigned short getLayerBlockType(unsigned int layerNum) {
+    inline uint16_t getLayerBlockType(uint32_t layerNum) {
         return m_layerBlockTypes[layerNum];
     }
     

@@ -36,7 +36,7 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
     false, false, false, false, false, false, false, false, false, false, false };
 static bool unmeshCompleted = true;
 
-ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed, bool singleplayer,
+ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
     const Position& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
@@ -66,14 +66,14 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkVertices = new unsigned int[m_numChunkLoadingThreads];
-    m_numChunkIndices = new unsigned int[m_numChunkLoadingThreads];
-    m_numChunkWaterVertices = new unsigned int[m_numChunkLoadingThreads];
-    m_numChunkWaterIndices = new unsigned int[m_numChunkLoadingThreads];
+    m_numChunkVertices = new uint32_t[m_numChunkLoadingThreads];
+    m_numChunkIndices = new uint32_t[m_numChunkLoadingThreads];
+    m_numChunkWaterVertices = new uint32_t[m_numChunkLoadingThreads];
+    m_numChunkWaterIndices = new uint32_t[m_numChunkLoadingThreads];
     m_chunkVertices = new float*[m_numChunkLoadingThreads];
-    m_chunkIndices = new unsigned int*[m_numChunkLoadingThreads];
+    m_chunkIndices = new uint32_t*[m_numChunkLoadingThreads];
     m_chunkWaterVertices = new float*[m_numChunkLoadingThreads];
-    m_chunkWaterIndices = new unsigned int*[m_numChunkLoadingThreads];
+    m_chunkWaterIndices = new uint32_t*[m_numChunkLoadingThreads];
     m_chunkPosition = new Position[m_numChunkLoadingThreads];
     m_chunkMeshReady = new bool[m_numChunkLoadingThreads];
     m_chunkMeshReadyCV = new std::condition_variable[m_numChunkLoadingThreads];
@@ -83,9 +83,9 @@ ClientWorld::ClientWorld(unsigned short renderDistance, unsigned long long seed,
     
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkIndices[i] = new unsigned int[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkIndices[i] = new uint32_t[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_chunkWaterVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkWaterIndices[i] = new unsigned int[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkWaterIndices[i] = new uint32_t[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
@@ -181,7 +181,7 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
 }
 
 void ClientWorld::doRenderThreadJobs() {
-    for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+    for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
             // lock release 
@@ -223,7 +223,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
         && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
     m_unmeshNeeded = !unmeshCompleted;
 
-    for (char i = 0; i < 3; i++) {
+    for (int8_t i = 0; i < 3; i++) {
         m_updatingPlayerChunkPosition[i] = m_newPlayerChunkPosition[i];
     }
     int blockPosition[3] = { m_playerChunkPosition[0] * constants::CHUNK_SIZE,
@@ -237,7 +237,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     while (m_unmeshNeeded && (!readyToRelable)) {
         doRenderThreadJobs();
         //wait for all the mesh builder threads to finish their jobs
-        for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+        for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
             readyToRelable |= !m_threadWaiting[threadNum];
         }
         readyToRelable = !readyToRelable;
@@ -256,7 +256,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     }
 }
 
-void ClientWorld::loadChunksAroundPlayerSingleplayer(char threadNum) {
+void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -277,7 +277,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(char threadNum) {
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-void ClientWorld::loadChunksAroundPlayerMultiplayer(char threadNum) {
+void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 
@@ -289,7 +289,7 @@ void ClientWorld::loadChunksAroundPlayerMultiplayer(char threadNum) {
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-void ClientWorld::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
     Position chunkPosition;
     m_integratedServer.loadChunkFromPacket(payload, chunkPosition);
@@ -337,7 +337,7 @@ void ClientWorld::unmeshChunks() {
 }
 
 bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
-    for (unsigned char i = 0; i < 27; i++) {
+    for (uint8_t i = 0; i < 27; i++) {
         if (!(m_integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
@@ -399,7 +399,7 @@ void ClientWorld::unloadMesh(const Position& chunkPosition) {
     m_unmeshedChunks.insert(chunkPosition);
 }
 
-void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
+void ClientWorld::addChunkMesh(const Position& chunkPosition, int8_t threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
@@ -433,7 +433,7 @@ void ClientWorld::addChunkMesh(const Position& chunkPosition, char threadNum) {
     }
 }
 
-void ClientWorld::uploadChunkMesh(char threadNum) {
+void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     //TODO: precalculate this VBL object
     //create vertex buffer layout
     VertexBufferLayout layout;
@@ -483,7 +483,7 @@ void ClientWorld::uploadChunkMesh(char threadNum) {
     m_accessingArrIndicesVectorsMtx.unlock();
 }
 
-void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
+void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
     if (m_recentChunksBuilt.size() > 0) {
         m_unmeshedChunksMtx.lock();
         if (m_recentChunksBuilt.size() > 0) {
@@ -500,7 +500,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
                         bool neighbourBeingRelit = true;
                         while (neighbourBeingRelit) {
                             neighbourBeingRelit = false;
-                            for (unsigned int i = 0; i < 6; i++) {
+                            for (uint32_t i = 0; i < 6; i++) {
                                 neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyBeingRelit();
                             }
                             if (neighbourBeingRelit) {
@@ -526,20 +526,20 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(char threadNum) {
     }
 }
 
-unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
+uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
     //TODO: improve this to make it need less steps
     glm::vec3 rayPos = startSubBlockPos;
     int blockPos[3];
     int steps = 0;
     while (steps < 180) {
         rayPos += direction * 0.025f;
-        for (unsigned char ii = 0; ii < 3; ii++) {
+        for (uint8_t ii = 0; ii < 3; ii++) {
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
         }
-        unsigned char blockType = getBlock(blockPos);
+        uint8_t blockType = getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
             bool hit = true;
-            for (unsigned char ii = 0; ii < 3; ii++) {
+            for (uint8_t ii = 0; ii < 3; ii++) {
                 if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().getBlockData(blockType).model
                     ->boundingBoxVertices[ii] || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().
                     getBlockData(blockType).model->boundingBoxVertices[ii + 15]) {
@@ -547,20 +547,20 @@ unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockP
                 }
             }
             if (hit) {
-                for (unsigned char ii = 0; ii < 3; ii++) {
+                for (uint8_t ii = 0; ii < 3; ii++) {
                     breakBlockCoords[ii] = blockPos[ii];
                 }
                 
                 bool equal = true;
                 while (equal) {
                     rayPos -= direction * 0.025f;
-                    for (unsigned char ii = 0; ii < 3; ii++) {
+                    for (uint8_t ii = 0; ii < 3; ii++) {
                         placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
                         equal &= placeBlockCoords[ii] == blockPos[ii];
                     }
                 }
 
-                for (unsigned char ii = 0; ii < 3; ii++) {
+                for (uint8_t ii = 0; ii < 3; ii++) {
                     placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
                 }
                 return blockType;
@@ -571,14 +571,14 @@ unsigned char ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockP
     return 0;
 }
 
-void ClientWorld::replaceBlock(const Position& blockCoords, unsigned char blockType) {
+void ClientWorld::replaceBlock(const Position& blockCoords, uint8_t blockType) {
     Position chunkPosition;
     chunkPosition.x = std::floor((float)blockCoords.x / constants::CHUNK_SIZE);
     chunkPosition.y = std::floor((float)blockCoords.y / constants::CHUNK_SIZE);
     chunkPosition.z = std::floor((float)blockCoords.z / constants::CHUNK_SIZE);
     
-    std::cout << (unsigned int)m_integratedServer.getSkyLight(blockCoords) << " light level\n";
-    unsigned char originalBlockType = m_integratedServer.getBlock(blockCoords);
+    std::cout << (uint32_t)m_integratedServer.getSkyLight(blockCoords) << " light level\n";
+    uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
     m_integratedServer.setBlock(blockCoords, blockType);
 
     std::vector<Position> chunksToRemesh;
@@ -659,7 +659,7 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     int* lastMousePos,
     Camera* viewCamera,
     SDL_Window* window,
-    unsigned int* windowDimensions) {
+    uint32_t* windowDimensions) {
     m_lastMousePoll = lastMousePoll;
     m_playing = playing;
     m_lastPlaying = lastPlaying;
@@ -672,7 +672,7 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     m_startTime = std::chrono::steady_clock::now();
 }
 
-void ClientWorld::setThreadWaiting(unsigned char threadNum, bool value) {
+void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking 

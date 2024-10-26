@@ -29,16 +29,16 @@ public:
     // Propagates the skylight through the chunk
     static void propagateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
-        resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
     // Propagates the absence of skylight through the chunk
     static void propagateSkyDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
-        resourcePack, unsigned int modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
     // Recalculate all necessary lighting information for a block change
 	static void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
-		unsigned char originalBlock, unsigned char newBlock, std::vector<Position>& chunksToRemesh,
+		uint8_t originalBlock, uint8_t newBlock, std::vector<Position>& chunksToRemesh,
         std::unordered_map<Position, Chunk>& worldChunks, ResourcePack& ResourcePack);
 private:
     static const inline std::array<Position, 6> s_neighbouringChunkOffsets = { Position(0, -1, 0),

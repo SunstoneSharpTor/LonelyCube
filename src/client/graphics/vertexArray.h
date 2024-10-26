@@ -25,7 +25,7 @@ namespace client {
 
 class VertexArray {
 private:
-	unsigned int m_rendererID;
+	uint32_t m_rendererID;
 public:
 	VertexArray(bool empty);
 	VertexArray();

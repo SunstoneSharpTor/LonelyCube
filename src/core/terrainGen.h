@@ -64,5 +64,5 @@ private:
 
 	int sumNoisesAndCalculateHeight(int minX, int minZ, int noiseX, int noiseZ, int size);
 public:
-	void generateTerrain(Chunk& chunk, unsigned long long seed);
+	void generateTerrain(Chunk& chunk, uint64_t seed);
 };

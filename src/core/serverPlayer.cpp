@@ -58,7 +58,7 @@ void ServerPlayer::initChunkPositions() {
     m_nextUnloadedChunk = 0;
 }
 
-ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer, unsigned int gameTick) :
+ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick) :
     m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID),  m_peer(peer), m_lastPacketTick(gameTick) {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -74,7 +74,7 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     initChunkPositions();
 }
 
-ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, unsigned short renderDistance) :
+ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance) :
     m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID) {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];

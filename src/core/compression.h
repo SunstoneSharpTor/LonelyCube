@@ -25,13 +25,13 @@
 
 class Compression {
 public:
-    static void compressChunk(Packet<unsigned char,
+    static void compressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk);
-    static void decompressChunk(Packet<unsigned char,
+    static void decompressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk);
-    static void getChunkPosition(Packet<unsigned char,
+    static void getChunkPosition(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Position& position);
 };

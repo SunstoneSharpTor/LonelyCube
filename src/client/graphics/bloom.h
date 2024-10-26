@@ -31,7 +31,7 @@ namespace client {
 struct BloomMip {
     glm::vec2 size;
     glm::ivec2 intSize;
-    unsigned int texture;
+    uint32_t texture;
 };
 
 class Bloom {
@@ -48,11 +48,11 @@ private:
     void renderDownsamples();
     void renderUpsamples(float filterRadius);
 public:
-    Bloom(unsigned int srcTexture, unsigned int windowSize[2],
+    Bloom(uint32_t srcTexture, uint32_t windowSize[2],
         ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader);
     ~Bloom();
     void render(float filterRadius, float strength);
-    void resize(unsigned int windowSize[2]);
+    void resize(uint32_t windowSize[2]);
     BloomMip getSmallestMip() {
         return m_mipChain[m_mipChain.size() - 1];
     }

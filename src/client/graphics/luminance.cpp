@@ -26,7 +26,7 @@
 
 namespace client {
 
-Luminance::Luminance(unsigned int srcTexture, unsigned int windowSize[2], ComputeShader&
+Luminance::Luminance(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader&
     luminanceShader, ComputeShader& downsampleShader) : m_luminanceShader(luminanceShader),
     m_downsampleShader(downsampleShader) {
     glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
@@ -47,8 +47,8 @@ float Luminance::calculate() {
     m_luminanceShader.bind();
     glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
     glBindImageTexture(1, m_mipChain[0].texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
-    glDispatchCompute((unsigned int)((m_mipChain[0].intSize.x + 7) / 8),
-        (unsigned int)((m_mipChain[0].intSize.y + 7) / 8), 1);
+    glDispatchCompute((uint32_t)((m_mipChain[0].intSize.x + 7) / 8),
+        (uint32_t)((m_mipChain[0].intSize.y + 7) / 8), 1);
     // Make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -62,8 +62,8 @@ float Luminance::calculate() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, srcMip.texture);
         glBindImageTexture(0, outputMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
-        glDispatchCompute((unsigned int)((outputMip.intSize.x + 7) / 8),
-            (unsigned int)((outputMip.intSize.y + 7) / 8), 1);
+        glDispatchCompute((uint32_t)((outputMip.intSize.x + 7) / 8),
+            (uint32_t)((outputMip.intSize.y + 7) / 8), 1);
         // Make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
@@ -110,7 +110,7 @@ void Luminance::deleteMips() {
     m_mipChain.clear();
 }
 
-void Luminance::resize(unsigned int windowSize[2]) {
+void Luminance::resize(uint32_t windowSize[2]) {
     deleteMips();
     glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
     glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);

@@ -49,8 +49,8 @@ namespace client {
 
 void RenderThread::go(bool* running) {
     const int defaultWindowDimensions[2] = { 853, 480 };
-    unsigned int windowDimensions[2] = { (unsigned int)defaultWindowDimensions[0],
-        (unsigned int)defaultWindowDimensions[1] };
+    uint32_t windowDimensions[2] = { (uint32_t)defaultWindowDimensions[0],
+        (uint32_t)defaultWindowDimensions[1] };
 
     SDL_Window* sdl_window;
     SDL_GLContext context;
@@ -165,7 +165,7 @@ void RenderThread::go(bool* running) {
                                         1.0f, -1.0f,
                                         8.0f, -1.0f };
 
-    unsigned int crosshairIndices[18] = { 2,  1,  0,
+    uint32_t crosshairIndices[18] = { 2,  1,  0,
                                           0,  3,  2,
                                           6,  5,  4,
                                           4,  7,  6,
@@ -192,7 +192,7 @@ void RenderThread::go(bool* running) {
     Luminance luminance(worldFrameBuffer.getTextureColourBuffer(), windowDimensions,
         logLuminanceDownsampleShader, simpleDownsampleShader);
 
-    unsigned int skyTexture;
+    uint32_t skyTexture;
     glGenTextures(1, &skyTexture);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, skyTexture);
@@ -224,8 +224,8 @@ void RenderThread::go(bool* running) {
     SDL_GetWindowDisplayMode(sdl_window, &displayMode);
     int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
     double DT = 1.0 / FPS_CAP;
-    unsigned long long frames = 0;
-    unsigned long long lastFrameRateFrames = 0;
+    uint64_t frames = 0;
+    uint64_t lastFrameRateFrames = 0;
     end = std::chrono::steady_clock::now();
     time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
     double frameStart = time - DT;
@@ -345,13 +345,13 @@ void RenderThread::go(bool* running) {
 
             int breakBlockCoords[3];
             int placeBlockCoords[3];
-            unsigned char lookingAtBlock = m_mainWorld->shootRay(m_mainPlayer->viewCamera.position,
+            uint8_t lookingAtBlock = m_mainWorld->shootRay(m_mainPlayer->viewCamera.position,
                 m_mainPlayer->cameraBlockPosition, m_mainPlayer->viewCamera.front,
                 breakBlockCoords, placeBlockCoords);
             if (lookingAtBlock) {
                 //create the model view projection matrix for the outline
                 glm::vec3 outlinePosition;
-                for (unsigned char i = 0; i < 3; i++) {
+                for (uint8_t i = 0; i < 3; i++) {
                     outlinePosition[i] = breakBlockCoords[i] - m_mainPlayer->cameraBlockPosition[i];
                 }
                 model = glm::translate(model, outlinePosition);
@@ -360,7 +360,7 @@ void RenderThread::go(bool* running) {
                 blockOutlineShader.setUniformMat4f("u_MVP", mvp);
             }
 
-            unsigned int timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            uint32_t timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
             // Calculate ground luminance
             float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
             // std::cout << timeOfDay << ": " << groundLuminance << "\n";
@@ -378,8 +378,8 @@ void RenderThread::go(bool* running) {
             skyShader.setUniform1f("brightness", groundLuminance);
             skyShader.setUniformVec3("sunGlowColour", glm::vec3(1.5f, 0.6f, 0.13f));
             skyShader.setUniform1f("sunGlowAmount", std::pow(std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f));
-            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
-                (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
+                (uint32_t)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             #else
@@ -397,8 +397,8 @@ void RenderThread::go(bool* running) {
             // Draw the sky
             glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
             skyBlitShader.bind();
-            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
-              (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
+              (uint32_t)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -409,8 +409,8 @@ void RenderThread::go(bool* running) {
             sunShader.setUniformMat4f("inverseProjection", inverseProjection);
             sunShader.setUniformMat4f("inverseView", inverseView);
             sunShader.setUniform1f("brightness", groundLuminance * 1000);
-            glDispatchCompute((unsigned int)((windowDimensions[0] + 7) / 8),
-                (unsigned int)((windowDimensions[1] + 7) / 8), 1);
+            glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
+                (uint32_t)((windowDimensions[1] + 7) / 8), 1);
             // Make sure writing to image has finished before read
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             #endif
@@ -491,7 +491,7 @@ void RenderThread::go(bool* running) {
         m_mainWorld->doRenderThreadJobs();
 
         loopRunning = *running;
-        for (char i = 0; i < m_mainWorld->getNumChunkLoaderThreads(); i++) {
+        for (int8_t i = 0; i < m_mainWorld->getNumChunkLoaderThreads(); i++) {
             loopRunning |= m_chunkLoaderThreadsRunning[i];
         }
     }
@@ -500,9 +500,9 @@ void RenderThread::go(bool* running) {
     SDL_Quit();
 }
 
-float RenderThread::calculateBrightness(const float* points, unsigned int numPoints, unsigned int time) {
-    unsigned int preceedingPoint = numPoints * 2 - 2;
-    unsigned int succeedingPoint = 0;
+float RenderThread::calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
+    uint32_t preceedingPoint = numPoints * 2 - 2;
+    uint32_t succeedingPoint = 0;
     if (time < points[numPoints * 2 - 2]) {
         int i = 0;
         while (i < numPoints * 2 && points[i] < time) {

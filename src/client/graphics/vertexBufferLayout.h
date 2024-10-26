@@ -25,11 +25,11 @@
 namespace client {
 
 struct VertexBufferElement {
-	unsigned int type;
-	unsigned int count;
-	unsigned char normalised;
+	uint32_t type;
+	uint32_t count;
+	uint8_t normalised;
 
-	static unsigned int getSizeOfType(unsigned int type) {
+	static uint32_t getSizeOfType(uint32_t type) {
 		switch (type) {
 			case GL_FLOAT:
 				return sizeof(GLfloat);
@@ -45,33 +45,33 @@ struct VertexBufferElement {
 class VertexBufferLayout {
 private:
 	std::vector<VertexBufferElement> m_elements;
-	unsigned int m_stride;
+	uint32_t m_stride;
 public:
 	VertexBufferLayout() : m_stride(0) {}
 
 	template<typename T>
-	inline void push(unsigned int count) {
+	inline void push(uint32_t count) {
 		//static_assert(false);
 	}
 
 	inline const std::vector<VertexBufferElement> getElements() const { return m_elements; }
-	inline unsigned int getStride() const { return m_stride; }
+	inline uint32_t getStride() const { return m_stride; }
 };
 
 template<>
-inline void VertexBufferLayout::push<float>(unsigned int count) {
+inline void VertexBufferLayout::push<float>(uint32_t count) {
 	m_elements.push_back({ GL_FLOAT, count, GL_FALSE });
 	m_stride += VertexBufferElement::getSizeOfType(GL_FLOAT) * count;
 }
 
 template<>
-inline void VertexBufferLayout::push<unsigned int>(unsigned int count) {
+inline void VertexBufferLayout::push<uint32_t>(uint32_t count) {
 	m_elements.push_back({ GL_UNSIGNED_INT, count, GL_FALSE });
 	m_stride += VertexBufferElement::getSizeOfType(GL_UNSIGNED_INT)* count;
 }
 
 template<>
-inline void VertexBufferLayout::push<unsigned char>(unsigned int count) {
+inline void VertexBufferLayout::push<uint8_t>(uint32_t count) {
 	m_elements.push_back({ GL_UNSIGNED_BYTE, count, GL_TRUE });
 	m_stride += VertexBufferElement::getSizeOfType(GL_UNSIGNED_BYTE) * count;
 }

@@ -26,7 +26,7 @@
 
 namespace client {
 
-Bloom::Bloom(unsigned int srcTexture, unsigned int windowSize[2], ComputeShader& downsampleShader,
+Bloom::Bloom(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader& downsampleShader,
     ComputeShader& upsampleShader, ComputeShader& blitShader) :
     m_downsampleShader(downsampleShader), m_upsampleShader(upsampleShader),
     m_blitShader(blitShader) {
@@ -55,8 +55,8 @@ void Bloom::renderDownsamples() {
     for (int i = 0; i < m_mipChain.size(); i++) {
         const BloomMip& mip = m_mipChain[i];
         glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((unsigned int)((mip.intSize.x + 7) / 8),
-            (unsigned int)((mip.intSize.y + 7) / 8), 1);
+        glDispatchCompute((uint32_t)((mip.intSize.x + 7) / 8),
+            (uint32_t)((mip.intSize.y + 7) / 8), 1);
         // Make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -76,8 +76,8 @@ void Bloom::renderUpsamples(float filterRadius) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mip.texture);
         glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((unsigned int)((nextMip.intSize.x + 7) / 8),
-            (unsigned int)((nextMip.intSize.y + 7) / 8), 1);
+        glDispatchCompute((uint32_t)((nextMip.intSize.x + 7) / 8),
+            (uint32_t)((nextMip.intSize.y + 7) / 8), 1);
         // Make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
@@ -98,8 +98,8 @@ void Bloom::render(float filterRadius, float strength) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mip.texture);
     glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    glDispatchCompute((unsigned int)((m_srcTexture.intSize.x + 7) / 8),
-        (unsigned int)((m_srcTexture.intSize.y + 7) / 8), 1);
+    glDispatchCompute((uint32_t)((m_srcTexture.intSize.x + 7) / 8),
+        (uint32_t)((m_srcTexture.intSize.y + 7) / 8), 1);
     // Make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -139,7 +139,7 @@ void Bloom::deleteMips() {
     m_mipChain.clear();
 }
 
-void Bloom::resize(unsigned int windowSize[2]) {
+void Bloom::resize(uint32_t windowSize[2]) {
     deleteMips();
     glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
     glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);

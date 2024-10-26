@@ -25,7 +25,7 @@ VertexBuffer::VertexBuffer() {
     m_rendererID = 0;
 }
 
-VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
+VertexBuffer::VertexBuffer(const void* data, uint32_t size) {
     glGenBuffers(1, &m_rendererID);
     glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);

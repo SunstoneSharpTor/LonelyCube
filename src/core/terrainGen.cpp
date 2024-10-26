@@ -218,7 +218,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
 	return std::floor(m_height);
 }
 
-void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
+void TerrainGen::generateTerrain(Chunk& chunk, uint64_t seed) {
 	chunk.setSkyLightToBeOutdated();
 
 	//calculate coordinates of the chunk
@@ -226,7 +226,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 	int chunkMinCoords[3];
 	int chunkMaxCoords[3];
     chunk.getChunkPosition(chunkPosition);
-	for (unsigned char i = 0; i < 3; i++) {
+	for (uint8_t i = 0; i < 3; i++) {
 		chunkMinCoords[i] = chunkPosition[i] * constants::CHUNK_SIZE;
 		chunkMaxCoords[i] = chunkMinCoords[i] + constants::CHUNK_SIZE;
 	}
@@ -253,11 +253,11 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 
 	chunk.clearBlocksAndLight();
 	int blockPos[3];
-	unsigned int lastBlockTypeInChunk = 0;
+	uint32_t lastBlockTypeInChunk = 0;
 	for (int z = -MAX_STRUCTURE_RADIUS; z < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; z++) {
 		for (int x = -MAX_STRUCTURE_RADIUS; x < constants::CHUNK_SIZE + MAX_STRUCTURE_RADIUS; x++) {
 			int height = sumNoisesAndCalculateHeight(chunkMinCoords[0] - MAX_STRUCTURE_RADIUS, chunkMinCoords[2] - MAX_STRUCTURE_RADIUS, x + MAX_STRUCTURE_RADIUS, z + MAX_STRUCTURE_RADIUS, HEIGHT_MAP_SIZE);
-			unsigned int heightMapIndex = (z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS);
+			uint32_t heightMapIndex = (z + MAX_STRUCTURE_RADIUS) * HEIGHT_MAP_SIZE + (x + MAX_STRUCTURE_RADIUS);
 			heightMap[heightMapIndex] = height;
 			
 			int worldX = x + chunkMinCoords[0];
@@ -276,7 +276,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 				|| (beachFac < 1.3f + 1.25f * ((6.5025f - beachFac * beachFac) * 8.5f > (float)(columnsRandom & 0b1111)));
 
 			if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
-				unsigned int blockNum = z * constants::CHUNK_SIZE + x;
+				uint32_t blockNum = z * constants::CHUNK_SIZE + x;
 				for (int y = chunkMinCoords[1]; y < chunkMaxCoords[1]; y++) {
 					if (y > height) {
 						if (y < 0) {
@@ -379,7 +379,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						// for (int logHeight = 2; logHeight < trunkHeight + random % 3; logHeight++) {
 						// 	treeBlockPos[0] = treeBasePos[0] - 1;
 						// 	treeBlockPos[2] = treeBasePos[2];
-						// 	for (unsigned char i = 0; i < 4; i++) {
+						// 	for (uint8_t i = 0; i < 4; i++) {
 						// 		if (PCG_Hash32(blockNumberInWorld + seed + randomOffset) % 10 > 0) {
 						// 			if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
 						// 				treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
@@ -396,8 +396,8 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						//build the upper leaves
 						treeBlockPos[0] -= 1;
 						treeBlockPos[1] -= 2;
-						for (unsigned char i = 0; i < 4; i++) {
-							for (unsigned char ii = 0; ii < 2; ii++) {
+						for (uint8_t i = 0; i < 4; i++) {
+							for (uint8_t ii = 0; ii < 2; ii++) {
 								if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
 									treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 									chunk.setBlockUnchecked(treeBlockNum, 6);
@@ -413,7 +413,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 						treeBlockPos[1] -= 2;
 						for (treeBlockPos[2] = treeBasePos[2] - 2; treeBlockPos[2] < treeBasePos[2] + 3; treeBlockPos[2]++) {
 							for (treeBlockPos[0] = treeBasePos[0] - 2; treeBlockPos[0] < treeBasePos[0] + 3; treeBlockPos[0]++) {
-								for (unsigned char ii = 0; ii < 2; ii++) {
+								for (uint8_t ii = 0; ii < 2; ii++) {
 									if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
 										treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
 										if (chunk.getBlockUnchecked(treeBlockNum) == air || chunk.getBlockUnchecked(treeBlockNum) == longGrass) {
