@@ -416,7 +416,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, unsigned long long seed) {
 								for (unsigned char ii = 0; ii < 2; ii++) {
 									if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
 										treeBlockNum = (treeBlockPos[0] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE + ((treeBlockPos[1] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE * constants::CHUNK_SIZE + ((treeBlockPos[2] + constants::BORDER_DISTANCE_U_B) % constants::CHUNK_SIZE) * constants::CHUNK_SIZE;
-										if (chunk.getBlockUnchecked(treeBlockNum) == 0) {
+										if (chunk.getBlockUnchecked(treeBlockNum) == air || chunk.getBlockUnchecked(treeBlockNum) == longGrass) {
 											chunk.setBlockUnchecked(treeBlockNum, 6);
 										}
 									}

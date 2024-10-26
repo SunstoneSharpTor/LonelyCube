@@ -1,0 +1,7 @@
+{
+    "transparrent": true,
+    "collidable": false,
+    "castsAmbientOcclusion": false,
+    "model": "torch",
+    "textureIndices": [10,10,10,10,10,10]
+}

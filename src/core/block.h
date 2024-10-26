@@ -17,5 +17,5 @@
 */
 
 enum Block {
-    air, dirt, grass, stone, water, oakLog, oakLeaves, longGrass, sand
+    air, dirt, grass, stone, water, oakLog, oakLeaves, longGrass, sand, torch
 };

@@ -1,0 +1,42 @@
+{
+    "boundingBox": [7,0,7, 9,12,9],
+    "faces":
+    [
+        {
+            "coordinates": [7,0,7, 9,0,7, 9,0,9, 7,0,9],
+            "uv": [4,0, 6,2],
+            "ambientOcclusion": true,
+            "lighting": "negY"
+        },
+        {
+            "coordinates": [7,12,9, 9,12,9, 9,12,7, 7,12,7],
+            "uv": [4,4, 6,6],
+            "ambientOcclusion": true,
+            "lighting": "this"
+        },
+        {
+            "coordinates": [7,0,7, 7,0,9, 7,12,9, 7,12,7],
+            "uv": [0,0, 2,12],
+            "ambientOcclusion": true,
+            "lighting": "this"
+        },
+        {
+            "coordinates": [9,0,9, 9,0,7, 9,12,7, 9,12,9],
+            "uv": [0,0, 2,12],
+            "ambientOcclusion": true,
+            "lighting": "this"
+        },
+        {
+            "coordinates": [9,0,7, 7,0,7, 7,12,7, 9,12,7],
+            "uv": [2,0, 0,12],
+            "ambientOcclusion": true,
+            "lighting": "this"
+        },
+        {
+            "coordinates": [7,0,9, 9,0,9, 9,12,9, 7,12,9],
+            "uv": [2,0, 0,12],
+            "ambientOcclusion": true,
+            "lighting": "this"
+        }
+    ]
+}
