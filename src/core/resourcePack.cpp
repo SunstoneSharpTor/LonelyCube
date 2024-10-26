@@ -57,6 +57,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
         }
         // Set defaults
         m_blockData[blockID].model = m_blockModels;
+        m_blockData[blockID].blockLight = 0;
         m_blockData[blockID].transparent = false;
         m_blockData[blockID].dimsLight = false;
         m_blockData[blockID].collidable = true;
@@ -109,6 +110,12 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                     m_blockData[blockID].faceTextureIndices[i] = std::stoi(value);
                     i++;
                 }
+            }
+            if (field == "blockLight") {
+                std::getline(stream, value, '\n');
+                value.erase(std::remove_if(value.begin(), value.end(), [](int8_t c) { return !isdigit(c); }),
+                    value.end());
+                m_blockData[blockID].blockLight = std::stoi(value);
             }
             stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
         }

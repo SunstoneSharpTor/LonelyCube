@@ -41,6 +41,7 @@ struct BlockData {
     std::string name;
     BlockModel* model;
     uint16_t faceTextureIndices[maxNumFaces];
+    uint8_t blockLight;
     bool transparent;
     bool dimsLight;
     bool castsAmbientOcclusion;
