@@ -31,7 +31,7 @@ namespace client {
 struct LuminanceMip {
     glm::vec2 size;
     glm::ivec2 intSize;
-    unsigned int texture;
+    uint32_t texture;
 };
 
 class Luminance {
@@ -45,11 +45,11 @@ private:
     void createMips(glm::ivec2 srcTextureSize);
     void deleteMips();
 public:
-    Luminance(unsigned int srcTexture, unsigned int windowSize[2], ComputeShader& luminanceShader,
+    Luminance(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader& luminanceShader,
         ComputeShader& downsampleShader);
     ~Luminance();
     float calculate();
-    void resize(unsigned int windowSize[2]);
+    void resize(uint32_t windowSize[2]);
 };
 
 }  // namespace client

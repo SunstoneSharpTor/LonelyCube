@@ -55,12 +55,12 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    for (unsigned char i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         m_hitboxMinBlock[i] = position[i];
     }
     m_hitboxMinOffset = glm::vec3(0.5f, 0.5f, 0.5f);
 
-    for (unsigned char i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         cameraBlockPosition[i] = m_hitboxMinBlock[i];
         viewCamera.position[i] = m_hitboxMinOffset[i] + 0.3f;
     }
@@ -286,7 +286,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             resolveHitboxCollisions(DT);
 
             //update camera position
-            for (unsigned char i = 0; i < 3; i++) {
+            for (uint8_t i = 0; i < 3; i++) {
                 cameraBlockPosition[i] = m_hitboxMinBlock[i];
                 viewCamera.position[i] = m_hitboxMinOffset[i] + 0.3f;
             }
@@ -294,7 +294,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             viewCamera.position[1] += 1.32f;
             
             int roundedPos;
-            for (unsigned char i = 0; i < 3; i++) {
+            for (uint8_t i = 0; i < 3; i++) {
                 roundedPos = viewCamera.position[i];
                 cameraBlockPosition[i] += roundedPos;
                 viewCamera.position[i] -= roundedPos;
@@ -333,17 +333,17 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
     m_touchWater = false;
     float penetration;
     float minPenetration;
-    unsigned char axisOfLeastPenetration = 2;
+    uint8_t axisOfLeastPenetration = 2;
     int position[3];
     int neighbouringBlockPosition[3];
 
     //TODO: investigate the effect of changing subdivisions (causes bugs)
     float subdivisions = 32;
 
-    for (unsigned char subdivision = 0; subdivision < subdivisions; subdivision++) {
+    for (uint8_t subdivision = 0; subdivision < subdivisions; subdivision++) {
         m_hitboxMinOffset += m_velocity * DT / subdivisions;
 
-        for (unsigned char i = 0; i < 3; i++) {
+        for (uint8_t i = 0; i < 3; i++) {
             m_hitboxMinBlock[i] += floor(m_hitboxMinOffset[i]);
             m_hitboxMinOffset[i] -= floor(m_hitboxMinOffset[i]);
         }
@@ -353,20 +353,20 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
             axisOfLeastPenetration = 2;
             resolved = true;
             minPenetration = 1000.0f;
-            for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
-                for (unsigned char i = 0; i < 3; i++) {
+            for (uint8_t hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
+                for (uint8_t i = 0; i < 3; i++) {
                     position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
                 }
 
-                short blockType = m_mainWorld->getBlock(position);
+                int16_t blockType = m_mainWorld->getBlock(position);
                 if (m_resourcePack.getBlockData(blockType).collidable) {
-                    for (unsigned char direction = 0; direction < 6; direction++) {
+                    for (uint8_t direction = 0; direction < 6; direction++) {
                         penetration = m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2] - floor(m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2]);
                         if (direction % 2 == 0) {
                             penetration = 1.0f - penetration;
                         }
                         if (penetration < minPenetration) {
-                            for (unsigned char i = 0; i < 3; i++) {
+                            for (uint8_t i = 0; i < 3; i++) {
                                 neighbouringBlockPosition[i] = position[i] + m_directions[direction * 3 + i];
                             }
                             blockType = m_mainWorld->getBlock(neighbouringBlockPosition);
@@ -406,12 +406,12 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
 
 bool ClientPlayer::collidingWithBlock() {
     int position[3];
-    for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
-        for (unsigned char i = 0; i < 3; i++) {
+    for (uint8_t hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
+        for (uint8_t i = 0; i < 3; i++) {
             position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
         }
 
-        short blockType = m_mainWorld->getBlock(position);
+        int16_t blockType = m_mainWorld->getBlock(position);
         if (m_resourcePack.getBlockData(blockType).collidable) {
             return true;
         }
@@ -422,9 +422,9 @@ bool ClientPlayer::collidingWithBlock() {
 bool ClientPlayer::intersectingBlock(int* blockPos) {
     bool intersecting;
     int position;
-    for (unsigned char hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
+    for (uint8_t hitboxCorner = 0; hitboxCorner < 12; hitboxCorner++) {
         intersecting = true;
-        for (unsigned char i = 0; i < 3; i++) {
+        for (uint8_t i = 0; i < 3; i++) {
              position = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
              if (position != blockPos[i]) {
                  intersecting = false;
@@ -437,7 +437,7 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
     return false;
 }
 
-void ClientPlayer::setWorldMouseData(SDL_Window* window, unsigned int* windowDimensions) {
+void ClientPlayer::setWorldMouseData(SDL_Window* window, uint32_t* windowDimensions) {
     m_mainWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,

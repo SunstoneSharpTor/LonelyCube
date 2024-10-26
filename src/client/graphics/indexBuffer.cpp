@@ -26,7 +26,7 @@ IndexBuffer::IndexBuffer() {
     m_count = 0;
 }
 
-IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count) : m_count(count) {
+IndexBuffer::IndexBuffer(const uint32_t* data, uint32_t count) : m_count(count) {
     glGenBuffers(1, &m_rendererID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rendererID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_count * sizeof(GLuint), data, GL_STATIC_DRAW);

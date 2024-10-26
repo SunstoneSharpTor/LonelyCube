@@ -20,18 +20,18 @@
 
 #include "pch.h"
 
-const unsigned char maxNumFaces = 6;
+const uint8_t maxNumFaces = 6;
 
 struct Face {
-    signed char lightingBlock;
-    signed char cullFace;
+    int8_t lightingBlock;
+    int8_t cullFace;
     bool ambientOcclusion;
     float UVcoords[4];
     float coords[12];
 };
 
 struct BlockModel {
-    unsigned char numFaces;
+    uint8_t numFaces;
     std::string name;
     Face faces[maxNumFaces];
     float boundingBoxVertices[24];
@@ -40,7 +40,7 @@ struct BlockModel {
 struct BlockData {
     std::string name;
     BlockModel* model;
-    unsigned short faceTextureIndices[maxNumFaces];
+    uint16_t faceTextureIndices[maxNumFaces];
     bool transparent;
     bool dimsLight;
     bool castsAmbientOcclusion;
@@ -55,7 +55,7 @@ private:
     bool isTrue(std::basic_istream<char>& stream) const;
 public:
     ResourcePack(std::filesystem::path resourcePackPath);
-    const BlockData& getBlockData(unsigned char blockType) const {
+    const BlockData& getBlockData(uint8_t blockType) const {
         return m_blockData[blockType];
     }
 };

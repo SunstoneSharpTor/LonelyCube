@@ -32,29 +32,29 @@ namespace client {
 template<bool zBuffer>
 class FrameBuffer {
 private:
-    unsigned int m_rendererID;
-    unsigned int m_textureColourbuffer;
-    unsigned int m_textureDepthBuffer;
+    uint32_t m_rendererID;
+    uint32_t m_textureColourbuffer;
+    uint32_t m_textureDepthBuffer;
     VertexArray m_screenVA;
     std::unique_ptr<VertexBuffer> m_screenVB;
     VertexBufferLayout m_screenVBL;
 public:
-    FrameBuffer(unsigned int* frameSize);
+    FrameBuffer(uint32_t* frameSize);
     ~FrameBuffer();
     void bind();
     void unbind();
-    void resize(unsigned int* frameSize);
+    void resize(uint32_t* frameSize);
     void draw(Shader& shader);
-    unsigned int getTextureColourBuffer() {
+    uint32_t getTextureColourBuffer() {
         return m_textureColourbuffer;
     }
-    unsigned int getTextureDepthBuffer() {
+    uint32_t getTextureDepthBuffer() {
         return m_textureDepthBuffer;
     }
 };
 
 template<bool zBuffer>
-FrameBuffer<zBuffer>::FrameBuffer(unsigned int* frameSize) {
+FrameBuffer<zBuffer>::FrameBuffer(uint32_t* frameSize) {
     glGenFramebuffers(1, &m_rendererID);
     glBindFramebuffer(GL_FRAMEBUFFER, m_rendererID);
     glGenTextures(1, &m_textureColourbuffer);
@@ -101,7 +101,7 @@ FrameBuffer<zBuffer>::~FrameBuffer() {
 }
 
 template<bool zBuffer>
-void FrameBuffer<zBuffer>::resize(unsigned int* frameSize) {
+void FrameBuffer<zBuffer>::resize(uint32_t* frameSize) {
     #ifndef GLES3
     glBindTexture(GL_TEXTURE_2D, m_textureColourbuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, frameSize[0], frameSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);

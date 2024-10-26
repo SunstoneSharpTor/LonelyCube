@@ -16,11 +16,11 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-unsigned int PCG_Hash32(unsigned int input);
+uint32_t PCG_Hash32(uint32_t input);
 
-unsigned int PCG_Random32();
+uint32_t PCG_Random32();
 
-void PCG_SeedRandom32(unsigned long long seed);
+void PCG_SeedRandom32(uint64_t seed);
 
 void seedNoise();
 

@@ -32,7 +32,7 @@ struct shaderProgramSources {
 class Shader {
 private:
 	std::string m_vertexFilePath, m_fragmentFilePath;
-	unsigned int m_rendererID;
+	uint32_t m_rendererID;
 	std::unordered_map<std::string, int> m_uniformLocationCache;
 public:
 	Shader(const std::string& vertexFilePath, const std::string& fragmantFilePath);
@@ -48,8 +48,8 @@ public:
 	void setUniformMat4f(const std::string& name, const glm::mat4& value);
 private:
 	shaderProgramSources parseShaders(const std::string& vertexFilePath, const std::string& fragmentFilePath);
-	unsigned int compileShader(unsigned int type, const std::string& source);
-	unsigned int createShader(const std::string& vertexShader, const std::string& fragmentShader);
+	uint32_t compileShader(uint32_t type, const std::string& source);
+	uint32_t createShader(const std::string& vertexShader, const std::string& fragmentShader);
 
 	int getUniformLocation(const std::string& name);
 };

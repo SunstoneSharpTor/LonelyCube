@@ -64,9 +64,9 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         int blockPosition[3] =  { 0, 0, 0 };
         float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-        unsigned short playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
+        uint16_t playerID = mainWorld.addPlayer(blockPosition, subBlockPosition, payload[0], peer);
         // Send a response
-        Packet<unsigned short, 1> responsePayload(0, PacketType::ClientConnection, 1);
+        Packet<uint16_t, 1> responsePayload(0, PacketType::ClientConnection, 1);
         responsePayload[0] = playerID;
         ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
@@ -76,7 +76,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     {
         Packet<int, 3> payload;
         memcpy(&payload, packet->data, packet->dataLength);
-        unsigned short playerID = payload.getPeerID();
+        uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
         if (it == mainWorld.getPlayers().end()) {
             

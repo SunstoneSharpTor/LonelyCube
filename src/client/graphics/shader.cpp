@@ -57,8 +57,8 @@ shaderProgramSources Shader::parseShaders(const std::string& vertexFilePath, con
     return { sources[0].str(), sources[1].str() };
 }
 
-unsigned int Shader::compileShader(unsigned int type, const std::string& source) {
-    unsigned int id = glCreateShader(type);
+uint32_t Shader::compileShader(uint32_t type, const std::string& source) {
+    uint32_t id = glCreateShader(type);
     const char* src = source.c_str();
     glShaderSource(id, 1, &src, nullptr);
     glCompileShader(id);
@@ -78,10 +78,10 @@ unsigned int Shader::compileShader(unsigned int type, const std::string& source)
     return id;
 }
 
-unsigned int Shader::createShader(const std::string& vertexShader, const std::string& fragmentShader) {
-    unsigned int program = glCreateProgram();
-    unsigned int vs = compileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
+uint32_t Shader::createShader(const std::string& vertexShader, const std::string& fragmentShader) {
+    uint32_t program = glCreateProgram();
+    uint32_t vs = compileShader(GL_VERTEX_SHADER, vertexShader);
+    uint32_t fs = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
 
     glAttachShader(program, vs);
     glAttachShader(program, fs);

@@ -21,28 +21,28 @@
 #include "core/pch.h"
 #include <cstdint>
 
-static unsigned long long PCG_Ramdom32State = 0x4d595df4d0f33173;
+static uint64_t PCG_Ramdom32State = 0x4d595df4d0f33173;
 
-unsigned int PCG_Hash32(unsigned int input) {
-	unsigned int state = input * 747796405u + 2891336453u;
-	unsigned int word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+uint32_t PCG_Hash32(uint32_t input) {
+	uint32_t state = input * 747796405u + 2891336453u;
+	uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
 	return (word >> 22u) ^ word;
 }
 
-static unsigned int rotr32(unsigned int x, unsigned r) {
+static uint32_t rotr32(uint32_t x, unsigned r) {
 	return x >> r | x << (-r & 31);
 }
 
-unsigned int PCG_Random32() {
-	unsigned long long x = PCG_Ramdom32State;
+uint32_t PCG_Random32() {
+	uint64_t x = PCG_Ramdom32State;
 	unsigned count = (unsigned)(x >> 59);		// 59 = 64 - 5
 
 	PCG_Ramdom32State = x * 6364136223846793005u + 1442695040888963407u;
 	x ^= x >> 18;								// 18 = (64 - 27)/2
-	return rotr32((unsigned int)(x >> 27), count);	// 27 = 32 - 5
+	return rotr32((uint32_t)(x >> 27), count);	// 27 = 32 - 5
 }
 
-void PCG_SeedRandom32(unsigned long long seed) {
+void PCG_SeedRandom32(uint64_t seed) {
 	PCG_Ramdom32State = seed + 1442695040888963407u;
 	(void)PCG_Random32();
 }
@@ -110,7 +110,7 @@ static inline int32_t fastfloor(float fp) {
  * code run faster on platforms with a high penalty for unaligned single
  * byte addressing. Intel x86 is generally single-byte-friendly, but
  * some other CPUs are faster with 4-aligned reads.
- * However, a char[] is smaller, which avoids cache trashing, and that
+ * However, a int8_t[] is smaller, which avoids cache trashing, and that
  * is probably the most important aspect on most architectures.
  * This array is accessed a *lot* by the noise functions.
  * A vector-valued noise over 3D accesses it 96 times, and a
@@ -607,7 +607,7 @@ void seedNoise() {
         numbers[i] = i;
     }
     for (int i = 0; i < 256; i++) {
-        unsigned int location = PCG_Random32() % numbers.size();
+        uint32_t location = PCG_Random32() % numbers.size();
         perm[location] = numbers[location];
         numbers.erase(numbers.begin() + location);
     }

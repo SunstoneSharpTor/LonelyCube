@@ -34,14 +34,14 @@
 template<bool integrated>
 class ServerWorld {
 private:
-	unsigned long long m_seed;
-    unsigned short m_nextPlayerID;
-    unsigned short m_numChunkLoadingThreads;
-    unsigned int m_gameTick;
+	uint64_t m_seed;
+    uint16_t m_nextPlayerID;
+    uint16_t m_numChunkLoadingThreads;
+    uint32_t m_gameTick;
     ResourcePack m_resourcePack;
     
     std::unordered_map<Position, Chunk> m_chunks;
-    std::unordered_map<unsigned short, ServerPlayer> m_players;
+    std::unordered_map<uint16_t, ServerPlayer> m_players;
     std::queue<Position> m_chunksToBeLoaded;
     std::unordered_set<Position> m_chunksBeingLoaded;
 
@@ -56,32 +56,32 @@ private:
     bool m_threadsWait;
 	bool* m_threadWaiting;
 
-    void disconnectPlayer(unsigned short playerID);
+    void disconnectPlayer(uint16_t playerID);
 
 public:
-    ServerWorld(unsigned long long seed);
+    ServerWorld(uint64_t seed);
     void tick();
-    void addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance);
-    unsigned short addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer);
+    void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance);
+    uint16_t addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
     ServerPlayer& getPlayer(int playerID) {
         return m_players.at(playerID);
     }
-    std::unordered_map<unsigned short, ServerPlayer>& getPlayers() {
+    std::unordered_map<uint16_t, ServerPlayer>& getPlayers() {
         return m_players;
     }
-    void waitIfRequired(unsigned char threadNum);
+    void waitIfRequired(uint8_t threadNum);
     void pauseChunkLoaderThreads();
     void releaseChunkLoaderThreads();
     void findChunksToLoad();
     bool loadChunk(Position* chunkPosition);
-    void loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+    void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(Position* chunkPosition);
-    unsigned char getBlock(const Position& position) const;
-    void setBlock(const Position& position, unsigned char blockType);
-    unsigned char getSkyLight(const Position& position) const;
+    uint8_t getBlock(const Position& position) const;
+    void setBlock(const Position& position, uint8_t blockType);
+    uint8_t getSkyLight(const Position& position) const;
     inline Chunk& getChunk(const Position& chunkPosition) {
         return m_chunks.at(chunkPosition);
     }
@@ -91,10 +91,10 @@ public:
     inline std::unordered_map<Position, Chunk>& getWorldChunks() {
         return m_chunks;
     }
-	inline char getNumChunkLoaderThreads() {
+	inline int8_t getNumChunkLoaderThreads() {
 		return m_numChunkLoadingThreads;
 	}
-    inline unsigned int getTickNum() {
+    inline uint32_t getTickNum() {
         return m_gameTick;
     }
     inline ResourcePack& getResourcePack() {
@@ -103,7 +103,7 @@ public:
 };
 
 template<bool integrated>
-ServerWorld<integrated>::ServerWorld(unsigned long long seed) : m_seed(seed), m_nextPlayerID(0),
+ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayerID(0),
     m_gameTick(0), m_resourcePack("res/resourcePack"), m_threadsWait(false) {
     PCG_SeedRandom32(m_seed);
     seedNoise();
@@ -169,7 +169,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
             if (it != m_chunks.end()) {
                 it->second.incrementPlayerCount();
                 if (!integrated) {
-                    Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+                    Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
                         * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
                         Compression::compressChunk(payload, it->second);
                     payload.setPeerID(playerID);
@@ -205,7 +205,7 @@ bool ServerWorld<integrated>::loadChunk(Position* chunkPosition) {
         m_chunksBeingLoadedMtx.lock();
         m_chunksBeingLoaded.erase(*chunkPosition);
         m_chunksBeingLoadedMtx.unlock();
-        Packet<unsigned char, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
             * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
         if (!integrated) {
             Compression::compressChunk(payload, chunk);
@@ -230,7 +230,7 @@ bool ServerWorld<integrated>::loadChunk(Position* chunkPosition) {
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::loadChunkFromPacket(Packet<unsigned char, 9 * constants::CHUNK_SIZE *
+void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
@@ -241,9 +241,9 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<unsigned char, 9 * cons
 }
 
 template<bool integrated>
-unsigned short ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance, ENetPeer* peer) {
+uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer) {
     m_playersMtx.lock();
-    unsigned short playerID = m_nextPlayerID;
+    uint16_t playerID = m_nextPlayerID;
     m_players[playerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick };
     m_nextPlayerID++;
     m_playersMtx.unlock();
@@ -251,14 +251,14 @@ unsigned short ServerWorld<integrated>::addPlayer(int* blockPosition, float* sub
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, unsigned short renderDistance) {
+void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance) {
     m_playersMtx.lock();
     m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance };
     m_playersMtx.unlock();
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::disconnectPlayer(unsigned short playerID) {
+void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     std::cout << m_chunks.size() << std::endl;
     pauseChunkLoaderThreads();
 
@@ -306,7 +306,7 @@ void ServerWorld<integrated>::disconnectPlayer(unsigned short playerID) {
 }
 
 template<bool integrated>
-unsigned char ServerWorld<integrated>::getBlock(const Position& position) const {
+uint8_t ServerWorld<integrated>::getBlock(const Position& position) const {
     Position chunkPosition;
     Position chunkBlockCoords;
     chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
@@ -318,7 +318,7 @@ unsigned char ServerWorld<integrated>::getBlock(const Position& position) const 
     chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
     chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
     chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
-    unsigned int chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
         + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
 
     auto chunkIterator = m_chunks.find(chunkPosition);
@@ -331,7 +331,7 @@ unsigned char ServerWorld<integrated>::getBlock(const Position& position) const 
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::setBlock(const Position& position, unsigned char blockType) {
+void ServerWorld<integrated>::setBlock(const Position& position, uint8_t blockType) {
     Position chunkPosition;
     Position chunkBlockCoords;
     chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
@@ -343,7 +343,7 @@ void ServerWorld<integrated>::setBlock(const Position& position, unsigned char b
     chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
     chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
     chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
-    unsigned int chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
         + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
 
     auto chunkIterator = m_chunks.find(chunkPosition);
@@ -357,7 +357,7 @@ void ServerWorld<integrated>::setBlock(const Position& position, unsigned char b
 
 
 template<bool integrated>
-unsigned char ServerWorld<integrated>::getSkyLight(const Position& position) const {
+uint8_t ServerWorld<integrated>::getSkyLight(const Position& position) const {
     Position chunkPosition;
     Position chunkBlockCoords;
     chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
@@ -369,7 +369,7 @@ unsigned char ServerWorld<integrated>::getSkyLight(const Position& position) con
     chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
     chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
     chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
-    unsigned int chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
         + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
 
     auto chunkIterator = m_chunks.find(chunkPosition);
@@ -382,7 +382,7 @@ unsigned char ServerWorld<integrated>::getSkyLight(const Position& position) con
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::waitIfRequired(unsigned char threadNum) {
+void ServerWorld<integrated>::waitIfRequired(uint8_t threadNum) {
     while (m_threadsWait) {
         m_threadWaiting[threadNum] = true;
     m_threadsWaitCV.notify_all();
@@ -404,7 +404,7 @@ void ServerWorld<integrated>::pauseChunkLoaderThreads() {
     while (!allThreadsWaiting) {
         std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
         m_threadsWaitCV.wait(lock);
-        for (char threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+        for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
             allThreadsWaiting |= !m_threadWaiting[threadNum];
         }
         allThreadsWaiting = !allThreadsWaiting;

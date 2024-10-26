@@ -23,12 +23,12 @@
 #include "core/chunk.h"
 #include "core/packet.h"
 
-void Compression::compressChunk(Packet<unsigned char,
+void Compression::compressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
     int chunkPosition[3];
     chunk.getChunkPosition(chunkPosition);
-    unsigned int packetIndex = 0;
+    uint32_t packetIndex = 0;
     for (int i = 0; i < 3; i++) {
         for (int shift = 24; shift >= 0; shift -= 8) {
             compressedChunk[packetIndex] = chunkPosition[i] >> shift;
@@ -36,10 +36,10 @@ void Compression::compressChunk(Packet<unsigned char,
         }
     }
     // Add blocks
-    unsigned char currentBlock = chunk.getBlock(0);
-    unsigned short count = 0;
-    unsigned char nextBlock;
-    for (unsigned int block = 1; block < constants::CHUNK_SIZE
+    uint8_t currentBlock = chunk.getBlock(0);
+    uint16_t count = 0;
+    uint8_t nextBlock;
+    for (uint32_t block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE; block++) {
         nextBlock = chunk.getBlock(block);
@@ -62,7 +62,7 @@ void Compression::compressChunk(Packet<unsigned char,
     // Add skylight
     currentBlock = chunk.getSkyLight(0);
     count = 0;
-    for (unsigned int block = 1; block < constants::CHUNK_SIZE
+    for (uint32_t block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE; block++) {
         nextBlock = chunk.getSkyLight(block);
@@ -85,15 +85,15 @@ void Compression::compressChunk(Packet<unsigned char,
     compressedChunk.setPayloadLength(packetIndex);
 }
 
-void Compression::decompressChunk(Packet<unsigned char,
+void Compression::decompressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
     // Add blocks
-    unsigned int packetIndex = 12;
-    unsigned int blockNum = 0;
+    uint32_t packetIndex = 12;
+    uint32_t blockNum = 0;
     while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
-        unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)
-            + (unsigned int)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
+        uint32_t count = ((uint32_t)(compressedChunk[packetIndex + 1]) << 8)
+            + (uint32_t)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
         while (blockNum < count) {
             chunk.setBlockUnchecked(blockNum, compressedChunk[packetIndex]);
             blockNum++;
@@ -103,8 +103,8 @@ void Compression::decompressChunk(Packet<unsigned char,
     // Add skylight
     blockNum = 0;
     while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
-        unsigned int count = ((unsigned int)(compressedChunk[packetIndex + 1]) << 8)
-            + (unsigned int)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
+        uint32_t count = ((uint32_t)(compressedChunk[packetIndex + 1]) << 8)
+            + (uint32_t)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
         while (blockNum < count) {
             chunk.setSkyLight(blockNum, compressedChunk[packetIndex]);
             blockNum++;
@@ -113,11 +113,11 @@ void Compression::decompressChunk(Packet<unsigned char,
     }
 }
 
-void Compression::getChunkPosition(Packet<unsigned char,
+void Compression::getChunkPosition(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Position& position) {
     int chunkPosition[3];
-    unsigned int packetIndex = 0;
+    uint32_t packetIndex = 0;
     for (int i = 0; i < 3; i++) {
         chunkPosition[i] = 0;
         for (int shift = 24; shift >= 0; shift -= 8) {

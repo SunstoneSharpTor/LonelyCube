@@ -27,7 +27,7 @@ namespace client {
 class ComputeShader {
 private:
 	std::string m_filePath;
-	unsigned int m_rendererID;
+	uint32_t m_rendererID;
 	std::unordered_map<std::string, int> m_uniformLocationCache;
 public:
 	ComputeShader(const std::string& filePath);
@@ -44,8 +44,8 @@ public:
 	void setUniformVec3(const std::string& name, const glm::vec3& value);
 private:
 	std::string parseShader(const std::string& filePath);
-	unsigned int compileShader(const std::string& source);
-	unsigned int createShader(const std::string& shader);
+	uint32_t compileShader(const std::string& source);
+	uint32_t createShader(const std::string& shader);
 
 	int getUniformLocation(const std::string& name);
 };

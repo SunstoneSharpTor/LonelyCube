@@ -23,20 +23,20 @@
 
 namespace constants {
 
-constexpr unsigned short CHUNK_SIZE{ 32 };
+constexpr uint16_t CHUNK_SIZE{ 32 };
 
-constexpr unsigned int WORLD_BORDER_DISTANCE{ 128000 };
+constexpr uint32_t WORLD_BORDER_DISTANCE{ 128000 };
 
 //upper bound for world border distance as a multiple of CHUNK_SIZE
-constexpr unsigned int BORDER_DISTANCE_U_B{ (WORLD_BORDER_DISTANCE / CHUNK_SIZE + 1) * CHUNK_SIZE };
+constexpr uint32_t BORDER_DISTANCE_U_B{ (WORLD_BORDER_DISTANCE / CHUNK_SIZE + 1) * CHUNK_SIZE };
 
-constexpr unsigned char skyLightMaxValue{ 15 };
+constexpr uint8_t skyLightMaxValue{ 15 };
 
 constexpr int visualTPS{ 240 };
 
-constexpr unsigned int DAY_LENGTH{ 12000 };
+constexpr uint32_t DAY_LENGTH{ 12000 };
 
-constexpr unsigned int NUM_GROUND_LUMINANCE_POINTS{ 13 };
+constexpr uint32_t NUM_GROUND_LUMINANCE_POINTS{ 13 };
 constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
     // Time | Luminance
     1800.0f, 0.000025f,
@@ -63,7 +63,7 @@ constexpr float WIREFRAME_CUBE_FACE_POSITIONS[24] = { -0.001f, -0.001f, -0.001f,
                                                         1.001f,  1.001f, -0.001f,
                                                         -0.001f,  1.001f, -0.001f };
 
-constexpr unsigned int CUBE_WIREFRAME_IB[16] = { 0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7 };
+constexpr uint32_t CUBE_WIREFRAME_IB[16] = { 0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7 };
 
 }
 #endif

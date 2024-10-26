@@ -38,7 +38,7 @@ void receiveCommands(bool* running) {
     }
 }
 
-void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, char threadNum) {
+void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8_t threadNum) {
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
         Position chunkPosition;
@@ -58,18 +58,18 @@ int main (int argc, char** argv) {
         return 0;
     }
 
-    unsigned int worldSeed = std::time(0);
+    uint32_t worldSeed = std::time(0);
     ServerWorld<false> mainWorld(worldSeed);
     std::cout << "World Seed: " << worldSeed << std::endl;
 
-    unsigned char numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
+    uint8_t numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
     bool* chunkLoaderThreadsRunning = new bool[numChunkLoaderThreads];
     std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + numChunkLoaderThreads, true);
 
     bool running = true;
 
     std::thread* chunkLoaderThreads = new std::thread[numChunkLoaderThreads];
-    for (char threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
+    for (int8_t threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
         chunkLoaderThreads[threadNum] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
     }
 
@@ -87,7 +87,7 @@ int main (int argc, char** argv) {
 
     chunkLoaderThreadsRunning[0] = false;
 
-    for (char threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
+    for (int8_t threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
         chunkLoaderThreads[threadNum].join();
         chunkLoaderThreadsRunning[threadNum] = false;
     }

@@ -30,7 +30,7 @@
 
 using namespace client;
 
-void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char threadNum, int*
+void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, int8_t threadNum, int*
     numThreadsBeingUsed) {
     while (*running) {
         while (threadNum >= *numThreadsBeingUsed && *running) {
@@ -43,7 +43,7 @@ void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, char t
 }
 
 void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool*
-    running, char threadNum, int* numThreadsBeingUsed) {
+    running, int8_t threadNum, int* numThreadsBeingUsed) {
     while (*running) {
         while (threadNum >= *numThreadsBeingUsed && *running) {
             mainWorld.setThreadWaiting(threadNum, true);
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    unsigned int worldSeed = std::time(0);
+    uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     int numThreadsBeingUsed = mainWorld.getNumChunkLoaderThreads();
     
     std::unique_ptr<std::thread[]> chunkLoaderThreads = std::make_unique<std::thread[]>(mainWorld.getNumChunkLoaderThreads() - 1);
-    for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (int8_t threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         if (multiplayer) {
             chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer,
                 std::ref(mainWorld), std::ref(networking), &running, threadNum,
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
     }
     chunkLoaderThreadsRunning[0] = false;
 
-    for (char threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (int8_t threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
         chunkLoaderThreads[threadNum - 1].join();
         chunkLoaderThreadsRunning[threadNum] = false;
     }

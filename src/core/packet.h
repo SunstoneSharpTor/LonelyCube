@@ -26,49 +26,49 @@ enum PacketType {
     ClientConnection, ChunkSent, ClientPosition, BlockReplaced
 };
 
-template<typename T, unsigned int maxPayloadLength>
+template<typename T, uint32_t maxPayloadLength>
 class Packet {
 private:
-    unsigned short m_packetType;
-    unsigned short m_peerID;
-    unsigned int m_payloadLength;
+    uint16_t m_packetType;
+    uint16_t m_peerID;
+    uint32_t m_payloadLength;
     std::array<T, maxPayloadLength> m_payload;
 public:
-    Packet(int peerID, short packetType, short payloadLength) :
+    Packet(int peerID, int16_t packetType, int16_t payloadLength) :
     m_packetType(packetType), m_peerID(peerID), m_payloadLength(payloadLength) { }
 
     Packet() : m_payloadLength(0) {};
 
-    unsigned short getPeerID() const {
+    uint16_t getPeerID() const {
         return m_peerID;
     }
 
-    void setPeerID(const unsigned short peerID) {
+    void setPeerID(const uint16_t peerID) {
         m_peerID = peerID;
     }
 
-    unsigned short getPacketType() const {
+    uint16_t getPacketType() const {
         return m_packetType;
     }
 
-    unsigned int getPayloadLength() const {
+    uint32_t getPayloadLength() const {
         return m_payloadLength;
     }
 
-    void setPayloadLength(const unsigned int payloadLength) {
+    void setPayloadLength(const uint32_t payloadLength) {
         m_payloadLength = payloadLength;
     }
 
-    T operator[](const unsigned int index) const {
+    T operator[](const uint32_t index) const {
         return m_payload[index];
     }
 
-    T& operator[](const unsigned int index) {
+    T& operator[](const uint32_t index) {
         return m_payload[index];
     } 
 
-    unsigned int getSize() const {
-        constexpr unsigned int baseSize = sizeof(Packet<T, 1>) - sizeof(T);
+    uint32_t getSize() const {
+        constexpr uint32_t baseSize = sizeof(Packet<T, 1>) - sizeof(T);
         return baseSize + m_payloadLength * sizeof(T);
     }
 

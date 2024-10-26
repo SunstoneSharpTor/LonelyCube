@@ -32,7 +32,7 @@ private:
     ClientNetworking& m_networking;
     int* m_frameTime;
 
-    float calculateBrightness(const float* points, unsigned int numPoints, unsigned int time);
+    float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time);
 public:
     RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
     mainPlayer, ClientNetworking& networking, int* frameTime) : m_mainWorld(mainWorld),

@@ -76,13 +76,13 @@ public:
     int cameraBlockPosition[3];
     bool zoom;
 
-    unsigned short m_blockHolding;
+    uint16_t m_blockHolding;
 
     ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
 
-    void setWorldMouseData(SDL_Window* window, unsigned int* windowDimensions);
+    void setWorldMouseData(SDL_Window* window, uint32_t* windowDimensions);
 
-    void processUserInput(SDL_Window* sdl_window, unsigned int* windowDimensions, bool*
+    void processUserInput(SDL_Window* sdl_window, uint32_t* windowDimensions, bool*
       windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 

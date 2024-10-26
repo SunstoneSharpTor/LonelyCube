@@ -35,7 +35,7 @@ Config::Config(std::filesystem::path settingsPath) {
         std::getline(lineStream, field, ':');
         std::getline(lineStream, value, ':');
         std::transform(field.begin(), field.end(), field.begin(),
-            [](unsigned char c){ return std::tolower(c); });
+            [](uint8_t c){ return std::tolower(c); });
         if (field == "renderdistance") {
             m_renderDistance = std::stoi(value);
         }
@@ -45,7 +45,7 @@ Config::Config(std::filesystem::path settingsPath) {
         if (field == "multiplayer") {
             value.erase(std::remove_if(value.begin(), value.end(), isspace), value.end());
             std::transform(value.begin(), value.end(), value.begin(),
-                [](unsigned char c){ return std::tolower(c); });
+                [](uint8_t c){ return std::tolower(c); });
             if (value == "true") {
                 m_multiplayer = true;
             }

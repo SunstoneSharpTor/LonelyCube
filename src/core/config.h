@@ -22,12 +22,12 @@
 
 class Config {
 private:
-    unsigned short m_renderDistance;
+    uint16_t m_renderDistance;
     std::string m_serverIP;
     bool m_multiplayer;
 public:
     Config(std::filesystem::path settingsPath);
-    unsigned short getRenderDistance() const {
+    uint16_t getRenderDistance() const {
         return m_renderDistance;
     }
     std::string& getServerIP() {
