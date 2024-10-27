@@ -138,7 +138,7 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_
 {
     if (direction == 6)
     {
-        return m_serverWorld.getSkyLight(blockCoords) / 15.0f;
+        return (float)m_serverWorld.getSkyLight(blockCoords) / constants::skyLightMaxValue;
     }
     else
     {
@@ -172,7 +172,7 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
-        return brightness / transparrentBlocks / 15.0f;
+        return brightness / transparrentBlocks / constants::skyLightMaxValue;
     }
 }
 
@@ -180,7 +180,7 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
 {
     if (direction == 6)
     {
-        return m_serverWorld.getBlockLight(blockCoords) / 15.0f;
+        return (float)m_serverWorld.getBlockLight(blockCoords) / constants::blockLightMaxValue;
     }
     else
     {
@@ -214,7 +214,7 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
-        return brightness / transparrentBlocks / 15.0f;
+        return brightness / transparrentBlocks / constants::blockLightMaxValue;
     }
 }
 
