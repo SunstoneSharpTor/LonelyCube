@@ -32,6 +32,8 @@ constexpr uint32_t BORDER_DISTANCE_U_B{ (WORLD_BORDER_DISTANCE / CHUNK_SIZE + 1)
 
 constexpr uint8_t skyLightMaxValue{ 15 };
 
+constexpr uint8_t blockLightMaxValue{ 15 };
+
 constexpr int visualTPS{ 240 };
 
 constexpr uint32_t DAY_LENGTH{ 12000 };

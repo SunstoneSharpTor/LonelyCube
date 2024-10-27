@@ -29,9 +29,12 @@ private:
     std::array<int16_t, constants::CHUNK_SIZE> m_layerBlockTypes;
     std::array<uint8_t*, constants::CHUNK_SIZE> m_skyLight;
     std::array<uint8_t, constants::CHUNK_SIZE> m_layerSkyLightValues;
+    std::array<uint8_t*, constants::CHUNK_SIZE> m_blockLight;
+    std::array<uint8_t, constants::CHUNK_SIZE> m_layerBlockLightValues;
     bool m_skyLightUpToDate;
+    bool m_blockLightUpToDate;
     uint16_t m_playerCount; // The number of players that are rendering this chunk
-    int m_position[3]; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
+    Position m_position; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_calculatingSkylight;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
@@ -116,28 +119,65 @@ public:
         }
         return m_layerSkyLightValues[layerNum];
     }
+
+    inline uint8_t getBlockLight(const uint32_t block) const {
+        uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+        if (m_layerBlockLightValues[layerNum] == constants::blockLightMaxValue + 1) {
+            return (m_blockLight[layerNum][block % (constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE) / 2] >> (4 * (block % 2))) & 0b1111;
+        }
+        return m_layerBlockLightValues[layerNum];
+    }
     
     void setSkyLight(uint32_t block, uint8_t value);
+    
+    void setBlockLight(uint32_t block, uint8_t value);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;
+    }
+
+    inline void setBlockLightToBeOutdated() {
+        m_blockLightUpToDate = false;
     }
 
     inline void setSkyLightToBeUpToDate() {
         m_skyLightUpToDate = true;
     }
 
-    inline bool isSkylightUpToDate() {
+    inline void setBlockLightToBeUpToDate() {
+        m_blockLightUpToDate = true;
+    }
+
+    inline bool isSkyLightUpToDate() {
         return m_skyLightUpToDate;
     }
 
-    inline bool isSkyBeingRelit() {
+    inline bool isBlockLightUpToDate() {
+        return m_blockLightUpToDate;
+    }
+
+    inline bool isSkyLightBeingRelit() {
         return m_calculatingSkylight;
     }
 
-    inline void setSkylightBeingRelit(bool val) {
+    inline void setSkyLightBeingRelit(bool val) {
         m_calculatingSkylight = val;
     }
+    
+    void clearSkyLight();
+    
+    void clearBlockLight();
+
+    void clearBlocksAndLight();
+
+    void compressBlocksAndLight();
+
+    void compressSkyLight();
+
+    void compressBlockLight();
+
+    void uncompressBlocksAndLight();
 
     inline void incrementPlayerCount() {
         m_playerCount++;
@@ -158,14 +198,4 @@ public:
     inline uint16_t getLayerBlockType(uint32_t layerNum) {
         return m_layerBlockTypes[layerNum];
     }
-    
-    void clearSkyLight();
-
-    void clearBlocksAndLight();
-
-    void compressBlocksAndLight();
-
-    void compressSkyLight();
-
-    void uncompressBlocksAndLight();
 };

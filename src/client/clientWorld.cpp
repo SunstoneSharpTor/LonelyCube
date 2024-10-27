@@ -495,19 +495,19 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                     m_unmeshedChunks.erase(chunkPosition);
                     m_unmeshedChunksMtx.unlock();
                     Chunk& chunk = m_integratedServer.getChunk(chunkPosition);
-                    if (!chunk.isSkylightUpToDate()) {
+                    if (!chunk.isSkyLightUpToDate()) {
                         Chunk::s_checkingNeighbouringRelights.lock();
                         bool neighbourBeingRelit = true;
                         while (neighbourBeingRelit) {
                             neighbourBeingRelit = false;
                             for (uint32_t i = 0; i < 6; i++) {
-                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyBeingRelit();
+                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyLightBeingRelit();
                             }
                             if (neighbourBeingRelit) {
                                 std::this_thread::sleep_for(std::chrono::microseconds(100));
                             }
                         }
-                        chunk.setSkylightBeingRelit(true);
+                        chunk.setSkyLightBeingRelit(true);
                         chunk.clearSkyLight();
                         bool neighbouringChunksToRelight[6];
                         bool chunksToRemesh[7];
@@ -515,7 +515,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                             getWorldChunks(), neighbouringChunksToRelight, chunksToRemesh,
                             m_integratedServer.getResourcePack());
                         chunk.setSkyLightToBeUpToDate();
-                        chunk.setSkylightBeingRelit(false);
+                        chunk.setSkyLightBeingRelit(false);
                     }
                     addChunkMesh(chunkPosition, threadNum);
                     m_unmeshedChunksMtx.lock();
