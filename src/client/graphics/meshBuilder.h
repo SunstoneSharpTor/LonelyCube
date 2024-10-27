@@ -52,6 +52,8 @@ private:
 
     float getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_t direction);
 
+    float getSmoothBlockLight(int* blockCoords, float* pointCoords, int8_t direction);
+
     void addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceNum);
 
     inline void findBlockCoordsInChunk(int* blockPos, uint32_t block) {

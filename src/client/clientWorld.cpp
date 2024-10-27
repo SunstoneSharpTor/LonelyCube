@@ -577,7 +577,7 @@ void ClientWorld::replaceBlock(const Position& blockCoords, uint8_t blockType) {
     chunkPosition.y = std::floor((float)blockCoords.y / constants::CHUNK_SIZE);
     chunkPosition.z = std::floor((float)blockCoords.z / constants::CHUNK_SIZE);
     
-    std::cout << (uint32_t)m_integratedServer.getSkyLight(blockCoords) << " light level\n";
+    std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
     uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
     m_integratedServer.setBlock(blockCoords, blockType);
 
@@ -624,7 +624,6 @@ void ClientWorld::processMouseInput() {
     SDL_PumpEvents();
     Uint32 mouseState = SDL_GetMouseState(&localCursorPosition[0], &localCursorPosition[1]);
 
-    //mouse input
     if (*m_playing) {
         if (*m_lastPlaying) {
             *m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;

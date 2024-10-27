@@ -82,6 +82,7 @@ public:
     uint8_t getBlock(const Position& position) const;
     void setBlock(const Position& position, uint8_t blockType);
     uint8_t getSkyLight(const Position& position) const;
+    uint8_t getBlockLight(const Position& position) const;
     inline Chunk& getChunk(const Position& chunkPosition) {
         return m_chunks.at(chunkPosition);
     }
@@ -355,7 +356,6 @@ void ServerWorld<integrated>::setBlock(const Position& position, uint8_t blockTy
     chunkIterator->second.setBlock(chunkBlockNum, blockType);
 }
 
-
 template<bool integrated>
 uint8_t ServerWorld<integrated>::getSkyLight(const Position& position) const {
     Position chunkPosition;
@@ -379,6 +379,31 @@ uint8_t ServerWorld<integrated>::getSkyLight(const Position& position) const {
     }
 
     return chunkIterator->second.getSkyLight(chunkBlockNum);
+}
+
+template<bool integrated>
+uint8_t ServerWorld<integrated>::getBlockLight(const Position& position) const {
+    Position chunkPosition;
+    Position chunkBlockCoords;
+    chunkPosition.x = std::floor((float)position.x / constants::CHUNK_SIZE);
+    chunkPosition.y = std::floor((float)position.y / constants::CHUNK_SIZE);
+    chunkPosition.z = std::floor((float)position.z / constants::CHUNK_SIZE);
+    // chunkPosition.x = -1 * (position.x < 0) + position.x / constants::CHUNK_SIZE;
+    // chunkPosition.y = -1 * (position.y < 0) + position.y / constants::CHUNK_SIZE;
+    // chunkPosition.z = -1 * (position.z < 0) + position.z / constants::CHUNK_SIZE;
+    chunkBlockCoords.x = position.x - chunkPosition.x * constants::CHUNK_SIZE;
+    chunkBlockCoords.y = position.y - chunkPosition.y * constants::CHUNK_SIZE;
+    chunkBlockCoords.z = position.z - chunkPosition.z * constants::CHUNK_SIZE;
+    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
+
+    auto chunkIterator = m_chunks.find(chunkPosition);
+
+    if (chunkIterator == m_chunks.end()) {
+        return 0;
+    }
+
+    return chunkIterator->second.getBlockLight(chunkBlockNum);
 }
 
 template<bool integrated>
