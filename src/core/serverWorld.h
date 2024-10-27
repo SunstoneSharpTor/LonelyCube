@@ -354,6 +354,7 @@ void ServerWorld<integrated>::setBlock(const Position& position, uint8_t blockTy
     }
 
     chunkIterator->second.setBlock(chunkBlockNum, blockType);
+    chunkIterator->second.compressBlocks();
 }
 
 template<bool integrated>

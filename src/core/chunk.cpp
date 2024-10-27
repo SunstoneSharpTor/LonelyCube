@@ -219,6 +219,27 @@ void Chunk::setBlockLight(uint32_t block, uint8_t value)
     }
 }
 
+void Chunk::compressBlocks()
+{
+    for (uint32_t layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
+    {
+        if (m_layerBlockTypes[layerNum] == 256)
+        {
+            bool simpleLayer = true;
+            for (uint32_t blockNum = 1; blockNum < constants::CHUNK_SIZE *
+                constants::CHUNK_SIZE && simpleLayer; blockNum++)
+            {
+                simpleLayer &= m_blocks[layerNum][blockNum] == m_blocks[layerNum][0];
+            }
+            if (simpleLayer)
+            {
+                m_layerBlockTypes[layerNum] = m_blocks[layerNum][0];
+                delete[] m_blocks[layerNum];
+            }
+        }
+    }
+}
+
 void Chunk::compressSkyLight()
 {
     for (uint32_t layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
@@ -263,23 +284,7 @@ void Chunk::compressBlockLight()
 
 void Chunk::compressBlocksAndLight()
 {
-    for (uint32_t layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
-    {
-        if (m_layerBlockTypes[layerNum] == 256)
-        {
-            bool simpleLayer = true;
-            for (uint32_t blockNum = 1; blockNum < constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE && simpleLayer; blockNum++)
-            {
-                simpleLayer &= m_blocks[layerNum][blockNum] == m_blocks[layerNum][0];
-            }
-            if (simpleLayer)
-            {
-                m_layerBlockTypes[layerNum] = m_blocks[layerNum][0];
-                delete[] m_blocks[layerNum];
-            }
-        }
-    }
+    compressBlocks();
     compressSkyLight();
     compressBlockLight();
 }

@@ -171,11 +171,13 @@ public:
 
     void clearBlocksAndLight();
 
-    void compressBlocksAndLight();
+    void compressBlocks();
 
     void compressSkyLight();
 
     void compressBlockLight();
+
+    void compressBlocksAndLight();
 
     void uncompressBlocksAndLight();
 
