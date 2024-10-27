@@ -71,8 +71,10 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
             }
             m_waterVertices[*m_numWaterVertices] = texCoords[vertex * 2];
             m_waterVertices[*m_numWaterVertices + 1] = texCoords[vertex * 2 + 1];
-            m_waterVertices[*m_numWaterVertices + 2] = getSmoothSkyLight(worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock);
-            m_waterVertices[*m_numWaterVertices + 3] = 1.0f;
+            m_waterVertices[*m_numWaterVertices + 2] = getSmoothSkyLight(worldBlockPos,
+                faceData.coords + vertex * 3, faceData.lightingBlock);
+            m_waterVertices[*m_numWaterVertices + 3] = getSmoothBlockLight(worldBlockPos,
+                faceData.coords + vertex * 3, faceData.lightingBlock);
             (*m_numWaterVertices) += 4;
         }
 
@@ -99,10 +101,12 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
             }
             m_vertices[*m_numVertices] = texCoords[vertex * 2];
             m_vertices[*m_numVertices + 1] = texCoords[vertex * 2 + 1];
+            float ambientOcclusion = getAmbientOcclusion(worldBlockPos, faceData.coords + vertex *
+                3, faceData.lightingBlock);
             m_vertices[*m_numVertices + 2] = getSmoothSkyLight(worldBlockPos, faceData.coords +
-                vertex * 3, faceData.lightingBlock) * getAmbientOcclusion(worldBlockPos,
-                faceData.coords + vertex * 3, faceData.lightingBlock);
-            m_vertices[*m_numVertices + 3] = 1.0f;
+                vertex * 3, faceData.lightingBlock) * ambientOcclusion;
+            m_vertices[*m_numVertices + 3] = getSmoothBlockLight(worldBlockPos, faceData.coords +
+                vertex * 3, faceData.lightingBlock) * ambientOcclusion;
             (*m_numVertices) += 4;
         }
 
@@ -165,6 +169,48 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_
             bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
                 m_serverWorld.getBlock(testBlockCoords)).transparent;
             brightness += m_serverWorld.getSkyLight(testBlockCoords) * transparrentBlock;
+            transparrentBlocks += transparrentBlock;
+            numEdgesBlocked += !transparrentBlock * edges[i];
+        }
+        return brightness / transparrentBlocks / 15.0f;
+    }
+}
+
+float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int8_t direction)
+{
+    if (direction == 6)
+    {
+        return m_serverWorld.getBlockLight(blockCoords) / 15.0f;
+    }
+    else
+    {
+        const int mask1[4] = { 0, 1, 0, 1 };
+        const int mask2[4] = { 0, 0, 1, 1 };
+        const int edges[4] = { 0, 1, 1, 0 };
+
+        int cornerOffset[3];
+        for (int8_t i = 0; i < 3; i++)
+        {
+            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+        }
+
+        int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction]
+            != 0);
+        int unfixed1 = fixed == 0;
+        int unfixed2 = 2 - (fixed == 2);
+
+        int testBlockCoords[3];
+        testBlockCoords[fixed] = blockCoords[fixed] + (direction > 2) * 2 - 1;
+        float brightness = 0;
+        int transparrentBlocks = 0;
+        int numEdgesBlocked = 0;
+        for (int8_t i = 0; i < 4 && numEdgesBlocked < 2; i++)
+        {
+            testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
+            testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
+            bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
+                m_serverWorld.getBlock(testBlockCoords)).transparent;
+            brightness += m_serverWorld.getBlockLight(testBlockCoords) * transparrentBlock;
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }

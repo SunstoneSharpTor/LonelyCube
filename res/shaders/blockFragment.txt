@@ -23,7 +23,8 @@ precision highp float;
 layout(location = 0) out vec4 colour;
 
 in vec2 v_texCoord;
-in float v_brightness;
+in float v_skyBrightness;
+in float v_blockBrightness;
 in float v_visibility;
 
 uniform sampler2D u_blockTextures;
@@ -36,7 +37,8 @@ void main() {
     if(texColour.a <= 252.4f/255.0f) {
         discard;
     }
-    vec4 texColourWithAlpha = texColour * v_brightness;
+    vec4 texColourWithAlpha = texColour * v_skyBrightness;
+    texColourWithAlpha += texColour * v_blockBrightness;
     texColourWithAlpha[3] = 1.0;
     texColourWithAlpha = mix(skyColour, texColourWithAlpha, v_visibility);
     colour = texColourWithAlpha;
