@@ -59,13 +59,36 @@ void Compression::compressChunk(Packet<uint8_t,
     compressedChunk[packetIndex + 1] = count >> 8;
     compressedChunk[packetIndex + 2] = count;
     packetIndex += 3;
-    // Add skylight
+    // Add sky light
     currentBlock = chunk.getSkyLight(0);
     count = 0;
     for (uint32_t block = 1; block < constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE
                                        * constants::CHUNK_SIZE; block++) {
         nextBlock = chunk.getSkyLight(block);
+        if ((nextBlock == currentBlock) && (count < 65535)) {
+            count++;
+        }
+        else {
+            compressedChunk[packetIndex] = currentBlock;
+            compressedChunk[packetIndex + 1] = count >> 8;
+            compressedChunk[packetIndex + 2] = count;
+            packetIndex += 3;
+            currentBlock = nextBlock;
+            count = 0;
+        }
+    }
+    compressedChunk[packetIndex] = currentBlock;
+    compressedChunk[packetIndex + 1] = count >> 8;
+    compressedChunk[packetIndex + 2] = count;
+    packetIndex += 3;
+    // Add block light
+    currentBlock = chunk.getBlockLight(0);
+    count = 0;
+    for (uint32_t block = 1; block < constants::CHUNK_SIZE
+                                       * constants::CHUNK_SIZE
+                                       * constants::CHUNK_SIZE; block++) {
+        nextBlock = chunk.getBlockLight(block);
         if ((nextBlock == currentBlock) && (count < 65535)) {
             count++;
         }
@@ -100,13 +123,24 @@ void Compression::decompressChunk(Packet<uint8_t,
         }
         packetIndex += 3;
     }
-    // Add skylight
+    // Add sky light
     blockNum = 0;
     while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
         uint32_t count = ((uint32_t)(compressedChunk[packetIndex + 1]) << 8)
             + (uint32_t)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
         while (blockNum < count) {
             chunk.setSkyLight(blockNum, compressedChunk[packetIndex]);
+            blockNum++;
+        }
+        packetIndex += 3;
+    }
+    // Add block light
+    blockNum = 0;
+    while (blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE) {
+        uint32_t count = ((uint32_t)(compressedChunk[packetIndex + 1]) << 8)
+            + (uint32_t)(compressedChunk[packetIndex + 2]) + 1 + blockNum;
+        while (blockNum < count) {
+            chunk.setBlockLight(blockNum, compressedChunk[packetIndex]);
             blockNum++;
         }
         packetIndex += 3;
