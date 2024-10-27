@@ -564,20 +564,6 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
                                                Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2]),
                                                Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1),
                                                Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2]) };
-    if (!chunk.isSkyLightBeingRelit()) {
-        Chunk::s_checkingNeighbouringRelights.lock();
-        bool neighbourBeingRelit = true;
-        while (neighbourBeingRelit) {
-            neighbourBeingRelit = false;
-            for (uint32_t i = 0; i < 6; i++) {
-                neighbourBeingRelit |= worldChunks.at(neighbouringChunkPositions[i]).isSkyLightBeingRelit();
-            }
-            if (neighbourBeingRelit) {
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
-            }
-        }
-    }
-    Chunk::s_checkingNeighbouringRelights.unlock();
 
     std::queue<uint32_t> lightQueue;
     // Add the the updated block to the light queue if it has been provided
