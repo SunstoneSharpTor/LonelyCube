@@ -31,8 +31,7 @@ const int16_t MeshBuilder::s_neighbouringBlocksY[7] = { -1, 0, 0, 0, 0, 1,  0 };
 
 const int16_t MeshBuilder::s_neighbouringBlocksZ[7] = { 0, -1, 0, 0, 1, 0,  0 };
 
-MeshBuilder::MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, unsigned
-    int* numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
+MeshBuilder::MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t* numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
     uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices)
     : m_chunk(chunk), m_serverWorld(serverWorld), m_vertices(vertices),
     m_numVertices(numVertices), m_indices(indices), m_numIndices(numIndices),
