@@ -26,16 +26,30 @@
 
 class Lighting {
 public:
-    // Propagates the skylight through the chunk
+    // Propagates the sky light through the chunk
     static void propagateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
-    // Propagates the absence of skylight through the chunk
+
+    // Propagates the block light through the chunk
+    static void propagateBlockLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
+        worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
+        resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE);
+
+    // Propagates the absence of sky light through the chunk
     static void propagateSkyDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
+
+    // Propagates the absence of block light through the chunk
+    static void propagateBlockDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
+        worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, ResourcePack&
+        resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
+        constants::CHUNK_SIZE);
+
     // Recalculate all necessary lighting information for a block change
 	static void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
 		uint8_t originalBlock, uint8_t newBlock, std::vector<Position>& chunksToRemesh,
