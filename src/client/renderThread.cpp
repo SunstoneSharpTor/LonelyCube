@@ -454,7 +454,7 @@ void RenderThread::go(bool* running) {
             #else
             float luminanceVal = groundLuminance / 10;
             #endif
-            float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.0025f));
+            float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.003f));
             exposureTimeByDTs += actualDT;
             while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
                 float fac = 0.008;
