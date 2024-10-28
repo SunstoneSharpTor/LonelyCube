@@ -51,12 +51,14 @@ struct MeshData {
 
 class ClientWorld {
 private:
-	static const inline std::array<Position, 6> s_neighbouringChunkOffsets = { Position(0, -1, 0),
+	static const inline std::array<Position, 6> s_neighbouringChunkOffsets = {
+		Position(0, -1, 0),
         Position(0, 0, -1),
         Position(-1, 0, 0),
         Position(1, 0, 0),
         Position(0, 0, 1),
-        Position(0, 1, 0) };
+        Position(0, 1, 0)
+	};
 
 	bool m_singleplayer;
 	uint16_t m_renderDistance;
