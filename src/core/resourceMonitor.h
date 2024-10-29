@@ -20,31 +20,4 @@
 
 #include <thread>
 
-#ifdef _WIN32
-#include <windows.h>
-
-double getThreadCPUTime(std::thread& thread) {
-    HANDLE threadHandle = thread.native_handle();
-    FILETIME creationTime, exitTime, kernelTime, userTime;
-    if (GetThreadTimes(threadHandle, &creationTime, &exitTime, &kernelTime, &userTime)) {
-        ULARGE_INTEGER kernel, user;
-        kernel.LowPart = kernelTime.dwLowDateTime;
-        kernel.HighPart = kernelTime.dwHighDateTime;
-        user.LowPart = userTime.dwLowDateTime;
-        user.HighPart = userTime.dwHighDateTime;
-        return (kernel.QuadPart + user.QuadPart) / 1e7;  // Convert to seconds
-    }
-    return -1.0;
-}
-#elif __linux__
-#include <time.h>
-
-double getThreadCPUTime(std::thread& thread) {
-    auto thread_id = thread.native_handle();
-    struct timespec ts;
-    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
-        return ts.tv_sec + ts.tv_nsec / 1e9;  // Convert to seconds
-    }
-    return -1.0;
-}
-#endif
+double getThreadCPUTime(std::thread& thread);

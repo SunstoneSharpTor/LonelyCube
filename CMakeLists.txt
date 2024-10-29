@@ -40,6 +40,7 @@ set(CLIENT_SOURCE_FILES
     src/core/serverPlayer.cpp
     src/core/random.cpp
     src/core/resourcePack.cpp
+    src/core/resourceMonitor.cpp
     src/core/terrainGen.cpp
     src/core/threadManager.cpp)
 
@@ -54,6 +55,7 @@ set(SERVER_SOURCE_FILES
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
+    src/core/resourceMonitor.cpp
     src/core/resourcePack.cpp
     src/core/terrainGen.cpp
     src/core/threadManager.cpp
