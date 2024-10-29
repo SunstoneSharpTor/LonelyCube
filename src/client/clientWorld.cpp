@@ -342,7 +342,6 @@ bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
             return false;
         }
     }
-
     return true;
 }
 
@@ -411,9 +410,9 @@ void ClientWorld::addChunkMesh(const Position& chunkPosition, int8_t threadNum) 
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);
         }
-
         return;
     }
+    
     //wait for the render thread to upload the mesh to the GPU
     m_chunkPosition[threadNum] = chunkPosition;
     m_chunkMeshReady[threadNum] = true;
