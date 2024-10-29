@@ -22,7 +22,8 @@ layout(location = 2) in float skyLightLevel;
 layout(location = 3) in float blockLightLevel;
 
 out vec2 v_texCoord;
-out float v_brightness;
+out float v_skyBrightness;
+out float v_blockBrightness;
 out float v_visibility;
 
 uniform mat4 u_modelView;
@@ -33,6 +34,7 @@ uniform float u_skyLightIntensity;
 const float fogStart = 0.4;
 const float fogDensity = 1.85;
 const float minDarknessAmbientLight = 0.00002;
+const float blockLightIntensity = 0.04;
 
 void main() {
     float maxDarknessAmbientLight = min(0.001f, u_skyLightIntensity);
@@ -42,10 +44,14 @@ void main() {
     v_texCoord = texCoord;
     float factor = skyLightLevel * skyLightLevel * skyLightLevel;
     //factor *= factor;
-    v_brightness = u_skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0)
+    v_skyBrightness = u_skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0)
         * factor + maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) *
         45.0) * (1.0 - factor);
-    v_brightness = max(v_brightness, minDarknessAmbientLight);
+    v_skyBrightness = max(v_skyBrightness, minDarknessAmbientLight);
+    factor = blockLightLevel * blockLightLevel;
+    v_blockBrightness = blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0)
+        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) *
+        45.0) * (1.0 - factor);
 
     float distance = length(positionRelativeToCam.xyz);
     float normalisedDistance = clamp(distance - u_renderDistance * fogStart, 0.0f, u_renderDistance

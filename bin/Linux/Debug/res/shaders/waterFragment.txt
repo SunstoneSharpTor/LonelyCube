@@ -23,16 +23,20 @@ precision highp float;
 layout(location = 0) out vec4 colour;
 
 in vec2 v_texCoord;
-in float v_brightness;
+in float v_skyBrightness;
+in float v_blockBrightness;
 in float v_visibility;
 
 uniform sampler2D u_blockTextures;
 uniform sampler2D u_skyTexture;
 
+const vec4 BLOCK_LIGHT_COLOUR = vec4(1.0, 0.839, 0.631, 1.0);
+
 void main() {
     vec4 skyColour = texture(u_skyTexture, gl_FragCoord.xy / vec2(textureSize(u_skyTexture, 0)));
     
     vec4 texColour = texture(u_blockTextures, v_texCoord);
-    texColour = vec4(texColour.rgb * v_brightness, texColour.a);
-    colour = mix(skyColour, texColour, v_visibility);
+    vec4 texColourWithLight = vec4(texColour.rgb * v_skyBrightness, texColour.a);
+    texColourWithLight += texColour * v_blockBrightness * BLOCK_LIGHT_COLOUR;
+    colour = mix(skyColour, texColourWithLight, v_visibility);
 };
