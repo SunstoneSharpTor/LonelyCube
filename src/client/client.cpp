@@ -56,10 +56,6 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
     }
 }
 
-void manageThreads(int numChunkLoaderThreads, int& numThreadsBeingUsed) {
-
-}
-
 int main(int argc, char* argv[]) {
     Config settings("res/settings.txt");
 
@@ -89,16 +85,16 @@ int main(int argc, char* argv[]) {
 
     std::thread renderWorker(&RenderThread::go, renderThread, &running);
     
-    ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads() - 1);
-    for (int8_t threadNum = 0; threadNum < threadManager.getNumThreads(); threadNum++) {
+    ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads(), renderWorker);
+    for (int8_t threadNum = 1; threadNum < threadManager.getNumThreads(); threadNum++) {
         if (multiplayer) {
             threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadMultiplayer,
-                std::ref(mainWorld), std::ref(networking), std::ref(running), threadNum + 1,
+                std::ref(mainWorld), std::ref(networking), std::ref(running), threadNum,
                 std::ref(threadManager.getNumThreadsBeingUsed()));
         }
         else {
             threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadSingleplayer,
-                std::ref(mainWorld), std::ref(running), threadNum + 1,
+                std::ref(mainWorld), std::ref(running), threadNum,
                 std::ref(threadManager.getNumThreadsBeingUsed()));
         }
     }
@@ -110,7 +106,7 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                //manageThreads(mainWorld.getNumChunkLoaderThreads(), numThreadsBeingUsed);
+                threadManager.throttleThreads();
                 
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
@@ -130,7 +126,7 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                //manageThreads(mainWorld.getNumChunkLoaderThreads(), numThreadsBeingUsed);
+                threadManager.throttleThreads();
                 mainWorld.tick();
                 nextTick += std::chrono::milliseconds(100);
             }

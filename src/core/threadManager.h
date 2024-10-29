@@ -26,15 +26,20 @@ class ThreadManager
     private:
         int m_numThreads;
         int m_numThreadsBeingUsed;
+        std::chrono::time_point<std::chrono::_V2::steady_clock,
+            std::chrono::_V2::steady_clock::duration> m_lastTimePoint;
+        double m_lastCPUTimePoint;
+        std::thread& m_threadToBeTimed;
         std::unique_ptr<std::thread[]> m_threads;
     
     public:
-        ThreadManager(int numThreads);
+        ThreadManager(int numThreads, std::thread& threadToBeTimed);
+        void throttleThreads();
         void joinThreads();
-        
+
         std::thread& getThread(int threadNum)
         {
-            return m_threads[threadNum];
+            return m_threads[threadNum - 1];
         }
         int getNumThreads()
         {
