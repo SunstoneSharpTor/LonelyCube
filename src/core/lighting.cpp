@@ -832,293 +832,141 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
     BlockData oldBlockData = resourcePack.getBlockData(originalBlock);
     BlockData newBlockData = resourcePack.getBlockData(newBlock);
 
-    // Sky light
-    // Determine whether light or darkness needs to be propagated for sky light (or both)
-    bool darken = (oldBlockData.transparent && !newBlockData.transparent) ||
-        ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
-    bool lighten = (!oldBlockData.transparent && newBlockData.transparent) ||
-        (oldBlockData.dimsLight && !newBlockData.dimsLight);
-    std::vector<Position> relitChunks;
-    int numChunksLightened = 0;
-    int numChunksDarkened = 0;
-    int numSpreads = 0;
-    if (lighten) {
-        // Add the chunk containing the modified block to the vector
-        std::vector<Position> chunksToBeRelit;
-        chunksToBeRelit.emplace_back(chunkPosition);
-        while (chunksToBeRelit.size() > 0) {
-            if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
-                relitChunks.push_back(chunksToBeRelit[0]);
-            }
-            bool neighbouringChunksToRelight[6];
-            bool neighbouringChunksToRemesh[6];
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            //check that the chunk has its neighbours loaded so that it can be lit
-            for (int8_t ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
-                std::vector<Position>::iterator it = chunksToBeRelit.begin();
-                chunksToBeRelit.erase(it);
-                continue;
-            }
-            
-            if (numChunksLightened == 0) {
-                propagateSkyLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack, modifiedBlockNum);
-            }
-            else {
-                propagateSkyLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack);
-            }
-            // Add the current chunk to the chunksToBeRemeshed
-            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
-                chunksToRemesh.push_back(chunksToBeRelit[0]);
-            }
-            // Add relevant neighbouring chunks to the chunksToBeRemeshed
-            for (int8_t i = 0; i < 6; i++) {
-                if (neighbouringChunksToRemesh[i]) {
-                    Position chunkToBeRemeshed = chunksToBeRelit[0];
-                    chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
-                    if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
-                        chunksToRemesh.push_back(chunkToBeRemeshed);
-                    }
-                }
-            }
-            std::vector<Position>::iterator it = chunksToBeRelit.begin();
-            chunksToBeRelit.erase(it);
-            //add the neighbouring chunks that were marked as needing recalculating to the queue
-            for (int8_t i = 0; i < 6; i++) {
-                if (!neighbouringChunksToRelight[i]) {
-                    continue;
-                }
-                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
-                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
-                    numSpreads++;
-                }
-            }
-            numChunksLightened++;
+    // j = 0 represents sky lighting and j = 1 represents block lighting
+    for (int j = 0; j < 2; j++) {
+        bool darken, lighten;
+        if (j == 0)
+        {
+            // Determine whether light or darkness needs to be propagated for sky light (or both)
+            darken = (oldBlockData.transparent && !newBlockData.transparent) ||
+                ((!oldBlockData.dimsLight && oldBlockData.transparent) && newBlockData.dimsLight);
+            lighten = (!oldBlockData.transparent && newBlockData.transparent) ||
+                (oldBlockData.dimsLight && !newBlockData.dimsLight);
         }
-    }
-    if (darken) {
-        // Add the chunk containing the modified block to the vector
-        std::vector<Position> chunksToBeRelit;
-        chunksToBeRelit.emplace_back(chunkPosition);
-        while (chunksToBeRelit.size() > 0) {
-            if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
-                relitChunks.push_back(chunksToBeRelit[0]);
-            }
-            bool neighbouringChunksToRelight[6];
-            bool neighbouringChunksToRemesh[7];
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            // Check that the chunk has its neighbours loaded so that it can be lit
-            for (int8_t ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            // If the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
-                std::vector<Position>::iterator it = chunksToBeRelit.begin();
-                chunksToBeRelit.erase(it);
-                continue;
-            }
-            
-            if (numChunksDarkened == 0) {
-                propagateSkyDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack, modifiedBlockNum);
-            }
-            else {
-                propagateSkyDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack);
-            }
-            // Add the current chunk to the chunksToBeRemeshed
-            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
-                chunksToRemesh.push_back(chunksToBeRelit[0]);
-            }
-            // Add relevant neighbouring chunks to the chunksToBeRemeshed
-            for (int8_t i = 0; i < 6; i++) {
-                if (neighbouringChunksToRemesh[i]) {
-                    Position chunkToBeRemeshed = chunksToBeRelit[0];
-                    chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
-                    if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
-                        chunksToRemesh.push_back(chunkToBeRemeshed);
-                    }
-                }
-            }
-            std::vector<Position>::iterator it = chunksToBeRelit.begin();
-            chunksToBeRelit.erase(it);
-            // Add the neighbouring chunks that were marked as needing recalculating to the queue
-            for (int8_t i = 0; i < 6; i++) {
-                if (!neighbouringChunksToRelight[i]) {
-                    continue;
-                }
-                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
-                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
-                    numSpreads++;
-                }
-            }
-            numChunksDarkened++;
+        else
+        {
+            // Determine whether light or darkness needs to be propagated for block light (or both)
+            darken = (oldBlockData.transparent && !newBlockData.transparent)
+                || newBlockData.blockLight < oldBlockData.blockLight;
+            lighten = (!oldBlockData.transparent && newBlockData.transparent)
+                || newBlockData.blockLight > oldBlockData.blockLight;
         }
-    }
-    for (Position position : relitChunks) {
-        worldChunks.at(position).compressSkyLight();
-    }
-    std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
 
-    // Block light
-    // Determine whether light or darkness needs to be propagated for block light (or both)
-    darken = (oldBlockData.transparent && !newBlockData.transparent)
-        || newBlockData.blockLight < oldBlockData.blockLight;
-    lighten = (!oldBlockData.transparent && newBlockData.transparent)
-        || newBlockData.blockLight > oldBlockData.blockLight;
-    relitChunks.clear();
-    numChunksLightened = 0;
-    numChunksDarkened = 0;
-    numSpreads = 0;
-    if (lighten) {
-        // Add the chunk containing the modified block to the vector
-        std::vector<Position> chunksToBeRelit;
-        chunksToBeRelit.emplace_back(chunkPosition);
-        while (chunksToBeRelit.size() > 0) {
-            if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
-                relitChunks.push_back(chunksToBeRelit[0]);
-            }
-            bool neighbouringChunksToRelight[6];
-            bool neighbouringChunksToRemesh[6];
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            //check that the chunk has its neighbours loaded so that it can be lit
-            for (int8_t ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            //if the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunksToBeRelit[0]).setBlockLightToBeOutdated();
-                std::vector<Position>::iterator it = chunksToBeRelit.begin();
-                chunksToBeRelit.erase(it);
+        std::vector<Position> relitChunks;
+        int numChunksLightened = 0;
+        int numChunksDarkened = 0;
+        int numSpreads = 0;
+        // i = 0 represents propagating light and i = 1 represents propagating darkness
+        for (int i = 0; i < 2; i++) {
+            if ((i == 0 && !lighten) || (i == 1 && !darken)) {
                 continue;
             }
-            
-            if (numChunksLightened == 0) {
-                propagateBlockLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack, modifiedBlockNum);
-            }
-            else {
-                propagateBlockLight(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack);
-            }
-            // Add the current chunk to the chunksToBeRemeshed
-            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
-                chunksToRemesh.push_back(chunksToBeRelit[0]);
-            }
-            // Add relevant neighbouring chunks to the chunksToBeRemeshed
-            for (int8_t i = 0; i < 6; i++) {
-                if (neighbouringChunksToRemesh[i]) {
-                    Position chunkToBeRemeshed = chunksToBeRelit[0];
-                    chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
-                    if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
-                        chunksToRemesh.push_back(chunkToBeRemeshed);
+            // Add the chunk containing the modified block to the vector
+            std::vector<Position> chunksToBeRelit;
+            chunksToBeRelit.emplace_back(chunkPosition);
+            while (chunksToBeRelit.size() > 0) {
+                if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
+                    relitChunks.push_back(chunksToBeRelit[0]);
+                }
+                bool neighbouringChunksToRelight[6];
+                bool neighbouringChunksToRemesh[6];
+                Position neighbouringChunkPositions[6];
+                bool neighbouringChunksLoaded = true;
+                // Check that the chunk has its neighbours loaded so that it can be lit
+                for (int8_t ii = 0; ii < 6; ii++) {
+                    neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
+                    if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
+                        neighbouringChunksLoaded = false;
+                        break;
+                    }
+                }
+                // If the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
+                if (!neighbouringChunksLoaded) {
+                    worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
+                    std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                    chunksToBeRelit.erase(it);
+                    continue;
+                }
+                
+                // Calculate the lighting on the current chunk
+                if (i == 0) {
+                    if (numChunksLightened == 0) {
+                        if (j == 0)
+                            propagateSkyLight(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack, modifiedBlockNum);
+                        else
+                            propagateBlockLight(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack, modifiedBlockNum);
+                    }
+                    else {
+                        if (j == 0)
+                            propagateSkyLight(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack);
+                        else
+                            propagateBlockLight(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack);
+                    }
+                    numChunksLightened++;
+                }
+                else {
+                    if (numChunksDarkened == 0) {
+                        if (j == 0)
+                            propagateSkyDarkness(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack, modifiedBlockNum);
+                        else
+                            propagateBlockDarkness(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack, modifiedBlockNum);
+                    }
+                    else {
+                        if (j == 0)
+                            propagateSkyDarkness(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack);
+                        else
+                            propagateBlockDarkness(chunksToBeRelit[0], worldChunks,
+                                neighbouringChunksToRelight, neighbouringChunksToRemesh,
+                                resourcePack);
+                    }
+                    numChunksDarkened++;
+                }
+
+                // Add the current chunk to the chunksToBeRemeshed
+                if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
+                    chunksToRemesh.push_back(chunksToBeRelit[0]);
+                }
+                // Add relevant neighbouring chunks to the chunksToBeRemeshed
+                for (int8_t i = 0; i < 6; i++) {
+                    if (neighbouringChunksToRemesh[i]) {
+                        Position chunkToBeRemeshed = chunksToBeRelit[0];
+                        chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
+                        if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
+                            chunksToRemesh.push_back(chunkToBeRemeshed);
+                        }
+                    }
+                }
+                std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                chunksToBeRelit.erase(it);
+                //add the neighbouring chunks that were marked as needing recalculating to the queue
+                for (int8_t i = 0; i < 6; i++) {
+                    if (!neighbouringChunksToRelight[i]) {
+                        continue;
+                    }
+                    if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
+                        chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
+                        numSpreads++;
                     }
                 }
             }
-            std::vector<Position>::iterator it = chunksToBeRelit.begin();
-            chunksToBeRelit.erase(it);
-            //add the neighbouring chunks that were marked as needing recalculating to the queue
-            for (int8_t i = 0; i < 6; i++) {
-                if (!neighbouringChunksToRelight[i]) {
-                    continue;
-                }
-                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
-                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
-                    numSpreads++;
-                }
-            }
-            numChunksLightened++;
         }
-    }
-    if (darken) {
-        // Add the chunk containing the modified block to the vector
-        std::vector<Position> chunksToBeRelit;
-        chunksToBeRelit.emplace_back(chunkPosition);
-        while (chunksToBeRelit.size() > 0) {
-            if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
-                relitChunks.push_back(chunksToBeRelit[0]);
-            }
-            bool neighbouringChunksToRelight[6];
-            bool neighbouringChunksToRemesh[7];
-            Position neighbouringChunkPositions[6];
-            bool neighbouringChunksLoaded = true;
-            // Check that the chunk has its neighbours loaded so that it can be lit
-            for (int8_t ii = 0; ii < 6; ii++) {
-                neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
-                if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
-                    neighbouringChunksLoaded = false;
-                    break;
-                }
-            }
-            // If the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
-            if (!neighbouringChunksLoaded) {
-                worldChunks.at(chunksToBeRelit[0]).setBlockLightToBeOutdated();
-                std::vector<Position>::iterator it = chunksToBeRelit.begin();
-                chunksToBeRelit.erase(it);
-                continue;
-            }
-            
-            if (numChunksDarkened == 0) {
-                propagateBlockDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack, modifiedBlockNum);
-            }
-            else {
-                propagateBlockDarkness(chunksToBeRelit[0], worldChunks, neighbouringChunksToRelight,
-                    neighbouringChunksToRemesh, resourcePack);
-            }
-            // Add the current chunk to the chunksToBeRemeshed
-            if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunksToBeRelit[0]) == chunksToRemesh.end()) {
-                chunksToRemesh.push_back(chunksToBeRelit[0]);
-            }
-            // Add relevant neighbouring chunks to the chunksToBeRemeshed
-            for (int8_t i = 0; i < 6; i++) {
-                if (neighbouringChunksToRemesh[i]) {
-                    Position chunkToBeRemeshed = chunksToBeRelit[0];
-                    chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
-                    if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
-                        chunksToRemesh.push_back(chunkToBeRemeshed);
-                    }
-                }
-            }
-            std::vector<Position>::iterator it = chunksToBeRelit.begin();
-            chunksToBeRelit.erase(it);
-            // Add the neighbouring chunks that were marked as needing recalculating to the queue
-            for (int8_t i = 0; i < 6; i++) {
-                if (!neighbouringChunksToRelight[i]) {
-                    continue;
-                }
-                if (std::find(chunksToBeRelit.begin(), chunksToBeRelit.end(), neighbouringChunkPositions[i]) == chunksToBeRelit.end()) {
-                    chunksToBeRelit.push_back(neighbouringChunkPositions[i]);
-                    numSpreads++;
-                }
-            }
-            numChunksDarkened++;
+        for (Position position : relitChunks) {
+            worldChunks.at(position).compressSkyLight();
         }
+        std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
     }
-    for (Position position : relitChunks) {
-        worldChunks.at(position).compressBlockLight();
-    }
-    std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
 }
