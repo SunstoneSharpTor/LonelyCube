@@ -19,7 +19,6 @@
 #include "core/random.h"
 
 #include "core/pch.h"
-#include <cstdint>
 
 static uint64_t PCG_Ramdom32State = 0x4d595df4d0f33173;
 

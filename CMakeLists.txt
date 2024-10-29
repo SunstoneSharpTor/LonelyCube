@@ -40,7 +40,8 @@ set(CLIENT_SOURCE_FILES
     src/core/serverPlayer.cpp
     src/core/random.cpp
     src/core/resourcePack.cpp
-    src/core/terrainGen.cpp)
+    src/core/terrainGen.cpp
+    src/core/threadManager.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client ${SDL2_LIBRARIES})
@@ -55,6 +56,7 @@ set(SERVER_SOURCE_FILES
     src/core/random.cpp
     src/core/resourcePack.cpp
     src/core/terrainGen.cpp
+    src/core/threadManager.cpp
     src/server/server.cpp
     src/server/serverNetworking.cpp)
 
