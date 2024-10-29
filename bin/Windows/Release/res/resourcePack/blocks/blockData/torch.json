@@ -1,8 +1,8 @@
 {
     "transparrent": true,
     "collidable": false,
-    "dimsLight": true,
     "castsAmbientOcclusion": false,
-    "model": "cube",
-    "textureIndices": [4,4,4,4,4,4]
+    "blockLight": 12,
+    "model": "torch",
+    "textureIndices": [10,10,10,10,10,10]
 }
