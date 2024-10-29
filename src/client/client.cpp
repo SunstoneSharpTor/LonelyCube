@@ -27,13 +27,14 @@
 #include "client/clientPlayer.h"
 #include "core/config.h"
 #include "core/packet.h"
+#include "core/threadManager.h"
 
 using namespace client;
 
-void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, int8_t threadNum, int*
+void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t threadNum, int&
     numThreadsBeingUsed) {
-    while (*running) {
-        while (threadNum >= *numThreadsBeingUsed && *running) {
+    while (running) {
+        while (threadNum >= numThreadsBeingUsed && running) {
             mainWorld.setThreadWaiting(threadNum, true);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
             mainWorld.setThreadWaiting(threadNum, false);
@@ -42,10 +43,10 @@ void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool* running, int8_t
     }
 }
 
-void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool*
-    running, int8_t threadNum, int* numThreadsBeingUsed) {
-    while (*running) {
-        while (threadNum >= *numThreadsBeingUsed && *running) {
+void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool&
+    running, int8_t threadNum, int& numThreadsBeingUsed) {
+    while (running) {
+        while (threadNum >= numThreadsBeingUsed && running) {
             mainWorld.setThreadWaiting(threadNum, true);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
             mainWorld.setThreadWaiting(threadNum, false);
@@ -55,23 +56,8 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
     }
 }
 
-void manageThreads(float* chunkLoadTimes, int numChunkLoaderThreads, int* numThreadsBeingUsed) {
-    if (*numThreadsBeingUsed > 1) {
-        chunkLoadTimes[*numThreadsBeingUsed - 2] *= 0.95f;
-    }
-    if (*numThreadsBeingUsed < numChunkLoaderThreads) {
-        chunkLoadTimes[*numThreadsBeingUsed] *= 0.9f;
-    }
-    if (*numThreadsBeingUsed > 1 &&
-        chunkLoadTimes[*numThreadsBeingUsed - 2] < chunkLoadTimes[*numThreadsBeingUsed - 1]) {
-        (*numThreadsBeingUsed)--;
-        std::cout << *numThreadsBeingUsed << " threads being used\n";
-    }
-    else if (*numThreadsBeingUsed < numChunkLoaderThreads && chunkLoadTimes[*numThreadsBeingUsed] <
-        chunkLoadTimes[*numThreadsBeingUsed - 1] && chunkLoadTimes[*numThreadsBeingUsed] > chunkLoadTimes[*numThreadsBeingUsed - 2]) {
-        (*numThreadsBeingUsed)++;
-        std::cout << *numThreadsBeingUsed << " threads being used\n";
-    }
+void manageThreads(int numChunkLoaderThreads, int& numThreadsBeingUsed) {
+
 }
 
 int main(int argc, char* argv[]) {
@@ -102,47 +88,38 @@ int main(int argc, char* argv[]) {
     RenderThread renderThread(&mainWorld, chunkLoaderThreadsRunning, &mainPlayer, networking, &frameTime);
 
     std::thread renderWorker(&RenderThread::go, renderThread, &running);
-
-    std::unique_ptr<float[]> chunkLoadTimes = std::make_unique<float[]>(mainWorld.getNumChunkLoaderThreads());
-    std::fill(chunkLoadTimes.get(), chunkLoadTimes.get() + mainWorld.getNumChunkLoaderThreads(), 0.0f);
-    int numThreadsBeingUsed = mainWorld.getNumChunkLoaderThreads();
     
-    std::unique_ptr<std::thread[]> chunkLoaderThreads = std::make_unique<std::thread[]>(mainWorld.getNumChunkLoaderThreads() - 1);
-    for (int8_t threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+    ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads() - 1);
+    for (int8_t threadNum = 0; threadNum < threadManager.getNumThreads(); threadNum++) {
         if (multiplayer) {
-            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadMultiplayer,
-                std::ref(mainWorld), std::ref(networking), &running, threadNum,
-                &numThreadsBeingUsed);
+            threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadMultiplayer,
+                std::ref(mainWorld), std::ref(networking), std::ref(running), threadNum + 1,
+                std::ref(threadManager.getNumThreadsBeingUsed()));
         }
         else {
-            chunkLoaderThreads[threadNum - 1] = std::thread(chunkLoaderThreadSingleplayer,
-            std::ref(mainWorld), &running, threadNum, &numThreadsBeingUsed);
+            threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadSingleplayer,
+                std::ref(mainWorld), std::ref(running), threadNum + 1,
+                std::ref(threadManager.getNumThreadsBeingUsed()));
         }
     }
 
     if (multiplayer) {
-        auto lastMessage = std::chrono::steady_clock::now();
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
         while (running) {
-            auto startTime = std::chrono::steady_clock::now();
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
+
             auto currentTime = std::chrono::steady_clock::now();
-
-            // Manage threads
-            chunkLoadTimes[numThreadsBeingUsed - 1] = chunkLoadTimes[
-                 - 1] * 0.9999f
-                + std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime - startTime).
-                count() * 0.0001f;
-            //manageThreads(chunkLoadTimes.get(), mainWorld.getNumChunkLoaderThreads(),
-            //    &numThreadsBeingUsed);
-
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastMessage) > std::chrono::milliseconds(100)) {
+            if (currentTime >= nextTick) {
+                //manageThreads(mainWorld.getNumChunkLoaderThreads(), numThreadsBeingUsed);
+                
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
                 payload[2] = mainPlayer.cameraBlockPosition[2];
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
                 enet_peer_send(networking.getPeer(), 0, packet);
-                lastMessage += std::chrono::milliseconds(100);
+
+                nextTick += std::chrono::milliseconds(100);
             }
         }
     }
@@ -151,16 +128,9 @@ int main(int argc, char* argv[]) {
         while (running) {
             mainWorld.loadChunksAroundPlayerSingleplayer(0);
 
-            chunkLoadTimes[numThreadsBeingUsed - 1] -= 1.0f;
-
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                if (mainWorld.getTickNum() % 10 == 0) {
-                    //manageThreads(chunkLoadTimes.get(), mainWorld.getNumChunkLoaderThreads(),
-                    //    &numThreadsBeingUsed);
-                    chunkLoadTimes[numThreadsBeingUsed - 1] = 1000.0f;
-                }
-
+                //manageThreads(mainWorld.getNumChunkLoaderThreads(), numThreadsBeingUsed);
                 mainWorld.tick();
                 nextTick += std::chrono::milliseconds(100);
             }
@@ -168,8 +138,8 @@ int main(int argc, char* argv[]) {
     }
     chunkLoaderThreadsRunning[0] = false;
 
+    threadManager.joinThreads();
     for (int8_t threadNum = 1; threadNum < mainWorld.getNumChunkLoaderThreads(); threadNum++) {
-        chunkLoaderThreads[threadNum - 1].join();
         chunkLoaderThreadsRunning[threadNum] = false;
     }
     renderWorker.join();
