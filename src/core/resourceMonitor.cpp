@@ -17,32 +17,56 @@
 */
 
 #include "resourceMonitor.h"
+#include "pch.h"
+
+static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
+{
+   static uint64_t _previousTotalTicks = 0;
+   static uint64_t _previousIdleTicks = 0;
+
+   uint64_t totalTicksSinceLastTime = totalTicks - _previousTotalTicks;
+   uint64_t idleTicksSinceLastTime  = idleTicks - _previousIdleTicks;
+
+   float ret = 1.0f - ((totalTicksSinceLastTime > 0) ? ((float)idleTicksSinceLastTime)/totalTicksSinceLastTime : 0);
+
+   _previousTotalTicks = totalTicks;
+   _previousIdleTicks  = idleTicks;
+   return ret;
+}
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 
-double getThreadCPUTime(std::thread& thread) {
-    //HANDLE threadHandle = thread.native_handle();
-    FILETIME creationTime, exitTime, kernelTime, userTime;
-    if (GetThreadTimes(GetCurrentThread(), &creationTime, &exitTime, &kernelTime, &userTime)) {
-        ULARGE_INTEGER kernel, user;
-        kernel.LowPart = kernelTime.dwLowDateTime;
-        kernel.HighPart = kernelTime.dwHighDateTime;
-        user.LowPart = userTime.dwLowDateTime;
-        user.HighPart = userTime.dwHighDateTime;
-        return (kernel.QuadPart + user.QuadPart) / 1e7;  // Convert to seconds
-    }
-    return -1.0;
+static uint64_t FileTimeToInt64(const FILETIME & ft)
+{
+    return (((uint64_t)(ft.dwHighDateTime)) <<32 ) | ((uint64_t)ft.dwLowDateTime);
 }
+
+float getCPULoad()
+{
+    FILETIME idleTime, kernelTime, userTime;
+    if (GetSystemTimes(&idleTime, &kernelTime, &userTime))
+    {
+        return calculateCPULoad(FileTimeToInt64(idleTime),
+            FileTimeToInt64(kernelTime)+FileTimeToInt64(userTime));
+    }
+    else
+    {
+        return -1.0f;
+    }
+}
+
 #elif __linux__
-#include <time.h>
-
-double getThreadCPUTime(std::thread& thread) {
-    auto thread_id = thread.native_handle();
-    struct timespec ts;
-    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
-        return ts.tv_sec + ts.tv_nsec / 1e9;  // Convert to seconds
+    float getCPULoad() {
+        std::ifstream file("/proc/stat");
+        std::string line;
+        if (std::getline(file, line)) {
+            std::istringstream iss(line);
+            std::string cpu;
+            uint64_t user, nice, system, idle;
+            iss >> cpu >> user >> nice >> system >> idle;
+            return calculateCPULoad(idle, user + nice + system);
+        }
+        return -1.0f;
     }
-    return -1.0;
-}
 #endif

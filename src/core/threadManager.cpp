@@ -22,34 +22,26 @@
 
 #include "core/resourceMonitor.h"
 
-ThreadManager::ThreadManager(int numThreads, std::thread& threadToBeTimed) :
+ThreadManager::ThreadManager(int numThreads) :
     m_numThreads(numThreads), m_numThreadsBeingUsed(1),
-    m_lastTimePoint(std::chrono::steady_clock::now()),
-    m_lastCPUTimePoint(getThreadCPUTime(threadToBeTimed)), m_threadToBeTimed(threadToBeTimed),
+    m_numSystemThreads(std::thread::hardware_concurrency()),
     m_threads(std::make_unique<std::thread[]>(numThreads)) {}
 
 void ThreadManager::throttleThreads() {
-    // Calculate how much time and CPU time has elapsed since the last call to this function
-    auto currentTimePoint = std::chrono::steady_clock::now();
-    double currentCPUTimePoint = getThreadCPUTime(m_threadToBeTimed);
-    double deltaTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(
-        currentTimePoint - m_lastTimePoint).count() / 1e6;
-    double deltaCPUTime = currentCPUTimePoint - m_lastCPUTimePoint;
-    m_lastTimePoint = currentTimePoint;
-    m_lastCPUTimePoint = currentCPUTimePoint;
-
-    if (currentCPUTimePoint == -1.0) {
+    float CPULoad = getCPULoad();
+    if (CPULoad == -1.0) {
         m_numThreadsBeingUsed = 1;
         return;
     }
 
-    double fractionOfTimeRunning = deltaCPUTime / deltaTime;
-    if (fractionOfTimeRunning > 0.95) {
-        m_numThreadsBeingUsed = std::min(m_numThreads, m_numThreadsBeingUsed + 1);
-    }
-    if (fractionOfTimeRunning < 0.9) {
+    if (CPULoad > 0.995f) {
         m_numThreadsBeingUsed = std::max(1, m_numThreadsBeingUsed - 1);
     }
+    if (CPULoad < std::min(0.90f, 1.0f - 1.0f / m_numSystemThreads)) {
+        m_numThreadsBeingUsed = std::min(m_numThreads, m_numThreadsBeingUsed + 1);
+    }
+    std::cout << CPULoad << " cpu load\n";
+    std::cout << m_numThreadsBeingUsed << " threads\n";
 }
 
 void ThreadManager::joinThreads()
