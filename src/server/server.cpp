@@ -25,6 +25,7 @@
 #include "core/packet.h"
 #include "core/serverWorld.h"
 #include "server/serverNetworking.h"
+#include "core/resourceMonitor.h"
 
 using namespace server;
 

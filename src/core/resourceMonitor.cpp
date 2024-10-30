@@ -35,7 +35,7 @@ static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
 }
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 
 static uint64_t FileTimeToInt64(const FILETIME & ft)
 {
