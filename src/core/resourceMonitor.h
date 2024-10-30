@@ -18,6 +18,7 @@
 
 #pragma once
 
-#include <thread>
-
-double getThreadCPUTime(std::thread& thread);
+// Returns 1.0f for "CPU fully pinned", 0.0f for "CPU idle", or somewhere in between
+// You'll need to call this at regular intervals, since it measures the load between
+// the previous call and the current one.  Returns -1.0 on error.
+float getCPULoad();

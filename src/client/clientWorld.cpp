@@ -62,7 +62,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
     
-    m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads() - 1;
+    m_numChunkLoadingThreads = 10;//m_integratedServer.getNumChunkLoaderThreads() - 1;
     
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk

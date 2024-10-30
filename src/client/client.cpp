@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
 
     std::thread renderWorker(&RenderThread::go, renderThread, &running);
     
-    ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads(), renderWorker);
+    ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads());
     for (int8_t threadNum = 1; threadNum < threadManager.getNumThreads(); threadNum++) {
         if (multiplayer) {
             threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadMultiplayer,
@@ -106,7 +106,8 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                threadManager.throttleThreads();
+                if (mainWorld.getTickNum() % 4 == 0)
+                    threadManager.throttleThreads();
                 
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
@@ -126,7 +127,8 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                threadManager.throttleThreads();
+                if (mainWorld.getTickNum() % 4 == 0)
+                    threadManager.throttleThreads();
                 mainWorld.tick();
                 nextTick += std::chrono::milliseconds(100);
             }
