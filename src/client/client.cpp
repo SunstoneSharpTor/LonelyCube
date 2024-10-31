@@ -58,11 +58,19 @@ static void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworkin
 }
 
 int main(int argc, char* argv[]) {
-    ECS ecs;
-    std::cout << ecs.getID<Chunk>() << "\n";
-    std::cout << ecs.getID<int>() << "\n";
-    std::cout << ecs.getID<Chunk>() << "\n";
-    //std::cin.get();
+    ECS ecs(1000);
+    EntityID player = ecs.newEntity();
+    Position& pos = ecs.assign<Position>(player);
+    pos.x = 7;
+    EntityID item = ecs.newEntity();
+    ecs.assign<BlockData>(item);
+    ecs.assign<Position>(item);
+    ecs.get<BlockData>(item).blockLight = 11;
+    ecs.get<Position>(item).x = 5;
+    std::cout << ecs.get<Position>(player).x << "\n";
+    std::cout << ecs.get<Position>(item).x << "\n";
+    std::cout << (int)(ecs.get<BlockData>(item).blockLight) << "\n";
+    std::cin.get();
 
     Config settings("res/settings.txt");
 
