@@ -28,10 +28,11 @@
 #include "core/config.h"
 #include "core/packet.h"
 #include "core/threadManager.h"
+#include "core/ECS/ECS.h"
 
 using namespace client;
 
-void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t threadNum, int&
+static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t threadNum, int&
     numThreadsBeingUsed) {
     while (running) {
         while (threadNum >= numThreadsBeingUsed && running) {
@@ -43,7 +44,7 @@ void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t
     }
 }
 
-void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool&
+static void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool&
     running, int8_t threadNum, int& numThreadsBeingUsed) {
     while (running) {
         while (threadNum >= numThreadsBeingUsed && running) {
@@ -57,6 +58,12 @@ void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& netw
 }
 
 int main(int argc, char* argv[]) {
+    ECS ecs;
+    std::cout << ecs.getID<Chunk>() << "\n";
+    std::cout << ecs.getID<int>() << "\n";
+    std::cout << ecs.getID<Chunk>() << "\n";
+    //std::cin.get();
+
     Config settings("res/settings.txt");
 
     bool multiplayer = settings.getMultiplayer();

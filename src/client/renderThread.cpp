@@ -78,6 +78,8 @@ void RenderThread::go(bool* running) {
         windowDimensions[1],
         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
+    setSDLIcon(sdl_window);
+
     context = SDL_GL_CreateContext(sdl_window);
     bool VSYNC = false;
     if ((!VSYNC) || SDL_GL_SetSwapInterval(-1) != 0) {
@@ -522,6 +524,31 @@ float RenderThread::calculateBrightness(const float* points, uint32_t numPoints,
     float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
     
     return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
+}
+
+void RenderThread::setSDLIcon(SDL_Window* window)
+{
+    #include "client/windowIcon.h"
+    // these masks are needed to tell SDL_CreateRGBSurface(From)
+    // to assume the data it gets is byte-wise RGB(A) data
+    Uint32 rmask, gmask, bmask, amask;
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    int shift = (windowIcon.bytes_per_pixel == 3) ? 8 : 0;
+    rmask = 0xff000000 >> shift;
+    gmask = 0x00ff0000 >> shift;
+    bmask = 0x0000ff00 >> shift;
+    amask = 0x000000ff >> shift;
+#else // little endian, like x86
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
+    amask = (windowIcon.bytes_per_pixel == 3) ? 0 : 0xff000000;
+#endif
+    SDL_Surface* icon = SDL_CreateRGBSurfaceFrom((void*)windowIcon.pixel_data,
+        windowIcon.width, windowIcon.height, windowIcon.bytes_per_pixel*8,
+        windowIcon.bytes_per_pixel*windowIcon.width, rmask, gmask, bmask, amask);
+    SDL_SetWindowIcon(window, icon);
+    SDL_FreeSurface(icon);
 }
 
 }  // namespace client
