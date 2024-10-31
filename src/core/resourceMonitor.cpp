@@ -31,6 +31,7 @@ static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
 
    _previousTotalTicks = totalTicks;
    _previousIdleTicks  = idleTicks;
+   // std::cout << totalTicks << ", " << idleTicks << "\n";
    return ret;
 }
 
@@ -39,11 +40,12 @@ static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
 
 static uint64_t FileTimeToInt64(const FILETIME & ft)
 {
-    return (((uint64_t)(ft.dwHighDateTime)) <<32 ) | ((uint64_t)ft.dwLowDateTime);
+    return (((uint64_t)(ft.dwHighDateTime)) << 32) | ((uint64_t)ft.dwLowDateTime);
 }
 
 float getCPULoad()
 {
+    return -1.0f;
     FILETIME idleTime, kernelTime, userTime;
     if (GetSystemTimes(&idleTime, &kernelTime, &userTime))
     {

@@ -29,7 +29,7 @@
 
 using namespace server;
 
-void receiveCommands(bool* running) {
+static void receiveCommands(bool* running) {
     std::string command;
     while (*running) {
         std::getline(std::cin, command);
@@ -39,7 +39,7 @@ void receiveCommands(bool* running) {
     }
 }
 
-void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8_t threadNum) {
+static void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8_t threadNum) {
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
         Position chunkPosition;
