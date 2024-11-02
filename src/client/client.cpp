@@ -59,10 +59,10 @@ static void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworkin
 
 int main(int argc, char* argv[]) {
     ECS ecs(1000);
-    EntityID player = ecs.newEntity();
+    EntityId player = ecs.newEntity();
     Position& pos = ecs.assign<Position>(player);
     pos.x = 7;
-    EntityID item = ecs.newEntity();
+    EntityId item = ecs.newEntity();
     ecs.assign<BlockData>(item);
     ecs.assign<Position>(item);
     ecs.get<BlockData>(item).blockLight = 11;
