@@ -21,13 +21,16 @@
 #include "core/pch.h"
 #include <bitset>
 
-typedef uint64_t EntityID;
 const int MAX_COMPONENTS = 32;
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+typedef uint32_t EntityIndex;
+typedef uint32_t EntityVersion;
+typedef uint64_t EntityId;
+
 
 struct EntityDesc
 {
-    EntityID id;
+    EntityId id;
     ComponentMask mask;
 };
 
@@ -54,61 +57,126 @@ private:
 
     int m_maxEntities;
     std::vector<EntityDesc> m_entities;
-    std::vector<std::unique_ptr<ComponentPool>> m_componentPools;
+    std::vector<EntityIndex> m_freeEntities;
+    std::vector<ComponentPool*> m_componentPools;
 
 public:
     ECS(int maxEntities);
+    ~ECS();
 
     template<typename T>
-    static int getID();
+    static int getId();
 
-    EntityID newEntity();
+    EntityId newEntity();
+
+    void destroyEntity(const EntityId id);
 
     template<typename T>
-    T& assign(EntityID id);
+    T& assign(const EntityId id);
 
     template<typename T>
-    T& get(EntityID id);
+    void remove(const EntityId id);
+
+    template<typename T>
+    T& get(const EntityId id);
+
+    inline bool isEntityAlive(const EntityId id)
+    {
+        return m_entities[getEntityIndex(id)].id == id;
+    }
+
+    inline static EntityId createEntityId(EntityIndex index, EntityVersion version)
+    {
+        return ((EntityId)index << 32) | ((EntityId)version);
+    }
+
+    inline static EntityIndex getEntityIndex(EntityId id)
+    {
+        return id >> 32;
+    }
+
+    inline static EntityVersion getEntityVersion(EntityId id)
+    {
+        return (EntityVersion)id;
+    }
+
+    inline static bool isEntityValid(EntityId id)
+    {
+        return (id >> 32) != EntityIndex(-1);
+    }
+
+private:
+    inline static EntityId s_invalidEntity = createEntityId(EntityIndex(-1), 0);
 };
 
 
 ECS::ECS(int maxEntities) : m_maxEntities(maxEntities) {}
 
+ECS::~ECS() {
+    for (ComponentPool* pool : m_componentPools) {
+        delete pool;
+    }
+}
+
 template<typename T>
-int ECS::getID() 
+int ECS::getId() 
 {
     return s_componentID<T>;
 }
 
-EntityID ECS::newEntity()
+EntityId ECS::newEntity()
 {
-    m_entities.push_back({ m_entities.size(), ComponentMask() });
-    return m_entities.back().id;
+    if (m_freeEntities.empty())
+    {
+        EntityId id = createEntityId(m_entities.size(), 0);
+        m_entities.emplace_back(id, ComponentMask());
+        return id;
+    }
+    EntityIndex index = m_freeEntities.back();
+    m_freeEntities.pop_back();
+    EntityId id = createEntityId(index, getEntityVersion(m_entities[index].id));
+    m_entities[index].id = id;
+    return id;
+}
+
+void ECS::destroyEntity(const EntityId id)
+{
+    EntityId newId = createEntityId(EntityIndex(-1), getEntityVersion(id) + 1);
+    m_entities[getEntityIndex(id)].id = newId;
+    m_entities[getEntityIndex(id)].mask.reset();
+    m_freeEntities.push_back(getEntityIndex(id));
 }
 
 template<typename T>
-T& ECS::assign(EntityID id)
+T& ECS::assign(const EntityId id)
 {
-    int componentID = getID<T>();
+    int componentId = getId<T>();
 
-    if (m_componentPools.size() <= componentID) // New component, make a new pool
+    if (m_componentPools.size() <= componentId) // New component, make a new pool
     {
-        m_componentPools.resize(componentID + 1);
-        m_componentPools[componentID] = std::make_unique<ComponentPool>(sizeof(T), m_maxEntities);
+        m_componentPools.resize(componentId + 1);
+        m_componentPools[componentId] = new ComponentPool(sizeof(T), m_maxEntities);
     }
 
     // Looks up the component in the pool, and initializes it with placement new
-    T* component = new (m_componentPools[componentID]->get(id)) T();
+    T* component = new (m_componentPools[componentId]->get(getEntityIndex(id))) T();
 
     // Set the bit for this component to true and return the created component
-    m_entities[id].mask.set(componentID);
+    m_entities[getEntityIndex(id)].mask.set(componentId);
 
     return *component;
 }
 
 template<typename T>
-T& ECS::get(EntityID id)
+void ECS::remove(const EntityId id)
 {
-    int componentID = getID<T>();
-    return *static_cast<T*>(m_componentPools[componentID]->get(id));
+    int componentId = getId<T>();
+    m_entities[getEntityIndex(id)].mask.reset(componentId);
+}
+
+template<typename T>
+T& ECS::get(const EntityId id)
+{
+    int componentId = getId<T>();
+    return *static_cast<T*>(m_componentPools[componentId]->get(getEntityIndex(id)));
 }
