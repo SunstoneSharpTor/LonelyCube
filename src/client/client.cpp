@@ -18,9 +18,6 @@
 
 #include <enet/enet.h>
 
-#include "core/pch.h"
-#include <time.h>
-
 #include "client/clientNetworking.h"
 #include "client/renderThread.h"
 #include "client/clientWorld.h"
@@ -70,12 +67,11 @@ int main(int argc, char* argv[]) {
     std::cout << ecs.get<Position>(player).x << "\n";
     std::cout << ecs.get<Position>(item).x << "\n";
     std::cout << (int)(ecs.get<BlockData>(item).blockLight) << "\n";
-    std::cin.get();
 
     Config settings("res/settings.txt");
 
     bool multiplayer = settings.getMultiplayer();
-    
+
     ClientNetworking networking;
 
     if (multiplayer) {
@@ -99,7 +95,7 @@ int main(int argc, char* argv[]) {
     RenderThread renderThread(&mainWorld, chunkLoaderThreadsRunning, &mainPlayer, networking, &frameTime);
 
     std::thread renderWorker(&RenderThread::go, renderThread, &running);
-    
+
     ThreadManager threadManager(mainWorld.getNumChunkLoaderThreads());
     for (int8_t threadNum = 1; threadNum < threadManager.getNumThreads(); threadNum++) {
         if (multiplayer) {
@@ -123,7 +119,7 @@ int main(int argc, char* argv[]) {
             if (currentTime >= nextTick) {
                 if (mainWorld.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
-                
+
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
@@ -157,7 +153,7 @@ int main(int argc, char* argv[]) {
     }
     renderWorker.join();
 
-    delete chunkLoaderThreadsRunning;
+    delete[] chunkLoaderThreadsRunning;
 
     if (multiplayer) {
         enet_peer_disconnect(networking.getPeer(), 0);

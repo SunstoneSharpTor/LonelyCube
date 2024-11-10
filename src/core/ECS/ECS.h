@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "core/pch.h"
 #include <bitset>
 
 const int MAX_COMPONENTS = 32;
@@ -37,8 +36,9 @@ struct EntityDesc
 
 struct ComponentPool
 {
-    std::unique_ptr<char[]> pData;
     size_t elementSize;
+    std::unique_ptr<char[]> pData;
+
     ComponentPool(size_t elementsize, int maxEntities) : elementSize(elementsize),
         pData(std::make_unique<char[]>(elementSize * maxEntities)) {}
 
@@ -109,42 +109,10 @@ private:
     inline static EntityId s_invalidEntity = createEntityId(EntityIndex(-1), 0);
 };
 
-
-ECS::ECS(int maxEntities) : m_maxEntities(maxEntities) {}
-
-ECS::~ECS() {
-    for (ComponentPool* pool : m_componentPools) {
-        delete pool;
-    }
-}
-
 template<typename T>
 int ECS::getId() 
 {
     return s_componentID<T>;
-}
-
-EntityId ECS::newEntity()
-{
-    if (m_freeEntities.empty())
-    {
-        EntityId id = createEntityId(m_entities.size(), 0);
-        m_entities.emplace_back(id, ComponentMask());
-        return id;
-    }
-    EntityIndex index = m_freeEntities.back();
-    m_freeEntities.pop_back();
-    EntityId id = createEntityId(index, getEntityVersion(m_entities[index].id));
-    m_entities[index].id = id;
-    return id;
-}
-
-void ECS::destroyEntity(const EntityId id)
-{
-    EntityId newId = createEntityId(EntityIndex(-1), getEntityVersion(id) + 1);
-    m_entities[getEntityIndex(id)].id = newId;
-    m_entities[getEntityIndex(id)].mask.reset();
-    m_freeEntities.push_back(getEntityIndex(id));
 }
 
 template<typename T>
@@ -156,6 +124,7 @@ T& ECS::assign(const EntityId id)
     {
         m_componentPools.resize(componentId + 1);
         m_componentPools[componentId] = new ComponentPool(sizeof(T), m_maxEntities);
+        std::cout << m_componentPools[componentId]->elementSize << " element size\n";
     }
 
     // Looks up the component in the pool, and initializes it with placement new

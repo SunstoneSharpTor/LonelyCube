@@ -7,6 +7,7 @@ set(OSBitness 64)
 set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set (CMAKE_CXX_STANDARD 20)
 
@@ -36,6 +37,7 @@ set(CLIENT_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/config.cpp
+    src/core/ECS/ECS.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
@@ -52,6 +54,7 @@ $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
+    src/core/ECS/ECS.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
