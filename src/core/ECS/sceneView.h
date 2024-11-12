@@ -28,6 +28,24 @@ private:
     ComponentMask componentMask;
     bool all{ false };
 
+    class Iterator
+    {
+    public:
+        EntityIndex index;
+        ECS& ecs;
+        ComponentMask mask;
+        bool all{ false };
+
+        Iterator(ECS& ecs, EntityIndex index, ComponentMask mask, bool all);
+
+        EntityId operator*() const;
+
+        bool operator==(const Iterator& other) const;
+
+        bool operator!=(const Iterator& other) const;
+
+        Iterator& operator++();
+    };
 public:
     SceneView(ECS& scene);
 };
@@ -48,3 +66,18 @@ SceneView<ComponentTypes...>::SceneView(ECS& scene) : pScene(scene)
             componentMask.set(componentIds[i]);
     }
 }
+
+template<typename... ComponentTypes>
+SceneView<ComponentTypes...>::Iterator::Iterator(ECS& ecs, EntityIndex index, ComponentMask mask,
+    bool all) : m_ECS(ecs), m_index(index), m_mask(mask), m_all(all) {}
+
+template<typename... ComponentTypes>
+EntityId SceneView<ComponentTypes...>::Iterator::operator*() const
+{
+    return m_ECS.getEntityId(m_index);
+}
+
+template<typename... ComponentTypes>
+bool SceneView<ComponentTypes...>::Iterator::operator==(const Iterator& other) const
+{
+    return 

@@ -65,7 +65,7 @@ public:
     ~ECS();
 
     template<typename T>
-    static int getId();
+    static int getNewComponentId();
 
     EntityId newEntity();
 
@@ -79,6 +79,11 @@ public:
 
     template<typename T>
     T& get(const EntityId id);
+
+    inline EntityId getEntityId(const EntityIndex index)
+    {
+        return m_entities[index].id;
+    }
 
     inline bool isEntityAlive(const EntityId id)
     {
@@ -110,7 +115,7 @@ private:
 };
 
 template<typename T>
-int ECS::getId() 
+int ECS::getNewComponentId() 
 {
     return s_componentID<T>;
 }
@@ -118,7 +123,7 @@ int ECS::getId()
 template<typename T>
 T& ECS::assign(const EntityId id)
 {
-    int componentId = getId<T>();
+    int componentId = getNewComponentId<T>();
 
     if (m_componentPools.size() <= componentId) // New component, make a new pool
     {
@@ -139,13 +144,13 @@ T& ECS::assign(const EntityId id)
 template<typename T>
 void ECS::remove(const EntityId id)
 {
-    int componentId = getId<T>();
+    int componentId = getNewComponentId<T>();
     m_entities[getEntityIndex(id)].mask.reset(componentId);
 }
 
 template<typename T>
 T& ECS::get(const EntityId id)
 {
-    int componentId = getId<T>();
+    int componentId = getNewComponentId<T>();
     return *static_cast<T*>(m_componentPools[componentId]->get(getEntityIndex(id)));
 }
