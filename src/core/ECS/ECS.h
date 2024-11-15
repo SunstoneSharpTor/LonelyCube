@@ -136,11 +136,13 @@ T& ECS::assign(const EntityId id)
 {
     int componentId = getComponentId<T>();
 
-    if (m_componentPools.size() <= componentId) // New component, make a new pool
+    if (m_componentPools.size() <= componentId)  // Not enough component pools
     {
-        m_componentPools.resize(componentId + 1);
+        m_componentPools.resize(componentId + 1, nullptr);
+    }
+    if (m_componentPools[componentId] == nullptr)  // New component, make a new pool
+    {
         m_componentPools[componentId] = new ComponentPool(sizeof(T), m_maxEntities);
-        std::cout << m_componentPools[componentId]->elementSize << " element size\n";
     }
 
     // Looks up the component in the pool, and initializes it with placement new

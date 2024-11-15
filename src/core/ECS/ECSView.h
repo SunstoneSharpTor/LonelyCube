@@ -52,13 +52,12 @@ private:
         Iterator& operator++();
     };
 
+public:
+    ECSView(ECS& scene);
+
     const Iterator begin() const;
 
     const Iterator end() const;
-
-
-public:
-    ECSView(ECS& scene);
 };
 
 
@@ -114,7 +113,7 @@ ECSView<ComponentTypes...>::Iterator& ECSView<ComponentTypes...>::Iterator::oper
     {
         index++;
     } while (index < ecs.getSize() && !validIndex());
-    return this;
+    return *this;
 }
 
 template<typename... ComponentTypes>
