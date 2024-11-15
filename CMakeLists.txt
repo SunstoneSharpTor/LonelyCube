@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.25.1)
 project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 
+enable_testing()
+
 add_subdirectory(lib/enet-1.3.18)
 
 set(OSBitness 64)
@@ -94,3 +96,5 @@ if (NOT MINGW)
         COMMAND ${CMAKE_COMMAND} -E rm
                 ${FullOutputDir}/res/SDL2.dll)
 endif (NOT MINGW)
+
+add_subdirectory(tests)

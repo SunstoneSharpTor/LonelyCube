@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "core/pch.h"
+
 #include <bitset>
 
 const int MAX_COMPONENTS = 32;
