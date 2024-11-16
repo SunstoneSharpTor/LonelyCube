@@ -93,8 +93,34 @@ TEST_CASE(
         }
     }
 
+    int i = 0;
     for (EntityId entity : ECSView<>(ecs))
     {
-
+        REQUIRE( ecs.get<int>(entity) == i * 2 );
+        i++;
+    }
+    auto itr = ECSView<std::string>(ecs).begin();
+    for (int i = 0; i < 10; i += 3)
+    {
+        REQUIRE( ecs.get<std::string>(*itr) == "Entity " + std::to_string(i) );
+        ++itr;
+    }
+    i = 0;
+    for (EntityId entity : ECSView<std::string, Position>(ecs))
+    {
+        if (i == 0)
+            REQUIRE( ecs.get<int>(entity) == 12 );
+        else
+            REQUIRE( ecs.get<int>(entity) == 18 );
+        i = 1;
+    }
+    i = 0;
+    for (EntityId entity : ECSView<Position, std::string>(ecs))
+    {
+        if (i == 0)
+            REQUIRE( ecs.get<int>(entity) == 12 );
+        else
+            REQUIRE( ecs.get<int>(entity) == 18 );
+        i = 1;
     }
 }
