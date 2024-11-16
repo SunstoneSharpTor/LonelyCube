@@ -38,7 +38,7 @@ MeshBuilder::MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* ve
     m_waterVertices(waterVertices), m_numWaterVertices(numWaterVertices),
     m_waterIndices(waterIndices), m_numWaterIndices(numWaterIndices)
 {
-    m_chunk.getChunkPosition(m_chunkPosition);
+    m_chunk.getPosition(m_chunkPosition);
     m_chunkWorldCoords[0] = m_chunkPosition[0] * constants::CHUNK_SIZE;
     m_chunkWorldCoords[1] = m_chunkPosition[1] * constants::CHUNK_SIZE;
     m_chunkWorldCoords[2] = m_chunkPosition[2] * constants::CHUNK_SIZE;
@@ -264,7 +264,7 @@ void MeshBuilder::buildMesh()
 {
     *m_numVertices = *m_numIndices = *m_numWaterVertices = *m_numWaterIndices = 0;
     int chunkPosition[3];
-    m_chunk.getChunkPosition(chunkPosition);
+    m_chunk.getPosition(chunkPosition);
     int blockPos[3];
     int neighbouringBlockPos[3];
     int blockNum = 0;

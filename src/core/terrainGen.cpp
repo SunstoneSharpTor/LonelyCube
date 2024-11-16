@@ -225,7 +225,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, uint64_t seed) {
     int chunkPosition[3];
 	int chunkMinCoords[3];
 	int chunkMaxCoords[3];
-    chunk.getChunkPosition(chunkPosition);
+    chunk.getPosition(chunkPosition);
 	for (uint8_t i = 0; i < 3; i++) {
 		chunkMinCoords[i] = chunkPosition[i] * constants::CHUNK_SIZE;
 		chunkMaxCoords[i] = chunkMinCoords[i] + constants::CHUNK_SIZE;

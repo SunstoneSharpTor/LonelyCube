@@ -27,7 +27,7 @@ void Compression::compressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
     int chunkPosition[3];
-    chunk.getChunkPosition(chunkPosition);
+    chunk.getPosition(chunkPosition);
     uint32_t packetIndex = 0;
     for (int i = 0; i < 3; i++) {
         for (int shift = 24; shift >= 0; shift -= 8) {

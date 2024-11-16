@@ -83,20 +83,13 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         }
         else {
             it->second.packetReceived(mainWorld.getTickNum());
-            int oldPlayerChunkPosition[3];
-            it->second.getBlockPosition(oldPlayerChunkPosition);
-            oldPlayerChunkPosition[0] = std::floor((float)oldPlayerChunkPosition[0] / constants::CHUNK_SIZE);
-            oldPlayerChunkPosition[1] = std::floor((float)oldPlayerChunkPosition[1] / constants::CHUNK_SIZE);
-            oldPlayerChunkPosition[2] = std::floor((float)oldPlayerChunkPosition[2] / constants::CHUNK_SIZE);
+            int oldPlayerCoords[3];
+            it->second.getBlockPosition(oldPlayerCoords);
+            Position oldPlayerChunkCoords = Chunk::getChunkCoords(oldPlayerCoords);
             int newPlayerPos[3];
             memcpy(newPlayerPos, payload.getPayloadAddress(), 3 * sizeof(int));
-            int newPlayerChunkPosition[3];
-            newPlayerChunkPosition[0] = std::floor((float)newPlayerPos[0] / constants::CHUNK_SIZE);
-            newPlayerChunkPosition[1] = std::floor((float)newPlayerPos[1] / constants::CHUNK_SIZE);
-            newPlayerChunkPosition[2] = std::floor((float)newPlayerPos[2] / constants::CHUNK_SIZE);
-            bool unloadNeeded = !((oldPlayerChunkPosition[0] == newPlayerChunkPosition[0])
-                && (oldPlayerChunkPosition[1] == newPlayerChunkPosition[1])
-                && (oldPlayerChunkPosition[2] == newPlayerChunkPosition[2]));
+            Position newPlayerChunkCoords = Chunk::getChunkCoords(newPlayerPos);
+            bool unloadNeeded = newPlayerChunkCoords != oldPlayerChunkCoords;
             if (unloadNeeded) {
                 mainWorld.pauseChunkLoaderThreads();
             }
