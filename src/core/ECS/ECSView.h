@@ -103,7 +103,7 @@ template<typename... ComponentTypes>
 bool ECSView<ComponentTypes...>::Iterator::validIndex() const
 {
     return ecs.isEntityValid(ecs.getEntityId(index)) && (all || mask ==
-        ecs.getEntityComponentMask(index));
+        (mask & ecs.getEntityComponentMask(index)));
 }
 
 template<typename... ComponentTypes>
