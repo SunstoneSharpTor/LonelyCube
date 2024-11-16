@@ -52,18 +52,19 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
 
-    m_playerChunkPosition[0] = std::floor((float)playerPos.x / constants::CHUNK_SIZE);
-    m_playerChunkPosition[1] = std::floor((float)playerPos.y / constants::CHUNK_SIZE);
-    m_playerChunkPosition[2] = std::floor((float)playerPos.z / constants::CHUNK_SIZE);
-    
+    Position playerChunkPosition = Chunk::getChunkCoords(playerPos);
+    m_playerChunkPosition[0] = playerChunkPosition.x;
+    m_playerChunkPosition[1] = playerChunkPosition.y;
+    m_playerChunkPosition[2] = playerChunkPosition.z;
+
     float minUnloadedChunkDistance = ((m_renderDistance + 1) * (m_renderDistance + 1));
 
     m_emptyIndexBuffer = new IndexBuffer();
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
-    
+
     m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads() - 1;
-    
+
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
     m_numChunkVertices = new uint32_t[m_numChunkLoadingThreads];
@@ -214,9 +215,10 @@ void ClientWorld::updateMeshes() {
 }
 
 void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
-    m_newPlayerChunkPosition[0] = std::floor((float)playerX / constants::CHUNK_SIZE);
-    m_newPlayerChunkPosition[1] = std::floor((float)playerY / constants::CHUNK_SIZE);
-    m_newPlayerChunkPosition[2] = std::floor((float)playerZ / constants::CHUNK_SIZE);
+    Position newPlayerChunkPosition = Chunk::getChunkCoords(Position(playerX, playerY, playerZ));
+    m_newPlayerChunkPosition[0] = newPlayerChunkPosition.x;
+    m_newPlayerChunkPosition[1] = newPlayerChunkPosition.y;
+    m_newPlayerChunkPosition[2] = newPlayerChunkPosition.z;
 
     unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
         && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
@@ -571,11 +573,8 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
 }
 
 void ClientWorld::replaceBlock(const Position& blockCoords, uint8_t blockType) {
-    Position chunkPosition;
-    chunkPosition.x = std::floor((float)blockCoords.x / constants::CHUNK_SIZE);
-    chunkPosition.y = std::floor((float)blockCoords.y / constants::CHUNK_SIZE);
-    chunkPosition.z = std::floor((float)blockCoords.z / constants::CHUNK_SIZE);
-    
+    Position chunkPosition = Chunk::getChunkCoords(blockCoords);
+
     std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
     uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
     m_integratedServer.setBlock(blockCoords, blockType);

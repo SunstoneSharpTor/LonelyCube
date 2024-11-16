@@ -887,7 +887,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                     chunksToBeRelit.erase(it);
                     continue;
                 }
-                
+
                 // Calculate the lighting on the current chunk
                 if (i == 0) {
                     if (numChunksLightened == 0) {

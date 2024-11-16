@@ -53,7 +53,7 @@ private:
 
     inline void findBlockCoordsInWorld(int* blockPos, uint32_t block) {
         int chunkCoords[3];
-        getChunkPosition(chunkCoords);
+        getPosition(chunkCoords);
         blockPos[0] = block % constants::CHUNK_SIZE + chunkCoords[0] * constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE) + chunkCoords[1] * constants::CHUNK_SIZE;
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
@@ -83,11 +83,23 @@ public:
             blockCoords[2] * constants::CHUNK_SIZE;
     }
 
+    inline static Position getChunkCoords(const Position& blockCoords)
+    {
+        Position chunkCoords {
+            blockCoords.x >= 0 ? blockCoords.x / constants::CHUNK_SIZE :
+                (blockCoords.x + 1) / constants::CHUNK_SIZE - 1,
+            blockCoords.y >= 0 ? blockCoords.y / constants::CHUNK_SIZE :
+                (blockCoords.y + 1) / constants::CHUNK_SIZE - 1,
+            blockCoords.z >= 0 ? blockCoords.z / constants::CHUNK_SIZE :
+                (blockCoords.z + 1) / constants::CHUNK_SIZE - 1 };
+        return chunkCoords;
+    }
+
     Chunk(Position position);
 
     Chunk();
 
-    void getChunkPosition(int* coordinates) const;
+    void getPosition(int* coordinates) const;
 
     void unload();
 

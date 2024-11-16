@@ -52,7 +52,7 @@ Chunk::Chunk() {
     m_playerCount = 0;
 }
 
-void Chunk::getChunkPosition(int* coordinates) const {
+void Chunk::getPosition(int* coordinates) const {
     coordinates[0] = m_position.x;
     coordinates[1] = m_position.y;
     coordinates[2] = m_position.z;
