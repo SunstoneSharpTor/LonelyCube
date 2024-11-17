@@ -20,49 +20,38 @@
 
 #include "core/pch.h"
 
-struct IVec3 {
-    int x, y, z;
+struct Vec3 {
+    float x, y, z;
 
-    IVec3(int x, int y, int z) : x(x), y(y), z(z) {};
-    IVec3(const int* position) : x(position[0]), y(position[1]), z(position[2]) {};
-    IVec3() {};
+    Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
+    Vec3(const float* position) : x(position[0]), y(position[1]), z(position[2]) {};
+    Vec3() {};
 
-    inline IVec3 operator+(const IVec3& other) const {
+    inline Vec3 operator+(const Vec3& other) const {
         return { x + other.x, y + other.y, z + other.z };
     }
 
-    inline IVec3 operator-(const IVec3& other) const {
+    inline Vec3 operator-(const Vec3& other) const {
         return { x - other.x, y - other.y, z - other.z };
     }
 
-    inline IVec3 operator*(const int scalar) const {
+    inline Vec3 operator*(const float scalar) const {
         return { x * scalar, y * scalar, z * scalar };
     }
 
-    inline bool operator==(const IVec3& other) const {
+    inline bool operator==(const Vec3& other) const {
         return (x == other.x) && (y == other.y) && (z == other.z);
     }
 
-    inline void operator+=(const IVec3& other) {
+    inline void operator+=(const Vec3& other) {
         x += other.x;
         y += other.y;
         z += other.z;
     }
 
-    inline void operator-=(const IVec3& other) {
+    inline void operator-=(const Vec3& other) {
         x -= other.x;
         y -= other.y;
         z -= other.z;
     }
 };
-
-namespace std {
-    template<>
-    struct hash<IVec3> {
-        size_t operator()(const IVec3& key) const {
-            return key.x * 8410720864772165619u
-                ^ key.y * 8220336697060211182u
-                ^ key.z * 11615669650507345147u;
-        }
-    };
-}

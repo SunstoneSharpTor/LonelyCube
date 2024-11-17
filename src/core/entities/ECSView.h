@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "core/ECS/ECS.h"
+#include "core/entities/ECS.h"
 
 template<typename... ComponentTypes>
 class ECSView

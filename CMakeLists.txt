@@ -39,7 +39,7 @@ set(CLIENT_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/config.cpp
-    src/core/ECS/ECS.cpp
+    src/core/entities/ECS.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
@@ -56,7 +56,7 @@ $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
-    src/core/ECS/ECS.cpp
+    src/core/entities/ECS.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp

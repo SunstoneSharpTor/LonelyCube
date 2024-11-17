@@ -27,40 +27,40 @@
 class Lighting {
 public:
     // Propagates the sky light through the chunk
-    static void propagateSkyLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
+    static void propagateSkyLight(IVec3 chunkPosition, std::unordered_map<IVec3, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
 
     // Propagates the block light through the chunk
-    static void propagateBlockLight(Position chunkPosition, std::unordered_map<Position, Chunk>&
+    static void propagateBlockLight(IVec3 chunkPosition, std::unordered_map<IVec3, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
 
     // Propagates the absence of sky light through the chunk
-    static void propagateSkyDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
+    static void propagateSkyDarkness(IVec3 chunkPosition, std::unordered_map<IVec3, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
 
     // Propagates the absence of block light through the chunk
-    static void propagateBlockDarkness(Position chunkPosition, std::unordered_map<Position, Chunk>&
+    static void propagateBlockDarkness(IVec3 chunkPosition, std::unordered_map<IVec3, Chunk>&
         worldChunks, bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack&
         resourcePack, uint32_t modifiedBlock = constants::CHUNK_SIZE * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE);
 
     // Recalculate all necessary lighting information for a block change
-	static void relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
-		uint8_t originalBlock, uint8_t newBlock, std::vector<Position>& chunksToRemesh,
-        std::unordered_map<Position, Chunk>& worldChunks, const ResourcePack& ResourcePack);
+	static void relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& chunkPosition,
+		uint8_t originalBlock, uint8_t newBlock, std::vector<IVec3>& chunksToRemesh,
+        std::unordered_map<IVec3, Chunk>& worldChunks, const ResourcePack& ResourcePack);
 private:
-    static const inline std::array<Position, 6> s_neighbouringChunkOffsets = { Position(0, -1, 0),
-        Position(0, 0, -1),
-        Position(-1, 0, 0),
-        Position(1, 0, 0),
-        Position(0, 0, 1),
-        Position(0, 1, 0) };
+    static const inline std::array<IVec3, 6> s_neighbouringChunkOffsets = { IVec3(0, -1, 0),
+        IVec3(0, 0, -1),
+        IVec3(-1, 0, 0),
+        IVec3(1, 0, 0),
+        IVec3(0, 0, 1),
+        IVec3(0, 1, 0) };
 
     inline static void addSkyLightValuesFromBorder(Chunk& chunk, Chunk* neighbouringChunk, const
         uint32_t blockNum, const uint32_t neighbouringBlockNum, const ResourcePack& resourcePack,

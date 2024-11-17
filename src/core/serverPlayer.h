@@ -33,15 +33,15 @@ private:
     uint32_t m_numChunks;  // The max number of chunks in the player's render distance
     int m_blockPosition[3];
     float m_subBlockPosition[3];
-    std::unique_ptr<Position[]> m_unloadedChunks;
+    std::unique_ptr<IVec3[]> m_unloadedChunks;
     int m_playerChunkPosition[3];
     int m_playerChunkMovementOffset[3];
     int m_nextUnloadedChunk;
     int m_playerID;
     ENetPeer* m_peer;
     uint32_t m_lastPacketTick;
-    std::unordered_set<Position> m_loadedChunks;
-    std::unordered_set<Position>::iterator m_processedChunk;
+    std::unordered_set<IVec3> m_loadedChunks;
+    std::unordered_set<IVec3>::iterator m_processedChunk;
 
     void initChunkPositions();
     void initNumChunks();
@@ -52,7 +52,7 @@ public:
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
     bool allChunksLoaded();
     void getNextChunkCoords(int* chunkCoords);
-    bool decrementNextChunk(Position* chunkPosition, bool* chunkOutOfRange);
+    bool decrementNextChunk(IVec3* chunkPosition, bool* chunkOutOfRange);
     
     inline int getID() const {
         return m_playerID;
@@ -68,7 +68,7 @@ public:
         position[2] = m_playerChunkPosition[2];
     }
 
-    inline bool hasChunkLoaded(Position& chunkPosition) {
+    inline bool hasChunkLoaded(IVec3& chunkPosition) {
         return m_loadedChunks.contains(chunkPosition);
     }
 

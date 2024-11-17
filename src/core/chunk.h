@@ -34,7 +34,7 @@ private:
     bool m_skyLightUpToDate;
     bool m_blockLightUpToDate;
     uint16_t m_playerCount; // The number of players that are rendering this chunk
-    Position m_position; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
+    IVec3 m_position; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_calculatingSkylight;
     //std::mutex m_accessingSkylightMtx;
     //std::condition_variable m_accessingSkylightCV;
@@ -83,9 +83,9 @@ public:
             blockCoords[2] * constants::CHUNK_SIZE;
     }
 
-    inline static Position getChunkCoords(const Position& blockCoords)
+    inline static IVec3 getChunkCoords(const IVec3& blockCoords)
     {
-        Position chunkCoords {
+        IVec3 chunkCoords {
             blockCoords.x >= 0 ? blockCoords.x / constants::CHUNK_SIZE :
                 (blockCoords.x + 1) / constants::CHUNK_SIZE - 1,
             blockCoords.y >= 0 ? blockCoords.y / constants::CHUNK_SIZE :
@@ -95,7 +95,7 @@ public:
         return chunkCoords;
     }
 
-    Chunk(Position position);
+    Chunk(IVec3 position);
 
     Chunk();
 

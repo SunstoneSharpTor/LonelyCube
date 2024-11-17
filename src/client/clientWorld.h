@@ -51,13 +51,13 @@ struct MeshData {
 
 class ClientWorld {
 private:
-	static const inline std::array<Position, 6> s_neighbouringChunkOffsets = {
-		Position(0, -1, 0),
-        Position(0, 0, -1),
-        Position(-1, 0, 0),
-        Position(1, 0, 0),
-        Position(0, 0, 1),
-        Position(0, 1, 0)
+	static const inline std::array<IVec3, 6> s_neighbouringChunkOffsets = {
+		IVec3(0, -1, 0),
+        IVec3(0, 0, -1),
+        IVec3(-1, 0, 0),
+        IVec3(1, 0, 0),
+        IVec3(0, 0, 1),
+        IVec3(0, 1, 0)
 	};
 
 	bool m_singleplayer;
@@ -66,7 +66,7 @@ private:
 	int m_playerChunkPosition[3];
 	int m_newPlayerChunkPosition[3];
 	int m_updatingPlayerChunkPosition[3];
-	Position m_neighbouringChunkIncludingDiaganalOffsets[27];
+	IVec3 m_neighbouringChunkIncludingDiaganalOffsets[27];
 	uint16_t m_numChunkLoadingThreads;
 	bool m_renderingFrame;
 	float m_meshedChunksDistance;
@@ -86,22 +86,22 @@ private:
 	SDL_Window* m_window;
 	uint32_t* m_windowDimensions;
 
-	std::unordered_map<Position, MeshData> m_meshes;
+	std::unordered_map<IVec3, MeshData> m_meshes;
 	VertexBuffer* m_emptyVertexBuffer;
 	IndexBuffer* m_emptyIndexBuffer;
 	VertexArray* m_emptyVertexArray;
-	std::unordered_set<Position> m_unmeshedChunks;
-	std::unordered_set<Position> m_beingMeshesdChunks;
-	std::unordered_set<Position> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
-	std::unordered_set<Position> m_meshesToUpdate;
-	std::queue<Position> m_recentChunksBuilt;
+	std::unordered_set<IVec3> m_unmeshedChunks;
+	std::unordered_set<IVec3> m_beingMeshesdChunks;
+	std::unordered_set<IVec3> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
+	std::unordered_set<IVec3> m_meshesToUpdate;
+	std::queue<IVec3> m_recentChunksBuilt;
 	//mesh building data - this is stored at class-level because it allows it to be
 	//accessed from multiple threads
 	uint32_t* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value
 	uint32_t* m_numChunkWaterVertices; //array to allow for each mesh-building thread to have its own value
 	uint32_t* m_numChunkIndices; //array to allow for each mesh-building thread to have its own value
 	uint32_t* m_numChunkWaterIndices; //array to allow for each mesh-building thread to have its own value
-	Position* m_chunkPosition; //array to allow for each mesh-building thread to have its own value
+	IVec3* m_chunkPosition; //array to allow for each mesh-building thread to have its own value
 	float** m_chunkVertices; //2d array to allow for each mesh-building thread to have its own array
 	uint32_t** m_chunkIndices; //2d array to allow for each mesh-building thread to have its own array
 	float** m_chunkWaterVertices; //2d array to allow for each mesh-building thread to have its own array
@@ -126,17 +126,17 @@ private:
 	ServerWorld<true> m_integratedServer;
 	int m_clientID;
 
-	void unloadMesh(const Position& chunkPosition);
-	bool chunkHasNeighbours(const Position& chunkPosition);
+	void unloadMesh(const IVec3& chunkPosition);
+	bool chunkHasNeighbours(const IVec3& chunkPosition);
 	// Adds chunks to the vector if the modified block is in or bordering the chunk
-	void addChunksToRemesh(std::vector<Position>& chunksToRemesh, const Position& modifiedBlockPos,
-		const Position& modifiedBlockChunk);
-	void addChunkMesh(const Position& chunkPosition, int8_t threadNum);
+	void addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IVec3& modifiedBlockPos,
+		const IVec3& modifiedBlockChunk);
+	void addChunkMesh(const IVec3& chunkPosition, int8_t threadNum);
 	void uploadChunkMesh(int8_t threadNum);
 	void unmeshChunks();
 
 public:
-	ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const Position& playerPos);
+	ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos);
 	void renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
 		viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
 		float skyLightIntensity, double DT);
@@ -144,9 +144,9 @@ public:
 	void loadChunksAroundPlayerMultiplayer(int8_t threadNum);
 	void buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
 	uint8_t shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
-	void replaceBlock(const Position& blockCoords, uint8_t blockType);
+	void replaceBlock(const IVec3& blockCoords, uint8_t blockType);
 	inline uint8_t getBlock(int* blockCoords) {
-		return m_integratedServer.getBlock(Position(blockCoords));
+		return m_integratedServer.getBlock(IVec3(blockCoords));
 	}
 	inline int getRenderDistance() {
 		return m_renderDistance;

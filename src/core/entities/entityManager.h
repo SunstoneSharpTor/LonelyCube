@@ -20,18 +20,12 @@
 
 #include "core/pch.h"
 
-#include "core/chunk.h"
-#include "core/packet.h"
+#include "core/entities/ECS.h"
+#include "core/position.h"
 
-class Compression {
+class EntityManager {
 public:
-    static void compressChunk(Packet<uint8_t,
-    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
-    Chunk& chunk);
-    static void decompressChunk(Packet<uint8_t,
-    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
-    Chunk& chunk);
-    static void getChunkPosition(Packet<uint8_t,
-    9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
-    IVec3& position);
+    ECS ecs;
+
+    void addItem(uint8_t blockType, IVec3 blockPosition, 
 };
