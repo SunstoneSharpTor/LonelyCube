@@ -82,6 +82,9 @@ public:
     template<typename T>
     T& get(const EntityId id);
 
+    template<typename T>
+    void set(const EntityId id, const T& value);
+
     inline EntityId getEntityId(const EntityIndex index)
     {
         return m_entities[index].id;
@@ -166,4 +169,11 @@ T& ECS::get(const EntityId id)
 {
     int componentId = getComponentId<T>();
     return *static_cast<T*>(m_componentPools[componentId]->get(getEntityIndex(id)));
+}
+
+template<typename T>
+void ECS::set(const EntityId id, const T& value)
+{
+    int componentId = getComponentId<T>();
+    *static_cast<T*>(m_componentPools[componentId]->get(getEntityIndex(id))) = value;
 }

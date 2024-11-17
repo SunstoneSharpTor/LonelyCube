@@ -21,7 +21,7 @@
 #include "core/pch.h"
 
 #include "core/chunk.h"
-#include "core/position.h"
+#include "core/iVec3.h"
 
 void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,

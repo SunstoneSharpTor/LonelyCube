@@ -27,7 +27,7 @@
 #include "client/graphics/camera.h"
 #include "core/chunk.h"
 #include "core/packet.h"
-#include "core/position.h"
+#include "core/iVec3.h"
 #include "core/serverWorld.h"
 
 #include "core/pch.h"

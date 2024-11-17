@@ -22,7 +22,7 @@
 
 #include "core/chunk.h"
 #include "core/constants.h"
-#include "core/position.h"
+#include "core/iVec3.h"
 
 void ServerPlayer::initNumChunks() {
     m_minUnloadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);

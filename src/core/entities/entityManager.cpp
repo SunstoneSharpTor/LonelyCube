@@ -16,18 +16,16 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "core/entities/entityManager.h"
 
-#include "core/pch.h"
+EntityManager::EntityManager(int maxNumEntities) : ecs(maxNumEntities) {}
 
-#include "core/entities/ECS.h"
-#include "core/iVec3.h"
-#include "core/vec3.h"
+void EntityManager::addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition)
+{
+    EntityId entity = ecs.newEntity();
+    ecs.assign<IVec3>(entity);
+    ecs.assign<Vec3>(entity);
 
-class EntityManager {
-public:
-    ECS ecs;
-
-    EntityManager(int maxNumEntities);
-    void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
-};
+    ecs.set<IVec3>(entity, blockPosition);
+    ecs.set<Vec3>(entity, subBlockPosition);
+}

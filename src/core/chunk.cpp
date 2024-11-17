@@ -21,7 +21,7 @@
 #include "core/pch.h"
 
 #include "core/block.h"
-#include "core/position.h"
+#include "core/iVec3.h"
 
 std::mutex Chunk::s_checkingNeighbouringRelights;
 

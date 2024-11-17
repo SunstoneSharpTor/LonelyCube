@@ -18,7 +18,7 @@
 
 #include "core/entities/ECS.h"
 #include "core/entities/ECSView.h"
-#include "core/position.h"
+#include "core/iVec3.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE( "Entities can be added, destroyed and have components assigned to them", "[ECS]" ) {
@@ -68,6 +68,14 @@ TEST_CASE( "Entities can be added, destroyed and have components assigned to the
         REQUIRE( ecs.get<int>(entity4) == 4 );
         REQUIRE( entity4Int == 4 );
         REQUIRE( ecs.getEntityIndex(entity4) == ecs.getEntityIndex(entity2) );
+    }
+    SECTION( "Components can have values assigned to them using the set method" )
+    {
+        ecs.set<std::string>(entity2, "New value");
+        ecs.set<IVec3>(entity1, IVec3(1, 2, 3));
+
+        REQUIRE( ecs.get<std::string>(entity2) == "New value" );
+        REQUIRE( ecs.get<IVec3>(entity1) == IVec3(1, 2, 3) );
     }
 }
 
