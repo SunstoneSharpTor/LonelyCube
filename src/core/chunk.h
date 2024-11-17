@@ -21,7 +21,7 @@
 #include "core/pch.h"
 
 #include "core/constants.h"
-#include "core/iVec3.h"
+#include "core/utils/iVec3.h"
 
 class Chunk {
 private:

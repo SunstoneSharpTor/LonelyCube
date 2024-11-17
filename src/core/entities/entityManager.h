@@ -21,9 +21,9 @@
 #include "core/pch.h"
 
 #include "core/entities/ECS.h"
-#include "core/iVec3.h"
+#include "core/utils/iVec3.h"
 #include "core/resourcePack.h"
-#include "core/vec3.h"
+#include "core/utils/vec3.h"
 
 class EntityManager {
 private:

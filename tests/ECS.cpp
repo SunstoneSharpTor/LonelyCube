@@ -18,7 +18,7 @@
 
 #include "core/entities/ECS.h"
 #include "core/entities/ECSView.h"
-#include "core/iVec3.h"
+#include "core/utils/iVec3.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE( "Entities can be added, destroyed and have components assigned to them", "[ECS]" ) {

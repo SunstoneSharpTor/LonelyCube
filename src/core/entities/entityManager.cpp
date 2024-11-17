@@ -28,7 +28,7 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBloc
     EntityId entity = ecs.newEntity();
     ecs.assign<IVec3>(entity);
     ecs.assign<Vec3>(entity);
-    ecs.assign<MeshComponent>(entity);
+    // ecs.assign<MeshComponent>(entity);
 
     for (uint8_t faceNum = 0 ; faceNum < m_resourcePack.getBlockData(blockType).model->numFaces;
         faceNum++)

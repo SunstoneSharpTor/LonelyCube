@@ -83,9 +83,9 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
         m_waterIndices[*m_numWaterIndices] = trueNumVertices - 4;
         m_waterIndices[*m_numWaterIndices + 1] = trueNumVertices - 3;
         m_waterIndices[*m_numWaterIndices + 2] = trueNumVertices - 2;
-        m_waterIndices[*m_numWaterIndices + 3] = trueNumVertices - 4;
         m_waterIndices[*m_numWaterIndices + 4] = trueNumVertices - 2;
         m_waterIndices[*m_numWaterIndices + 5] = trueNumVertices - 1;
+        m_waterIndices[*m_numWaterIndices + 3] = trueNumVertices - 4;
         *m_numWaterIndices += 6;
     }
     else
@@ -115,9 +115,9 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
         m_indices[*m_numIndices] = trueNumVertices - 4;
         m_indices[*m_numIndices + 1] = trueNumVertices - 3;
         m_indices[*m_numIndices + 2] = trueNumVertices - 2;
-        m_indices[*m_numIndices + 3] = trueNumVertices - 4;
         m_indices[*m_numIndices + 4] = trueNumVertices - 2;
         m_indices[*m_numIndices + 5] = trueNumVertices - 1;
+        m_indices[*m_numIndices + 3] = trueNumVertices - 4;
         (*m_numIndices) += 6;
     }
 }

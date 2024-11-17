@@ -16,24 +16,9 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
 #include "core/entities/components/meshComponent.h"
 #include "core/resourcePack.h"
-#include <memory>
 
-class MeshManager
-{
-private:
-    std::vector<int> m_freeVertices;  // Stores a list of free vertices in the format: size, index
-    std::vector<int> m_freeIndices;  // Stores a lsit of free indices in the format: size, index
-
-public:
-    std::unique_ptr<float[]> vertexBuffer;
-    std::unique_ptr<int[]> indexBuffer;
-    int numIndices;
-
-    MeshManager(int maxVertices, int maxIndices);
-    MeshComponent addMesh(const Model& model);
-    void removeMesh(const MeshComponent mesh);
-};
+MeshComponent::MeshComponent(const Model& model, int vertexBufferIndex, int indexBufferIndex)
+    : vertexBufferIndex(vertexBufferIndex), numVertices(model.numFaces * 4),
+    indexBufferIndex(indexBufferIndex), numIndices(model.numFaces * 6), model(model) {}
