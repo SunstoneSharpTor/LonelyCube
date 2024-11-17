@@ -30,7 +30,7 @@ struct Face {
     float coords[12];
 };
 
-struct BlockModel {
+struct Model {
     uint8_t numFaces;
     std::string name;
     Face faces[maxNumFaces];
@@ -39,7 +39,7 @@ struct BlockModel {
 
 struct BlockData {
     std::string name;
-    BlockModel* model;
+    Model* model;
     uint16_t faceTextureIndices[maxNumFaces];
     uint8_t blockLight;
     bool transparent;
@@ -50,7 +50,7 @@ struct BlockData {
 
 class ResourcePack {
 private:
-    BlockModel m_blockModels[256];
+    Model m_blockModels[256];
     BlockData m_blockData[256];
 
     bool isTrue(std::basic_istream<char>& stream) const;

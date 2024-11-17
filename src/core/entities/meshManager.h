@@ -18,20 +18,12 @@
 
 #pragma once
 
-#include "core/pch.h"
-
-#include "core/entities/ECS.h"
-#include "core/iVec3.h"
-#include "core/resourcePack.h"
-#include "core/vec3.h"
-
-class EntityManager {
-private:
-    const ResourcePack& m_resourcePack;
-
+#include "core/entities/components/meshComponent.h"
+class MeshManager
+{
 public:
-    ECS ecs;
+    std::vector<float> vertices;
+    std::vector<int> indices;
 
-    EntityManager(int maxNumEntities, const ResourcePack& resourcePack);
-    void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
+    MeshComponent& addMesh(
 };
