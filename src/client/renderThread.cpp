@@ -145,7 +145,7 @@ void RenderThread::go(bool* running) {
     simpleDownsampleShader.setUniform1i("srcTexture", 0);
     #endif
 
-    Texture allBlockTextures("res/resourcePack/blocks/blockTextures.png");
+    Texture allBlockTextures("res/resourcePack/textures.png");
 
     Renderer mainRenderer;
 

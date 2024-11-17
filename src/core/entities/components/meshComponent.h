@@ -20,18 +20,13 @@
 
 #include "core/pch.h"
 
-#include "core/entities/ECS.h"
-#include "core/iVec3.h"
-#include "core/resourcePack.h"
-#include "core/vec3.h"
-
-class EntityManager {
-private:
-    const ResourcePack& m_resourcePack;
-
+// Class that stores a reference to a mesh in an instance of a mesh manager class, as well as a
+// copy of the untranslated vertices
+class MeshComponent {
 public:
-    ECS ecs;
-
-    EntityManager(int maxNumEntities, const ResourcePack& resourcePack);
-    void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
+    uint32_t vertexBufferIndex;
+    uint16_t numVertices;
+    uint32_t indexBufferIndex;
+    uint16_t numIndices;
+    std::unique_ptr<float[]> untranslatedVertices;
 };

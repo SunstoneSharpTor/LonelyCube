@@ -17,15 +17,23 @@
 */
 
 #include "core/entities/entityManager.h"
+#include "core/entities/components/meshComponent.h"
+#include "core/resourcePack.h"
 
-EntityManager::EntityManager(int maxNumEntities) : ecs(maxNumEntities) {}
+EntityManager::EntityManager(int maxNumEntities, const ResourcePack& resourcePack)
+    : ecs(maxNumEntities), m_resourcePack(resourcePack) {}
 
 void EntityManager::addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition)
 {
     EntityId entity = ecs.newEntity();
     ecs.assign<IVec3>(entity);
     ecs.assign<Vec3>(entity);
+    ecs.assign<MeshComponent>(entity);
 
+    for (uint8_t faceNum = 0 ; faceNum < m_resourcePack.getBlockData(blockType).model->numFaces;
+        faceNum++)
+    {
+    }
     ecs.set<IVec3>(entity, blockPosition);
     ecs.set<Vec3>(entity, subBlockPosition);
 }
