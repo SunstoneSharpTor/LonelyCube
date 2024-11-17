@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/ECS/ECS.h"
+#include "core/entities/ECS.h"
 
 ECS::ECS(int maxEntities) : m_maxEntities(maxEntities) {}
 

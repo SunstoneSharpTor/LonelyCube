@@ -85,10 +85,10 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
             it->second.packetReceived(mainWorld.getTickNum());
             int oldPlayerCoords[3];
             it->second.getBlockPosition(oldPlayerCoords);
-            Position oldPlayerChunkCoords = Chunk::getChunkCoords(oldPlayerCoords);
+            IVec3 oldPlayerChunkCoords = Chunk::getChunkCoords(oldPlayerCoords);
             int newPlayerPos[3];
             memcpy(newPlayerPos, payload.getPayloadAddress(), 3 * sizeof(int));
-            Position newPlayerChunkCoords = Chunk::getChunkCoords(newPlayerPos);
+            IVec3 newPlayerChunkCoords = Chunk::getChunkCoords(newPlayerPos);
             bool unloadNeeded = newPlayerChunkCoords != oldPlayerChunkCoords;
             if (unloadNeeded) {
                 mainWorld.pauseChunkLoaderThreads();

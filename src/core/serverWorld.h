@@ -40,10 +40,10 @@ private:
     uint32_t m_gameTick;
     ResourcePack m_resourcePack;
     
-    std::unordered_map<Position, Chunk> m_chunks;
+    std::unordered_map<IVec3, Chunk> m_chunks;
     std::unordered_map<uint16_t, ServerPlayer> m_players;
-    std::queue<Position> m_chunksToBeLoaded;
-    std::unordered_set<Position> m_chunksBeingLoaded;
+    std::queue<IVec3> m_chunksToBeLoaded;
+    std::unordered_set<IVec3> m_chunksBeingLoaded;
 
     // Synchronisation
     std::mutex m_chunksMtx;
@@ -74,22 +74,22 @@ public:
     void pauseChunkLoaderThreads();
     void releaseChunkLoaderThreads();
     void findChunksToLoad();
-    bool loadChunk(Position* chunkPosition);
+    bool loadChunk(IVec3* chunkPosition);
     void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
-        constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition);
+        constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
-    bool getNextLoadedChunkPosition(Position* chunkPosition);
-    uint8_t getBlock(const Position& position) const;
-    void setBlock(const Position& position, uint8_t blockType);
-    uint8_t getSkyLight(const Position& position) const;
-    uint8_t getBlockLight(const Position& position) const;
-    inline Chunk& getChunk(const Position& chunkPosition) {
+    bool getNextLoadedChunkPosition(IVec3* chunkPosition);
+    uint8_t getBlock(const IVec3& position) const;
+    void setBlock(const IVec3& position, uint8_t blockType);
+    uint8_t getSkyLight(const IVec3& position) const;
+    uint8_t getBlockLight(const IVec3& position) const;
+    inline Chunk& getChunk(const IVec3& chunkPosition) {
         return m_chunks.at(chunkPosition);
     }
-    inline bool chunkLoaded(const Position& chunkPosition) {
+    inline bool chunkLoaded(const IVec3& chunkPosition) {
         return m_chunks.contains(chunkPosition);
     }
-    inline std::unordered_map<Position, Chunk>& getWorldChunks() {
+    inline std::unordered_map<IVec3, Chunk>& getWorldChunks() {
         return m_chunks;
     }
 	inline int8_t getNumChunkLoaderThreads() {
@@ -131,7 +131,7 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         player.updatePlayerPos(blockPosition, subBlockPosition);
         // If the player has moved chunk, remove all the chunks that are out of
         // render distance from the set of loaded chunks
-        Position chunkPosition;
+        IVec3 chunkPosition;
         bool chunkOutOfRange;
         while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
             if (chunkOutOfRange && m_chunks.contains(chunkPosition)) {
@@ -166,7 +166,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
         if (!player.allChunksLoaded()) {
             int chunkPosition[3];
             player.getNextChunkCoords(chunkPosition);
-            auto it = m_chunks.find(Position(chunkPosition));
+            auto it = m_chunks.find(IVec3(chunkPosition));
             if (it != m_chunks.end()) {
                 it->second.incrementPlayerCount();
                 if (!integrated) {
@@ -178,7 +178,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
                     !enet_peer_send(player.getPeer(), 0, packet);
                 }
             }
-            else if (!m_chunksBeingLoaded.contains(Position(chunkPosition))) {
+            else if (!m_chunksBeingLoaded.contains(IVec3(chunkPosition))) {
                 m_chunksToBeLoaded.emplace(chunkPosition);
                 m_chunksBeingLoaded.emplace(chunkPosition);
             }
@@ -191,7 +191,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
 }
 
 template<bool integrated>
-bool ServerWorld<integrated>::loadChunk(Position* chunkPosition) {
+bool ServerWorld<integrated>::loadChunk(IVec3* chunkPosition) {
     findChunksToLoad();
     m_chunksToBeLoadedMtx.lock();
     if (!m_chunksToBeLoaded.empty()) {
@@ -232,7 +232,7 @@ bool ServerWorld<integrated>::loadChunk(Position* chunkPosition) {
 
 template<bool integrated>
 void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
-    constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, Position& chunkPosition) {
+    constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
     m_chunks[chunkPosition] = { chunkPosition };
@@ -278,7 +278,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
     player.updatePlayerPos(blockPosition, subBlockPosition);
 
-    Position chunkPosition;
+    IVec3 chunkPosition;
     bool chunkOutOfRange;
     int i = 0;
     while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
@@ -307,9 +307,9 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
 }
 
 template<bool integrated>
-uint8_t ServerWorld<integrated>::getBlock(const Position& position) const {
-    Position chunkPosition = Chunk::getChunkCoords(position);
-    Position chunkBlockCoords = Position(
+uint8_t ServerWorld<integrated>::getBlock(const IVec3& position) const {
+    IVec3 chunkPosition = Chunk::getChunkCoords(position);
+    IVec3 chunkBlockCoords = IVec3(
         position.x - chunkPosition.x * constants::CHUNK_SIZE,
         position.y - chunkPosition.y * constants::CHUNK_SIZE,
         position.z - chunkPosition.z * constants::CHUNK_SIZE);
@@ -326,9 +326,9 @@ uint8_t ServerWorld<integrated>::getBlock(const Position& position) const {
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::setBlock(const Position& position, uint8_t blockType) {
-    Position chunkPosition = Chunk::getChunkCoords(position);
-    Position chunkBlockCoords = Position(
+void ServerWorld<integrated>::setBlock(const IVec3& position, uint8_t blockType) {
+    IVec3 chunkPosition = Chunk::getChunkCoords(position);
+    IVec3 chunkBlockCoords = IVec3(
         position.x - chunkPosition.x * constants::CHUNK_SIZE,
         position.y - chunkPosition.y * constants::CHUNK_SIZE,
         position.z - chunkPosition.z * constants::CHUNK_SIZE);
@@ -346,9 +346,9 @@ void ServerWorld<integrated>::setBlock(const Position& position, uint8_t blockTy
 }
 
 template<bool integrated>
-uint8_t ServerWorld<integrated>::getSkyLight(const Position& position) const {
-    Position chunkPosition = Chunk::getChunkCoords(position);
-    Position chunkBlockCoords = Position(
+uint8_t ServerWorld<integrated>::getSkyLight(const IVec3& position) const {
+    IVec3 chunkPosition = Chunk::getChunkCoords(position);
+    IVec3 chunkBlockCoords = IVec3(
         position.x - chunkPosition.x * constants::CHUNK_SIZE,
         position.y - chunkPosition.y * constants::CHUNK_SIZE,
         position.z - chunkPosition.z * constants::CHUNK_SIZE);
@@ -365,9 +365,9 @@ uint8_t ServerWorld<integrated>::getSkyLight(const Position& position) const {
 }
 
 template<bool integrated>
-uint8_t ServerWorld<integrated>::getBlockLight(const Position& position) const {
-    Position chunkPosition = Chunk::getChunkCoords(position);
-    Position chunkBlockCoords = Position(
+uint8_t ServerWorld<integrated>::getBlockLight(const IVec3& position) const {
+    IVec3 chunkPosition = Chunk::getChunkCoords(position);
+    IVec3 chunkBlockCoords = IVec3(
         position.x - chunkPosition.x * constants::CHUNK_SIZE,
         position.y - chunkPosition.y * constants::CHUNK_SIZE,
         position.z - chunkPosition.z * constants::CHUNK_SIZE);
@@ -447,7 +447,7 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
         payload[i] = blockCoords[i];
     }
     payload[3] = blockType;
-    Position chunkPosition = Chunk::getChunkCoords(blockCoords);
+    IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
     for (auto& [playerID, player] : m_players) {
         if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);

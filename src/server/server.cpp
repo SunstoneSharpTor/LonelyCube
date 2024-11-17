@@ -42,7 +42,7 @@ static void receiveCommands(bool* running) {
 static void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8_t threadNum) {
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
-        Position chunkPosition;
+        IVec3 chunkPosition;
         if (mainWorld->loadChunk(&chunkPosition)) {
             
         }

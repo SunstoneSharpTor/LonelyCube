@@ -23,18 +23,18 @@
 #include "core/chunk.h"
 #include "core/position.h"
 
-void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
+void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,
     uint32_t modifiedBlock)
 {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
-    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
+    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
     if (!chunk.isSkyLightBeingRelit()) {
         Chunk::s_checkingNeighbouringRelights.lock();
         bool neighbourBeingRelit = true;
@@ -221,18 +221,18 @@ void Lighting::propagateSkyLight(Position pos, std::unordered_map<Position, Chun
     }
 }
 
-void Lighting::propagateBlockLight(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
+void Lighting::propagateBlockLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,
     uint32_t modifiedBlock)
 {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
-    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
+    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     std::queue<uint32_t> lightQueue;
     //add the the updated block to the light queue if it has been provided
@@ -384,18 +384,18 @@ void Lighting::propagateBlockLight(Position pos, std::unordered_map<Position, Ch
     }
 }
 
-void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
+void Lighting::propagateSkyDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,
     uint32_t modifiedBlock)
 {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
-    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
+    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     std::queue<uint32_t> lightQueue;
     // Add the the updated block to the light queue if it has been provided
@@ -592,18 +592,18 @@ void Lighting::propagateSkyDarkness(Position pos, std::unordered_map<Position, C
     }
 }
 
-void Lighting::propagateBlockDarkness(Position pos, std::unordered_map<Position, Chunk>& worldChunks,
+void Lighting::propagateBlockDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,
     uint32_t modifiedBlock)
 {
     Chunk& chunk = worldChunks.at(pos);
     int chunkPosition[3] = { pos.x, pos.y, pos.z };
-    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
-                                                       &worldChunks.at(Position(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
+    const std::array<Chunk*, 6> neighbouringChunks = { &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] - 1, chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] - 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] - 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0] + 1, chunkPosition[1], chunkPosition[2])),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1], chunkPosition[2] + 1)),
+                                                       &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     std::queue<uint32_t> lightQueue;
     // Add the the updated block to the light queue if it has been provided
@@ -821,9 +821,9 @@ void Lighting::propagateBlockDarkness(Position pos, std::unordered_map<Position,
     }
 }
 
-void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Position& chunkPosition,
-    uint8_t originalBlock, uint8_t newBlock, std::vector<Position>& chunksToRemesh,
-    std::unordered_map<Position, Chunk>& worldChunks, const ResourcePack& resourcePack)
+void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& chunkPosition,
+    uint8_t originalBlock, uint8_t newBlock, std::vector<IVec3>& chunksToRemesh,
+    std::unordered_map<IVec3, Chunk>& worldChunks, const ResourcePack& resourcePack)
 {
     uint32_t modifiedBlockNum = blockCoords.x - chunkPosition.x * constants::CHUNK_SIZE
         + (blockCoords.y - chunkPosition.y * constants::CHUNK_SIZE) * constants::CHUNK_SIZE
@@ -852,7 +852,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 || newBlockData.blockLight > oldBlockData.blockLight;
         }
 
-        std::vector<Position> relitChunks;
+        std::vector<IVec3> relitChunks;
         int numChunksLightened = 0;
         int numChunksDarkened = 0;
         int numSpreads = 0;
@@ -862,7 +862,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 continue;
             }
             // Add the chunk containing the modified block to the vector
-            std::vector<Position> chunksToBeRelit;
+            std::vector<IVec3> chunksToBeRelit;
             chunksToBeRelit.emplace_back(chunkPosition);
             while (chunksToBeRelit.size() > 0) {
                 if (std::find(relitChunks.begin(), relitChunks.end(), chunksToBeRelit[0]) == relitChunks.end()) {
@@ -870,7 +870,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 }
                 bool neighbouringChunksToRelight[6];
                 bool neighbouringChunksToRemesh[6];
-                Position neighbouringChunkPositions[6];
+                IVec3 neighbouringChunkPositions[6];
                 bool neighbouringChunksLoaded = true;
                 // Check that the chunk has its neighbours loaded so that it can be lit
                 for (int8_t ii = 0; ii < 6; ii++) {
@@ -883,7 +883,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 // If the chunk's neighbours aren't loaded, remove the chunk as it cannot be lit correctly
                 if (!neighbouringChunksLoaded) {
                     worldChunks.at(chunksToBeRelit[0]).setSkyLightToBeOutdated();
-                    std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                    std::vector<IVec3>::iterator it = chunksToBeRelit.begin();
                     chunksToBeRelit.erase(it);
                     continue;
                 }
@@ -943,14 +943,14 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 // Add relevant neighbouring chunks to the chunksToBeRemeshed
                 for (int8_t i = 0; i < 6; i++) {
                     if (neighbouringChunksToRemesh[i]) {
-                        Position chunkToBeRemeshed = chunksToBeRelit[0];
+                        IVec3 chunkToBeRemeshed = chunksToBeRelit[0];
                         chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
                         if (std::find(chunksToRemesh.begin(), chunksToRemesh.end(), chunkToBeRemeshed) == chunksToRemesh.end()) {
                             chunksToRemesh.push_back(chunkToBeRemeshed);
                         }
                     }
                 }
-                std::vector<Position>::iterator it = chunksToBeRelit.begin();
+                std::vector<IVec3>::iterator it = chunksToBeRelit.begin();
                 chunksToBeRelit.erase(it);
                 //add the neighbouring chunks that were marked as needing recalculating to the queue
                 for (int8_t i = 0; i < 6; i++) {
@@ -964,7 +964,7 @@ void Lighting::relightChunksAroundBlock(const Position& blockCoords, const Posit
                 }
             }
         }
-        for (Position position : relitChunks) {
+        for (IVec3 position : relitChunks) {
             worldChunks.at(position).compressSkyLight();
         }
         std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";

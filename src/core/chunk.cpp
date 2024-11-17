@@ -27,7 +27,7 @@ std::mutex Chunk::s_checkingNeighbouringRelights;
 
 const int16_t Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
-Chunk::Chunk(Position position) : m_position(position) {
+Chunk::Chunk(IVec3 position) : m_position(position) {
     m_skyLightUpToDate = false;
     m_blockLightUpToDate = true;
     m_calculatingSkylight = false;

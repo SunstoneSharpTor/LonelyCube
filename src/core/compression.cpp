@@ -149,7 +149,7 @@ void Compression::decompressChunk(Packet<uint8_t,
 
 void Compression::getChunkPosition(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
-    Position& position) {
+    IVec3& position) {
     int chunkPosition[3];
     uint32_t packetIndex = 0;
     for (int i = 0; i < 3; i++) {

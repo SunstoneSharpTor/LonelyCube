@@ -16,15 +16,15 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/ECS/ECS.h"
-#include "core/ECS/ECSView.h"
+#include "core/entities/ECS.h"
+#include "core/entities/ECSView.h"
 #include "core/position.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE( "Entities can be added, destroyed and have components assigned to them", "[ECS]" ) {
     ECS ecs(1000);
     EntityId entity1 = ecs.newEntity();
-    Position& entity1Position = ecs.assign<Position>(entity1);
+    IVec3& entity1Position = ecs.assign<IVec3>(entity1);
     entity1Position = { 0, 1, 0 };
     EntityId entity2 = ecs.newEntity();
     std::string& entity2String = ecs.assign<std::string>(entity2);
@@ -33,7 +33,7 @@ TEST_CASE( "Entities can be added, destroyed and have components assigned to the
     entity1String = "Entity 1";
     int& entity1Int = ecs.assign<int>(entity1);
     entity1Int = 1;
-    Position& entity2Position = ecs.assign<Position>(entity2);
+    IVec3& entity2Position = ecs.assign<IVec3>(entity2);
     entity2Position = { 0, 2, 0 };
     EntityId entity3 = ecs.newEntity();
     int& entity3Int = ecs.assign<int>(entity3);
@@ -41,10 +41,10 @@ TEST_CASE( "Entities can be added, destroyed and have components assigned to the
 
     SECTION( "Entities can be added" )
     {
-        REQUIRE( ecs.get<Position>(entity1) == Position(0, 1, 0) );
-        REQUIRE( entity1Position == Position(0, 1, 0) );
-        REQUIRE( ecs.get<Position>(entity2) == Position(0, 2, 0) );
-        REQUIRE( entity2Position == Position(0, 2, 0) );
+        REQUIRE( ecs.get<IVec3>(entity1) == IVec3(0, 1, 0) );
+        REQUIRE( entity1Position == IVec3(0, 1, 0) );
+        REQUIRE( ecs.get<IVec3>(entity2) == IVec3(0, 2, 0) );
+        REQUIRE( entity2Position == IVec3(0, 2, 0) );
         REQUIRE( ecs.get<std::string>(entity1) == "Entity 1" );
         REQUIRE( entity1String == "Entity 1" );
         REQUIRE( ecs.get<std::string>(entity2) == "Entity 2" );
@@ -88,7 +88,7 @@ TEST_CASE(
         }
         if (i > 4)
         {
-            Position& entityPosition = ecs.assign<Position>(entity);
+            IVec3& entityPosition = ecs.assign<IVec3>(entity);
             entityPosition = { 0, i , 0 };
         }
     }
@@ -106,7 +106,7 @@ TEST_CASE(
         ++itr;
     }
     i = 0;
-    for (EntityId entity : ECSView<std::string, Position>(ecs))
+    for (EntityId entity : ECSView<std::string, IVec3>(ecs))
     {
         if (i == 0)
             REQUIRE( ecs.get<int>(entity) == 12 );
@@ -115,7 +115,7 @@ TEST_CASE(
         i = 1;
     }
     i = 0;
-    for (EntityId entity : ECSView<Position, std::string>(ecs))
+    for (EntityId entity : ECSView<IVec3, std::string>(ecs))
     {
         if (i == 0)
             REQUIRE( ecs.get<int>(entity) == 12 );

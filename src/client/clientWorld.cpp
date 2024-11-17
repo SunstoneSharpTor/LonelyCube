@@ -37,7 +37,7 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const Position& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed) {
+    const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed) {
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -52,7 +52,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
 
-    Position playerChunkPosition = Chunk::getChunkCoords(playerPos);
+    IVec3 playerChunkPosition = Chunk::getChunkCoords(playerPos);
     m_playerChunkPosition[0] = playerChunkPosition.x;
     m_playerChunkPosition[1] = playerChunkPosition.y;
     m_playerChunkPosition[2] = playerChunkPosition.z;
@@ -75,7 +75,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_chunkIndices = new uint32_t*[m_numChunkLoadingThreads];
     m_chunkWaterVertices = new float*[m_numChunkLoadingThreads];
     m_chunkWaterIndices = new uint32_t*[m_numChunkLoadingThreads];
-    m_chunkPosition = new Position[m_numChunkLoadingThreads];
+    m_chunkPosition = new IVec3[m_numChunkLoadingThreads];
     m_chunkMeshReady = new bool[m_numChunkLoadingThreads];
     m_chunkMeshReadyCV = new std::condition_variable[m_numChunkLoadingThreads];
     m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
@@ -215,7 +215,7 @@ void ClientWorld::updateMeshes() {
 }
 
 void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
-    Position newPlayerChunkPosition = Chunk::getChunkCoords(Position(playerX, playerY, playerZ));
+    IVec3 newPlayerChunkPosition = Chunk::getChunkCoords(IVec3(playerX, playerY, playerZ));
     m_newPlayerChunkPosition[0] = newPlayerChunkPosition.x;
     m_newPlayerChunkPosition[1] = newPlayerChunkPosition.y;
     m_newPlayerChunkPosition[2] = newPlayerChunkPosition.z;
@@ -268,7 +268,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
         m_threadWaiting[threadNum] = false;
     }
     if (m_meshUpdates.empty()) {
-        Position chunkPosition;
+        IVec3 chunkPosition;
         if (m_integratedServer.loadChunk(&chunkPosition)) {
             m_unmeshedChunksMtx.lock();
             m_unmeshedChunks.insert(chunkPosition);
@@ -293,7 +293,7 @@ void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
 
 void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
-    Position chunkPosition;
+    IVec3 chunkPosition;
     m_integratedServer.loadChunkFromPacket(payload, chunkPosition);
     m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
@@ -307,7 +307,7 @@ void ClientWorld::unmeshChunks() {
     m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
     //unload any meshes and chunks that are out of render distance
     float distance = 0;
-    Position lastChunkPosition;
+    IVec3 lastChunkPosition;
     m_unmeshedChunksMtx.lock();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
@@ -338,7 +338,7 @@ void ClientWorld::unmeshChunks() {
     m_playerChunkPosition[2] = m_updatingPlayerChunkPosition[2];
 }
 
-bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
+bool ClientWorld::chunkHasNeighbours(const IVec3& chunkPosition) {
     for (uint8_t i = 0; i < 27; i++) {
         if (!(m_integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
@@ -347,37 +347,37 @@ bool ClientWorld::chunkHasNeighbours(const Position& chunkPosition) {
     return true;
 }
 
-void ClientWorld::addChunksToRemesh(std::vector<Position>& chunksToRemesh, const Position&
-    modifiedBlockPos, const Position& modifiedBlockChunk) {
+void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IVec3&
+    modifiedBlockPos, const IVec3& modifiedBlockChunk) {
     chunksToRemesh.push_back(modifiedBlockChunk);
-    Position blockPosInChunk = modifiedBlockPos - modifiedBlockChunk * constants::CHUNK_SIZE;
+    IVec3 blockPosInChunk = modifiedBlockPos - modifiedBlockChunk * constants::CHUNK_SIZE;
     if (blockPosInChunk.x == 0) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(-1, 0, 0));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(-1, 0, 0));
         std::cout << "1\n";
     }
     else if (blockPosInChunk.x == constants::CHUNK_SIZE - 1) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(1, 0, 0));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(1, 0, 0));
         std::cout << "2\n";
     }
     if (blockPosInChunk.y == 0) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(0, -1, 0));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, -1, 0));
         std::cout << "3\n";
     }
     else if (blockPosInChunk.y == constants::CHUNK_SIZE - 1) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(0, 1, 0));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 1, 0));
         std::cout << "4\n";
     }
     if (blockPosInChunk.z == 0) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(0, 0, -1));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, -1));
         std::cout << "5\n";
     }
     else if (blockPosInChunk.z == constants::CHUNK_SIZE - 1) {
-        chunksToRemesh.emplace_back(modifiedBlockChunk + Position(0, 0, 1));
+        chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, 1));
         std::cout << "6\n";
     }
 }
 
-void ClientWorld::unloadMesh(const Position& chunkPosition) {
+void ClientWorld::unloadMesh(const IVec3& chunkPosition) {
     auto it = m_meshes.find(chunkPosition);
     if (it == m_meshes.end()) {
         m_unmeshedChunks.insert(chunkPosition);
@@ -400,7 +400,7 @@ void ClientWorld::unloadMesh(const Position& chunkPosition) {
     m_unmeshedChunks.insert(chunkPosition);
 }
 
-void ClientWorld::addChunkMesh(const Position& chunkPosition, int8_t threadNum) {
+void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
@@ -488,10 +488,10 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
     if (m_recentChunksBuilt.size() > 0) {
         m_unmeshedChunksMtx.lock();
         if (m_recentChunksBuilt.size() > 0) {
-            Position newChunkPosition = m_recentChunksBuilt.front();
+            IVec3 newChunkPosition = m_recentChunksBuilt.front();
             m_recentChunksBuilt.pop();
             for (int i = 0; i < 27; i++) {
-                Position chunkPosition = newChunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i];
+                IVec3 chunkPosition = newChunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i];
                 if (m_unmeshedChunks.contains(chunkPosition) && chunkHasNeighbours(chunkPosition)) {
                     m_unmeshedChunks.erase(chunkPosition);
                     m_unmeshedChunksMtx.unlock();
@@ -572,14 +572,14 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
     return 0;
 }
 
-void ClientWorld::replaceBlock(const Position& blockCoords, uint8_t blockType) {
-    Position chunkPosition = Chunk::getChunkCoords(blockCoords);
+void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
+    IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
     std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
     uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
     m_integratedServer.setBlock(blockCoords, blockType);
 
-    std::vector<Position> chunksToRemesh;
+    std::vector<IVec3> chunksToRemesh;
     addChunksToRemesh(chunksToRemesh, blockCoords, chunkPosition);
 
     auto tp1 = std::chrono::high_resolution_clock::now();
