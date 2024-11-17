@@ -23,7 +23,7 @@
 #include "core/pch.h"
 
 #include "core/chunk.h"
-#include "core/iVec3.h"
+#include "core/utils/iVec3.h"
 
 class ServerPlayer {
 private:

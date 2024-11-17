@@ -19,6 +19,7 @@
 #pragma once
 
 #include "core/pch.h"
+#include "core/resourcePack.h"
 
 // Class that stores a reference to a mesh in an instance of a mesh manager class, as well as a
 // copy of the untranslated vertices
@@ -28,5 +29,7 @@ public:
     uint16_t numVertices;
     uint32_t indexBufferIndex;
     uint16_t numIndices;
-    std::unique_ptr<float[]> untranslatedVertices;
+    const Model& model;
+
+    MeshComponent(const Model& model, uint32_t vertexBufferIndex, uint32_t indexBufferIndex);
 };

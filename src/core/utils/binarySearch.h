@@ -18,22 +18,10 @@
 
 #pragma once
 
-#include "core/entities/components/meshComponent.h"
-#include "core/resourcePack.h"
-#include <memory>
-
-class MeshManager
+// Returns an iterator to the smallest element greater than or equal to value
+template<class InputIt, class T>
+InputIt binarySearchGreaterThanOrEqual(InputIt first, InputIt last, const T& value)
 {
-private:
-    std::vector<int> m_freeVertices;  // Stores a list of free vertices in the format: size, index
-    std::vector<int> m_freeIndices;  // Stores a lsit of free indices in the format: size, index
+    InputIt midpoint = (first + last) / 2;
 
-public:
-    std::unique_ptr<float[]> vertexBuffer;
-    std::unique_ptr<int[]> indexBuffer;
-    int numIndices;
-
-    MeshManager(int maxVertices, int maxIndices);
-    MeshComponent addMesh(const Model& model);
-    void removeMesh(const MeshComponent mesh);
-};
+}
