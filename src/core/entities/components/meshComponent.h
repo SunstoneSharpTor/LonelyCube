@@ -25,11 +25,7 @@
 // copy of the untranslated vertices
 class MeshComponent {
 public:
-    uint32_t vertexBufferIndex;
-    uint16_t numVertices;
-    uint32_t indexBufferIndex;
-    uint16_t numIndices;
     const Model& model;
 
-    MeshComponent(const Model& model, uint32_t vertexBufferIndex, uint32_t indexBufferIndex);
+    MeshComponent(const Model& model);
 };

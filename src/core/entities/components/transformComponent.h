@@ -18,10 +18,18 @@
 
 #pragma once
 
-// Returns an iterator to the smallest element greater than or equal to value
-template<class InputIt, class T>
-InputIt binarySearchGreaterThanOrEqual(InputIt first, InputIt last, const T& value)
-{
-    InputIt midpoint = (first + last) / 2;
+#include "core/utils/iVec3.h"
+#include "core/utils/vec3.h"
+#include "glm/glm.hpp"
 
-}
+class TransformComponent
+{
+public:
+    IVec3 blockCoords;
+    Vec3 subBlockCoords;
+    Vec3 front;
+    glm::mat4 subBlockTransform;
+
+    TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, Vec3 rotation);
+    void updateTransform();
+};

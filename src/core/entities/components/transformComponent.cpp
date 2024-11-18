@@ -16,20 +16,19 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "core/entities/components/transformComponent.h"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/fwd.hpp"
 
-#include "core/pch.h"
-
-#include "core/entities/ECS.h"
-#include "core/utils/iVec3.h"
-
-class MeshManager
+TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, Vec3 front)
+    : blockCoords(blockCoords), subBlockCoords(subBlockCoords), front(front)
 {
-public:
-    std::unique_ptr<float[]> vertexBuffer;
-    std::unique_ptr<int[]> indexBuffer;
-    int numIndices;
+    updateTransform();
+}
 
-    MeshManager(int maxVertices, int maxIndices);
-    void generateBatch(ECS& ecs, IVec3 playerBlockCoords);
-};
+void TransformComponent::updateTransform()
+{
+    glm::vec3 glmSubBlockCoords(-subBlockCoords.x, -subBlockCoords.y, -subBlockCoords.z);
+    glm::vec3 glmFront(-front.x, -front.y, -front.z);
+    subBlockTransform = glm::lookAt(glmSubBlockCoords, glmSubBlockCoords + glmFront, glm::vec3(0, 1, 0));
+}
