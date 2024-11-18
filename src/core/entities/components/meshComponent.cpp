@@ -19,6 +19,4 @@
 #include "core/entities/components/meshComponent.h"
 #include "core/resourcePack.h"
 
-MeshComponent::MeshComponent(const Model& model, int vertexBufferIndex, int indexBufferIndex)
-    : vertexBufferIndex(vertexBufferIndex), numVertices(model.numFaces * 4),
-    indexBufferIndex(indexBufferIndex), numIndices(model.numFaces * 6), model(model) {}
+MeshComponent::MeshComponent(const Model& model) : model(model) {}

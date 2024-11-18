@@ -17,54 +17,36 @@
 */
 
 #include "meshManager.h"
+#include "core/entities/ECSView.h"
 #include "core/entities/components/meshComponent.h"
+#include "core/entities/components/transformComponent.h"
+#include "core/utils/iVec3.h"
 #include <memory>
 
 MeshManager::MeshManager(int maxVertices, int maxIndices)
     : vertexBuffer(std::make_unique<float[]>(maxVertices)),
-    indexBuffer(std::make_unique<int[]>(maxIndices)),
-    m_freeVertices(7 * maxVertices, 0), m_freeIndices(maxIndices, 0), numIndices(0) {}
+    indexBuffer(std::make_unique<int[]>(maxIndices)), numIndices(0) {}
 
-MeshComponent MeshManager::addMesh(const Model& model)
+void MeshManager::generateBatch(ECS& ecs, IVec3 playerBlockCoords)
 {
-    int vertexBufferIndex, indexBufferIndex;
-    // Allocate space for the vertices in the vertex buffer
-    int i = 0;
-    while (i < m_freeVertices.size() && m_freeVertices[i] < 7 * 4 * model.numFaces)
-        i += 2;
-    if (i < m_freeVertices.size())
+    numIndices = 0;
+    int verticesSize = 0;
+    for (EntityId entity : ECSView<MeshComponent>(ecs))
     {
-        vertexBufferIndex = m_freeVertices[i + 1];
-        m_freeVertices.erase(m_freeVertices.begin() + i, m_freeVertices.begin() + i + 2);
+        const Model& model = ecs.get<MeshComponent>(entity).model;
+        const TransformComponent& transform = ecs.get<TransformComponent>(entity);
+        for (int faceNum = 0; faceNum < model.numFaces; faceNum++)
+        {
+            for (int vertexNum = 0; vertexNum < 4; vertexNum++)
+            {
+                glm::vec3 vertex = 
+                for (int element = 0; element < 3; element++)
+                {
+                    vertexBuffer[verticesSize] = model.faces[faceNum].coords[vertexNum * 3 +
+                        element];
+                    vertexBuffer[verticesSize] 
+                }
+            }
+        }
     }
-    else
-    {
-        std::cout << "Entity mesh vertex buffer full\n";
-    }
-    // Allocate space for the indices in the index buffer
-    i = 0;
-    while (i < m_freeIndices.size() && m_freeIndices[i] < 7 * 4 * model.numFaces)
-        i += 2;
-    if (i < m_freeIndices.size())
-    {
-        indexBufferIndex = m_freeIndices[i + 1];
-        m_freeIndices.erase(m_freeIndices.begin() + i, m_freeIndices.begin() + i + 2);
-        if (indexBufferIndex == numIndices)
-            numIndices += 6 * model.numFaces;
-    }
-    else
-    {
-        std::cout << "Entity mesh index buffer full\n";
-    }
-
-    // Set the correct values in the index buffer
-    for (int faceNum = 0; faceNum < model.numFaces; faceNum++)
-    {
-        int vertex = vertexBufferIndex / 7 + faceNum * 4;
-        int index = indexBufferIndex + faceNum * 6;
-        // indexBuffer[index] = indexBu
-    }
-
-    MeshComponent mesh(model, vertexBufferIndex, indexBufferIndex);
-    return mesh;
 }
