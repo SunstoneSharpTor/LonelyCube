@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "core/entities/components/meshComponent.h"
 #include "core/pch.h"
 
 #include "core/entities/ECS.h"
@@ -25,6 +26,7 @@
 #include "core/resourcePack.h"
 #include "core/utils/vec3.h"
 
+template<bool integrated>
 class EntityManager {
 private:
     const ResourcePack& m_resourcePack;
@@ -35,3 +37,24 @@ public:
     EntityManager(int maxNumEntities, const ResourcePack& resourcePack);
     void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
 };
+
+template<bool integrated>
+EntityManager<integrated>::EntityManager(int maxNumEntities, const ResourcePack& resourcePack)
+    : ecs(maxNumEntities), m_resourcePack(resourcePack) {}
+
+template<bool integrated>
+void EntityManager<integrated>::addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition)
+{
+    EntityId entity = ecs.newEntity();
+    ecs.assign<IVec3>(entity);
+    ecs.assign<Vec3>(entity);
+    if (integrated)
+        ecs.assign<MeshComponent>(entity);
+
+    for (uint8_t faceNum = 0 ; faceNum < m_resourcePack.getBlockData(blockType).model->numFaces;
+        faceNum++)
+    {
+    }
+    ecs.set<IVec3>(entity, blockPosition);
+    ecs.set<Vec3>(entity, subBlockPosition);
+}

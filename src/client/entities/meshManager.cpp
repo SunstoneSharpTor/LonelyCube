@@ -46,24 +46,26 @@ void MeshManager::createBatch(ECS& ecs, IVec3 playerBlockCoords)
             for (int vertexNum = 0; vertexNum < 4; vertexNum++)
             {
                 // Vertex coordinates
-                glm::vec4 vertex;
+                glm::vec4 vertexSubBlock;
                 for (int element = 0; element < 3; element++)
-                    vertex[element] = model.faces[faceNum].coords[vertexNum * 3 + element];
-                vertex[3] = 1.0f;
-                vertex = transform.subBlockTransform * vertex;
-                vertexBuffer[verticesSize] = vertex.x + (transform.blockCoords.x -
+                    vertexSubBlock[element] = model.faces[faceNum].coords[vertexNum * 3 + element];
+                vertexSubBlock[3] = 1.0f;
+                vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
+                vertexBuffer[verticesSize] = vertexSubBlock.x + (transform.blockCoords.x -
                     playerBlockCoords.x);
-                vertexBuffer[verticesSize + 1] = vertex.y + (transform.blockCoords.y -
+                vertexBuffer[verticesSize + 1] = vertexSubBlock.y + (transform.blockCoords.y -
                     playerBlockCoords.y);
-                vertexBuffer[verticesSize + 2] = vertex.z + (transform.blockCoords.z -
+                vertexBuffer[verticesSize + 2] = vertexSubBlock.z + (transform.blockCoords.z -
                     playerBlockCoords.z);
                 // UV coordinates
                 vertexBuffer[verticesSize + 3] = texCoords[vertexNum * 2];
                 vertexBuffer[verticesSize + 4] = texCoords[vertexNum * 2 + 1];
                 // Sky light
-                vertexBuffer[verticesSize + 3] = interpolateSkyLight(IVec3(transform.blockCoords.x, transform.blockCoords.y, transform.blockCoords.z), const Vec3 &subBlockPosition);
+                IVec3 vertexBlock(transform.blockCoords.x, transform.blockCoords.y, transform.blockCoords.z);
+                vertexBuffer[verticesSize + 5] = interpolateSkyLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 // Block light
-                vertex
+                vertexBuffer[verticesSize + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
+                verticesSize += 7;
             }
         }
     }
