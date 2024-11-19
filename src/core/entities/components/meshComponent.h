@@ -26,6 +26,7 @@
 class MeshComponent {
 public:
     const Model& model;
+    const uint16_t* faceTextureIndices;
 
-    MeshComponent(const Model& model);
+    MeshComponent(const Model& model, const uint16_t* faceTextureIndices);
 };

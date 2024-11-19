@@ -21,15 +21,23 @@
 #include "core/pch.h"
 
 #include "core/entities/ECS.h"
+#include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
+#include "core/utils/vec3.h"
 
 class MeshManager
 {
+private:
+    ServerWorld<true>& m_serverWorld;
+
+    float interpolateSkyLight(const IVec3& blockPosition, const Vec3& subBlockPosition);
+    float interpolateBlockLight(const IVec3& blockPosition, const Vec3& subBlockPosition);
+
 public:
     std::unique_ptr<float[]> vertexBuffer;
     std::unique_ptr<int[]> indexBuffer;
     int numIndices;
 
-    MeshManager(int maxVertices, int maxIndices);
-    void generateBatch(ECS& ecs, IVec3 playerBlockCoords);
+    MeshManager(int maxVertices, int maxIndices, ServerWorld<true>& );
+    void createBatch(ECS& ecs, IVec3 playerBlockCoords);
 };

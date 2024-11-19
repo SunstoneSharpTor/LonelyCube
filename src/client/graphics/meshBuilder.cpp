@@ -122,7 +122,8 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
     }
 }
 
-void MeshBuilder::getTextureCoordinates(float* coords, float* textureBox, const int16_t textureNum)
+void MeshBuilder::getTextureCoordinates(float* coords, const float* textureBox, const int16_t
+    textureNum)
 {
     coords[0] = 0.0078125f + textureNum % 32 * 0.03125f + textureBox[0] * 0.015625;
     coords[1] = 0.9765625 - textureNum / 32 * 0.03125f + textureBox[1] * 0.015625;
