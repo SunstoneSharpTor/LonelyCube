@@ -132,3 +132,27 @@ TEST_CASE(
         i = 1;
     }
 }
+
+TEST_CASE("Components can be constructed in place using any available constructor", "[ECS]" )
+{
+    struct Name
+    {
+        std::string name;
+
+        Name() : name("Unnamed") {}
+        Name(std::string name) : name(name) {}
+        Name(std::string forename, std::string surname) : name(forename + " " + surname) {}
+    };
+
+    ECS ecs(1000);
+    EntityId entity1 = ecs.newEntity();
+    ecs.assign<Name>(entity1);
+    EntityId entity2 = ecs.newEntity();
+    ecs.assign<Name>(entity2, "Lonely Cube");
+    EntityId entity3 = ecs.newEntity();
+    ecs.assign<Name>(entity3, "Lonely", "Cube");
+
+    REQUIRE( ecs.get<Name>(entity1).name == "Unnamed" );
+    REQUIRE( ecs.get<Name>(entity2).name == "Lonely Cube" );
+    REQUIRE( ecs.get<Name>(entity3).name == "Lonely Cube" );
+}

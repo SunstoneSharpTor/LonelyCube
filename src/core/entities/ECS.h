@@ -73,8 +73,8 @@ public:
 
     void destroyEntity(const EntityId id);
 
-    template<typename T>
-    T& assign(const EntityId id);
+    template<typename T, typename... Types>
+    T& assign(const EntityId id, Types... constructorArgs);
 
     template<typename T>
     void remove(const EntityId id);
@@ -134,8 +134,8 @@ int ECS::getComponentId()
     return s_componentID<T>;
 }
 
-template<typename T>
-T& ECS::assign(const EntityId id)
+template<typename T, typename... Types>
+T& ECS::assign(const EntityId id, Types... constructorArgs)
 {
     int componentId = getComponentId<T>();
 
@@ -149,7 +149,8 @@ T& ECS::assign(const EntityId id)
     }
 
     // Looks up the component in the pool, and initializes it with placement new
-    T* component = new (m_componentPools[componentId]->get(getEntityIndex(id))) T();
+    T* component = new
+        (m_componentPools[componentId]->get(getEntityIndex(id))) T(constructorArgs...);
 
     // Set the bit for this component to true and return the created component
     m_entities[getEntityIndex(id)].mask.set(componentId);
