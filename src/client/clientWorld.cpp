@@ -35,7 +35,10 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed) {
+    const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed),
+    m_meshManager(m_integratedServer, 1680000, 360000), m_entityVertexArray(true),
+    m_entityVertexBuffer(), m_entityIndexBuffer()
+{
     //seed the random number generator and the simplex noise
     m_seed = seed;
     PCG_SeedRandom32(m_seed);
@@ -79,7 +82,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
     m_unmeshNeeded = false;
-    
+
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_chunkIndices[i] = new uint32_t[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -103,14 +106,13 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     }
 }
 
-void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shader& waterShader,
+void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader,
     glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float
     fov, float skyLightIntensity, double DT) {
     Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
-    //float centredChunkCoordinates[3];
-    //render blocks
+
     blockShader.bind();
     blockShader.setUniformMat4f("u_proj", projMatrix);
     blockShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
@@ -147,11 +149,17 @@ void ClientWorld::renderChunks(Renderer mainRenderer, Shader& blockShader, Shade
             doRenderThreadJobs();
         }
     }
-    if (m_unmeshNeeded) {
-        unmeshCompleted = false;
-    }
-    auto tp2 = std::chrono::high_resolution_clock::now();
-    //render water
+
+    // Render entities
+    m_meshManager.createBatch(playerBlockPosition);
+    std::cout << m_meshManager.numIndices << ", " << m_meshManager.sizeOfVertices << "\n";
+    m_entityIndexBuffer.update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    m_entityVertexBuffer.update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
+    blockShader.setUniformMat4f("u_modelView", viewMatrix);
+    m_entityVertexArray.bind();
+    mainRenderer.draw(m_entityVertexArray, m_entityIndexBuffer, blockShader);
+
+    // Render water
     waterShader.bind();
     waterShader.setUniformMat4f("u_proj", projMatrix);
     waterShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
@@ -676,7 +684,19 @@ void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-	m_threadWaiting[threadNum] = value;
+    m_threadWaiting[threadNum] = value;
+}
+
+void ClientWorld::initialiseEntityRenderBuffers()
+{
+    VertexBufferLayout entityLayout;
+    entityLayout.push<float>(3);
+    entityLayout.push<float>(2);
+    entityLayout.push<float>(1);
+    entityLayout.push<float>(1);
+    new (&m_entityVertexArray) VertexArray;
+    new (&m_entityVertexBuffer) VertexBuffer(m_meshManager.vertexBuffer.get(), 0);
+    new (&m_entityIndexBuffer) IndexBuffer(m_meshManager.indexBuffer.get(), 0);
 }
 
 }  // namespace client

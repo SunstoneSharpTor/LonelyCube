@@ -212,12 +212,14 @@ void RenderThread::go(bool* running) {
     cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];
     cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
     m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
-    
+
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
     double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
     m_mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time, m_networking);
     m_mainWorld->doRenderThreadJobs();
+
+    m_mainWorld->initialiseEntityRenderBuffers();
 
     //set up game loop
     float exposure = 0.0;
@@ -427,7 +429,7 @@ void RenderThread::go(bool* running) {
             glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
             #endif
             //auto tp1 = std::chrono::high_resolution_clock::now();
-            m_mainWorld->renderChunks(mainRenderer, blockShader, waterShader, view, projection,
+            m_mainWorld->renderWorld(mainRenderer, blockShader, waterShader, view, projection,
                 m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] /
                 (float)windowDimensions[1], fov, groundLuminance, actualDT);
             //auto tp2 = std::chrono::high_resolution_clock::now();

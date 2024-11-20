@@ -40,24 +40,27 @@ private:
 
 public:
     std::unique_ptr<float[]> vertexBuffer;
-    std::unique_ptr<int[]> indexBuffer;
-    int numIndices;
+    std::unique_ptr<uint32_t[]> indexBuffer;
+    uint32_t numIndices;
+    uint32_t sizeOfVertices;
 
-    MeshManager(ECS& ecs, ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices);
+    MeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices);
     void createBatch(IVec3 playerBlockCoords);
 };
 
 
 template<bool integrated>
-MeshManager<integrated>::MeshManager(ECS& ecs, ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices)
-    : m_ecs(ecs), m_serverWorld(serverWorld), vertexBuffer(std::make_unique<float[]>(maxVertices)),
-    indexBuffer(std::make_unique<int[]>(maxIndices)), numIndices(0) {}
+MeshManager<integrated>::MeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int
+    maxIndices)
+    : m_ecs(serverWorld.getEntityManager().getECS()), m_serverWorld(serverWorld),
+    vertexBuffer(std::make_unique<float[]>(maxVertices)),
+    indexBuffer(std::make_unique<uint32_t[]>(maxIndices)), numIndices(0) {}
 
 template<bool integrated>
 void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
 {
     numIndices = 0;
-    int verticesSize = 0;
+    sizeOfVertices = 0;
     for (EntityId entity : ECSView<MeshComponent>(m_ecs))
     {
         const Model& model = m_ecs.get<MeshComponent>(entity).model;
@@ -77,22 +80,32 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                     vertexSubBlock[element] = model.faces[faceNum].coords[vertexNum * 3 + element];
                 vertexSubBlock[3] = 1.0f;
                 vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
-                vertexBuffer[verticesSize] = vertexSubBlock.x + (transform.blockCoords.x -
+                vertexBuffer[sizeOfVertices] = vertexSubBlock.x + (transform.blockCoords.x -
                     playerBlockCoords.x);
-                vertexBuffer[verticesSize + 1] = vertexSubBlock.y + (transform.blockCoords.y -
+                vertexBuffer[sizeOfVertices + 1] = vertexSubBlock.y + (transform.blockCoords.y -
                     playerBlockCoords.y);
-                vertexBuffer[verticesSize + 2] = vertexSubBlock.z + (transform.blockCoords.z -
+                vertexBuffer[sizeOfVertices + 2] = vertexSubBlock.z + (transform.blockCoords.z -
                     playerBlockCoords.z);
                 // UV coordinates
-                vertexBuffer[verticesSize + 3] = texCoords[vertexNum * 2];
-                vertexBuffer[verticesSize + 4] = texCoords[vertexNum * 2 + 1];
+                vertexBuffer[sizeOfVertices + 3] = texCoords[vertexNum * 2];
+                vertexBuffer[sizeOfVertices + 4] = texCoords[vertexNum * 2 + 1];
                 // Sky light
                 IVec3 vertexBlock(transform.blockCoords.x, transform.blockCoords.y, transform.blockCoords.z);
-                vertexBuffer[verticesSize + 5] = interpolateSkyLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
+                vertexBuffer[sizeOfVertices + 5] = interpolateSkyLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 // Block light
-                vertexBuffer[verticesSize + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
-                verticesSize += 7;
+                vertexBuffer[sizeOfVertices + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
+                sizeOfVertices += 7;
             }
+
+            //index buffer
+            int trueNumVertices = sizeOfVertices / 7;
+            indexBuffer[numIndices] = trueNumVertices - 4;
+            indexBuffer[numIndices + 1] = trueNumVertices - 3;
+            indexBuffer[numIndices + 2] = trueNumVertices - 2;
+            indexBuffer[numIndices + 4] = trueNumVertices - 2;
+            indexBuffer[numIndices + 5] = trueNumVertices - 1;
+            indexBuffer[numIndices + 3] = trueNumVertices - 4;
+            numIndices += 6;
         }
     }
 }

@@ -22,42 +22,42 @@
 namespace client {
 
 VertexArray::VertexArray(bool empty) {
-	if (empty) {
-		m_rendererID = 0;
-	}
+    if (empty) {
+        m_rendererID = 0;
+    }
 }
 
 VertexArray::VertexArray() {
-	glGenVertexArrays(1, &m_rendererID);
+    glGenVertexArrays(1, &m_rendererID);
 }
 
 VertexArray::~VertexArray() {
-	#ifndef GLES3
-	if (m_rendererID != 0) {
-		glDeleteVertexArrays(1, &m_rendererID);
-	}
-	#endif
+    #ifndef GLES3
+    if (m_rendererID != 0) {
+        glDeleteVertexArrays(1, &m_rendererID);
+    }
+    #endif
 }
 
 void VertexArray::addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout) {
-	bind();
-	vb.bind();
-	const auto& elements = layout.getElements();
-	uint32_t offset = 0;
-	for (uint32_t i = 0; i < elements.size(); i++) {
-		const auto& element = elements[i];
-		glEnableVertexAttribArray(i);
-		glVertexAttribPointer(i, element.count, element.type, element.normalised, layout.getStride(), (const void*)offset);
-		offset += element.count * VertexBufferElement::getSizeOfType(element.type);
-	}
+    bind();
+    vb.bind();
+    const auto& elements = layout.getElements();
+    uint32_t offset = 0;
+    for (uint32_t i = 0; i < elements.size(); i++) {
+        const auto& element = elements[i];
+        glEnableVertexAttribArray(i);
+        glVertexAttribPointer(i, element.count, element.type, element.normalised, layout.getStride(), (const void*)offset);
+        offset += element.count * VertexBufferElement::getSizeOfType(element.type);
+    }
 }
 
 void VertexArray::bind() const {
-	glBindVertexArray(m_rendererID);
+    glBindVertexArray(m_rendererID);
 }
 
 void VertexArray::unbind() const {
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 }
 
 }  // namespace client

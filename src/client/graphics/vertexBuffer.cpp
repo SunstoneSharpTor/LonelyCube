@@ -31,6 +31,15 @@ VertexBuffer::VertexBuffer(const void* data, uint32_t size) {
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 }
 
+VertexBuffer::VertexBuffer(const void* data, uint32_t size, bool dynamic) {
+    glGenBuffers(1, &m_rendererID);
+    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
+    if (dynamic)
+        glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    else
+        glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+}
+
 VertexBuffer::~VertexBuffer() {
     #ifndef GLES3
     if (m_rendererID != 0) {
@@ -44,6 +53,12 @@ void VertexBuffer::bind() const {
 }
 void VertexBuffer::unbind() const {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void VertexBuffer::update(const void* data, uint32_t size) const
+{
+    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
 }  // namespace client

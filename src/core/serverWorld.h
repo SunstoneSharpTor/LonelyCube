@@ -106,6 +106,10 @@ public:
     inline ResourcePack& getResourcePack() {
         return m_resourcePack;
     }
+    inline EntityManager& getEntityManager()
+    {
+        return m_entityManager;
+    }
 };
 
 template<bool integrated>

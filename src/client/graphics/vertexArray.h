@@ -25,16 +25,16 @@ namespace client {
 
 class VertexArray {
 private:
-	uint32_t m_rendererID;
+    uint32_t m_rendererID;
 public:
-	VertexArray(bool empty);
-	VertexArray();
-	~VertexArray();
+    VertexArray(bool empty);
+    VertexArray();
+    ~VertexArray();
 
-	void addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
+    void addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout);
 
-	void bind() const;
-	void unbind() const;
+    void bind() const;
+    void unbind() const;
 };
 
 }  // namespace client
