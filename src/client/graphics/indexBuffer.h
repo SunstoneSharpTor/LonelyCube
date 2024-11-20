@@ -22,19 +22,20 @@ namespace client {
 
 class IndexBuffer {
 private:
-	  uint32_t m_rendererID;
-	  uint32_t m_count;
+    uint32_t m_rendererID;
+    uint32_t m_count;
 public:
-	  IndexBuffer();
-	  IndexBuffer(const uint32_t* data, uint32_t count);
-	  ~IndexBuffer();
+    IndexBuffer();
+    IndexBuffer(const uint32_t* data, uint32_t count);
+    ~IndexBuffer();
 
-	  void bind() const;
-	  void unbind() const;
+    void bind() const;
+    void unbind() const;
 
-	  inline uint32_t getCount() const {
-	  	  return m_count;
-	  }
+    inline uint32_t getCount() const {
+        return m_count;
+    }
+    void update(const void* data, uint32_t size) const;
 };
 
 }  // namespace client
