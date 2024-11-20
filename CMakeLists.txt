@@ -40,6 +40,7 @@ set(CLIENT_SOURCE_FILES
     src/core/compression.cpp
     src/core/config.cpp
     src/core/entities/ECS.cpp
+    src/core/entities/entityManager.cpp
     src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp
@@ -59,6 +60,7 @@ set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/entities/ECS.cpp
+    src/core/entities/entityManager.cpp
     src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp

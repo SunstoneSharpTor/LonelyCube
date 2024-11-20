@@ -18,10 +18,12 @@
 
 #pragma once
 
+#include "core/entities/entityManager.h"
 #include "core/pch.h"
 
 #include "enet/enet.h"
 
+#include "core/block.h"
 #include "core/chunk.h"
 #include "core/compression.h"
 #include "core/constants.h"
@@ -34,16 +36,19 @@
 template<bool integrated>
 class ServerWorld {
 private:
-	uint64_t m_seed;
+    uint64_t m_seed;
     uint16_t m_nextPlayerID;
     uint16_t m_numChunkLoadingThreads;
     uint32_t m_gameTick;
     ResourcePack m_resourcePack;
-    
+
+    // World
     std::unordered_map<IVec3, Chunk> m_chunks;
     std::unordered_map<uint16_t, ServerPlayer> m_players;
     std::queue<IVec3> m_chunksToBeLoaded;
     std::unordered_set<IVec3> m_chunksBeingLoaded;
+
+    EntityManager m_entityManager;
 
     // Synchronisation
     std::mutex m_chunksMtx;
@@ -54,7 +59,7 @@ private:
     std::mutex m_threadsWaitMtx;
     std::condition_variable m_threadsWaitCV;
     bool m_threadsWait;
-	bool* m_threadWaiting;
+    bool* m_threadWaiting;
 
     void disconnectPlayer(uint16_t playerID);
 
@@ -92,9 +97,9 @@ public:
     inline std::unordered_map<IVec3, Chunk>& getWorldChunks() {
         return m_chunks;
     }
-	inline int8_t getNumChunkLoaderThreads() {
-		return m_numChunkLoadingThreads;
-	}
+    inline int8_t getNumChunkLoaderThreads() {
+        return m_numChunkLoadingThreads;
+    }
     inline uint32_t getTickNum() {
         return m_gameTick;
     }
@@ -105,7 +110,9 @@ public:
 
 template<bool integrated>
 ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayerID(0),
-    m_gameTick(0), m_resourcePack("res/resourcePack"), m_threadsWait(false) {
+    m_gameTick(0), m_resourcePack("res/resourcePack"), m_entityManager(10000, m_resourcePack),
+    m_threadsWait(false)
+{
     PCG_SeedRandom32(m_seed);
     seedNoise();
     // TODO:
@@ -339,6 +346,13 @@ void ServerWorld<integrated>::setBlock(const IVec3& position, uint8_t blockType)
 
     if (chunkIterator == m_chunks.end()) {
         return;
+    }
+
+    if (blockType == air)
+    {
+        m_entityManager.addItem(
+            chunkIterator->second.getBlock(chunkBlockNum), position, Vec3(0.0f, 0.0f, 0.0f)
+        );
     }
 
     chunkIterator->second.setBlock(chunkBlockNum, blockType);

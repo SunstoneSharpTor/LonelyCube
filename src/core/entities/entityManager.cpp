@@ -16,22 +16,21 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "core/entities/entityManager.h"
+
+#include "core/entities/components/meshComponent.h"
 #include "core/entities/components/transformComponent.h"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/fwd.hpp"
 
-TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3
-    front) : scale(scale), blockCoords(blockCoords), subBlockCoords(subBlockCoords), front(front)
-{
-    updateTransform();
-}
+EntityManager::EntityManager(int maxNumEntities, const ResourcePack& resourcePack)
+    : m_ecs(maxNumEntities), m_resourcePack(resourcePack) {}
 
-void TransformComponent::updateTransform()
+void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockCoords)
 {
-    glm::vec3 glmSubBlockCoords(-subBlockCoords.x, -subBlockCoords.y, -subBlockCoords.z);
-    glm::vec3 glmFront(-front.x, -front.y, -front.z);
-    subBlockTransform = glm::lookAt(
-        glmSubBlockCoords, glmSubBlockCoords + glmFront, glm::vec3(0, 1, 0)
+    EntityId entity = m_ecs.newEntity();
+    m_ecs.assign<TransformComponent>(
+        entity, blockCoords, subBlockCoords, 0.25f, Vec3(1.0f, 0.0f, 0.0f)
     );
-    subBlockTransform *= glm::scale(glm::mat4(), glm::vec3(scale, scale, scale));
+    const Model& blockModel = *(m_resourcePack.getBlockData(blockType).model);
+    const uint16_t* textureIndices = m_resourcePack.getBlockData(blockType).faceTextureIndices;
+    m_ecs.assign<MeshComponent>(entity, blockModel, textureIndices);
 }

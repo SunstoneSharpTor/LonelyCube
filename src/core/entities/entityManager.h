@@ -20,21 +20,14 @@
 
 #include "core/pch.h"
 
-#include "core/entities/components/meshComponent.h"
-#include "core/entities/components/transformComponent.h"
 #include "core/entities/ECS.h"
-#include "core/entities/meshManager.h"
 #include "core/resourcePack.h"
-#include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
 #include "core/utils/vec3.h"
 
-template<bool integrated>
 class EntityManager {
 private:
     ECS m_ecs;
-    ServerWorld<integrated>& m_serverWorld;
-    MeshManager<integrated> m_meshManager;
     const ResourcePack& m_resourcePack;
 
 public:
@@ -42,18 +35,3 @@ public:
     void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
 };
 
-template<bool integrated>
-EntityManager<integrated>::EntityManager(int maxNumEntities, const ResourcePack& resourcePack)
-    : m_ecs(maxNumEntities),
-    m_meshManager(MeshManager<integrated>(m_ecs, m_serverWorld, 1680000, 360000)),
-    m_resourcePack(resourcePack) {}
-
-template<bool integrated>
-void EntityManager<integrated>::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockCoords)
-{
-    EntityId entity = m_ecs.newEntity();
-    m_ecs.assign<TransformComponent>(entity, blockCoords, subBlockCoords, IVec3(1.0f, 0.0f, 0.0f));
-    const Model& blockModel = *(m_resourcePack.getBlockData(blockType).model);
-    const uint16_t* textureIndices = m_resourcePack.getBlockData(blockType).faceTextureIndices;
-    m_ecs.assign<MeshComponent>(entity, blockModel, textureIndices);
-}
