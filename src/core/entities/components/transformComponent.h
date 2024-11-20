@@ -30,6 +30,6 @@ public:
     Vec3 front;
     glm::mat4 subBlockTransform;
 
-    TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, Vec3 rotation);
+    TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, Vec3 front);
     void updateTransform();
 };

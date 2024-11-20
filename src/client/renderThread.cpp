@@ -145,7 +145,7 @@ void RenderThread::go(bool* running) {
     simpleDownsampleShader.setUniform1i("srcTexture", 0);
     #endif
 
-    Texture allBlockTextures("res/resourcePack/textures.png");
+    Texture worldTextures("res/resourcePack/textures.png");
 
     Renderer mainRenderer;
 
@@ -419,7 +419,7 @@ void RenderThread::go(bool* running) {
 
             // Render the world geometry
             glEnable(GL_DEPTH_TEST);
-            allBlockTextures.bind();
+            worldTextures.bind();
             glActiveTexture(GL_TEXTURE1);
             #ifndef GLES3
             glBindTexture(GL_TEXTURE_2D, skyTexture);
