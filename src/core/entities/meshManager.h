@@ -16,31 +16,57 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/entities/meshManager.h"
-#include "client/graphics/meshBuilder.h"
-#include "core/entities/ECSView.h"
-#include "client/entities/components/meshComponent.h"
+#pragma once
+
+#include "core/pch.h"
+
+#include "core/entities/components/meshComponent.h"
 #include "core/entities/components/transformComponent.h"
+#include "core/entities/ECS.h"
+#include "core/entities/ECSView.h"
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
+#include "core/utils/vec3.h"
 
-MeshManager::MeshManager(int maxVertices, int maxIndices, ServerWorld<true>& serverWorld)
-    : vertexBuffer(std::make_unique<float[]>(maxVertices)),
-    indexBuffer(std::make_unique<int[]>(maxIndices)), numIndices(0), m_serverWorld(serverWorld) {}
+template<bool integrated>
+class MeshManager
+{
+private:
+    ECS& m_ecs;
+    ServerWorld<integrated>& m_serverWorld;
 
-void MeshManager::createBatch(ECS& ecs, IVec3 playerBlockCoords)
+    float interpolateSkyLight(const IVec3& blockPosition, const Vec3& subBlockPosition);
+    float interpolateBlockLight(const IVec3& blockPosition, const Vec3& subBlockPosition);
+
+public:
+    std::unique_ptr<float[]> vertexBuffer;
+    std::unique_ptr<int[]> indexBuffer;
+    int numIndices;
+
+    MeshManager(ECS& ecs, ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices);
+    void createBatch(IVec3 playerBlockCoords);
+};
+
+
+template<bool integrated>
+MeshManager<integrated>::MeshManager(ECS& ecs, ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices)
+    : m_ecs(ecs), m_serverWorld(serverWorld), vertexBuffer(std::make_unique<float[]>(maxVertices)),
+    indexBuffer(std::make_unique<int[]>(maxIndices)), numIndices(0) {}
+
+template<bool integrated>
+void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
 {
     numIndices = 0;
     int verticesSize = 0;
-    for (EntityId entity : ECSView<MeshComponent>(ecs))
+    for (EntityId entity : ECSView<MeshComponent>(m_ecs))
     {
-        const Model& model = ecs.get<MeshComponent>(entity).model;
-        const uint16_t* textureIndices = ecs.get<MeshComponent>(entity).faceTextureIndices;
-        const TransformComponent& transform = ecs.get<TransformComponent>(entity);
+        const Model& model = m_ecs.get<MeshComponent>(entity).model;
+        const uint16_t* textureIndices = m_ecs.get<MeshComponent>(entity).faceTextureIndices;
+        const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
         for (int faceNum = 0; faceNum < model.numFaces; faceNum++)
         {
             float texCoords[8];
-            client::MeshBuilder::getTextureCoordinates(
+            ResourcePack::getTextureCoordinates(
                 texCoords, model.faces[faceNum].UVcoords, textureIndices[faceNum]
             );
             for (int vertexNum = 0; vertexNum < 4; vertexNum++)
@@ -71,13 +97,14 @@ void MeshManager::createBatch(ECS& ecs, IVec3 playerBlockCoords)
     }
 }
 
-
-float MeshManager::interpolateSkyLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
+template<bool integrated>
+float MeshManager<integrated>::interpolateSkyLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
 {
     return (float)m_serverWorld.getSkyLight(blockCoords) / constants::skyLightMaxValue;
 }
 
-float MeshManager::interpolateBlockLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
+template<bool integrated>
+float MeshManager<integrated>::interpolateBlockLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
 {
     return (float)m_serverWorld.getBlockLight(blockCoords) / constants::blockLightMaxValue;
 }

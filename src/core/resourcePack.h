@@ -55,6 +55,9 @@ private:
 
     bool isTrue(std::basic_istream<char>& stream) const;
 public:
+    static void getTextureCoordinates(float* coords, const float* textureBox, const int16_t
+        textureNum);
+
     ResourcePack(std::filesystem::path resourcePackPath);
     const BlockData& getBlockData(uint8_t blockType) const {
         return m_blockData[blockType];

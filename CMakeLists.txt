@@ -23,8 +23,6 @@ set(CLIENT_SOURCE_FILES
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
     src/client/clientWorld.cpp
-    src/client/entities/components/meshComponent.cpp
-    src/client/entities/meshManager.cpp
     src/client/graphics/bloom.cpp
     src/client/graphics/camera.cpp
     src/client/graphics/computeShader.cpp
@@ -42,6 +40,7 @@ set(CLIENT_SOURCE_FILES
     src/core/compression.cpp
     src/core/config.cpp
     src/core/entities/ECS.cpp
+    src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp
@@ -60,6 +59,7 @@ set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/compression.cpp
     src/core/entities/ECS.cpp
+    src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp
     src/core/serverPlayer.cpp

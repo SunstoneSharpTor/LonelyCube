@@ -61,9 +61,6 @@ private:
     }
 
 public:
-    static void getTextureCoordinates(float* coords, const float* textureBox, const int16_t
-        textureNum);
-
     MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t*
         numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
         uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices);
