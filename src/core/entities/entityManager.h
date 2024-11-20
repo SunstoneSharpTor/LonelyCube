@@ -18,8 +18,10 @@
 
 #pragma once
 
-#include "core/entities/components/meshComponent.h"
 #include "core/pch.h"
+
+#include "client/entities/components/meshComponent.h"
+#include "core/entities/components/transformComponent.h"
 
 #include "core/entities/ECS.h"
 #include "core/utils/iVec3.h"
@@ -46,15 +48,7 @@ template<bool integrated>
 void EntityManager<integrated>::addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition)
 {
     EntityId entity = ecs.newEntity();
-    ecs.assign<IVec3>(entity);
-    ecs.assign<Vec3>(entity);
+    ecs.assign<TransformComponent>(entity);
     if (integrated)
         ecs.assign<MeshComponent>(entity);
-
-    for (uint8_t faceNum = 0 ; faceNum < m_resourcePack.getBlockData(blockType).model->numFaces;
-        faceNum++)
-    {
-    }
-    ecs.set<IVec3>(entity, blockPosition);
-    ecs.set<Vec3>(entity, subBlockPosition);
 }

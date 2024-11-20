@@ -19,7 +19,7 @@
 #include "client/entities/meshManager.h"
 #include "client/graphics/meshBuilder.h"
 #include "core/entities/ECSView.h"
-#include "core/entities/components/meshComponent.h"
+#include "client/entities/components/meshComponent.h"
 #include "core/entities/components/transformComponent.h"
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"

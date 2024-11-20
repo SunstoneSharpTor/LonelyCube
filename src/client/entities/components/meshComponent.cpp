@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/entities/components/meshComponent.h"
+#include "client/entities/components/meshComponent.h"
 #include "core/resourcePack.h"
 
 MeshComponent::MeshComponent(const Model& model, const uint16_t* faceTextureIndices)
