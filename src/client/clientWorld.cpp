@@ -19,6 +19,7 @@
 #include "client/clientWorld.h"
 
 #include "core/pch.h"
+#include <memory>
 #include <time.h>
 
 #include "client/graphics/meshBuilder.h"
@@ -36,8 +37,7 @@ static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
     const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed),
-    m_meshManager(m_integratedServer, 1680000, 360000), m_entityVertexArray(true),
-    m_entityVertexBuffer(), m_entityIndexBuffer()
+    m_meshManager(m_integratedServer, 1680000, 360000)
 {
     //seed the random number generator and the simplex noise
     m_seed = seed;
@@ -143,7 +143,6 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
                 modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
                 //update the MVP uniform
                 blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                mesh.vertexArray->bind();
                 mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
             }
             doRenderThreadJobs();
@@ -152,12 +151,10 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
 
     // Render entities
     m_meshManager.createBatch(playerBlockPosition);
-    std::cout << m_meshManager.numIndices << ", " << m_meshManager.sizeOfVertices << "\n";
-    m_entityIndexBuffer.update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    m_entityVertexBuffer.update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
+    m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
     blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    m_entityVertexArray.bind();
-    mainRenderer.draw(m_entityVertexArray, m_entityIndexBuffer, blockShader);
+    mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
 
     // Render water
     waterShader.bind();
@@ -176,7 +173,6 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
                 modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
                 //update the MVP uniform
                 waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                mesh.waterVertexArray->bind();
                 mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
             }
             doRenderThreadJobs();
@@ -420,7 +416,7 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
         }
         return;
     }
-    
+
     //wait for the render thread to upload the mesh to the GPU
     m_chunkPosition[threadNum] = chunkPosition;
     m_chunkMeshReady[threadNum] = true;
@@ -602,7 +598,7 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
         m_accessingArrIndicesVectorsMtx.lock();
         m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
     }
-    
+
     for (auto& chunk : chunksToRemesh) {
         if (chunkHasNeighbours(chunk)) {
             m_meshesToUpdate.insert(chunk);
@@ -694,9 +690,9 @@ void ClientWorld::initialiseEntityRenderBuffers()
     entityLayout.push<float>(2);
     entityLayout.push<float>(1);
     entityLayout.push<float>(1);
-    new (&m_entityVertexArray) VertexArray;
-    new (&m_entityVertexBuffer) VertexBuffer(m_meshManager.vertexBuffer.get(), 0);
-    new (&m_entityIndexBuffer) IndexBuffer(m_meshManager.indexBuffer.get(), 0);
+    m_entityVertexArray = std::make_unique<VertexArray>();
+    m_entityVertexBuffer = std::make_unique<VertexBuffer>(m_meshManager.vertexBuffer.get(), 0, false);
+    m_entityIndexBuffer = std::make_unique<IndexBuffer>(m_meshManager.indexBuffer.get(), 0, false);
 }
 
 }  // namespace client

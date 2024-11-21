@@ -121,8 +121,8 @@ const ECSView<ComponentTypes...>::Iterator ECSView<ComponentTypes...>::begin() c
 {
     int firstIndex = 0;
     while (firstIndex < ecs.getSize()
-        && (componentMask != (componentMask & ecs.getEntityComponentMask(firstIndex)))
-        || !ecs.isEntityValid(ecs.getEntityId(firstIndex)))
+        && (componentMask != (componentMask & ecs.getEntityComponentMask(firstIndex))
+        || !ecs.isEntityValid(ecs.getEntityId(firstIndex))))
     {
         firstIndex++;
     }
