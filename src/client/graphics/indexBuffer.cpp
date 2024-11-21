@@ -32,11 +32,18 @@ IndexBuffer::IndexBuffer(const uint32_t* data, uint32_t count) : m_count(count) 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_count * sizeof(GLuint), data, GL_STATIC_DRAW);
 }
 
+IndexBuffer::IndexBuffer(const uint32_t* data, uint32_t count, bool dynamic) : m_count(count) {
+    glGenBuffers(1, &m_rendererID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rendererID);
+    if (dynamic)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_DYNAMIC_DRAW);
+    else
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_STATIC_DRAW);
+}
+
 IndexBuffer::~IndexBuffer() {
     #ifndef GLES3
-    if (m_rendererID != 0) {
-        glDeleteBuffers(1, &m_rendererID);
-    }
+    // glDeleteBuffers(1, &m_rendererID);
     #endif
 }
 
@@ -47,10 +54,11 @@ void IndexBuffer::unbind() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void IndexBuffer::update(const void* data, uint32_t size) const
+void IndexBuffer::update(const uint32_t* data, uint32_t count)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, m_rendererID);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    m_count = count;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rendererID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_DYNAMIC_DRAW);
 }
 
 }  // namespace client

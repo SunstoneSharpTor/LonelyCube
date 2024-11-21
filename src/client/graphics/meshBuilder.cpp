@@ -62,8 +62,7 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
     {
         float texCoords[8];
         ResourcePack::getTextureCoordinates(
-            texCoords, faceData.UVcoords, blockData.faceTextureIndices[faceNum]
-        );
+            texCoords, faceData.UVcoords, blockData.faceTextureIndices[faceNum]);
         for (int16_t vertex = 0; vertex < 4; vertex++)
         {
             for (int16_t element = 0; element < 3; element++)

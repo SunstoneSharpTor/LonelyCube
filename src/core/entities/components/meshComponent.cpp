@@ -20,5 +20,5 @@
 
 #include "core/resourcePack.h"
 
-MeshComponent::MeshComponent(const Model& model, const uint16_t* faceTextureIndices)
+MeshComponent::MeshComponent(const Model* model, const uint16_t* faceTextureIndices)
     : model(model), faceTextureIndices(faceTextureIndices) {}

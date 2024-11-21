@@ -27,6 +27,7 @@ private:
 public:
     IndexBuffer();
     IndexBuffer(const uint32_t* data, uint32_t count);
+    IndexBuffer(const uint32_t* data, uint32_t count, bool dynamic);
     ~IndexBuffer();
 
     void bind() const;
@@ -35,7 +36,7 @@ public:
     inline uint32_t getCount() const {
         return m_count;
     }
-    void update(const void* data, uint32_t size) const;
+    void update(const uint32_t* data, uint32_t count);
 };
 
 }  // namespace client

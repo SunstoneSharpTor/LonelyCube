@@ -33,9 +33,7 @@ VertexArray::VertexArray() {
 
 VertexArray::~VertexArray() {
     #ifndef GLES3
-    if (m_rendererID != 0) {
-        glDeleteVertexArrays(1, &m_rendererID);
-    }
+    // glDeleteVertexArrays(1, &m_rendererID);
     #endif
 }
 

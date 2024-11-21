@@ -63,23 +63,23 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
     sizeOfVertices = 0;
     for (EntityId entity : ECSView<MeshComponent>(m_ecs))
     {
-        const Model& model = m_ecs.get<MeshComponent>(entity).model;
+        const Model* model = m_ecs.get<MeshComponent>(entity).model;
         const uint16_t* textureIndices = m_ecs.get<MeshComponent>(entity).faceTextureIndices;
         const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
-        for (int faceNum = 0; faceNum < model.numFaces; faceNum++)
+        for (int faceNum = 0; faceNum < model->numFaces; faceNum++)
         {
             float texCoords[8];
             ResourcePack::getTextureCoordinates(
-                texCoords, model.faces[faceNum].UVcoords, textureIndices[faceNum]
+                texCoords, model->faces[faceNum].UVcoords, textureIndices[faceNum]
             );
             for (int vertexNum = 0; vertexNum < 4; vertexNum++)
             {
                 // Vertex coordinates
                 glm::vec4 vertexSubBlock;
                 for (int element = 0; element < 3; element++)
-                    vertexSubBlock[element] = model.faces[faceNum].coords[vertexNum * 3 + element];
+                    vertexSubBlock[element] = model->faces[faceNum].coords[vertexNum * 3 + element];
                 vertexSubBlock[3] = 1.0f;
-                vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
+                // vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
                 vertexBuffer[sizeOfVertices] = vertexSubBlock.x + (transform.blockCoords.x -
                     playerBlockCoords.x);
                 vertexBuffer[sizeOfVertices + 1] = vertexSubBlock.y + (transform.blockCoords.y -
@@ -95,6 +95,9 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                 // Block light
                 vertexBuffer[sizeOfVertices + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 sizeOfVertices += 7;
+                // for (int i = 0; i < 7; i++)
+                //     std::cout << vertexBuffer[sizeOfVertices - 7 + i] << ", ";
+                //  std::cout << "\n";
             }
 
             //index buffer
