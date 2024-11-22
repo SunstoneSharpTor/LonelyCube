@@ -33,5 +33,5 @@ void TransformComponent::updateTransform()
     subBlockTransform = glm::lookAt(
         glmSubBlockCoords, glmSubBlockCoords + glmFront, glm::vec3(0, 1, 0)
     );
-    subBlockTransform *= glm::scale(glm::mat4(), glm::vec3(scale, scale, scale));
+    subBlockTransform *= glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 }
