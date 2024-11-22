@@ -16,6 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "client/graphics/renderer.h"
 #ifndef GLES3
 
 #include "client/graphics/luminance.h"
@@ -97,7 +98,7 @@ void Luminance::createMips(glm::ivec2 srcTextureSize) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        glTextureParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
         m_mipChain.emplace_back(mip);
     }

@@ -18,6 +18,7 @@
 
 #include "client/clientWorld.h"
 
+#include "client/graphics/renderer.h"
 #include "core/pch.h"
 #include <memory>
 #include <time.h>
@@ -150,11 +151,21 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
 
     // Render entities
-    m_meshManager.createBatch(playerBlockPosition);
-    m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
-    blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
+    GLPrintErrors();
+    // std::cout << "0\n";
+    // m_meshManager.createBatch(playerBlockPosition);
+    // GLPrintErrors();
+    // std::cout << "1\n";
+    // m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    // GLPrintErrors();
+    // std::cout << "2\n";
+    // m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
+    // GLPrintErrors();
+    // std::cout << "3\n";
+    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
+    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
+    // GLPrintErrors();
+    // std::cout << "4\n";
 
     // Render water
     waterShader.bind();
