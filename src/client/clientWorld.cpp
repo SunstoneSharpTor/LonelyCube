@@ -152,26 +152,10 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
 
     // Render entities
     m_meshManager.createBatch(playerBlockPosition);
-
     m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
     m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
     blockShader.setUniformMat4f("u_modelView", viewMatrix);
     mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
-
-    float vertices[] = { 0.0f, 0.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
-                         0.0f, 1.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
-                         1.0f, 1.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
-                         1.0f, 0.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f };
-    uint32_t indices[] = { 0, 1, 2, 2, 3, 0, 0, 3, 2, 3, 2, 1 };
-    VertexArray entityVertexArray = VertexArray();
-    // VertexBuffer entityVertexBuffer = VertexBuffer(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
-    // IndexBuffer entityIndexBuffer = IndexBuffer(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    VertexBuffer entityVertexBuffer = VertexBuffer(vertices, 28 * sizeof(float));
-    IndexBuffer entityIndexBuffer = IndexBuffer(indices, 12);
-
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), -glm::vec3(playerBlockPosition[0], playerBlockPosition[1], playerBlockPosition[2]));
-    blockShader.setUniformMat4f("u_modelView", glm::mat4(1.0f));
-    mainRenderer.draw(entityVertexArray, entityIndexBuffer, blockShader);
 
     // Render water
     waterShader.bind();
@@ -570,7 +554,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
                 for (uint8_t ii = 0; ii < 3; ii++) {
                     breakBlockCoords[ii] = blockPos[ii];
                 }
-                
+
                 bool equal = true;
                 while (equal) {
                     rayPos -= direction * 0.025f;
@@ -710,6 +694,7 @@ void ClientWorld::initialiseEntityRenderBuffers()
     m_entityVertexArray = std::make_unique<VertexArray>();
     m_entityVertexBuffer = std::make_unique<VertexBuffer>(m_meshManager.vertexBuffer.get(), 0, true);
     m_entityIndexBuffer = std::make_unique<IndexBuffer>(m_meshManager.indexBuffer.get(), 0, true);
+    m_entityVertexArray->addBuffer(*m_entityVertexBuffer, entityLayout);
 }
 
 }  // namespace client

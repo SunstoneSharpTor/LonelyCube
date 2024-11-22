@@ -355,7 +355,7 @@ void ServerWorld<integrated>::setBlock(const IVec3& position, uint8_t blockType)
     if (blockType == air)
     {
         m_entityManager.addItem(
-            chunkIterator->second.getBlock(chunkBlockNum), position, Vec3(0.0f, 0.0f, 0.0f)
+            chunkIterator->second.getBlock(chunkBlockNum), position, Vec3(0.5f, 0.5f, 0.5f)
         );
     }
 

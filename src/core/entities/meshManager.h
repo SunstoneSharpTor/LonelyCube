@@ -79,7 +79,7 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                 for (int element = 0; element < 3; element++)
                     vertexSubBlock[element] = model->faces[faceNum].coords[vertexNum * 3 + element];
                 vertexSubBlock[3] = 1.0f;
-                // vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
+                vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
                 vertexBuffer[sizeOfVertices] = vertexSubBlock.x + (transform.blockCoords.x -
                     playerBlockCoords.x);
                 vertexBuffer[sizeOfVertices + 1] = vertexSubBlock.y + (transform.blockCoords.y -
@@ -95,9 +95,9 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                 // Block light
                 vertexBuffer[sizeOfVertices + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 sizeOfVertices += 7;
-                // for (int i = 0; i < 7; i++)
-                //     std::cout << vertexBuffer[sizeOfVertices - 7 + i] << ", ";
-                //  std::cout << "\n";
+                for (int i = 0; i < 7; i++)
+                    std::cout << vertexBuffer[sizeOfVertices - 7 + i] << ", ";
+                std::cout << "\n";
             }
 
             //index buffer
