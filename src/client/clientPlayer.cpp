@@ -292,7 +292,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             }
 
             viewCamera.position[1] += 1.32f;
-            
+
             int roundedPos;
             for (uint8_t i = 0; i < 3; i++) {
                 roundedPos = viewCamera.position[i];
@@ -391,7 +391,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                     }
                 }
             }
-            
+
             if (!resolved) {
                 m_hitboxMinOffset -= m_velocity * DT / subdivisions;
                 m_velocity[axisOfLeastPenetration / 2] = 0.0f;

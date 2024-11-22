@@ -967,6 +967,6 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
         for (IVec3 position : relitChunks) {
             worldChunks.at(position).compressSkyLight();
         }
-        std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
+        // std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
     }
 }

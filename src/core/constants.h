@@ -55,16 +55,6 @@ constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
     9600.0f, 0.0001f,
     10200.0f, 0.000025f };
 
-constexpr float WIREFRAME_CUBE_FACE_POSITIONS[24] = { -0.001f, -0.001f, -0.001f,
-                                                        1.001f, -0.001f, -0.001f,
-                                                        1.001f, -0.001f,  1.001f,
-                                                        -0.001f, -0.001f,  1.001f,
-                                                        
-                                                        -0.001f,  1.001f,  1.001f,
-                                                        1.001f,  1.001f,  1.001f,
-                                                        1.001f,  1.001f, -0.001f,
-                                                        -0.001f,  1.001f, -0.001f };
-
 constexpr uint32_t CUBE_WIREFRAME_IB[16] = { 0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7 };
 
 }

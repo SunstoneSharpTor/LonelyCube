@@ -126,12 +126,12 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
     blockShader.setUniform1f("u_renderDistance", m_fogDistance);
     if (m_meshUpdates.size() > 0) {
-        auto tp1 = std::chrono::high_resolution_clock::now();
+        // auto tp1 = std::chrono::high_resolution_clock::now();
         while (m_meshUpdates.size() > 0) {
             doRenderThreadJobs();
         }
-        auto tp2 = std::chrono::high_resolution_clock::now();
-        std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
+        // auto tp2 = std::chrono::high_resolution_clock::now();
+        // std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
     }
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.indexBuffer->getCount() > 0) {
@@ -151,21 +151,27 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
 
     // Render entities
-    GLPrintErrors();
-    // std::cout << "0\n";
-    // m_meshManager.createBatch(playerBlockPosition);
-    // GLPrintErrors();
-    // std::cout << "1\n";
-    // m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    // GLPrintErrors();
-    // std::cout << "2\n";
-    // m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices);
-    // GLPrintErrors();
-    // std::cout << "3\n";
-    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
-    // GLPrintErrors();
-    // std::cout << "4\n";
+    m_meshManager.createBatch(playerBlockPosition);
+
+    m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
+    blockShader.setUniformMat4f("u_modelView", viewMatrix);
+    mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
+
+    float vertices[] = { 0.0f, 0.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
+                         0.0f, 1.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
+                         1.0f, 1.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f,
+                         1.0f, 0.0f, 1.0f, 0.0001f, 0.9999f, 1.0f, 0.0f };
+    uint32_t indices[] = { 0, 1, 2, 2, 3, 0, 0, 3, 2, 3, 2, 1 };
+    VertexArray entityVertexArray = VertexArray();
+    // VertexBuffer entityVertexBuffer = VertexBuffer(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
+    // IndexBuffer entityIndexBuffer = IndexBuffer(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    VertexBuffer entityVertexBuffer = VertexBuffer(vertices, 28 * sizeof(float));
+    IndexBuffer entityIndexBuffer = IndexBuffer(indices, 12);
+
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), -glm::vec3(playerBlockPosition[0], playerBlockPosition[1], playerBlockPosition[2]));
+    blockShader.setUniformMat4f("u_modelView", glm::mat4(1.0f));
+    mainRenderer.draw(entityVertexArray, entityIndexBuffer, blockShader);
 
     // Render water
     waterShader.bind();
@@ -366,27 +372,27 @@ void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IV
     IVec3 blockPosInChunk = modifiedBlockPos - modifiedBlockChunk * constants::CHUNK_SIZE;
     if (blockPosInChunk.x == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(-1, 0, 0));
-        std::cout << "1\n";
+        // std::cout << "1\n";
     }
     else if (blockPosInChunk.x == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(1, 0, 0));
-        std::cout << "2\n";
+        // std::cout << "2\n";
     }
     if (blockPosInChunk.y == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, -1, 0));
-        std::cout << "3\n";
+        // std::cout << "3\n";
     }
     else if (blockPosInChunk.y == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 1, 0));
-        std::cout << "4\n";
+        // std::cout << "4\n";
     }
     if (blockPosInChunk.z == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, -1));
-        std::cout << "5\n";
+        // std::cout << "5\n";
     }
     else if (blockPosInChunk.z == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, 1));
-        std::cout << "6\n";
+        // std::cout << "6\n";
     }
 }
 
@@ -588,7 +594,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
 void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
-    std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
+    // std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
     uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
     m_integratedServer.setBlock(blockCoords, blockType);
 
@@ -599,8 +605,8 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
         chunksToRemesh, m_integratedServer.getWorldChunks(), m_integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
-    std::cout << chunksToRemesh.size() << " chunks remeshed\n";
-    std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    // std::cout << chunksToRemesh.size() << " chunks remeshed\n";
+    // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
 
     m_accessingArrIndicesVectorsMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {
@@ -702,8 +708,8 @@ void ClientWorld::initialiseEntityRenderBuffers()
     entityLayout.push<float>(1);
     entityLayout.push<float>(1);
     m_entityVertexArray = std::make_unique<VertexArray>();
-    m_entityVertexBuffer = std::make_unique<VertexBuffer>(m_meshManager.vertexBuffer.get(), 0, false);
-    m_entityIndexBuffer = std::make_unique<IndexBuffer>(m_meshManager.indexBuffer.get(), 0, false);
+    m_entityVertexBuffer = std::make_unique<VertexBuffer>(m_meshManager.vertexBuffer.get(), 0, true);
+    m_entityIndexBuffer = std::make_unique<IndexBuffer>(m_meshManager.indexBuffer.get(), 0, true);
 }
 
 }  // namespace client
