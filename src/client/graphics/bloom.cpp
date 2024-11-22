@@ -91,7 +91,6 @@ void Bloom::render(float filterRadius, float strength) {
 
     m_blitShader.bind();
     m_blitShader.setUniform1f("strength", strength);
-    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
 
     const BloomMip& mip = m_mipChain[0];
 
@@ -126,7 +125,7 @@ void Bloom::createMips(glm::ivec2 srcTextureSize) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        glTextureParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
         m_mipChain.emplace_back(mip);
     }

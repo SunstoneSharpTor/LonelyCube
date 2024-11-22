@@ -313,7 +313,7 @@ void RenderThread::go(bool* running) {
         lastWindowFullScreen = windowFullScreen;
 
         //render if a frame is needed
-        //GLPrintErrors();
+        GLPrintErrors();
         end = std::chrono::steady_clock::now();
         double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         if (currentTime > frameStart + DT) {
@@ -331,7 +331,7 @@ void RenderThread::go(bool* running) {
             else {
                 frameStart = currentTime;
             }
-            
+
             //create model view projection matrix for the world
             float fov = 70.0;
             fov = fov - fov * (2.0 / 3.0) * m_mainPlayer->zoom;
@@ -524,7 +524,7 @@ float RenderThread::calculateBrightness(const float* points, uint32_t numPoints,
         succeedingTime += offset;
     }
     float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
-    
+
     return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
 }
 
