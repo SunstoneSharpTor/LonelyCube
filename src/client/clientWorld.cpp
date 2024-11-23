@@ -691,10 +691,17 @@ void ClientWorld::initialiseEntityRenderBuffers()
     entityLayout.push<float>(2);
     entityLayout.push<float>(1);
     entityLayout.push<float>(1);
-    m_entityVertexArray = std::make_unique<VertexArray>();
-    m_entityVertexBuffer = std::make_unique<VertexBuffer>(m_meshManager.vertexBuffer.get(), 0, true);
-    m_entityIndexBuffer = std::make_unique<IndexBuffer>(m_meshManager.indexBuffer.get(), 0, true);
+    m_entityVertexArray = new VertexArray();
+    m_entityVertexBuffer = new VertexBuffer(m_meshManager.vertexBuffer.get(), 0, true);
+    m_entityIndexBuffer = new IndexBuffer(m_meshManager.indexBuffer.get(), 0, true);
     m_entityVertexArray->addBuffer(*m_entityVertexBuffer, entityLayout);
+}
+
+void ClientWorld::deinitialiseEntityRenderBuffers()
+{
+    delete m_entityVertexArray;
+    delete m_entityVertexBuffer;
+    delete m_entityIndexBuffer;
 }
 
 }  // namespace client

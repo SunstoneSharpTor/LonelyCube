@@ -32,9 +32,7 @@ VertexArray::VertexArray() {
 }
 
 VertexArray::~VertexArray() {
-    #ifndef GLES3
-    // glDeleteVertexArrays(1, &m_rendererID);
-    #endif
+    glDeleteVertexArrays(1, &m_rendererID);
 }
 
 void VertexArray::addBuffer(const VertexBuffer& vb, const VertexBufferLayout& layout) {

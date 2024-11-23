@@ -500,6 +500,7 @@ void RenderThread::go(bool* running) {
         }
     }
 
+    m_mainWorld->deinitialiseEntityRenderBuffers();
     SDL_DestroyWindow(sdl_window);
     SDL_Quit();
 }

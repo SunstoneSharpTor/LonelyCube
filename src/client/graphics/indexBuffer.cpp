@@ -42,9 +42,7 @@ IndexBuffer::IndexBuffer(const uint32_t* data, uint32_t count, bool dynamic) : m
 }
 
 IndexBuffer::~IndexBuffer() {
-    #ifndef GLES3
-    // glDeleteBuffers(1, &m_rendererID);
-    #endif
+    glDeleteBuffers(1, &m_rendererID);
 }
 
 void IndexBuffer::bind() const {
