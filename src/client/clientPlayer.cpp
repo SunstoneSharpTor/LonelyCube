@@ -116,7 +116,9 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
                 int placeBlockCoords[3];
                 if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                     m_timeSinceBlockBreak = 0.0f;
+                    uint8_t itemType = m_mainWorld->getBlock(breakBlockCoords);
                     m_mainWorld->replaceBlock(breakBlockCoords, 0);
+                    m_mainWorld->spawnItem(itemType, breakBlockCoords);
                     if (!m_mainWorld->isSinglePlayer()) {
                         Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
                         for (int i = 0; i < 3; i++) {

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "core/chunkManager.h"
 #include "core/entities/entityManager.h"
 #include "core/pch.h"
 
@@ -43,7 +44,7 @@ private:
     ResourcePack m_resourcePack;
 
     // World
-    std::unordered_map<IVec3, Chunk> m_chunks;
+    ChunkManager m_chunkManager;
     std::unordered_map<uint16_t, ServerPlayer> m_players;
     std::queue<IVec3> m_chunksToBeLoaded;
     std::unordered_set<IVec3> m_chunksBeingLoaded;
@@ -55,7 +56,6 @@ private:
     std::mutex m_playersMtx;
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
-    std::mutex m_unmeshedChunksMtx;
     std::mutex m_threadsWaitMtx;
     std::condition_variable m_threadsWaitCV;
     bool m_threadsWait;
@@ -84,18 +84,30 @@ public:
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(IVec3* chunkPosition);
-    uint8_t getBlock(const IVec3& position) const;
-    void setBlock(const IVec3& position, uint8_t blockType);
-    uint8_t getSkyLight(const IVec3& position) const;
-    uint8_t getBlockLight(const IVec3& position) const;
+    inline uint8_t getBlock(const IVec3& position) const
+    {
+        return m_chunkManager.getBlock(position);
+    }
+    inline void setBlock(const IVec3& position, uint8_t blockType)
+    {
+        m_chunkManager.setBlock(position, blockType);
+    }
+    inline uint8_t getSkyLight(const IVec3& position) const
+    {
+        return m_chunkManager.getSkyLight(position);
+    }
+    inline uint8_t getBlockLight(const IVec3& position) const
+    {
+        return m_chunkManager.getBlockLight(position);
+    }
     inline Chunk& getChunk(const IVec3& chunkPosition) {
-        return m_chunks.at(chunkPosition);
+        return m_chunkManager.getChunk(chunkPosition);
     }
     inline bool chunkLoaded(const IVec3& chunkPosition) {
-        return m_chunks.contains(chunkPosition);
+        return m_chunkManager.chunkLoaded(chunkPosition);
     }
     inline std::unordered_map<IVec3, Chunk>& getWorldChunks() {
-        return m_chunks;
+        return m_chunkManager.getWorldChunks();
     }
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
@@ -110,6 +122,10 @@ public:
     {
         return m_entityManager;
     }
+    inline void spawnItem(uint16_t itemType, IVec3 blockCoords)
+    {
+        m_entityManager.addItem(itemType, blockCoords, Vec3(0.5f, 0.5f, 0.5f));
+    }
 };
 
 template<bool integrated>
@@ -119,9 +135,6 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayer
 {
     PCG_SeedRandom32(m_seed);
     seedNoise();
-    // TODO:
-    // set this reserved number for m_chunks to be dependant on render distance for singleplayer
-    m_chunks.reserve(16777214);
     m_players.reserve(32);
 
     m_numChunkLoadingThreads = std::max(1u, std::min(32u, std::thread::hardware_concurrency()));
@@ -145,11 +158,11 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         IVec3 chunkPosition;
         bool chunkOutOfRange;
         while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
-            if (chunkOutOfRange && m_chunks.contains(chunkPosition)) {
-                m_chunks.at(chunkPosition).decrementPlayerCount();
-                if (m_chunks.at(chunkPosition).hasNoPlayers()) {
-                    m_chunks.at(chunkPosition).unload();
-                    m_chunks.erase(chunkPosition);
+            if (chunkOutOfRange && m_chunkManager.chunkLoaded(chunkPosition)) {
+                m_chunkManager.getChunk(chunkPosition).decrementPlayerCount();
+                if (m_chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
+                    m_chunkManager.getChunk(chunkPosition).unload();
+                    m_chunkManager.getChunk(chunkPosition);
                 }
             }
         }
@@ -177,8 +190,8 @@ void ServerWorld<integrated>::findChunksToLoad() {
         if (!player.allChunksLoaded()) {
             int chunkPosition[3];
             player.getNextChunkCoords(chunkPosition);
-            auto it = m_chunks.find(IVec3(chunkPosition));
-            if (it != m_chunks.end()) {
+            auto it = m_chunkManager.getWorldChunks().find(IVec3(chunkPosition));
+            if (it != m_chunkManager.getWorldChunks().end()) {
                 it->second.incrementPlayerCount();
                 if (!integrated) {
                     Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
@@ -210,8 +223,8 @@ bool ServerWorld<integrated>::loadChunk(IVec3* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        m_chunks[*chunkPosition] = { *chunkPosition };
-        Chunk& chunk = m_chunks.at(*chunkPosition);
+        m_chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
+        Chunk& chunk = m_chunkManager.getChunk(*chunkPosition);
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
         m_chunksBeingLoadedMtx.lock();
@@ -246,8 +259,8 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
-    m_chunks[chunkPosition] = { chunkPosition };
-    Chunk& chunk = m_chunks.at(chunkPosition);
+    m_chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
+    Chunk& chunk = m_chunkManager.getChunk(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
 }
@@ -271,7 +284,7 @@ void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosit
 
 template<bool integrated>
 void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
-    std::cout << m_chunks.size() << std::endl;
+    std::cout << m_chunkManager.getWorldChunks().size() << std::endl;
     pauseChunkLoaderThreads();
 
     // Remove the player from all chunks that it had loaded
@@ -293,11 +306,11 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     bool chunkOutOfRange;
     int i = 0;
     while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
-        if (m_chunks.contains(chunkPosition)) {
-            m_chunks.at(chunkPosition).decrementPlayerCount();
-            if (m_chunks.at(chunkPosition).hasNoPlayers()) {
-                m_chunks.at(chunkPosition).unload();
-                m_chunks.erase(chunkPosition);
+        if (m_chunkManager.chunkLoaded(chunkPosition)) {
+            m_chunkManager.getChunk(chunkPosition).decrementPlayerCount();
+            if (m_chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
+                m_chunkManager.getChunk(chunkPosition).unload();
+                m_chunkManager.getChunk(chunkPosition);
             }
         }
         i++;
@@ -314,91 +327,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
 
     releaseChunkLoaderThreads();
     std::cout << playerID << " disconnected\n";
-    std::cout << m_chunks.size() << std::endl;
-}
-
-template<bool integrated>
-uint8_t ServerWorld<integrated>::getBlock(const IVec3& position) const {
-    IVec3 chunkPosition = Chunk::getChunkCoords(position);
-    IVec3 chunkBlockCoords = IVec3(
-        position.x - chunkPosition.x * constants::CHUNK_SIZE,
-        position.y - chunkPosition.y * constants::CHUNK_SIZE,
-        position.z - chunkPosition.z * constants::CHUNK_SIZE);
-    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
-
-    auto chunkIterator = m_chunks.find(chunkPosition);
-
-    if (chunkIterator == m_chunks.end()) {
-        return 0;
-    }
-
-    return chunkIterator->second.getBlock(chunkBlockNum);
-}
-
-template<bool integrated>
-void ServerWorld<integrated>::setBlock(const IVec3& position, uint8_t blockType) {
-    IVec3 chunkPosition = Chunk::getChunkCoords(position);
-    IVec3 chunkBlockCoords = IVec3(
-        position.x - chunkPosition.x * constants::CHUNK_SIZE,
-        position.y - chunkPosition.y * constants::CHUNK_SIZE,
-        position.z - chunkPosition.z * constants::CHUNK_SIZE);
-    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
-
-    auto chunkIterator = m_chunks.find(chunkPosition);
-
-    if (chunkIterator == m_chunks.end()) {
-        return;
-    }
-
-    if (blockType == air)
-    {
-        m_entityManager.addItem(
-            chunkIterator->second.getBlock(chunkBlockNum), position, Vec3(0.5f, 0.5f, 0.5f)
-        );
-    }
-
-    chunkIterator->second.setBlock(chunkBlockNum, blockType);
-    chunkIterator->second.compressBlocks();
-}
-
-template<bool integrated>
-uint8_t ServerWorld<integrated>::getSkyLight(const IVec3& position) const {
-    IVec3 chunkPosition = Chunk::getChunkCoords(position);
-    IVec3 chunkBlockCoords = IVec3(
-        position.x - chunkPosition.x * constants::CHUNK_SIZE,
-        position.y - chunkPosition.y * constants::CHUNK_SIZE,
-        position.z - chunkPosition.z * constants::CHUNK_SIZE);
-    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
-
-    auto chunkIterator = m_chunks.find(chunkPosition);
-
-    if (chunkIterator == m_chunks.end()) {
-        return 0;
-    }
-
-    return chunkIterator->second.getSkyLight(chunkBlockNum);
-}
-
-template<bool integrated>
-uint8_t ServerWorld<integrated>::getBlockLight(const IVec3& position) const {
-    IVec3 chunkPosition = Chunk::getChunkCoords(position);
-    IVec3 chunkBlockCoords = IVec3(
-        position.x - chunkPosition.x * constants::CHUNK_SIZE,
-        position.y - chunkPosition.y * constants::CHUNK_SIZE,
-        position.z - chunkPosition.z * constants::CHUNK_SIZE);
-    uint32_t chunkBlockNum = chunkBlockCoords.y * constants::CHUNK_SIZE * constants::CHUNK_SIZE
-        + chunkBlockCoords.z * constants::CHUNK_SIZE + chunkBlockCoords.x;
-
-    auto chunkIterator = m_chunks.find(chunkPosition);
-
-    if (chunkIterator == m_chunks.end()) {
-        return 0;
-    }
-
-    return chunkIterator->second.getBlockLight(chunkBlockNum);
+    std::cout << m_chunkManager.getWorldChunks().size() << std::endl;
 }
 
 template<bool integrated>

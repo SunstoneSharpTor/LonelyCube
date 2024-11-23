@@ -51,8 +51,8 @@ public:
         constants::CHUNK_SIZE);
 
     // Recalculate all necessary lighting information for a block change
-	static void relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& chunkPosition,
-		uint8_t originalBlock, uint8_t newBlock, std::vector<IVec3>& chunksToRemesh,
+    static void relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& chunkPosition,
+        uint8_t originalBlock, uint8_t newBlock, std::vector<IVec3>& chunksToRemesh,
         std::unordered_map<IVec3, Chunk>& worldChunks, const ResourcePack& ResourcePack);
 private:
     static const inline std::array<IVec3, 6> s_neighbouringChunkOffsets = { IVec3(0, -1, 0),

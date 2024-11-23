@@ -18,10 +18,32 @@
 
 #pragma once
 
-#include "core/utils/iVec3.h"
+#include "core/entities/ECSView.h"
+#include "core/entities/components/physicsComponent.h"
+#include "core/serverWorld.h"
 
-class PhysicsComponent
+template<bool integrated>
+class PhysicsEngine
 {
 private:
-    IVec3 m_velocity;
+    ServerWorld<integrated>& m_serverWorld;
+    ECS& m_ecs;
+
+public:
+    PhysicsEngine(ServerWorld<integrated>& serverWorld, ECS& ecs);
+    void stepPhysics(float DT);
 };
+
+
+template<bool integrated>
+PhysicsEngine<integrated>::PhysicsEngine(ServerWorld<integrated>& serverWorld, ECS& ecs)
+    : m_serverWorld(serverWorld), m_ecs(ecs) {}
+
+template<bool integrated>
+void PhysicsEngine<integrated>::stepPhysics(float DT)
+{
+    for (EntityId entity : ECSView<PhysicsComponent>(m_ecs))
+    {
+
+    }
+}

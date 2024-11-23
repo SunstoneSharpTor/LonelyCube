@@ -18,10 +18,27 @@
 
 #pragma once
 
+#include "core/chunk.h"
 #include "core/utils/iVec3.h"
 
-class PhysicsComponent
+class ChunkManager
 {
 private:
-    IVec3 m_velocity;
+    std::unordered_map<IVec3, Chunk> m_chunks;
+
+public:
+    ChunkManager();
+    uint8_t getBlock(const IVec3& position) const;
+    void setBlock(const IVec3& position, uint8_t blockType);
+    uint8_t getSkyLight(const IVec3& position) const;
+    uint8_t getBlockLight(const IVec3& position) const;
+    inline Chunk& getChunk(const IVec3& chunkPosition) {
+        return m_chunks.at(chunkPosition);
+    }
+    inline bool chunkLoaded(const IVec3& chunkPosition) {
+        return m_chunks.contains(chunkPosition);
+    }
+    inline std::unordered_map<IVec3, Chunk>& getWorldChunks() {
+        return m_chunks;
+    }
 };

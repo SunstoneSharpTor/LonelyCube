@@ -194,6 +194,10 @@ public:
     inline ResourcePack& getResourcePack() {
         return m_integratedServer.getResourcePack();
     }
+    void spawnItem(uint16_t itemType, IVec3 blockCoords)
+    {
+        m_integratedServer.spawnItem(itemType, blockCoords);
+    }
     void setThreadWaiting(uint8_t threadNum, bool value);
 };
 
