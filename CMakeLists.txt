@@ -37,6 +37,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vertexBuffer.cpp
     src/client/renderThread.cpp
     src/core/chunk.cpp
+    src/core/chunkManager.cpp
     src/core/compression.cpp
     src/core/config.cpp
     src/core/entities/ECS.cpp
@@ -58,6 +59,7 @@ $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
+    src/core/chunkManager.cpp
     src/core/compression.cpp
     src/core/entities/ECS.cpp
     src/core/entities/entityManager.cpp
