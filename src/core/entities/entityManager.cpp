@@ -28,7 +28,7 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockC
 {
     EntityId entity = m_ecs.newEntity();
     m_ecs.assign<TransformComponent>(
-        entity, blockCoords, subBlockCoords, 0.25f, Vec3(1.0f, 0.0f, 0.0f)
+        entity, blockCoords, subBlockCoords, 0.25f, Vec3(0.0f, 1.0f, 0.0f)
     );
     const Model* blockModel = m_resourcePack.getBlockData(blockType).model;
     const uint16_t* textureIndices = m_resourcePack.getBlockData(blockType).faceTextureIndices;

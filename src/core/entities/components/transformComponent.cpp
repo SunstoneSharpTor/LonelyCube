@@ -32,6 +32,6 @@ void TransformComponent::updateTransform()
     glm::vec3 glmSubBlockCoords(subBlockCoords.x, subBlockCoords.y, subBlockCoords.z);
     glm::vec3 glmRotation(rotation.x, rotation.y, rotation.z);
     subBlockTransform = glm::translate(glm::mat4(1.0f), glmSubBlockCoords);
-    // subBlockTransform *= glm::rotate(subBlockTransform, 1.0f, glmRotation);
+    subBlockTransform = glm::rotate(subBlockTransform, 1.0f, glmRotation);
     subBlockTransform *= glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 }

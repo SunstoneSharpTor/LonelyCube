@@ -127,9 +127,9 @@ private:
     ServerWorld<true> m_integratedServer;
     int m_clientID;
     MeshManager<true> m_meshManager;
-    std::unique_ptr<VertexArray> m_entityVertexArray;
-    std::unique_ptr<VertexBuffer> m_entityVertexBuffer;
-    std::unique_ptr<IndexBuffer> m_entityIndexBuffer;
+    VertexArray* m_entityVertexArray;
+    VertexBuffer* m_entityVertexBuffer;
+    IndexBuffer* m_entityIndexBuffer;
 
     void unloadMesh(const IVec3& chunkPosition);
     bool chunkHasNeighbours(const IVec3& chunkPosition);
@@ -163,6 +163,7 @@ public:
     void updateMeshes();
     void updatePlayerPos(float playerX, float playerY, float playerZ);
     void initialiseEntityRenderBuffers();
+    void deinitialiseEntityRenderBuffers();
     void setMouseData(double* lastMousePoll,
                       bool* playing,
                       bool* lastPlaying,
