@@ -21,17 +21,17 @@
 #include "glm/fwd.hpp"
 
 TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3
-    front) : scale(scale), blockCoords(blockCoords), subBlockCoords(subBlockCoords), front(front)
+    rotation) : scale(scale), blockCoords(blockCoords), subBlockCoords(subBlockCoords),
+    rotation(rotation)
 {
     updateTransform();
 }
 
 void TransformComponent::updateTransform()
 {
-    glm::vec3 glmSubBlockCoords(-subBlockCoords.x, -subBlockCoords.y, -subBlockCoords.z);
-    glm::vec3 glmFront(-front.x, -front.y, -front.z);
-    subBlockTransform = glm::lookAt(
-        glmSubBlockCoords, glmSubBlockCoords + glmFront, glm::vec3(0, 1, 0)
-    );
+    glm::vec3 glmSubBlockCoords(subBlockCoords.x, subBlockCoords.y, subBlockCoords.z);
+    glm::vec3 glmRotation(rotation.x, rotation.y, rotation.z);
+    subBlockTransform = glm::translate(glm::mat4(1.0f), glmSubBlockCoords);
+    // subBlockTransform *= glm::rotate(subBlockTransform, 1.0f, glmRotation);
     subBlockTransform *= glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 }
