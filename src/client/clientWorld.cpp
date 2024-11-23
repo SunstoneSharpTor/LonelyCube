@@ -545,8 +545,8 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
             bool hit = true;
             for (uint8_t ii = 0; ii < 3; ii++) {
                 if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().getBlockData(blockType).model
-                    ->boundingBoxVertices[ii] || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().
-                    getBlockData(blockType).model->boundingBoxVertices[ii + 15]) {
+                    ->boundingBoxVertices[ii] + 0.5f || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().
+                    getBlockData(blockType).model->boundingBoxVertices[ii + 15] + 0.5f) {
                     hit = false;
                 }
             }
