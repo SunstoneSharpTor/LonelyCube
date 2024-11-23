@@ -67,7 +67,8 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
         {
             for (int16_t element = 0; element < 3; element++)
             {
-                m_waterVertices[*m_numWaterVertices] = faceData.coords[vertex * 3 + element] + blockCoords[element];
+                m_waterVertices[*m_numWaterVertices] = faceData.coords[vertex * 3 + element] +
+                    blockCoords[element] + 0.5f;
                 (*m_numWaterVertices)++;
             }
             m_waterVertices[*m_numWaterVertices] = texCoords[vertex * 2];
@@ -99,7 +100,8 @@ void MeshBuilder::addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceN
         {
             for (int16_t element = 0; element < 3; element++)
             {
-                m_vertices[*m_numVertices] = faceData.coords[vertex * 3 + element] + blockCoords[element];
+                m_vertices[*m_numVertices] = faceData.coords[vertex * 3 + element] +
+                    blockCoords[element] + 0.5f;
                 (*m_numVertices)++;
             }
             m_vertices[*m_numVertices] = texCoords[vertex * 2];
