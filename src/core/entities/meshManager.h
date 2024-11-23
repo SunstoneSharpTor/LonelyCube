@@ -95,9 +95,6 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                 // Block light
                 vertexBuffer[sizeOfVertices + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 sizeOfVertices += 7;
-                for (int i = 0; i < 7; i++)
-                    std::cout << vertexBuffer[sizeOfVertices - 7 + i] << ", ";
-                std::cout << "\n";
             }
 
             //index buffer

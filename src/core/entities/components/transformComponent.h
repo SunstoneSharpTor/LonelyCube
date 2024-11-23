@@ -28,9 +28,9 @@ public:
     float scale;
     IVec3 blockCoords;
     Vec3 subBlockCoords;
-    Vec3 front;
+    Vec3 rotation;
     glm::mat4 subBlockTransform;
 
-    TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3 front);
+    TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3 rotation);
     void updateTransform();
 };

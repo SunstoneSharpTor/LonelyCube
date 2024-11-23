@@ -58,7 +58,7 @@ void IndexBuffer::update(const uint32_t* data, uint32_t count)
 {
     m_count = count;
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rendererID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(GLuint), data, GL_DYNAMIC_DRAW);
 }
 
 }  // namespace client
