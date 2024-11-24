@@ -130,8 +130,8 @@ public:
 
 template<bool integrated>
 ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayerID(0),
-    m_gameTick(0), m_resourcePack("res/resourcePack"), m_entityManager(10000, m_resourcePack),
-    m_threadsWait(false)
+    m_gameTick(0), m_resourcePack("res/resourcePack"),
+    m_entityManager(10000, m_chunkManager, m_resourcePack), m_threadsWait(false)
 {
     PCG_SeedRandom32(m_seed);
     seedNoise();

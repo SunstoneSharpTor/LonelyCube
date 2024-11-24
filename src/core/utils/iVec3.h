@@ -18,14 +18,53 @@
 
 #pragma once
 
-#include "core/pch.h"
+#include "core/utils/vec3.h"
 
 struct IVec3 {
-    int x, y, z;
+private:
+    int m_coords[3];
 
-    IVec3(int x, int y, int z) : x(x), y(y), z(z) {};
-    IVec3(const int* position) : x(position[0]), y(position[1]), z(position[2]) {};
-    IVec3() {};
+public:
+    int& x = m_coords[0];
+    int& y = m_coords[1];
+    int& z = m_coords[2];
+
+    IVec3(int x, int y, int z) : m_coords{ x, y, z } {}
+    IVec3(const int* coords) : m_coords{ coords[0], coords[1], coords[2] } {}
+    IVec3(const Vec3 other) : m_coords{ static_cast<int>(other.x),
+        static_cast<int>(other.y),
+        static_cast<int>(other.z) } {}
+    IVec3(const IVec3& other) : m_coords{ other.x, other.y, other.z } {}
+    IVec3(const IVec3&& other) : m_coords{ other.x , other.y, other.z } {}
+    IVec3() {}
+
+    inline IVec3& operator=(const IVec3& other)
+    {
+        if (this == &other)
+            return *this;
+        x = other.x;
+        y = other.y;
+        z = other.z;
+        return *this;
+    }
+
+    inline IVec3& operator=(const IVec3&& other)
+    {
+        x = other.x;
+        y = other.y;
+        z = other.z;
+        return *this;
+    }
+
+    inline int& operator[](const int index)
+    {
+        return m_coords[index];
+    }
+
+    inline const int& operator[](const int index) const
+    {
+        return m_coords[index];
+    }
 
     inline IVec3 operator+(const IVec3& other) const {
         return { x + other.x, y + other.y, z + other.z };

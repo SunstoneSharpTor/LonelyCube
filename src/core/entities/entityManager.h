@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include "core/chunkManager.h"
 #include "core/entities/ECS.h"
+#include "core/entities/physicsEngine.h"
 #include "core/resourcePack.h"
 #include "core/utils/iVec3.h"
 #include "core/utils/vec3.h"
@@ -26,10 +28,13 @@
 class EntityManager {
 private:
     ECS m_ecs;
+    ChunkManager& m_chunkManager;
     const ResourcePack& m_resourcePack;
 
+    PhysicsEngine m_physicsEngine;
+
 public:
-    EntityManager(int maxNumEntities, const ResourcePack& resourcePack);
+    EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack& resourcePack);
     void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
     inline ECS& getECS()
     {
