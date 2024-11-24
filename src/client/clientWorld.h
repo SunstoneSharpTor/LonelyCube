@@ -73,7 +73,6 @@ private:
     float m_meshedChunksDistance;
     float m_fogDistance;
     double m_timeByDTs;
-    uint64_t m_seed;
 
     //mouse polling info
     std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::_V2::steady_clock::duration> m_startTime;

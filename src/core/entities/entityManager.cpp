@@ -19,8 +19,11 @@
 #include "core/entities/entityManager.h"
 
 #include "core/chunkManager.h"
+#include "core/entities/ECS.h"
 #include "core/entities/components/meshComponent.h"
+#include "core/entities/components/physicsComponent.h"
 #include "core/entities/components/transformComponent.h"
+#include "core/random.h"
 
 EntityManager::EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack&
     resourcePack)
@@ -33,7 +36,17 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockC
     m_ecs.assign<TransformComponent>(
         entity, blockCoords, subBlockCoords, 0.25f, Vec3(0.0f, 1.0f, 0.0f)
     );
+    Vec3 initialVelocity;
+    initialVelocity.x = std::fmod((PCG_Random32() * 0.0001f), 8.0f) - 4.0f;
+    initialVelocity.y = 5.0f;
+    initialVelocity.z = std::fmod((PCG_Random32() * 0.0001f), 8.0f) - 4.0f;
+    m_ecs.assign<PhysicsComponent>(entity, initialVelocity, Vec3(0.0f, -0.05f, 0.0f));
     const Model* blockModel = m_resourcePack.getBlockData(blockType).model;
     const uint16_t* textureIndices = m_resourcePack.getBlockData(blockType).faceTextureIndices;
     m_ecs.assign<MeshComponent>(entity, blockModel, textureIndices);
+}
+
+void EntityManager::tick()
+{
+    m_physicsEngine.stepPhysics();
 }

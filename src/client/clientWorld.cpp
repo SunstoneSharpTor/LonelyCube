@@ -40,11 +40,6 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed),
     m_meshManager(m_integratedServer, 1680000, 360000)
 {
-    //seed the random number generator and the simplex noise
-    m_seed = seed;
-    PCG_SeedRandom32(m_seed);
-    seedNoise();
-
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
     m_meshedChunksDistance = 0.0f;

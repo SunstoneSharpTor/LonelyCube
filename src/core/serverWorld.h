@@ -372,6 +372,8 @@ void ServerWorld<integrated>::releaseChunkLoaderThreads() {
 
 template<bool integrated>
 void ServerWorld<integrated>::tick() {
+    m_entityManager.tick();
+
     if (!integrated) {
         auto it = m_players.begin();
         while (it != m_players.end()) {

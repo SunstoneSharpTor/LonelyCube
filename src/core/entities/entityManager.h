@@ -35,6 +35,7 @@ private:
 
 public:
     EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack& resourcePack);
+    void tick();
     void addItem(uint8_t blockType, IVec3 blockPosition, Vec3 subBlockPosition);
     inline ECS& getECS()
     {

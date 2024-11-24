@@ -18,6 +18,7 @@
 
 #include "core/entities/components/transformComponent.h"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
 #include "glm/fwd.hpp"
 
 TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3
@@ -30,8 +31,9 @@ TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, f
 void TransformComponent::updateTransform()
 {
     glm::vec3 glmSubBlockCoords(subBlockCoords.x, subBlockCoords.y, subBlockCoords.z);
-    glm::vec3 glmRotation(rotation.x, rotation.y, rotation.z);
     subBlockTransform = glm::translate(glm::mat4(1.0f), glmSubBlockCoords);
-    subBlockTransform = glm::rotate(subBlockTransform, 1.0f, glmRotation);
+    subBlockTransform = glm::rotate(subBlockTransform, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+    subBlockTransform = glm::rotate(subBlockTransform, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    subBlockTransform = glm::rotate(subBlockTransform, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
     subBlockTransform *= glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 }

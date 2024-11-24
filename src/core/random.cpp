@@ -23,27 +23,27 @@
 static uint64_t PCG_Ramdom32State = 0x4d595df4d0f33173;
 
 uint32_t PCG_Hash32(uint32_t input) {
-	uint32_t state = input * 747796405u + 2891336453u;
-	uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-	return (word >> 22u) ^ word;
+    uint32_t state = input * 747796405u + 2891336453u;
+    uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
 }
 
 static uint32_t rotr32(uint32_t x, unsigned r) {
-	return x >> r | x << (-r & 31);
+    return x >> r | x << (-r & 31);
 }
 
 uint32_t PCG_Random32() {
-	uint64_t x = PCG_Ramdom32State;
-	unsigned count = (unsigned)(x >> 59);		// 59 = 64 - 5
+    uint64_t x = PCG_Ramdom32State;
+    unsigned count = (unsigned)(x >> 59);        // 59 = 64 - 5
 
-	PCG_Ramdom32State = x * 6364136223846793005u + 1442695040888963407u;
-	x ^= x >> 18;								// 18 = (64 - 27)/2
-	return rotr32((uint32_t)(x >> 27), count);	// 27 = 32 - 5
+    PCG_Ramdom32State = x * 6364136223846793005u + 1442695040888963407u;
+    x ^= x >> 18;                                // 18 = (64 - 27)/2
+    return rotr32((uint32_t)(x >> 27), count);    // 27 = 32 - 5
 }
 
 void PCG_SeedRandom32(uint64_t seed) {
-	PCG_Ramdom32State = seed + 1442695040888963407u;
-	(void)PCG_Random32();
+    PCG_Ramdom32State = seed + 1442695040888963407u;
+    (void)PCG_Random32();
 }
 
 /**

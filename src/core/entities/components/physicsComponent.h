@@ -20,9 +20,11 @@
 
 #include "core/utils/vec3.h"
 
-class PhysicsComponent
+struct PhysicsComponent
 {
-public:
     Vec3 velocity;
     Vec3 angularVelocity;
+
+    PhysicsComponent(Vec3 velocity, Vec3 angularVelocity)
+        : velocity(velocity), angularVelocity(angularVelocity) {}
 };
