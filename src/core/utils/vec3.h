@@ -18,14 +18,48 @@
 
 #pragma once
 
-#include "core/pch.h"
-
 struct Vec3 {
-    float x, y, z;
+private:
+    float m_coords[3];
 
-    Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
-    Vec3(const float* position) : x(position[0]), y(position[1]), z(position[2]) {};
-    Vec3() {};
+public:
+    float& x = m_coords[0];
+    float& y = m_coords[1];
+    float& z = m_coords[2];
+
+    Vec3(float x, float y, float z) : m_coords{ x, y, z } {}
+    Vec3(const float* coords) : m_coords{ coords[0], coords[1], coords[2] } {}
+    Vec3(const Vec3& other) : m_coords{ other.x, other.y, other.z } {}
+    Vec3(const Vec3&& other) : m_coords{ other.x , other.y, other.z } {}
+    Vec3() {}
+
+    inline Vec3& operator=(const Vec3& other)
+    {
+        if (this == &other)
+            return *this;
+        x = other.x;
+        y = other.y;
+        z = other.z;
+        return *this;
+    }
+
+    inline Vec3& operator=(const Vec3&& other)
+    {
+        x = other.x;
+        y = other.y;
+        z = other.z;
+        return *this;
+    }
+
+    inline float& operator[](const int index)
+    {
+        return m_coords[index];
+    }
+
+    inline const float& operator[](const int index) const
+    {
+        return m_coords[index];
+    }
 
     inline Vec3 operator+(const Vec3& other) const {
         return { x + other.x, y + other.y, z + other.z };

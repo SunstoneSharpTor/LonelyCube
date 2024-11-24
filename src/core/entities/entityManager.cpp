@@ -18,11 +18,14 @@
 
 #include "core/entities/entityManager.h"
 
+#include "core/chunkManager.h"
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/transformComponent.h"
 
-EntityManager::EntityManager(int maxNumEntities, const ResourcePack& resourcePack)
-    : m_ecs(maxNumEntities), m_resourcePack(resourcePack) {}
+EntityManager::EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack&
+    resourcePack)
+    : m_ecs(maxNumEntities), m_chunkManager(chunkManager), m_resourcePack(resourcePack),
+    m_physicsEngine(chunkManager, m_ecs, m_resourcePack) {}
 
 void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockCoords)
 {

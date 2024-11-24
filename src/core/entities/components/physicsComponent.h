@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "core/utils/iVec3.h"
+#include "core/utils/vec3.h"
 
 class PhysicsComponent
 {
-private:
-    IVec3 m_velocity;
+public:
+    Vec3 velocity;
+    Vec3 angularVelocity;
 };

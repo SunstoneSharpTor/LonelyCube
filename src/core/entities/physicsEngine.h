@@ -18,32 +18,19 @@
 
 #pragma once
 
-#include "core/entities/ECSView.h"
-#include "core/entities/components/physicsComponent.h"
-#include "core/serverWorld.h"
+#include "core/chunkManager.h"
+#include "core/entities/ECS.h"
+#include "core/resourcePack.h"
 
-template<bool integrated>
 class PhysicsEngine
 {
 private:
-    ServerWorld<integrated>& m_serverWorld;
+    ChunkManager& m_chunkManager;
     ECS& m_ecs;
+    const ResourcePack& m_resourcePack;
 
 public:
-    PhysicsEngine(ServerWorld<integrated>& serverWorld, ECS& ecs);
+    PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
     void stepPhysics(float DT);
+    bool entityCollidingWithWorld(EntityId entity);
 };
-
-
-template<bool integrated>
-PhysicsEngine<integrated>::PhysicsEngine(ServerWorld<integrated>& serverWorld, ECS& ecs)
-    : m_serverWorld(serverWorld), m_ecs(ecs) {}
-
-template<bool integrated>
-void PhysicsEngine<integrated>::stepPhysics(float DT)
-{
-    for (EntityId entity : ECSView<PhysicsComponent>(m_ecs))
-    {
-
-    }
-}
