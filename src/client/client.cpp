@@ -23,6 +23,7 @@
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
 #include "core/config.h"
+#include "core/constants.h"
 #include "core/packet.h"
 #include "core/threadManager.h"
 
@@ -97,7 +98,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (multiplayer) {
-        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::microseconds(1000 / constants::TICKS_PER_SECOND);
         while (running) {
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
 
@@ -113,12 +114,12 @@ int main(int argc, char* argv[]) {
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
                 enet_peer_send(networking.getPeer(), 0, packet);
 
-                nextTick += std::chrono::milliseconds(100);
+                nextTick += std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
             }
         }
     }
     else {
-        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
         while (running) {
             mainWorld.loadChunksAroundPlayerSingleplayer(0);
 
@@ -127,7 +128,7 @@ int main(int argc, char* argv[]) {
                 if (mainWorld.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
                 mainWorld.tick();
-                nextTick += std::chrono::milliseconds(100);
+                nextTick += std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
             }
         }
     }

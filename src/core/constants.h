@@ -38,7 +38,7 @@ constexpr int visualTPS{ 240 };
 
 constexpr uint32_t DAY_LENGTH{ 12000 };
 
-constexpr float TICKS_PER_SECOND{ 10 };
+constexpr int TICKS_PER_SECOND{ 10 };
 
 constexpr uint32_t NUM_GROUND_LUMINANCE_POINTS{ 13 };
 constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {

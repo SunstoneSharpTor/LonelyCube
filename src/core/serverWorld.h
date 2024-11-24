@@ -33,6 +33,7 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
+#include <chrono>
 
 template<bool integrated>
 class ServerWorld {
@@ -42,6 +43,7 @@ private:
     uint16_t m_numChunkLoadingThreads;
     uint32_t m_gameTick;
     ResourcePack m_resourcePack;
+    std::chrono::time_point<std::chrono::steady_clock> m_timeOfLastTick;
 
     // World
     ChunkManager m_chunkManager;
@@ -84,6 +86,7 @@ public:
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(IVec3* chunkPosition);
+    float getTimeSinceLastTick();
     inline uint8_t getBlock(const IVec3& position) const
     {
         return m_chunkManager.getBlock(position);
@@ -372,6 +375,7 @@ void ServerWorld<integrated>::releaseChunkLoaderThreads() {
 
 template<bool integrated>
 void ServerWorld<integrated>::tick() {
+    m_timeOfLastTick = std::chrono::steady_clock::now();
     m_entityManager.tick();
 
     if (!integrated) {
@@ -386,6 +390,7 @@ void ServerWorld<integrated>::tick() {
             }
         }
     }
+
     m_gameTick++;
 }
 
@@ -403,4 +408,11 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
             enet_peer_send(player.getPeer(), 0, packet);
         }
     }
+}
+
+template<bool integrated>
+float ServerWorld<integrated>::getTimeSinceLastTick()
+{
+    auto currentTime = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_timeOfLastTick).count() * 0.001f;
 }

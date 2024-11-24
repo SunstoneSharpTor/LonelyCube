@@ -33,4 +33,5 @@ public:
     PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
     void stepPhysics();
     bool entityCollidingWithWorld(EntityId entity);
+    void extrapolateTransforms(float DT);
 };
