@@ -32,13 +32,13 @@ PhysicsEngine::PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const Resourc
 void PhysicsEngine::stepPhysics()
 {
     const float DT = 1.0f / constants::TICKS_PER_SECOND;
-    for (EntityId entity : ECSView<PhysicsComponent>(m_ecs))
+    for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
         PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
-        physics.velocity += Vec3(0.0f, -9.81f * DT, 0.0f);
+        physics.velocity.y -= 12.0f * DT;
         physics.velocity *= 0.8f;
-        transform.rotation += physics.angularVelocity;
+        transform.rotation += physics.angularVelocity * DT;
         for (int axis = 0; axis < 3; axis++)
         {
             transform.subBlockCoords[axis] += physics.velocity[axis] * DT;
@@ -83,4 +83,23 @@ bool PhysicsEngine::entityCollidingWithWorld(EntityId entity)
         }
     }
     return colliding;
+}
+
+void PhysicsEngine::extrapolateTransforms(float DT)
+{
+    for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
+    {
+        TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
+        PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
+        Vec3 actualSubBlockCoords = transform.subBlockCoords;
+        Vec3 actualRotation = transform.rotation;
+        Vec3 averageVelocity = physics.velocity;
+        averageVelocity.y -= 12.0f / constants::TICKS_PER_SECOND * physics.velocity.y > 0;
+        averageVelocity *= 0.8f;
+        transform.subBlockCoords += averageVelocity * DT;
+        transform.rotation += physics.angularVelocity * DT;
+        transform.updateTransform();
+        transform.subBlockCoords = actualSubBlockCoords;
+        transform.rotation = actualRotation;
+    }
 }

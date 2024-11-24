@@ -146,6 +146,7 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
 
     // Render entities
+    m_integratedServer.getEntityManager().extrapolateTransforms(m_integratedServer.getTimeSinceLastTick());
     m_meshManager.createBatch(playerBlockPosition);
     m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
     m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));

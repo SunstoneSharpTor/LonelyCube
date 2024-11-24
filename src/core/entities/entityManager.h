@@ -41,5 +41,9 @@ public:
     {
         return m_ecs;
     }
+    inline void extrapolateTransforms(float DT)
+    {
+        m_physicsEngine.extrapolateTransforms(DT);
+    }
 };
 
