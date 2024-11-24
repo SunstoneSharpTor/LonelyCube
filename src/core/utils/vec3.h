@@ -88,4 +88,10 @@ public:
         y -= other.y;
         z -= other.z;
     }
+
+    inline void operator*=(const float scalar) {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+    }
 };

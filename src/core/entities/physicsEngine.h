@@ -31,6 +31,6 @@ private:
 
 public:
     PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
-    void stepPhysics(float DT);
+    void stepPhysics();
     bool entityCollidingWithWorld(EntityId entity);
 };

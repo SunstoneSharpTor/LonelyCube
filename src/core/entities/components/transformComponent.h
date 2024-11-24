@@ -22,9 +22,8 @@
 #include "core/utils/vec3.h"
 #include "glm/glm.hpp"
 
-class TransformComponent
+struct TransformComponent
 {
-public:
     float scale;
     IVec3 blockCoords;
     Vec3 subBlockCoords;

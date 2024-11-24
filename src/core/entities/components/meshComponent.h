@@ -21,10 +21,9 @@
 #include "core/pch.h"
 #include "core/resourcePack.h"
 
-// Class that stores a reference to a mesh in an instance of a mesh manager class, as well as a
+// Struct that stores a reference to a mesh in an instance of a mesh manager class, as well as a
 // copy of the untranslated vertices
-class MeshComponent {
-public:
+struct MeshComponent {
     const Model* model;
     const uint16_t* faceTextureIndices;
 

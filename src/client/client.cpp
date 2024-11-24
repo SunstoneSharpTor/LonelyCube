@@ -25,7 +25,6 @@
 #include "core/config.h"
 #include "core/packet.h"
 #include "core/threadManager.h"
-#include "core/entities/ECS.h"
 
 using namespace client;
 
