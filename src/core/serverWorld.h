@@ -161,11 +161,14 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         IVec3 chunkPosition;
         bool chunkOutOfRange;
         while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
-            if (chunkOutOfRange && m_chunkManager.chunkLoaded(chunkPosition)) {
-                m_chunkManager.getChunk(chunkPosition).decrementPlayerCount();
-                if (m_chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
-                    m_chunkManager.getChunk(chunkPosition).unload();
-                    m_chunkManager.getChunk(chunkPosition);
+            if (chunkOutOfRange) {
+                auto it = m_chunkManager.getWorldChunks().find(chunkPosition);
+                if (it != m_chunkManager.getWorldChunks().end()) {
+                    it->second.decrementPlayerCount();
+                    if (it->second.hasNoPlayers()) {
+                        it->second.unload();
+                        m_chunkManager.getWorldChunks().erase(it);
+                    }
                 }
             }
         }

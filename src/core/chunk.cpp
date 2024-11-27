@@ -18,6 +18,7 @@
 
 #include "core/chunk.h"
 
+#include "core/constants.h"
 #include "core/pch.h"
 
 #include "core/block.h"
@@ -37,10 +38,7 @@ Chunk::Chunk(IVec3 position) : m_position(position) {
     {
         m_blocks[layerNum] = new uint8_t[constants::CHUNK_SIZE * constants::CHUNK_SIZE];
         m_layerBlockTypes[layerNum] = 256;
-        m_skyLight[layerNum] = new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
-        m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
-        // Default the block light to be 0 as it is unlikely to be greater than 0 for naturally
-        // generated terrain
+        m_layerSkyLightValues[layerNum] = 0;
         m_layerBlockLightValues[layerNum] = 0;
     }
 }
@@ -82,15 +80,11 @@ void Chunk::clearSkyLight()
     // Reset all sky light values in the chunk to 0
     for (uint32_t layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
     {
-        if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
+        if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
         {
-            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
-            m_skyLight[layerNum] = new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
+            delete[] m_skyLight[layerNum];
         }
-        for (uint32_t blockNum = 0; blockNum < ((constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2); blockNum++)
-        {
-            m_skyLight[layerNum][blockNum] = 0;
-        }
+        m_layerSkyLightValues[layerNum] = 0;
     }
 }
 
