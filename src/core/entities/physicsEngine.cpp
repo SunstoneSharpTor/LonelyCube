@@ -24,6 +24,7 @@
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/physicsComponent.h"
 #include "core/entities/components/transformComponent.h"
+#include "core/random.h"
 #include "core/resourcePack.h"
 
 PhysicsEngine::PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack)
@@ -36,9 +37,24 @@ void PhysicsEngine::stepPhysics()
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
         PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
-        physics.velocity.y -= 12.0f * DT;
-        physics.velocity *= 0.8f;
         transform.rotation += physics.angularVelocity * DT;
+        if (entityCollidingWithWorld(entity))
+        {
+            physics.velocity.y += 6.0f * DT;
+            physics.velocity *= 0.88f;
+            transform.subBlockCoords.x += physics.velocity.x * DT;
+            transform.subBlockCoords.z += physics.velocity.z * DT;
+            if (entityCollidingWithWorld(entity))
+            {
+                transform.subBlockCoords.x -= physics.velocity.x * DT;
+                transform.subBlockCoords.z -= physics.velocity.z * DT;
+                transform.subBlockCoords.y += physics.velocity.y * DT;
+            }
+            transform.updateTransform();
+            continue;
+        }
+        physics.velocity.y -= 20.0f * DT;
+        physics.velocity *= 0.88f;
         for (int axis = 0; axis < 3; axis++)
         {
             transform.subBlockCoords[axis] += physics.velocity[axis] * DT;

@@ -90,7 +90,9 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
                 vertexBuffer[sizeOfVertices + 3] = texCoords[vertexNum * 2];
                 vertexBuffer[sizeOfVertices + 4] = texCoords[vertexNum * 2 + 1];
                 // Sky light
-                IVec3 vertexBlock(transform.blockCoords.x, transform.blockCoords.y, transform.blockCoords.z);
+                IVec3 vertexBlock = transform.blockCoords +
+                    Vec3(vertexSubBlock.x, vertexSubBlock.y, vertexSubBlock.z);
+                vertexBlock += transform.subBlockCoords;
                 vertexBuffer[sizeOfVertices + 5] = interpolateSkyLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
                 // Block light
                 vertexBuffer[sizeOfVertices + 6] = interpolateBlockLight(vertexBlock, Vec3(0.0f, 0.0f, 0.0f));
