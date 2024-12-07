@@ -4,6 +4,7 @@ project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 enable_testing()
 
 add_subdirectory(lib/enet-1.3.18)
+add_subdirectory(lib/glfw-3.4)
 
 set(OSBitness 64)
 set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
@@ -13,9 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set (CMAKE_CXX_STANDARD 20)
 
-find_package(SDL2 REQUIRED)
-
-include_directories(. ./src ./lib ${SDL2_INCLUDE_DIRS} ./lib/enet-1.3.18/include)
+include_directories(. ./src ./lib ./lib/enet-1.3.18/include ./lib/glfw-3.4/include)
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
@@ -54,7 +53,7 @@ set(CLIENT_SOURCE_FILES
     src/core/threadManager.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
-target_link_libraries(client ${SDL2_LIBRARIES})
+target_link_libraries(client enet glfw)
 target_precompile_headers(client PRIVATE 
 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
@@ -78,11 +77,9 @@ set(SERVER_SOURCE_FILES
     src/server/serverNetworking.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
+target_link_libraries(server enet)
 target_precompile_headers(server PRIVATE 
 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
-
-target_link_libraries(client enet)
-target_link_libraries(server enet)
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
@@ -101,10 +98,5 @@ add_custom_command(TARGET client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/res
             ${FullOutputDir}/res)
-if (NOT MINGW)
-    add_custom_command(TARGET client POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E rm
-                ${FullOutputDir}/res/SDL2.dll)
-endif (NOT MINGW)
 
 add_subdirectory(tests)

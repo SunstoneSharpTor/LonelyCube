@@ -19,7 +19,7 @@
 #include "client/renderThread.h"
 
 #include <glad/glad.h>
-#include <SDL2/SDL.h>
+#include <GLFW/glfw3.h>
 #include <enet/enet.h>
 
 #include "core/pch.h"
@@ -53,38 +53,33 @@ void RenderThread::go(bool* running) {
         (uint32_t)defaultWindowDimensions[1] };
 
     SDL_Window* sdl_window;
+    GLFWwindow* window;
     SDL_GLContext context;
 
-    SDL_Init(SDL_INIT_VIDEO);
+    glfwInit();
 
     #ifdef GLES3
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-        // Force usage of the GLES backend
-        SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
     #else
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     #endif
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    glfwWindowHint(GLFW_DEPTH_BITS, 24);
 
-    sdl_window = SDL_CreateWindow(
-        "Lonely Cube",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        windowDimensions[0],
-        windowDimensions[1],
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    window = glfwCreateWindow(windowDimensions[0], windowDimensions[1], "Lonely Cube", NULL, NULL);
+    glfwMakeContextCurrent(window);
 
-    setSDLIcon(sdl_window);
+    // setSDLIcon(sdl_window);
 
-    context = SDL_GL_CreateContext(sdl_window);
     bool VSYNC = false;
-    if ((!VSYNC) || SDL_GL_SetSwapInterval(-1) != 0) {
-        SDL_GL_SetSwapInterval(0);
-    }
+    if (VSYNC)
+        glfwSwapInterval(1);
+    else
+        glfwSwapInterval(0);
 
     bool windowMaximised = false;
     bool windowLastFocus = false;
@@ -93,17 +88,17 @@ void RenderThread::go(bool* running) {
     bool lastLastWindowFullScreen = false;
     int windowRestoredSize[2];
     int windowRestoredPos[2];
-    SDL_GetWindowSize(sdl_window, &windowRestoredSize[0], &windowRestoredSize[1]);
-    SDL_GetWindowPosition(sdl_window, &windowRestoredPos[0], &windowRestoredPos[1]);
-    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
+    // SDL_GetWindowSize(sdl_window, &windowRestoredSize[0], &windowRestoredSize[1]);
+    // SDL_GetWindowPosition(sdl_window, &windowRestoredPos[0], &windowRestoredPos[1]);
+    // const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
     bool lastF11 = false;
 
     m_mainPlayer->setWorldMouseData(sdl_window, windowDimensions);
 
     #ifdef GLES3
-        gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress);
+        gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
     #else
-        gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     #endif
 
     // Create shaders
@@ -479,7 +474,7 @@ void RenderThread::go(bool* running) {
             mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            SDL_GL_SwapWindow(sdl_window);
+            glfwSwapBuffers(window);
 
             m_mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
             float cameraPos[3];
@@ -501,8 +496,8 @@ void RenderThread::go(bool* running) {
     }
 
     m_mainWorld->deinitialiseEntityRenderBuffers();
-    SDL_DestroyWindow(sdl_window);
-    SDL_Quit();
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }
 
 float RenderThread::calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
@@ -527,31 +522,6 @@ float RenderThread::calculateBrightness(const float* points, uint32_t numPoints,
     float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
 
     return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
-}
-
-void RenderThread::setSDLIcon(SDL_Window* window)
-{
-    #include "client/windowIcon.h"
-    // these masks are needed to tell SDL_CreateRGBSurface(From)
-    // to assume the data it gets is byte-wise RGB(A) data
-    Uint32 rmask, gmask, bmask, amask;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-    int shift = (windowIcon.bytes_per_pixel == 3) ? 8 : 0;
-    rmask = 0xff000000 >> shift;
-    gmask = 0x00ff0000 >> shift;
-    bmask = 0x0000ff00 >> shift;
-    amask = 0x000000ff >> shift;
-#else // little endian, like x86
-    rmask = 0x000000ff;
-    gmask = 0x0000ff00;
-    bmask = 0x00ff0000;
-    amask = (windowIcon.bytes_per_pixel == 3) ? 0 : 0xff000000;
-#endif
-    SDL_Surface* icon = SDL_CreateRGBSurfaceFrom((void*)windowIcon.pixel_data,
-        windowIcon.width, windowIcon.height, windowIcon.bytes_per_pixel*8,
-        windowIcon.bytes_per_pixel*windowIcon.width, rmask, gmask, bmask, amask);
-    SDL_SetWindowIcon(window, icon);
-    SDL_FreeSurface(icon);
 }
 
 }  // namespace client
