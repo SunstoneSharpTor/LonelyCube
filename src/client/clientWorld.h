@@ -33,7 +33,7 @@
 #include "core/utils/iVec3.h"
 #include "core/serverWorld.h"
 
-#include <SDL2/SDL.h>
+#include <GLFW/glfw3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -83,7 +83,7 @@ private:
     float* m_pitch;
     int* m_lastMousePos;
     Camera* m_viewCamera;
-    SDL_Window* m_window;
+    GLFWwindow* m_window;
     uint32_t* m_windowDimensions;
 
     std::unordered_map<IVec3, MeshData> m_meshes;
@@ -170,7 +170,7 @@ public:
                       float* pitch,
                       int* lastMousePos,
                       Camera* viewCamera,
-                      SDL_Window* window,
+                      GLFWwindow* window,
                       uint32_t* windowDimensions);
     void processMouseInput();
     inline void setClientID(int ID) {
