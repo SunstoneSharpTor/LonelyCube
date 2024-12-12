@@ -233,7 +233,7 @@ void RenderThread::go(bool* running) {
     bool loopRunning = *running;
     while (loopRunning) {
         //toggle fullscreen if F11 pressed
-        if (keyboardState[SDL_SCANCODE_F11] && (!lastF11)) {
+        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
             if (windowFullScreen) {
                 SDL_SetWindowFullscreen(sdl_window, 0);
                 if (!windowMaximised) {
@@ -249,7 +249,7 @@ void RenderThread::go(bool* running) {
 
             windowFullScreen = !windowFullScreen;
         }
-        lastF11 = keyboardState[SDL_SCANCODE_F11];
+        lastF11 = glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS;
         //poll events
         SDL_Event windowEvent;
         Uint32 windowFlags;

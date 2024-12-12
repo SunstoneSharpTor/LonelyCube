@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include "GLFW/glfw3.h"
 
 #include "client/clientNetworking.h"
 #include "client/clientWorld.h"
@@ -68,11 +68,11 @@ private:
     void resolveHitboxCollisions(float DT);
 
     bool collidingWithBlock();
-    
+
     bool intersectingBlock(int* blockPos);
 
 public:
-	Camera viewCamera;
+    Camera viewCamera;
     int cameraBlockPosition[3];
     bool zoom;
 
