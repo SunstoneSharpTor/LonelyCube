@@ -52,9 +52,7 @@ void RenderThread::go(bool* running) {
     uint32_t windowDimensions[2] = { (uint32_t)defaultWindowDimensions[0],
         (uint32_t)defaultWindowDimensions[1] };
 
-    SDL_Window* sdl_window;
     GLFWwindow* window;
-    SDL_GLContext context;
 
     glfwInit();
 
@@ -93,7 +91,7 @@ void RenderThread::go(bool* running) {
     // const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
     bool lastF11 = false;
 
-    m_mainPlayer->setWorldMouseData(sdl_window, windowDimensions);
+    m_mainPlayer->setWorldMouseData(window, windowDimensions);
 
     #ifdef GLES3
         gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
@@ -219,7 +217,8 @@ void RenderThread::go(bool* running) {
     //set up game loop
     float exposure = 0.0;
     float exposureTimeByDTs = 0.0;
-    SDL_DisplayMode displayMode;
+    GLFWvidmode displayMode;
+    glfwGetVideoMode(GLFWmonitor *monitor)
     SDL_GetWindowDisplayMode(sdl_window, &displayMode);
     int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
     double DT = 1.0 / FPS_CAP;

@@ -34,7 +34,7 @@ private:
 
     float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time);
 
-    void setSDLIcon(SDL_Window* window);
+    // void setSDLIcon(SDL_Window* window);
 public:
     RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
     mainPlayer, ClientNetworking& networking, int* frameTime) : m_mainWorld(mainWorld),

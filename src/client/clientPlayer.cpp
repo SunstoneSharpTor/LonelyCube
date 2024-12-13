@@ -16,11 +16,12 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "GLFW/glfw3.h"
+#include "core/pch.h"
+
 #include "client/clientPlayer.h"
 #include "core/constants.h"
 #include "core/packet.h"
-
-#include "core/pch.h"
 
 namespace client {
 
@@ -46,11 +47,9 @@ const int ClientPlayer::m_directions[18] = { 1, 0, 0,
 
 ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& resourcePack) :
     m_mainWorld(mainWorld), m_resourcePack(resourcePack) {
-    m_keyboardState = SDL_GetKeyboardState(NULL);
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
-    m_pausedMouseState = 0u;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -91,7 +90,7 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& 
     m_lastMousePoll = 0.0f;
 }
 
-void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windowDimensions, bool*
+void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDimensions, bool*
     windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
@@ -102,15 +101,14 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
         m_timeSinceLastSpace += actualDT;
     }
 
-    Uint32 windowFlags = SDL_GetWindowFlags(sdl_window);
-    int localCursorPosition[2];
-    Uint32 mouseState = SDL_GetMouseState(&localCursorPosition[0], &localCursorPosition[1]);
+    double localCursorPosition[2];
+    glfwGetCursorPos(window, &localCursorPosition[0], &localCursorPosition[1]);
 
     //break / place blocks
     if (m_lastPlaying) {
-        m_pausedMouseState &= mouseState;
-        mouseState &= ~m_pausedMouseState;
-        if (mouseState & SDL_BUTTON(1)) {
+        // m_pausedMouseState &= mouseState;
+        // mouseState &= ~m_pausedMouseState;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -134,7 +132,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
         else {
             m_timeSinceBlockBreak = 0.2f;
         }
-        if (mouseState & SDL_BUTTON(3)) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -177,7 +175,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             movementSpeed = 100.0f;
             swimSpeed = 100.0f;
             sprintSpeed = 100.0f;
-            if (m_keyboardState[SDL_SCANCODE_LCTRL]) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
                 sprintSpeed = 1200.0f;
                 sprint = true;
             }
@@ -187,7 +185,7 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             movementSpeed = 42.5f;
             swimSpeed = 70.0f;
             sprintSpeed = 42.5f;
-            if (m_keyboardState[SDL_SCANCODE_LCTRL]) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
                 sprintSpeed = 58.0f;
                 sprint = true;
             }
@@ -195,8 +193,8 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             sprintSpeed = std::max(std::abs(m_velocity[1] * 1.5f), sprintSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
         }
         //keyboard input
-        if (m_keyboardState[SDL_SCANCODE_W]) {
-            if (m_keyboardState[SDL_SCANCODE_A] != m_keyboardState[SDL_SCANCODE_D]) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D)) {
                 float fac;
                 if (sprint) {
                     fac = sprintSpeed / std::sqrt(sprintSpeed * sprintSpeed + movementSpeed * movementSpeed);
@@ -208,16 +206,16 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
                 movementSpeed *= fac;
             }
             force -= sprintSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
-        } if (m_keyboardState[SDL_SCANCODE_S]) {
-            if (m_keyboardState[SDL_SCANCODE_A] != m_keyboardState[SDL_SCANCODE_D]) {
+        } if (glfwGetKey(window, GLFW_KEY_S)) {
+            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D)) {
                 movementSpeed *= 0.707107f;
             }
             force += movementSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
-        } if (m_keyboardState[SDL_SCANCODE_A]) {
+        } if (glfwGetKey(window, GLFW_KEY_A)) {
             force -= movementSpeed * viewCamera.right;
-        } if (m_keyboardState[SDL_SCANCODE_D]) {
+        } if (glfwGetKey(window, GLFW_KEY_D)) {
             force += movementSpeed * viewCamera.right;
-        } if (m_keyboardState[SDL_SCANCODE_SPACE]) {
+        } if (glfwGetKey(window, GLFW_KEY_SPACE)) {
             if ((m_timeSinceLastSpace < 0.4f) && !m_lastSpace) {
                 m_fly = !m_fly;
                 m_velocity[1] = 0.0f;
@@ -244,37 +242,37 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
             }
         } else {
             m_lastSpace = false;
-        } if (m_keyboardState[SDL_SCANCODE_LSHIFT]) {
+        } if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
             if (m_fly) {
                 force -= sprintSpeed * viewCamera.worldUp;
             }
             else {
                 m_crouch = true;
             }
-        } if (m_keyboardState[SDL_SCANCODE_1]) {
+        } if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
             m_blockHolding = 1;
-        } if (m_keyboardState[SDL_SCANCODE_2]) {
+        } if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
             m_blockHolding = 2;
-        } if (m_keyboardState[SDL_SCANCODE_3]) {
+        } if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
             m_blockHolding = 3;
-        } if (m_keyboardState[SDL_SCANCODE_4]) {
+        } if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
             m_blockHolding = 4;
-        } if (m_keyboardState[SDL_SCANCODE_5]) {
+        } if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
             m_blockHolding = 5;
-        } if (m_keyboardState[SDL_SCANCODE_6]) {
+        } if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
             m_blockHolding = 6;
-        } if (m_keyboardState[SDL_SCANCODE_7]) {
+        } if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
             m_blockHolding = 7;
-        } if (m_keyboardState[SDL_SCANCODE_8]) {
+        } if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS) {
             m_blockHolding = 8;
-        } if (m_keyboardState[SDL_SCANCODE_9]) {
+        } if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS) {
             m_blockHolding = 9;
-        } if (m_keyboardState[SDL_SCANCODE_C]) {
+        } if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
             zoom = true;
         }
         else {
             zoom = false;
-        } if (m_keyboardState[SDL_SCANCODE_ESCAPE]) {
+        } if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             m_playing = false;
         }
 
@@ -310,23 +308,23 @@ void ClientPlayer::processUserInput(SDL_Window* sdl_window, unsigned  int* windo
 
     bool tempLastPlaying = m_lastPlaying;
     m_lastPlaying = m_playing;
-    if (mouseState && (!m_playing)) {
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !m_playing) {
         m_playing = true;
-        m_pausedMouseState = mouseState;
+        // m_pausedMouseState = mouseState;
     }
 
-    if (!(windowFlags & SDL_WINDOW_INPUT_FOCUS)) {
-        m_playing = false;
-    }
-    if (m_playing && !(tempLastPlaying)) {
-        SDL_ShowCursor(SDL_DISABLE);
-        SDL_SetWindowMouseGrab(sdl_window, SDL_TRUE);
-    }
-    else if ((!m_playing) && tempLastPlaying) {
-        SDL_WarpMouseInWindow(sdl_window, windowDimensions[0] / 2, windowDimensions[1] / 2);
-        SDL_ShowCursor(SDL_ENABLE);
-        SDL_SetWindowMouseGrab(sdl_window, SDL_FALSE);
-    }
+    // if (!(windowFlags & SDL_WINDOW_INPUT_FOCUS)) {
+    //     m_playing = false;
+    // }
+    // if (m_playing && !(tempLastPlaying)) {
+    //     SDL_ShowCursor(SDL_DISABLE);
+    //     SDL_SetWindowMouseGrab(sdl_window, SDL_TRUE);
+    // }
+    // else if ((!m_playing) && tempLastPlaying) {
+    //     SDL_WarpMouseInWindow(sdl_window, windowDimensions[0] / 2, windowDimensions[1] / 2);
+    //     SDL_ShowCursor(SDL_ENABLE);
+    //     SDL_SetWindowMouseGrab(sdl_window, SDL_FALSE);
+    // }
 }
 
 void ClientPlayer::resolveHitboxCollisions(float DT) {
@@ -439,7 +437,7 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
     return false;
 }
 
-void ClientPlayer::setWorldMouseData(SDL_Window* window, uint32_t* windowDimensions) {
+void ClientPlayer::setWorldMouseData(GLFWwindow* window, uint32_t* windowDimensions) {
     m_mainWorld->setMouseData(&m_lastMousePoll,
                           &m_playing,
                           &m_lastPlaying,
