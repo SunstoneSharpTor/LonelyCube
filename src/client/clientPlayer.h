@@ -19,7 +19,6 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
-
 #include "client/clientNetworking.h"
 #include "client/clientWorld.h"
 #include "client/graphics/camera.h"
@@ -35,11 +34,9 @@ private:
     double m_time;
     double m_lastMousePoll;
 
-    const Uint8* m_keyboardState;
     int m_lastMousePos[2];
     bool m_playing;
     bool m_lastPlaying;
-    Uint32 m_pausedMouseState;
 
     float m_timeSinceBlockPlace;
     float m_timeSinceBlockBreak;
@@ -80,9 +77,9 @@ public:
 
     ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
 
-    void setWorldMouseData(SDL_Window* window, uint32_t* windowDimensions);
+    void setWorldMouseData(GLFWwindow* window, uint32_t* windowDimensions);
 
-    void processUserInput(SDL_Window* sdl_window, uint32_t* windowDimensions, bool*
+    void processUserInput(GLFWwindow* window, uint32_t* windowDimensions, bool*
       windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 
