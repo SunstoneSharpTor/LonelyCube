@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (multiplayer) {
-        auto nextTick = std::chrono::steady_clock::now() + std::chrono::microseconds(1000 / constants::TICKS_PER_SECOND);
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
         while (running) {
             mainWorld.loadChunksAroundPlayerMultiplayer(0);
 
@@ -107,14 +107,16 @@ int main(int argc, char* argv[]) {
                 if (mainWorld.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
 
+                // Send the server the player's position
                 Packet<int, 3> payload(mainWorld.getClientID(), PacketType::ClientPosition, 3);
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
                 payload[2] = mainPlayer.cameraBlockPosition[2];
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
                 enet_peer_send(networking.getPeer(), 0, packet);
+                std::cout << "sent player position\n";
 
-                nextTick += std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
+                nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
             }
         }
     }

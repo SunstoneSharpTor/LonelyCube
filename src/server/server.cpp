@@ -43,8 +43,9 @@ static void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
         IVec3 chunkPosition;
-        if (mainWorld->loadChunk(&chunkPosition)) {
-            
+        if (mainWorld-> 
+            loadChunk(&chunkPosition)) {
+
         }
     }
 }
@@ -76,13 +77,14 @@ int main (int argc, char** argv) {
 
     // Gameloop
     std::thread(receiveCommands, &running).detach();
-    auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
     while(running) {
         auto currentTime = std::chrono::steady_clock::now();
         if (currentTime >= nextTick) {
             mainWorld.tick();
-            nextTick += std::chrono::milliseconds(100);
+            nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
         }
+
         networking.receiveEvents(mainWorld);
     }
 

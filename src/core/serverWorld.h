@@ -271,6 +271,7 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     Compression::decompressChunk(payload, chunk);
 }
 
+// Overload used by the physical server
 template<bool integrated>
 uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer) {
     m_playersMtx.lock();
@@ -281,6 +282,7 @@ uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockP
     return playerID;
 }
 
+// Overload used by the integrated server
 template<bool integrated>
 void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance) {
     m_playersMtx.lock();

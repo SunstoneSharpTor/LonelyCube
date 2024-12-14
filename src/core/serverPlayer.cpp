@@ -24,19 +24,19 @@
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
 
-void ServerPlayer::initNumChunks() {
+void ServerPlayer::initChunks() {
     m_minUnloadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);
-    m_numChunks = 0;
+    m_maxNumChunks = 0;
     for (int x = -m_renderDistance; x <= m_renderDistance; x++) {
         for (int y = -m_renderDistance; y <= m_renderDistance; y++) {
             for (int z = -m_renderDistance; z <= m_renderDistance; z++) {
                 if (x * x + y * y + z * z < m_minUnloadedChunkDistance) {
-                    m_numChunks++;
+                    m_maxNumChunks++;
                 }
             }
         }
     }
-    m_unloadedChunks = std::make_unique<IVec3[]>(m_numChunks);
+    m_unloadedChunks = std::make_unique<IVec3[]>(m_maxNumChunks);
 }
 
 void ServerPlayer::initChunkPositions() {
@@ -58,6 +58,7 @@ void ServerPlayer::initChunkPositions() {
     m_nextUnloadedChunk = 0;
 }
 
+// The constructor used by the physical server
 ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick) :
     m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID),  m_peer(peer), m_lastPacketTick(gameTick) {
     m_blockPosition[0] = blockPosition[0];
@@ -71,10 +72,12 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_playerChunkPosition[1] = playerChunkPosition.y;
     m_playerChunkPosition[2] = playerChunkPosition.z;
     m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
-    initNumChunks();
+    initChunks();
+    m_targetNumLoadedChunks = 1;
     initChunkPositions();
 }
 
+// The constructor used by the integrated server
 ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance) :
     m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID) {
     m_blockPosition[0] = blockPosition[0];
@@ -88,7 +91,8 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_playerChunkPosition[1] = playerChunkPosition.y;
     m_playerChunkPosition[2] = playerChunkPosition.z;
     m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
-    initNumChunks();
+    initChunks();
+    m_targetNumLoadedChunks = m_maxNumChunks;
     initChunkPositions();
 }
 
@@ -110,11 +114,11 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
 }
 
 bool ServerPlayer::allChunksLoaded() {
-    while ((m_nextUnloadedChunk < m_numChunks)
+    while ((m_nextUnloadedChunk < m_maxNumChunks)
         && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition))) {
         m_nextUnloadedChunk++;
     }
-    return m_nextUnloadedChunk == m_numChunks;
+    return m_nextUnloadedChunk == m_maxNumChunks;
 }
 
 void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
