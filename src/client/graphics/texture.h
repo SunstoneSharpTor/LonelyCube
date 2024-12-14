@@ -24,19 +24,19 @@ namespace client {
 
 class Texture {
 private:
-	uint32_t m_rendererID;
-	std::string m_filePath;
-	uint8_t* m_localBuffer;
-	int m_width, m_height, m_BPP;
+    uint32_t m_rendererID;
+    std::string m_filePath;
+    uint8_t* m_localBuffer;
+    int m_width, m_height, m_BPP;
 public:
-	Texture(const std::string& path);
-	~Texture();
+    Texture(const std::string& path);
+    ~Texture();
 
-	void bind(uint32_t slot = 0) const;
-	void unbind() const;
+    void bind(uint32_t slot = 0) const;
+    void unbind() const;
 
-	inline int getWidth() const { return m_width; }
-	inline int getHeight() const { return m_height; }
+    inline int getWidth() const { return m_width; }
+    inline int getHeight() const { return m_height; }
 };
 
 }  // namespace client
