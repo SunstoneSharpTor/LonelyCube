@@ -26,8 +26,8 @@ in a completely open world where you can do whatever you want.
 
 The game currently supports building on Linux and Windows using
 CMake and GCC. Download the repo, then navigate to the top-level
-folder in a command terminal and run the following commands to build
-the project:
+folder in a terminal and run the following commands to build the
+project:
 
 ```sh
 cmake .
