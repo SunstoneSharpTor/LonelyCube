@@ -78,8 +78,9 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
+        std::cout << "Received player position at " << mainWorld.getTickNum() << "\n";
         if (it == mainWorld.getPlayers().end()) {
-            
+
         }
         else {
             it->second.packetReceived(mainWorld.getTickNum());
@@ -113,7 +114,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         mainWorld.broadcastBlockReplaced(blockCoords, payload[3], payload.getPeerID());
     }
     break;
-    
+
     default:
         break;
     }
@@ -121,7 +122,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
 void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
     ENetEvent event;
-    while (enet_host_service (m_host, &event, 5) > 0) {
+    while (enet_host_service (m_host, &event, 4) > 0) {
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
                 std::cout << "A new client connected from "
