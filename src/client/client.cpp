@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
         }
     }
     else {
-        auto nextTick = std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
+        auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
         while (running) {
             mainWorld.loadChunksAroundPlayerSingleplayer(0);
 
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
                 if (mainWorld.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
                 mainWorld.tick();
-                nextTick += std::chrono::milliseconds(1000 / constants::TICKS_PER_SECOND);
+                nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
             }
         }
     }

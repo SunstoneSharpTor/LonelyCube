@@ -24,6 +24,7 @@
 #include <enet/enet.h>
 #include "client/graphics/stb_image.h"
 
+#include "core/constants.h"
 #include "core/pch.h"
 #include <time.h>
 
@@ -341,8 +342,8 @@ void RenderThread::go(bool* running) {
                 #ifndef GLES3
                 glBindImageTexture(0, skyTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
                 skyShader.bind();
-                glm::vec3 sunDirection(glm::cos((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
-                    constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + 9000) % constants::DAY_LENGTH) /
+                glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
+                    constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
                     constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
                 skyShader.setUniformVec3("sunDir", sunDirection);
                 skyShader.setUniformMat4f("inverseProjection", inverseProjection);
