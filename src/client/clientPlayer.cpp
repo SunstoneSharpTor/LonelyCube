@@ -86,7 +86,6 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& 
     m_blockHolding = 1;
 
     m_time = 0.0;
-    m_lastMousePoll = 0.0f;
 }
 
 void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDimensions, bool*

@@ -25,14 +25,9 @@ in a completely open world where you can do whatever you want.
 ## Building
 
 The game currently supports building on Linux and Windows using
-CMake and GCC. You will need to have SDL2 development packages
-installed before building. You can find how to do that
-[here](https://wiki.libsdl.org/SDL2/Installation). On Windows, ensure
-that the CMAKE_PREFIX_PATH environment variable points to a folder
-containing a version of the SDL2-devel-2.x.x-mingw folder.
-
-Download the repo, then navigate to the top-level folder in a command
-line/terminal and run the following commands to build the project:
+CMake and GCC. Download the repo, then navigate to the top-level
+folder in a command terminal and run the following commands to build
+the project:
 
 ```sh
 cmake .
