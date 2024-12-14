@@ -209,7 +209,7 @@ void RenderThread::go(bool* running) {
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
     double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
-    m_mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, time, m_networking);
+    m_mainPlayer->processUserInput(window, windowDimensions, &windowLastFocus, running, time, m_networking);
     m_mainWorld->doRenderThreadJobs();
 
     m_mainWorld->initialiseEntityRenderBuffers();
@@ -217,10 +217,8 @@ void RenderThread::go(bool* running) {
     //set up game loop
     float exposure = 0.0;
     float exposureTimeByDTs = 0.0;
-    GLFWvidmode displayMode;
-    glfwGetVideoMode(GLFWmonitor *monitor)
-    SDL_GetWindowDisplayMode(sdl_window, &displayMode);
-    int FPS_CAP = VSYNC ? displayMode.refresh_rate : 10000;
+    const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    int FPS_CAP = VSYNC ? displayMode->refreshRate : 10000;
     double DT = 1.0 / FPS_CAP;
     uint64_t frames = 0;
     uint64_t lastFrameRateFrames = 0;
@@ -234,75 +232,51 @@ void RenderThread::go(bool* running) {
         //toggle fullscreen if F11 pressed
         if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
             if (windowFullScreen) {
-                SDL_SetWindowFullscreen(sdl_window, 0);
-                if (!windowMaximised) {
-                    SDL_RestoreWindow(sdl_window);
-                }
+                glfwSetWindowMonitor(window, nullptr,
+                    0, 0, displayMode->width / 2, displayMode->height / 2, 0 );
+                // if (!windowMaximised) {
+                //     SDL_RestoreWindow(sdl_window);
+                // }
             }
             else {
-                if (!windowMaximised) {
-                    SDL_MaximizeWindow(sdl_window);
-                }
-                SDL_SetWindowFullscreen(sdl_window, SDL_WINDOW_FULLSCREEN);
+                // if (!windowMaximised) {
+                //     SDL_MaximizeWindow(sdl_window);
+                // }
+                glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(),
+                    0, 0, displayMode->width, displayMode->height, 0 );
             }
 
             windowFullScreen = !windowFullScreen;
         }
         lastF11 = glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS;
         //poll events
-        SDL_Event windowEvent;
-        Uint32 windowFlags;
         windowevent_resized = false;
-        while (SDL_PollEvent(&windowEvent)) {
-            switch (windowEvent.type) {
-            case SDL_QUIT:
-                *running = false;
-                break;
-            case SDL_WINDOWEVENT:
-                switch (windowEvent.window.event) {
-                case SDL_WINDOWEVENT_RESIZED:
-                    windowevent_resized = true;
-                    break;
-                case SDL_WINDOWEVENT_MAXIMIZED:
-                    if (!windowFullScreen) {
-                        windowMaximised = true;
-                    }
-                    break;
-                case SDL_WINDOWEVENT_RESTORED:
-                    if (!windowFullScreen) {
-                        windowMaximised = false;
-                        SDL_SetWindowSize(sdl_window, windowRestoredSize[0], windowRestoredSize[1]);
-                        SDL_SetWindowPosition(sdl_window, windowRestoredPos[0], windowRestoredPos[1]);
-                    }
-                    break;
-                }
-                break;
-            }
-        }
-        if (windowevent_resized) {
-            int windowSize[2];
-            SDL_GetWindowSize(sdl_window, &windowSize[0], &windowSize[1]);
-            windowDimensions[0] = windowSize[0];
-            windowDimensions[1] = windowSize[1];
-            worldFrameBuffer.resize(windowDimensions);
-            glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
-            #ifndef GLES3
-            glBindTexture(GL_TEXTURE_2D, skyTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
-            bloom.resize(windowDimensions);
-            luminance.resize(windowDimensions);
-            #else
-            skyFrameBuffer.resize(windowDimensions);
-            #endif
-            crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
-            crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
-            windowFlags = SDL_GetWindowFlags(sdl_window);
-            if (!((windowFlags & SDL_WINDOW_MAXIMIZED) || lastLastWindowFullScreen || windowFullScreen)) {
-                windowRestoredSize[0] = windowDimensions[0];
-                windowRestoredSize[1] = windowDimensions[1];
-                SDL_GetWindowPosition(sdl_window, &windowRestoredPos[0], &windowRestoredPos[1]);
-            }
-        }
+        if (glfwWindowShouldClose(window))
+            *running = false;
+        // if (windowevent_resized) {
+        //     int windowSize[2];
+        //     SDL_GetWindowSize(sdl_window, &windowSize[0], &windowSize[1]);
+        //     windowDimensions[0] = windowSize[0];
+        //     windowDimensions[1] = windowSize[1];
+        //     worldFrameBuffer.resize(windowDimensions);
+        //     glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+        //     #ifndef GLES3
+        //     glBindTexture(GL_TEXTURE_2D, skyTexture);
+        //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
+        //     bloom.resize(windowDimensions);
+        //     luminance.resize(windowDimensions);
+        //     #else
+        //     skyFrameBuffer.resize(windowDimensions);
+        //     #endif
+        //     crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
+        //     crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
+        //     windowFlags = SDL_GetWindowFlags(sdl_window);
+        //     if (!((windowFlags & SDL_WINDOW_MAXIMIZED) || lastLastWindowFullScreen || windowFullScreen)) {
+        //         windowRestoredSize[0] = windowDimensions[0];
+        //         windowRestoredSize[1] = windowDimensions[1];
+        //         SDL_GetWindowPosition(sdl_window, &windowRestoredPos[0], &windowRestoredPos[1]);
+        //     }
+        // }
         lastLastWindowFullScreen = lastWindowFullScreen;
         lastWindowFullScreen = windowFullScreen;
 
@@ -475,7 +449,7 @@ void RenderThread::go(bool* running) {
 
             glfwSwapBuffers(window);
 
-            m_mainPlayer->processUserInput(sdl_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
+            m_mainPlayer->processUserInput(window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
             float cameraPos[3];
             cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
             cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];

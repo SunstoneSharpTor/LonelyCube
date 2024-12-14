@@ -16,7 +16,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "GLFW/glfw3.h"
 #include "core/pch.h"
 
 #include "client/clientPlayer.h"
