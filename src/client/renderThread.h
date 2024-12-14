@@ -31,6 +31,7 @@ private:
     ClientPlayer* m_mainPlayer;
     ClientNetworking& m_networking;
     int* m_frameTime;
+    GLFWwindow* m_window;
 
     float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time);
 
