@@ -36,26 +36,26 @@ constexpr uint8_t blockLightMaxValue{ 15 };
 
 constexpr int visualTPS{ 240 };
 
-constexpr uint32_t DAY_LENGTH{ 12000 };
+constexpr uint32_t DAY_LENGTH{ 24000 };
 
 constexpr int TICKS_PER_SECOND{ 20 };
 
 constexpr uint32_t NUM_GROUND_LUMINANCE_POINTS{ 13 };
 constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
     // Time | Luminance
-    1800.0f, 0.000025f,
-    2400.0f, 0.0001f,
-    2500.0f, 0.0003f,
-    2850.0f, 0.0025f,
-    3000.0f, 0.04f,
-    5000.0f, 10.0f,
-    6000.0f, 11.0f,
-    7000.0f, 10.0f,
-    9000.0f, 0.04f,
-    9150.0f, 0.0025f,
-    9500.0f, 0.0003f,
-    9600.0f, 0.0001f,
-    10200.0f, 0.000025f };
+    3600.0f, 0.000025f,
+    4800.0f, 0.0001f,
+    5000.0f, 0.0003f,
+    5700.0f, 0.0025f,
+    6000.0f, 0.04f,
+    10000.0f, 10.0f,
+    12000.0f, 11.0f,
+    14000.0f, 10.0f,
+    18000.0f, 0.04f,
+    18300.0f, 0.0025f,
+    1900.0f, 0.0003f,
+    19200.0f, 0.0001f,
+    20400.0f, 0.000025f };
 
 constexpr uint32_t CUBE_WIREFRAME_IB[16] = { 0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7 };
 
