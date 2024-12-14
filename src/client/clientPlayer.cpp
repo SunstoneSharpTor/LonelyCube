@@ -100,8 +100,28 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
         m_timeSinceLastSpace += actualDT;
     }
 
+    glfwPollEvents();
     double localCursorPosition[2];
     glfwGetCursorPos(window, &localCursorPosition[0], &localCursorPosition[1]);
+
+    // Update camera view
+    if (m_playing) {
+        if (m_lastPlaying) {
+            m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
+            m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
+            if (m_pitch <= -90.0f) {
+                m_pitch = -89.999f;
+            }
+            else if (m_pitch >= 90.0f) {
+                m_pitch = 89.999f;
+            }
+
+            viewCamera.updateRotationVectors(m_yaw, m_pitch);
+        }
+        m_lastMousePos[0] = localCursorPosition[0];
+        m_lastMousePos[1] = localCursorPosition[1];
+    }
+    m_mainWorld->updateViewCamera(viewCamera);
 
     //break / place blocks
     if (m_lastPlaying) {
@@ -268,8 +288,7 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
             m_blockHolding = 9;
         } if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
             zoom = true;
-        }
-        else {
+        } else {
             zoom = false;
         } if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             m_playing = false;
@@ -312,18 +331,18 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
         // m_pausedMouseState = mouseState;
     }
 
-    // if (!(windowFlags & SDL_WINDOW_INPUT_FOCUS)) {
-    //     m_playing = false;
-    // }
-    // if (m_playing && !(tempLastPlaying)) {
-    //     SDL_ShowCursor(SDL_DISABLE);
-    //     SDL_SetWindowMouseGrab(sdl_window, SDL_TRUE);
-    // }
-    // else if ((!m_playing) && tempLastPlaying) {
-    //     SDL_WarpMouseInWindow(sdl_window, windowDimensions[0] / 2, windowDimensions[1] / 2);
-    //     SDL_ShowCursor(SDL_ENABLE);
-    //     SDL_SetWindowMouseGrab(sdl_window, SDL_FALSE);
-    // }
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
+        m_playing = false;
+    }
+    if (m_playing && !tempLastPlaying) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (glfwRawMouseMotionSupported())
+            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+    else if ((!m_playing) && tempLastPlaying) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
+    }
 }
 
 void ClientPlayer::resolveHitboxCollisions(float DT) {
@@ -434,18 +453,6 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
         }
     }
     return false;
-}
-
-void ClientPlayer::setWorldMouseData(GLFWwindow* window, uint32_t* windowDimensions) {
-    m_mainWorld->setMouseData(&m_lastMousePoll,
-                          &m_playing,
-                          &m_lastPlaying,
-                          &m_yaw,
-                          &m_pitch,
-                          m_lastMousePos,
-                          &viewCamera,
-                          window,
-                          windowDimensions);
 }
 
 }  // namespace client

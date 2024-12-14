@@ -91,8 +91,6 @@ void RenderThread::go(bool* running) {
     // const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
     bool lastF11 = false;
 
-    m_mainPlayer->setWorldMouseData(window, windowDimensions);
-
     #ifdef GLES3
         gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
     #else
@@ -229,6 +227,7 @@ void RenderThread::go(bool* running) {
     float lastFrameRateTime = frameStart + DT;
     bool loopRunning = *running;
     while (loopRunning) {
+        glfwPollEvents();
         //toggle fullscreen if F11 pressed
         if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
             if (windowFullScreen) {
@@ -249,7 +248,6 @@ void RenderThread::go(bool* running) {
             windowFullScreen = !windowFullScreen;
         }
         lastF11 = glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS;
-        //poll events
         windowevent_resized = false;
         if (glfwWindowShouldClose(window))
             *running = false;

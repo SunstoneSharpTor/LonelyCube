@@ -33,7 +33,6 @@
 #include "core/utils/iVec3.h"
 #include "core/serverWorld.h"
 
-#include <GLFW/glfw3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -73,18 +72,7 @@ private:
     float m_meshedChunksDistance;
     float m_fogDistance;
     double m_timeByDTs;
-
-    //mouse polling info
-    std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::_V2::steady_clock::duration> m_startTime;
-    double* m_lastMousePoll;
-    bool* m_playing;
-    bool* m_lastPlaying;
-    float* m_yaw;
-    float* m_pitch;
-    int* m_lastMousePos;
-    Camera* m_viewCamera;
-    GLFWwindow* m_window;
-    uint32_t* m_windowDimensions;
+    Camera m_viewCamera;
 
     std::unordered_map<IVec3, MeshData> m_meshes;
     VertexBuffer* m_emptyVertexBuffer;
@@ -120,7 +108,6 @@ private:
     bool m_unmeshNeeded;
     bool* m_unmeshOccurred;
     bool* m_threadWaiting;
-    int m_mouseCalls;
     int m_numRelights;
 
     ServerWorld<true> m_integratedServer;
@@ -163,16 +150,6 @@ public:
     void updatePlayerPos(float playerX, float playerY, float playerZ);
     void initialiseEntityRenderBuffers();
     void deinitialiseEntityRenderBuffers();
-    void setMouseData(double* lastMousePoll,
-                      bool* playing,
-                      bool* lastPlaying,
-                      float* yaw,
-                      float* pitch,
-                      int* lastMousePos,
-                      Camera* viewCamera,
-                      GLFWwindow* window,
-                      uint32_t* windowDimensions);
-    void processMouseInput();
     inline void setClientID(int ID) {
         m_clientID = ID;
     }
@@ -198,6 +175,10 @@ public:
         m_integratedServer.spawnItem(itemType, blockCoords);
     }
     void setThreadWaiting(uint8_t threadNum, bool value);
+    inline void updateViewCamera(const Camera& camera)
+    {
+        m_viewCamera = camera;
+    }
 };
 
 }  // namespace client
