@@ -18,11 +18,10 @@
 
 #include "client/clientWorld.h"
 
-#include "GLFW/glfw3.h"
+#include "client/graphics/camera.h"
 #include "client/graphics/renderer.h"
 #include "core/pch.h"
 #include <memory>
-#include <time.h>
 
 #include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
@@ -46,7 +45,6 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_meshedChunksDistance = 0.0f;
     m_fogDistance = 0.0f;
     m_timeByDTs = 0.0;
-    m_mouseCalls = 0;
     m_renderingFrame = false;
     m_renderThreadWaitingForArrIndicesVectors = false;
 
@@ -106,7 +104,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
 void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader,
     glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float
     fov, float skyLightIntensity, double DT) {
-    Frustum viewFrustum = m_viewCamera->createViewFrustum(aspectRatio, fov, 0, 20);
+    Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
 
@@ -178,7 +176,6 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
     m_renderingFrame = false;
     glEnable(GL_CULL_FACE);
-    m_mouseCalls += 100;
 }
 
 void ClientWorld::doRenderThreadJobs() {
@@ -192,13 +189,6 @@ void ClientWorld::doRenderThreadJobs() {
             // notify consumer when done 
             m_chunkMeshReadyCV[threadNum].notify_one();
         }
-    }
-    //process the mouse input occasionally
-    // TODO: Make the number of mouse calls to wait depend on the number of meshed chunks and the
-    //       frame rate
-    if (++m_mouseCalls > 20) {
-        processMouseInput();
-        m_mouseCalls = 0;
     }
 }
 
@@ -603,70 +593,6 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
         }
     }
     m_accessingArrIndicesVectorsMtx.unlock();
-}
-
-void ClientWorld::processMouseInput() {
-    // auto end = std::chrono::steady_clock::now();
-    // double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - m_startTime).count() / 1000;
-    // if (*m_lastMousePoll == 0.0f) {
-    //     *m_lastMousePoll = currentTime;
-    //     return;
-    // }
-    // double DT = (currentTime - (*m_lastMousePoll)) * 0.001;
-    // if (DT < 0.001) {
-    //     return;
-    // }
-    // *m_lastMousePoll = currentTime;
-    //
-    // int localCursorPosition[2];
-    // SDL_PumpEvents();
-    // Uint32 mouseState = SDL_GetMouseState(&localCursorPosition[0], &localCursorPosition[1]);
-    //
-    // if (*m_playing) {
-    //     if (*m_lastPlaying) {
-    //         *m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
-    //         *m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
-    //         if (*m_pitch <= -90.0f) {
-    //             *m_pitch = -89.999f;
-    //         }
-    //         else if (*m_pitch >= 90.0f) {
-    //             *m_pitch = 89.999f;
-    //         }
-    //
-    //         m_viewCamera->updateRotationVectors(*m_yaw, *m_pitch);
-    //     }
-    //     if ((abs(localCursorPosition[0] - (int)m_windowDimensions[0] / 2) > m_windowDimensions[0] / 16)
-    //         || (abs(localCursorPosition[1] - (int)m_windowDimensions[1] / 2) > m_windowDimensions[1] / 16)) {
-    //         SDL_WarpMouseInWindow(m_window, m_windowDimensions[0] / 2, m_windowDimensions[1] / 2);
-    //         m_lastMousePos[0] = m_windowDimensions[0] / 2;
-    //         m_lastMousePos[1] = m_windowDimensions[1] / 2;
-    //     }
-    //     else {
-    //         m_lastMousePos[0] = localCursorPosition[0];
-    //         m_lastMousePos[1] = localCursorPosition[1];
-    //     }
-    // }
-}
-
-void ClientWorld::setMouseData(double* lastMousePoll,
-    bool* playing,
-    bool* lastPlaying,
-    float* yaw,
-    float* pitch,
-    int* lastMousePos,
-    Camera* viewCamera,
-    GLFWwindow* window,
-    uint32_t* windowDimensions) {
-    m_lastMousePoll = lastMousePoll;
-    m_playing = playing;
-    m_lastPlaying = lastPlaying;
-    m_yaw = yaw;
-    m_pitch = pitch;
-    m_lastMousePos = lastMousePos;
-    m_viewCamera = viewCamera;
-    m_window = window;
-    m_windowDimensions = windowDimensions;
-    m_startTime = std::chrono::steady_clock::now();
 }
 
 void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {

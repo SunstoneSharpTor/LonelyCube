@@ -23,6 +23,8 @@
 #include "client/graphics/camera.h"
 #include "core/resourcePack.h"
 
+#include <GLFW/glfw3.h>
+
 namespace client {
 
 class ClientPlayer {
