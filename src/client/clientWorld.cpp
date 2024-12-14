@@ -18,6 +18,7 @@
 
 #include "client/clientWorld.h"
 
+#include "GLFW/glfw3.h"
 #include "client/graphics/renderer.h"
 #include "core/pch.h"
 #include <memory>
@@ -605,46 +606,46 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
 }
 
 void ClientWorld::processMouseInput() {
-    auto end = std::chrono::steady_clock::now();
-    double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - m_startTime).count() / 1000;
-    if (*m_lastMousePoll == 0.0f) {
-        *m_lastMousePoll = currentTime;
-        return;
-    }
-    double DT = (currentTime - (*m_lastMousePoll)) * 0.001;
-    if (DT < 0.001) {
-        return;
-    }
-    *m_lastMousePoll = currentTime;
-
-    int localCursorPosition[2];
-    SDL_PumpEvents();
-    Uint32 mouseState = SDL_GetMouseState(&localCursorPosition[0], &localCursorPosition[1]);
-
-    if (*m_playing) {
-        if (*m_lastPlaying) {
-            *m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
-            *m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
-            if (*m_pitch <= -90.0f) {
-                *m_pitch = -89.999f;
-            }
-            else if (*m_pitch >= 90.0f) {
-                *m_pitch = 89.999f;
-            }
-
-            m_viewCamera->updateRotationVectors(*m_yaw, *m_pitch);
-        }
-        if ((abs(localCursorPosition[0] - (int)m_windowDimensions[0] / 2) > m_windowDimensions[0] / 16)
-            || (abs(localCursorPosition[1] - (int)m_windowDimensions[1] / 2) > m_windowDimensions[1] / 16)) {
-            SDL_WarpMouseInWindow(m_window, m_windowDimensions[0] / 2, m_windowDimensions[1] / 2);
-            m_lastMousePos[0] = m_windowDimensions[0] / 2;
-            m_lastMousePos[1] = m_windowDimensions[1] / 2;
-        }
-        else {
-            m_lastMousePos[0] = localCursorPosition[0];
-            m_lastMousePos[1] = localCursorPosition[1];
-        }
-    }
+    // auto end = std::chrono::steady_clock::now();
+    // double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - m_startTime).count() / 1000;
+    // if (*m_lastMousePoll == 0.0f) {
+    //     *m_lastMousePoll = currentTime;
+    //     return;
+    // }
+    // double DT = (currentTime - (*m_lastMousePoll)) * 0.001;
+    // if (DT < 0.001) {
+    //     return;
+    // }
+    // *m_lastMousePoll = currentTime;
+    //
+    // int localCursorPosition[2];
+    // SDL_PumpEvents();
+    // Uint32 mouseState = SDL_GetMouseState(&localCursorPosition[0], &localCursorPosition[1]);
+    //
+    // if (*m_playing) {
+    //     if (*m_lastPlaying) {
+    //         *m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
+    //         *m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
+    //         if (*m_pitch <= -90.0f) {
+    //             *m_pitch = -89.999f;
+    //         }
+    //         else if (*m_pitch >= 90.0f) {
+    //             *m_pitch = 89.999f;
+    //         }
+    //
+    //         m_viewCamera->updateRotationVectors(*m_yaw, *m_pitch);
+    //     }
+    //     if ((abs(localCursorPosition[0] - (int)m_windowDimensions[0] / 2) > m_windowDimensions[0] / 16)
+    //         || (abs(localCursorPosition[1] - (int)m_windowDimensions[1] / 2) > m_windowDimensions[1] / 16)) {
+    //         SDL_WarpMouseInWindow(m_window, m_windowDimensions[0] / 2, m_windowDimensions[1] / 2);
+    //         m_lastMousePos[0] = m_windowDimensions[0] / 2;
+    //         m_lastMousePos[1] = m_windowDimensions[1] / 2;
+    //     }
+    //     else {
+    //         m_lastMousePos[0] = localCursorPosition[0];
+    //         m_lastMousePos[1] = localCursorPosition[1];
+    //     }
+    // }
 }
 
 void ClientWorld::setMouseData(double* lastMousePoll,
@@ -654,7 +655,7 @@ void ClientWorld::setMouseData(double* lastMousePoll,
     float* pitch,
     int* lastMousePos,
     Camera* viewCamera,
-    SDL_Window* window,
+    GLFWwindow* window,
     uint32_t* windowDimensions) {
     m_lastMousePoll = lastMousePoll;
     m_playing = playing;

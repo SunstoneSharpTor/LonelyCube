@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "GLFW/glfw3.h"
 #include "client/clientNetworking.h"
 #include "client/clientWorld.h"
 #include "client/graphics/camera.h"
