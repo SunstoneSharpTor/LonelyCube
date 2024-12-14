@@ -33,9 +33,8 @@ private:
     static const int m_directions[18];
 
     double m_time;
-    double m_lastMousePoll;
 
-    int m_lastMousePos[2];
+    double m_lastMousePos[2];
     bool m_playing;
     bool m_lastPlaying;
 
