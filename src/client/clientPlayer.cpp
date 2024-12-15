@@ -132,9 +132,11 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
                 int placeBlockCoords[3];
                 if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
                     m_timeSinceBlockBreak = 0.0f;
-                    uint8_t itemType = m_mainWorld->getBlock(breakBlockCoords);
+                    uint8_t itemType = m_mainWorld->integratedServer.chunkManager.getBlock(breakBlockCoords);
                     m_mainWorld->replaceBlock(breakBlockCoords, 0);
-                    m_mainWorld->spawnItem(itemType, breakBlockCoords);
+                    m_mainWorld->integratedServer.getEntityManager().addItem(
+                        itemType, breakBlockCoords, Vec3(0.5f, 0.5f, 0.5f)
+                    );
                     if (!m_mainWorld->isSinglePlayer()) {
                         Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
                         for (int i = 0; i < 3; i++) {
@@ -375,7 +377,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                     position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
                 }
 
-                int16_t blockType = m_mainWorld->getBlock(position);
+                int16_t blockType = m_mainWorld->integratedServer.chunkManager.getBlock(position);
                 if (m_resourcePack.getBlockData(blockType).collidable) {
                     for (uint8_t direction = 0; direction < 6; direction++) {
                         penetration = m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2] - floor(m_hitboxMinOffset[direction / 2] + m_hitBoxCorners[hitboxCorner * 3 + direction / 2]);
@@ -386,7 +388,7 @@ void ClientPlayer::resolveHitboxCollisions(float DT) {
                             for (uint8_t i = 0; i < 3; i++) {
                                 neighbouringBlockPosition[i] = position[i] + m_directions[direction * 3 + i];
                             }
-                            blockType = m_mainWorld->getBlock(neighbouringBlockPosition);
+                            blockType = m_mainWorld->integratedServer.chunkManager.getBlock(neighbouringBlockPosition);
                             if ((!m_resourcePack.getBlockData(blockType).collidable) && (m_velocity[direction / 2] != 0.0f)) {
                                 minPenetration = penetration;
                                 axisOfLeastPenetration = direction;
@@ -428,7 +430,7 @@ bool ClientPlayer::collidingWithBlock() {
             position[i] = m_hitboxMinBlock[i] + floor(m_hitboxMinOffset[i] + m_hitBoxCorners[hitboxCorner * 3 + i]);
         }
 
-        int16_t blockType = m_mainWorld->getBlock(position);
+        int16_t blockType = m_mainWorld->integratedServer.chunkManager.getBlock(position);
         if (m_resourcePack.getBlockData(blockType).collidable) {
             return true;
         }

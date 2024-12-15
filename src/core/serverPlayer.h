@@ -37,6 +37,7 @@ private:
     int m_playerChunkPosition[3];
     int m_playerChunkMovementOffset[3];
     int m_nextUnloadedChunk;
+    int m_targetBufferSize;
     int m_targetNumLoadedChunks;
     int m_playerID;
     ENetPeer* m_peer;
@@ -49,11 +50,11 @@ private:
 public:
     ServerPlayer() {};
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick);
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance);
+    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
     void updatePlayerPos(int* blockPosition, float* subBlockPosition);
-    bool allChunksLoaded();
+    bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords);
-    bool decrementNextChunk(IVec3* chunkPosition, bool* chunkOutOfRange);
+    bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
 
     inline int getID() const {
         return m_playerID;
@@ -88,6 +89,10 @@ public:
         blockPosition[0] = m_blockPosition[0];
         blockPosition[1] = m_blockPosition[1];
         blockPosition[2] = m_blockPosition[2];
+    }
+    inline bool wantsMoreChunks()
+    {
+        return m_nextUnloadedChunk < m_targetNumLoadedChunks;
     }
 };
 

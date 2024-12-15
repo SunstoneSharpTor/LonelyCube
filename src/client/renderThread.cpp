@@ -333,7 +333,7 @@ void RenderThread::go(bool* running) {
                     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
                 }
 
-                uint32_t timeOfDay = (m_mainWorld->getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+                uint32_t timeOfDay = (m_mainWorld->integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
                 // std::cout << timeOfDay << ": " << groundLuminance << "\n";
@@ -414,7 +414,7 @@ void RenderThread::go(bool* running) {
                 // Draw the block outline
                 if (lookingAtBlock) {
                     VertexArray blockOutlineVA;
-                    VertexBuffer blockOutlineVB((*m_mainWorld).getResourcePack().getBlockData(
+                    VertexBuffer blockOutlineVB((*m_mainWorld).integratedServer.getResourcePack().getBlockData(
                         lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
                     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
                     mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);

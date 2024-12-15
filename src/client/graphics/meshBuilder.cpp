@@ -131,7 +131,7 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_
 {
     if (direction == 6)
     {
-        return (float)m_serverWorld.getSkyLight(blockCoords) / constants::skyLightMaxValue;
+        return (float)m_serverWorld.chunkManager.getSkyLight(blockCoords) / constants::skyLightMaxValue;
     }
     else
     {
@@ -160,8 +160,8 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_
             testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
             bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
-                m_serverWorld.getBlock(testBlockCoords)).transparent;
-            brightness += m_serverWorld.getSkyLight(testBlockCoords) * transparrentBlock;
+                m_serverWorld.chunkManager.getBlock(testBlockCoords)).transparent;
+            brightness += m_serverWorld.chunkManager.getSkyLight(testBlockCoords) * transparrentBlock;
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
@@ -173,7 +173,7 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
 {
     if (direction == 6)
     {
-        return (float)m_serverWorld.getBlockLight(blockCoords) / constants::blockLightMaxValue;
+        return (float)m_serverWorld.chunkManager.getBlockLight(blockCoords) / constants::blockLightMaxValue;
     }
     else
     {
@@ -202,8 +202,8 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
             testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
             bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
-                m_serverWorld.getBlock(testBlockCoords)).transparent;
-            brightness += m_serverWorld.getBlockLight(testBlockCoords) * transparrentBlock;
+                m_serverWorld.chunkManager.getBlock(testBlockCoords)).transparent;
+            brightness += m_serverWorld.chunkManager.getBlockLight(testBlockCoords) * transparrentBlock;
             transparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
@@ -241,8 +241,9 @@ float MeshBuilder::getAmbientOcclusion(int* blockCoords, float* pointCoords, int
         {
             testBlockCoords[unfixed1] = blockCoords[unfixed1] + mask1[i] * cornerOffset[unfixed1];
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
-            bool occluder = m_serverWorld.getResourcePack().getBlockData(m_serverWorld.getBlock(
-                testBlockCoords)).castsAmbientOcclusion;
+            bool occluder = m_serverWorld.getResourcePack().getBlockData(
+                m_serverWorld.chunkManager.getBlock(testBlockCoords)
+            ).castsAmbientOcclusion;
             bool corner = corners[i];
             numSideOccluders += occluder * (1 - corner);
             numCornerOccluders += occluder * (corner);
@@ -293,7 +294,7 @@ void MeshBuilder::buildMesh()
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[cullFace];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
-                        uint8_t neighbouringBlockType = m_serverWorld.getBlock(neighbouringBlockPos);
+                        uint8_t neighbouringBlockType = m_serverWorld.chunkManager.getBlock(neighbouringBlockPos);
                         if ((neighbouringBlockType != 4) && (m_serverWorld.getResourcePack().
                             getBlockData(neighbouringBlockType).transparent))
                         {
@@ -313,7 +314,7 @@ void MeshBuilder::buildMesh()
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
                         // TODO: investigate splitting up the line below into multiple lines of code (causes bugs)
                         if (cullFace < 0 || m_serverWorld.getResourcePack().getBlockData(
-                            m_serverWorld.getBlock(neighbouringBlockPos)).transparent)
+                            m_serverWorld.chunkManager.getBlock(neighbouringBlockPos)).transparent)
                         {
                             addFaceToMesh(blockNum, blockType, faceNum);
                         }

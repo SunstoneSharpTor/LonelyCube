@@ -59,8 +59,13 @@ void ServerPlayer::initChunkPositions() {
 }
 
 // The constructor used by the physical server
-ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick) :
-    m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID),  m_peer(peer), m_lastPacketTick(gameTick) {
+ServerPlayer::ServerPlayer(
+    int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
+    ENetPeer* peer, uint32_t gameTick
+) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
+    m_targetNumLoadedChunks(1), m_targetBufferSize(0), m_playerID(playerID),  m_peer(peer),
+    m_lastPacketTick(gameTick)
+{
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
     m_blockPosition[2] = blockPosition[2];
@@ -73,13 +78,16 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_playerChunkPosition[2] = playerChunkPosition.z;
     m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initChunks();
-    m_targetNumLoadedChunks = 1;
     initChunkPositions();
 }
 
 // The constructor used by the integrated server
-ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance) :
-    m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1), m_playerID(playerID) {
+ServerPlayer::ServerPlayer(
+    int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
+    bool multiplayer
+) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
+    m_targetBufferSize(1), m_playerID(playerID)
+{
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
     m_blockPosition[2] = blockPosition[2];
@@ -92,7 +100,7 @@ ServerPlayer::ServerPlayer(int playerID, int* blockPosition, float* subBlockPosi
     m_playerChunkPosition[2] = playerChunkPosition.z;
     m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initChunks();
-    m_targetNumLoadedChunks = m_maxNumChunks;
+    m_targetNumLoadedChunks = multiplayer ? m_targetBufferSize : m_maxNumChunks;
     initChunkPositions();
 }
 
@@ -113,7 +121,7 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_processedChunk = m_loadedChunks.begin();
 }
 
-bool ServerPlayer::allChunksLoaded() {
+bool ServerPlayer::updateNextUnloadedChunk() {
     while ((m_nextUnloadedChunk < m_maxNumChunks)
         && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition))) {
         m_nextUnloadedChunk++;
@@ -129,9 +137,10 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
     m_nextUnloadedChunk++;
 }
 
-bool ServerPlayer::decrementNextChunk(IVec3* chunkPosition, bool* chunkOutOfRange) {
+bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange) {
     if (m_processedChunk == m_loadedChunks.end()) {
         m_nextUnloadedChunk = 0;
+        m_targetNumLoadedChunks = m_targetBufferSize;
         *chunkOutOfRange = false;
         return false;
     }
