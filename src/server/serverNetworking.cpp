@@ -114,6 +114,22 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         mainWorld.broadcastBlockReplaced(blockCoords, payload[3], payload.getPeerID());
     }
     break;
+    case PacketType::ChunkRequest:
+    {
+        Packet<int64_t, 2> payload;
+        memcpy(&payload, packet->data, packet->dataLength);
+        uint16_t playerID = payload.getPeerID();
+        auto it = mainWorld.getPlayers().find(playerID);
+        std::cout << "Received chunk request from player " << playerID << "\n";
+        if (it == mainWorld.getPlayers().end()) {
+
+        }
+        else {
+            if (payload[0] > mainWorld.getPlayer(playerID).getNumChunkRequests())
+                mainWorld.getPlayer(playerID).setChunkLoadingTarget(payload[1]);
+        }
+    }
+    break;
 
     default:
         break;

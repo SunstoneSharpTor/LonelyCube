@@ -113,7 +113,9 @@ private:
     bool* m_threadWaiting;
     int m_numRelights;
 
+    ENetPeer* m_peer;
     int m_clientID;
+
     EntityMeshManager<true> m_meshManager;
     VertexArray* m_entityVertexArray;
     VertexBuffer* m_entityVertexBuffer;
@@ -129,7 +131,8 @@ private:
     void unmeshChunks();
 
 public:
-    ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos);
+    ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
+                ENetPeer* peer);
     void renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
         viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
         float skyLightIntensity, double DT);
@@ -165,6 +168,8 @@ public:
     {
         m_viewCamera = camera;
     }
+
+    void requestMoreChunks();
 };
 
 }  // namespace client

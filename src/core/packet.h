@@ -18,12 +18,10 @@
 
 #pragma once
 
-#include "enet/enet.h"
-
 #include "pch.h"
 
 enum PacketType {
-    ClientConnection, ChunkSent, ClientPosition, BlockReplaced
+    ClientConnection, ChunkSent, ClientPosition, BlockReplaced, ChunkRequest
 };
 
 template<typename T, uint32_t maxPayloadLength>

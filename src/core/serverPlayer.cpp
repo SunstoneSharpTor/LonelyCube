@@ -63,8 +63,8 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     ENetPeer* peer, uint32_t gameTick
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetNumLoadedChunks(1), m_targetBufferSize(0), m_playerID(playerID),  m_peer(peer),
-    m_lastPacketTick(gameTick)
+    m_targetBufferSize(0), m_targetNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID),
+    m_peer(peer), m_lastPacketTick(gameTick)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -86,7 +86,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(1), m_playerID(playerID)
+    m_targetBufferSize(1), m_targetNumLoadedChunks(-1), m_numChunkRequests(0), m_playerID(playerID)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -100,7 +100,6 @@ ServerPlayer::ServerPlayer(
     m_playerChunkPosition[2] = playerChunkPosition.z;
     m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initChunks();
-    m_targetNumLoadedChunks = multiplayer ? m_targetBufferSize : m_maxNumChunks;
     initChunkPositions();
 }
 
@@ -140,7 +139,7 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
 bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange) {
     if (m_processedChunk == m_loadedChunks.end()) {
         m_nextUnloadedChunk = 0;
-        m_targetNumLoadedChunks = m_targetBufferSize;
+        m_targetNumLoadedChunks = 0;
         *chunkOutOfRange = false;
         return false;
     }
@@ -158,4 +157,13 @@ bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chun
         }
         return true;
     }
+}
+
+bool ServerPlayer::updateChunkLoadingTarget()
+{
+    updateNextUnloadedChunk();
+    std::cout << m_nextUnloadedChunk << " chunks loaded\n";
+    int oldTarget = m_targetNumLoadedChunks;
+    m_targetNumLoadedChunks = m_nextUnloadedChunk + m_targetBufferSize;
+    return m_targetNumLoadedChunks != oldTarget;
 }

@@ -69,7 +69,10 @@ int main(int argc, char* argv[]) {
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint);
+    ClientWorld mainWorld(
+        settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
+        multiplayer ? networking.getPeer() : nullptr
+    );
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
 
