@@ -36,8 +36,8 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const IVec3& playerPos) : integratedServer(seed), m_singleplayer(singleplayer),
-    m_meshManager(integratedServer, 1680000, 360000)
+    const IVec3& playerPos, ENetPeer* peer) : integratedServer(seed), m_singleplayer(singleplayer),
+    m_peer(peer), m_clientID(-1), m_meshManager(integratedServer, 1680000, 360000)
 {
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
@@ -527,6 +527,10 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
         }
         m_unmeshedChunksMtx.unlock();
     }
+    else if (!m_singleplayer && m_clientID > -1)
+    {
+        requestMoreChunks();
+    }
 }
 
 uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {
@@ -637,6 +641,22 @@ void ClientWorld::deinitialiseEntityRenderBuffers()
     delete m_entityVertexArray;
     delete m_entityVertexBuffer;
     delete m_entityIndexBuffer;
+}
+
+void ClientWorld::requestMoreChunks()
+{
+    ServerPlayer& player = integratedServer.getPlayer(0);
+    if (player.updateChunkLoadingTarget())
+    {
+        std::cout << "Requesting " << player.getChunkLoadingTarget() << " chunks\n";
+        Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
+        payload[0] = player.incrementNumChunkRequests();
+        payload[1] = player.getChunkLoadingTarget();
+        ENetPacket* packet = enet_packet_create(
+            (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE
+        );
+        enet_peer_send(m_peer, 0, packet);
+    }
 }
 
 }  // namespace client

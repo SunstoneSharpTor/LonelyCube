@@ -33,7 +33,6 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
-#include <chrono>
 
 template<bool integrated>
 class ServerWorld {
@@ -89,6 +88,7 @@ public:
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(IVec3* chunkPosition);
     float getTimeSinceLastTick();
+    void requestMoreChunks(int clientID);
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
     }
@@ -166,7 +166,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
     m_chunksBeingLoadedMtx.lock();
     m_chunksMtx.lock();
     for (auto& [playerID, player] : m_players) {
-        if (!player.updateNextUnloadedChunk()) {
+        if (!player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
             int chunkPosition[3];
             player.getNextChunkCoords(chunkPosition);
             auto it = chunkManager.getWorldChunks().find(IVec3(chunkPosition));
@@ -220,7 +220,7 @@ bool ServerWorld<integrated>::loadChunk(IVec3* chunkPosition) {
                 if (!integrated) {
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-                    if (!enet_peer_send(player.getPeer(), 0, packet));
+                    enet_peer_send(player.getPeer(), 0, packet);
                 }
             }
         }
@@ -242,6 +242,12 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     Chunk& chunk = chunkManager.getChunk(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
+    if (integrated)
+    {
+        int playerPosition[3];
+        m_players.at(0).getChunkPosition(playerPosition);
+        m_players.at(0).setChunkLoaded(chunkPosition - playerPosition);
+    }
 }
 
 // Overload used by the physical server

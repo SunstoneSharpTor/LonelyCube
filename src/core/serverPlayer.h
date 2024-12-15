@@ -39,6 +39,7 @@ private:
     int m_nextUnloadedChunk;
     int m_targetBufferSize;
     int m_targetNumLoadedChunks;
+    int64_t m_numChunkRequests;
     int m_playerID;
     ENetPeer* m_peer;
     uint32_t m_lastPacketTick;
@@ -55,6 +56,12 @@ public:
     bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords);
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
+    bool updateChunkLoadingTarget();
+
+    inline void setChunkLoaded(const IVec3& chunkPosition)
+    {
+        m_loadedChunks.insert(chunkPosition);
+    }
 
     inline int getID() const {
         return m_playerID;
@@ -70,7 +77,7 @@ public:
         position[2] = m_playerChunkPosition[2];
     }
 
-    inline bool hasChunkLoaded(IVec3& chunkPosition) {
+    inline bool hasChunkLoaded(const IVec3& chunkPosition) {
         return m_loadedChunks.contains(chunkPosition);
     }
 
@@ -90,9 +97,25 @@ public:
         blockPosition[1] = m_blockPosition[1];
         blockPosition[2] = m_blockPosition[2];
     }
+    inline void setChunkLoadingTarget(int target)
+    {
+        m_targetNumLoadedChunks = target;
+    }
+    inline int getChunkLoadingTarget() const
+    {
+        return m_targetNumLoadedChunks;
+    }
     inline bool wantsMoreChunks()
     {
         return m_nextUnloadedChunk < m_targetNumLoadedChunks;
+    }
+    inline int64_t getNumChunkRequests()
+    {
+        return m_numChunkRequests;
+    }
+    inline int incrementNumChunkRequests()
+    {
+        return ++m_numChunkRequests;
     }
 };
 
