@@ -50,6 +50,9 @@ struct MeshData {
 };
 
 class ClientWorld {
+public:
+    ServerWorld<true> integratedServer;
+
 private:
     static const inline std::array<IVec3, 6> s_neighbouringChunkOffsets = {
         IVec3(0, -1, 0),
@@ -110,9 +113,8 @@ private:
     bool* m_threadWaiting;
     int m_numRelights;
 
-    ServerWorld<true> m_integratedServer;
     int m_clientID;
-    MeshManager<true> m_meshManager;
+    EntityMeshManager<true> m_meshManager;
     VertexArray* m_entityVertexArray;
     VertexBuffer* m_entityVertexBuffer;
     IndexBuffer* m_entityIndexBuffer;
@@ -136,9 +138,6 @@ public:
     void buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
     uint8_t shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
     void replaceBlock(const IVec3& blockCoords, uint8_t blockType);
-    inline uint8_t getBlock(int* blockCoords) {
-        return m_integratedServer.getBlock(IVec3(blockCoords));
-    }
     inline int getRenderDistance() {
         return m_renderDistance;
     }
@@ -158,21 +157,8 @@ public:
     }
     void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload);
-    inline void tick() {
-        m_integratedServer.tick();
-    }
-    inline uint32_t getTickNum() {
-        return m_integratedServer.getTickNum();
-    }
     inline bool isSinglePlayer() {
         return m_singleplayer;
-    }
-    inline ResourcePack& getResourcePack() {
-        return m_integratedServer.getResourcePack();
-    }
-    void spawnItem(uint16_t itemType, IVec3 blockCoords)
-    {
-        m_integratedServer.spawnItem(itemType, blockCoords);
     }
     void setThreadWaiting(uint8_t threadNum, bool value);
     inline void updateViewCamera(const Camera& camera)

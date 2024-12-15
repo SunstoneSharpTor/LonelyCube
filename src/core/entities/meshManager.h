@@ -29,7 +29,7 @@
 #include "core/utils/vec3.h"
 
 template<bool integrated>
-class MeshManager
+class EntityMeshManager
 {
 private:
     ECS& m_ecs;
@@ -44,20 +44,20 @@ public:
     uint32_t numIndices;
     uint32_t sizeOfVertices;
 
-    MeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices);
+    EntityMeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int maxIndices);
     void createBatch(IVec3 playerBlockCoords);
 };
 
 
 template<bool integrated>
-MeshManager<integrated>::MeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int
+EntityMeshManager<integrated>::EntityMeshManager(ServerWorld<integrated>& serverWorld, int maxVertices, int
     maxIndices)
     : m_ecs(serverWorld.getEntityManager().getECS()), m_serverWorld(serverWorld),
     vertexBuffer(std::make_unique<float[]>(maxVertices)),
     indexBuffer(std::make_unique<uint32_t[]>(maxIndices)), numIndices(0) {}
 
 template<bool integrated>
-void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
+void EntityMeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
 {
     numIndices = 0;
     sizeOfVertices = 0;
@@ -114,13 +114,13 @@ void MeshManager<integrated>::createBatch(IVec3 playerBlockCoords)
 }
 
 template<bool integrated>
-float MeshManager<integrated>::interpolateSkyLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
+float EntityMeshManager<integrated>::interpolateSkyLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
 {
-    return (float)m_serverWorld.getSkyLight(blockCoords) / constants::skyLightMaxValue;
+    return (float)m_serverWorld.chunkManager.getSkyLight(blockCoords) / constants::skyLightMaxValue;
 }
 
 template<bool integrated>
-float MeshManager<integrated>::interpolateBlockLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
+float EntityMeshManager<integrated>::interpolateBlockLight(const IVec3& blockCoords, const Vec3& subBlockCoords)
 {
-    return (float)m_serverWorld.getBlockLight(blockCoords) / constants::blockLightMaxValue;
+    return (float)m_serverWorld.chunkManager.getBlockLight(blockCoords) / constants::blockLightMaxValue;
 }

@@ -54,7 +54,7 @@ set(CLIENT_SOURCE_FILES
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client enet glfw)
-target_precompile_headers(client PRIVATE 
+target_precompile_headers(client PRIVATE
 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 set(SERVER_SOURCE_FILES
@@ -78,8 +78,7 @@ set(SERVER_SOURCE_FILES
 
 add_executable(server ${SERVER_SOURCE_FILES})
 target_link_libraries(server enet)
-target_precompile_headers(server PRIVATE 
-$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
+target_precompile_headers(server REUSE_FROM client)
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")

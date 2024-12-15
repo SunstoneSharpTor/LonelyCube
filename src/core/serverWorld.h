@@ -37,6 +37,9 @@
 
 template<bool integrated>
 class ServerWorld {
+public:
+    ChunkManager chunkManager;
+
 private:
     uint64_t m_seed;
     uint16_t m_nextPlayerID;
@@ -46,7 +49,6 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> m_timeOfLastTick;
 
     // World
-    ChunkManager m_chunkManager;
     std::unordered_map<uint16_t, ServerPlayer> m_players;
     std::queue<IVec3> m_chunksToBeLoaded;
     std::unordered_set<IVec3> m_chunksBeingLoaded;
@@ -68,7 +70,7 @@ private:
 public:
     ServerWorld(uint64_t seed);
     void tick();
-    void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance);
+    void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
     uint16_t addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer);
     void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
     ServerPlayer& getPlayer(int playerID) {
@@ -87,31 +89,6 @@ public:
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(IVec3* chunkPosition);
     float getTimeSinceLastTick();
-    inline uint8_t getBlock(const IVec3& position) const
-    {
-        return m_chunkManager.getBlock(position);
-    }
-    inline void setBlock(const IVec3& position, uint8_t blockType)
-    {
-        m_chunkManager.setBlock(position, blockType);
-    }
-    inline uint8_t getSkyLight(const IVec3& position) const
-    {
-        return m_chunkManager.getSkyLight(position);
-    }
-    inline uint8_t getBlockLight(const IVec3& position) const
-    {
-        return m_chunkManager.getBlockLight(position);
-    }
-    inline Chunk& getChunk(const IVec3& chunkPosition) {
-        return m_chunkManager.getChunk(chunkPosition);
-    }
-    inline bool chunkLoaded(const IVec3& chunkPosition) {
-        return m_chunkManager.chunkLoaded(chunkPosition);
-    }
-    inline std::unordered_map<IVec3, Chunk>& getWorldChunks() {
-        return m_chunkManager.getWorldChunks();
-    }
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
     }
@@ -125,16 +102,12 @@ public:
     {
         return m_entityManager;
     }
-    inline void spawnItem(uint16_t itemType, IVec3 blockCoords)
-    {
-        m_entityManager.addItem(itemType, blockCoords, Vec3(0.5f, 0.5f, 0.5f));
-    }
 };
 
 template<bool integrated>
 ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayerID(0),
     m_gameTick(0), m_resourcePack("res/resourcePack"),
-    m_entityManager(10000, m_chunkManager, m_resourcePack), m_threadsWait(false)
+    m_entityManager(10000, chunkManager, m_resourcePack), m_threadsWait(false)
 {
     PCG_SeedRandom32(m_seed);
     seedNoise();
@@ -160,14 +133,14 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         // render distance from the set of loaded chunks
         IVec3 chunkPosition;
         bool chunkOutOfRange;
-        while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
+        while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
             if (chunkOutOfRange) {
-                auto it = m_chunkManager.getWorldChunks().find(chunkPosition);
-                if (it != m_chunkManager.getWorldChunks().end()) {
+                auto it = chunkManager.getWorldChunks().find(chunkPosition);
+                if (it != chunkManager.getWorldChunks().end()) {
                     it->second.decrementPlayerCount();
                     if (it->second.hasNoPlayers()) {
                         it->second.unload();
-                        m_chunkManager.getWorldChunks().erase(it);
+                        chunkManager.getWorldChunks().erase(it);
                     }
                 }
             }
@@ -193,11 +166,11 @@ void ServerWorld<integrated>::findChunksToLoad() {
     m_chunksBeingLoadedMtx.lock();
     m_chunksMtx.lock();
     for (auto& [playerID, player] : m_players) {
-        if (!player.allChunksLoaded()) {
+        if (!player.updateNextUnloadedChunk()) {
             int chunkPosition[3];
             player.getNextChunkCoords(chunkPosition);
-            auto it = m_chunkManager.getWorldChunks().find(IVec3(chunkPosition));
-            if (it != m_chunkManager.getWorldChunks().end()) {
+            auto it = chunkManager.getWorldChunks().find(IVec3(chunkPosition));
+            if (it != chunkManager.getWorldChunks().end()) {
                 it->second.incrementPlayerCount();
                 if (!integrated) {
                     Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
@@ -229,8 +202,8 @@ bool ServerWorld<integrated>::loadChunk(IVec3* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        m_chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
-        Chunk& chunk = m_chunkManager.getChunk(*chunkPosition);
+        chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
+        Chunk& chunk = chunkManager.getChunk(*chunkPosition);
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
         m_chunksBeingLoadedMtx.lock();
@@ -265,8 +238,8 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
-    m_chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
-    Chunk& chunk = m_chunkManager.getChunk(chunkPosition);
+    chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
+    Chunk& chunk = chunkManager.getChunk(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
 }
@@ -277,22 +250,24 @@ uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockP
     m_playersMtx.lock();
     uint16_t playerID = m_nextPlayerID;
     m_players[playerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick };
-    m_nextPlayerID++;
+    m_nextPlayerID = 0;
+    while (m_players.contains(m_nextPlayerID))
+        m_nextPlayerID++;
     m_playersMtx.unlock();
     return playerID;
 }
 
 // Overload used by the integrated server
 template<bool integrated>
-void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance) {
+void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer) {
     m_playersMtx.lock();
-    m_players[m_nextPlayerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance };
+    m_players[0] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, multiplayer };
     m_playersMtx.unlock();
 }
 
 template<bool integrated>
 void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
-    std::cout << m_chunkManager.getWorldChunks().size() << std::endl;
+    std::cout << chunkManager.getWorldChunks().size() << std::endl;
     pauseChunkLoaderThreads();
 
     // Remove the player from all chunks that it had loaded
@@ -304,21 +279,19 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
 
     int blockPosition[3];
     player.getChunkPosition(blockPosition);
-    for (int i = 0; i < 3; i++) {
-        blockPosition[i] = (blockPosition[i] + player.getRenderDistance() * 2) * constants::CHUNK_SIZE;
-    }
+    blockPosition[0] += player.getRenderDistance() * 4 * constants::CHUNK_SIZE;
     float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
     player.updatePlayerPos(blockPosition, subBlockPosition);
 
     IVec3 chunkPosition;
     bool chunkOutOfRange;
     int i = 0;
-    while (player.decrementNextChunk(&chunkPosition, &chunkOutOfRange)) {
-        if (m_chunkManager.chunkLoaded(chunkPosition)) {
-            m_chunkManager.getChunk(chunkPosition).decrementPlayerCount();
-            if (m_chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
-                m_chunkManager.getChunk(chunkPosition).unload();
-                m_chunkManager.getChunk(chunkPosition);
+    while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
+        if (chunkManager.chunkLoaded(chunkPosition)) {
+            chunkManager.getChunk(chunkPosition).decrementPlayerCount();
+            if (chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
+                chunkManager.getChunk(chunkPosition).unload();
+                chunkManager.getChunk(chunkPosition);
             }
         }
         i++;
@@ -335,7 +308,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
 
     releaseChunkLoaderThreads();
     std::cout << playerID << " disconnected\n";
-    std::cout << m_chunkManager.getWorldChunks().size() << std::endl;
+    std::cout << chunkManager.getWorldChunks().size() << std::endl;
 }
 
 template<bool integrated>

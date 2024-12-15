@@ -29,7 +29,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
     }
-    
+
     m_host = enet_host_create(NULL, 1, 1, 0, 0);
 
     if (m_host == NULL) {
@@ -92,7 +92,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         mainWorld.replaceBlock(blockCoords, payload[3]);
     }
     break;
-    
+
     default:
         break;
     }

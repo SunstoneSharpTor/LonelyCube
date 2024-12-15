@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint);
     std::cout << "World Seed: " << worldSeed << std::endl;
-    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.getResourcePack());
+    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
 
     bool running = true;
     int frameTime;
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                if (mainWorld.getTickNum() % 4 == 0)
+                if (mainWorld.integratedServer.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
 
                 // Send the server the player's position
@@ -127,9 +127,9 @@ int main(int argc, char* argv[]) {
 
             auto currentTime = std::chrono::steady_clock::now();
             if (currentTime >= nextTick) {
-                if (mainWorld.getTickNum() % 4 == 0)
+                if (mainWorld.integratedServer.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
-                mainWorld.tick();
+                mainWorld.integratedServer.tick();
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
             }
         }

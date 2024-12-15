@@ -21,7 +21,6 @@
 #include "client/graphics/camera.h"
 #include "client/graphics/renderer.h"
 #include "core/pch.h"
-#include <memory>
 
 #include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
@@ -37,8 +36,8 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const IVec3& playerPos) : m_singleplayer(singleplayer), m_integratedServer(seed),
-    m_meshManager(m_integratedServer, 1680000, 360000)
+    const IVec3& playerPos) : integratedServer(seed), m_singleplayer(singleplayer),
+    m_meshManager(integratedServer, 1680000, 360000)
 {
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
@@ -59,7 +58,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     m_emptyVertexBuffer = new VertexBuffer();
     m_emptyVertexArray = new VertexArray(true);
 
-    m_numChunkLoadingThreads = m_integratedServer.getNumChunkLoaderThreads() - 1;
+    m_numChunkLoadingThreads = integratedServer.getNumChunkLoaderThreads() - 1;
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
@@ -88,7 +87,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     }
     int playerBlockPosition[3] = { playerPos.x, playerPos.y, playerPos.z };
     float playerSubBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
-    m_integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance);
+    integratedServer.addPlayer(playerBlockPosition, playerSubBlockPosition, m_renderDistance, !singleplayer);
 
     int i = 0;
     for (int x = -1; x < 2; x++) {
@@ -145,7 +144,7 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
     }
 
     // Render entities
-    m_integratedServer.getEntityManager().extrapolateTransforms(m_integratedServer.getTimeSinceLastTick());
+    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
     m_meshManager.createBatch(playerBlockPosition);
     m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
     m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
@@ -235,7 +234,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
         readyToRelable = !readyToRelable;
     }
 
-    m_integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
+    integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
 
     if (m_unmeshNeeded) {
         unmeshChunks();
@@ -251,15 +250,15 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
 void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
-        // locking 
+        // locking
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        // waiting 
+        // waiting
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
     if (m_meshUpdates.empty()) {
         IVec3 chunkPosition;
-        if (m_integratedServer.loadChunk(&chunkPosition)) {
+        if (integratedServer.loadChunk(&chunkPosition)) {
             m_unmeshedChunksMtx.lock();
             m_unmeshedChunks.insert(chunkPosition);
             m_recentChunksBuilt.push(chunkPosition);
@@ -272,9 +271,9 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
 void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
-        // locking 
+        // locking
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        // waiting 
+        // waiting
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
@@ -284,7 +283,7 @@ void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
 void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
     IVec3 chunkPosition;
-    m_integratedServer.loadChunkFromPacket(payload, chunkPosition);
+    integratedServer.loadChunkFromPacket(payload, chunkPosition);
     m_unmeshedChunksMtx.lock();
     m_unmeshedChunks.insert(chunkPosition);
     m_recentChunksBuilt.push(chunkPosition);
@@ -314,7 +313,7 @@ void ClientWorld::unmeshChunks() {
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded
     for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
-        if (!m_integratedServer.chunkLoaded(*it)) {
+        if (!integratedServer.chunkManager.chunkLoaded(*it)) {
             it = m_unmeshedChunks.erase(it);
         } else {
             ++it;
@@ -330,7 +329,7 @@ void ClientWorld::unmeshChunks() {
 
 bool ClientWorld::chunkHasNeighbours(const IVec3& chunkPosition) {
     for (uint8_t i = 0; i < 27; i++) {
-        if (!(m_integratedServer.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
+        if (!(integratedServer.chunkManager.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
     }
@@ -394,7 +393,18 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
-    MeshBuilder(m_integratedServer.getChunk(chunkPosition), m_integratedServer, m_chunkVertices[threadNum], &m_numChunkVertices[threadNum], m_chunkIndices[threadNum], &m_numChunkIndices[threadNum], m_chunkWaterVertices[threadNum], &m_numChunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum], &m_numChunkWaterIndices[threadNum]).buildMesh();
+    MeshBuilder(
+        integratedServer.chunkManager.getChunk(chunkPosition),
+        integratedServer,
+        m_chunkVertices[threadNum],
+        &m_numChunkVertices[threadNum],
+        m_chunkIndices[threadNum],
+        &m_numChunkIndices[threadNum],
+        m_chunkWaterVertices[threadNum],
+        &m_numChunkWaterVertices[threadNum],
+        m_chunkWaterIndices[threadNum],
+        &m_numChunkWaterIndices[threadNum]
+    ).buildMesh();
 
     //if the chunk is empty fill the data with empty values to save interrupting the render thread
     if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
@@ -485,14 +495,14 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                 if (m_unmeshedChunks.contains(chunkPosition) && chunkHasNeighbours(chunkPosition)) {
                     m_unmeshedChunks.erase(chunkPosition);
                     m_unmeshedChunksMtx.unlock();
-                    Chunk& chunk = m_integratedServer.getChunk(chunkPosition);
+                    Chunk& chunk = integratedServer.chunkManager.getChunk(chunkPosition);
                     if (!chunk.isSkyLightUpToDate()) {
                         Chunk::s_checkingNeighbouringRelights.lock();
                         bool neighbourBeingRelit = true;
                         while (neighbourBeingRelit) {
                             neighbourBeingRelit = false;
                             for (uint32_t i = 0; i < 6; i++) {
-                                neighbourBeingRelit |= m_integratedServer.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyLightBeingRelit();
+                                neighbourBeingRelit |= integratedServer.chunkManager.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyLightBeingRelit();
                             }
                             if (neighbourBeingRelit) {
                                 std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -502,9 +512,11 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                         chunk.clearSkyLight();
                         bool neighbouringChunksToRelight[6];
                         bool chunksToRemesh[7];
-                        Lighting::propagateSkyLight(chunkPosition, m_integratedServer.
-                            getWorldChunks(), neighbouringChunksToRelight, chunksToRemesh,
-                            m_integratedServer.getResourcePack());
+                        Lighting::propagateSkyLight(
+                            chunkPosition, integratedServer.chunkManager.getWorldChunks(),
+                            neighbouringChunksToRelight, chunksToRemesh,
+                            integratedServer.getResourcePack()
+                        );
                         chunk.setSkyLightToBeUpToDate();
                         chunk.setSkyLightBeingRelit(false);
                     }
@@ -527,12 +539,12 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
         for (uint8_t ii = 0; ii < 3; ii++) {
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
         }
-        uint8_t blockType = getBlock(blockPos);
+        uint8_t blockType = integratedServer.chunkManager.getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
             bool hit = true;
             for (uint8_t ii = 0; ii < 3; ii++) {
-                if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().getBlockData(blockType).model
-                    ->boundingBoxVertices[ii] + 0.5f || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + m_integratedServer.getResourcePack().
+                if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().getBlockData(blockType).model
+                    ->boundingBoxVertices[ii] + 0.5f || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().
                     getBlockData(blockType).model->boundingBoxVertices[ii + 15] + 0.5f) {
                     hit = false;
                 }
@@ -566,15 +578,15 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
     // std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
-    uint8_t originalBlockType = m_integratedServer.getBlock(blockCoords);
-    m_integratedServer.setBlock(blockCoords, blockType);
+    uint8_t originalBlockType = integratedServer.chunkManager.getBlock(blockCoords);
+    integratedServer.chunkManager.setBlock(blockCoords, blockType);
 
     std::vector<IVec3> chunksToRemesh;
     addChunksToRemesh(chunksToRemesh, blockCoords, chunkPosition);
 
     auto tp1 = std::chrono::high_resolution_clock::now();
     Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
-        chunksToRemesh, m_integratedServer.getWorldChunks(), m_integratedServer.getResourcePack());
+        chunksToRemesh, integratedServer.chunkManager.getWorldChunks(), integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
     // std::cout << chunksToRemesh.size() << " chunks remeshed\n";
     // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
