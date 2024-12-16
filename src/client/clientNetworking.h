@@ -42,6 +42,9 @@ public:
     ENetHost* getHost() {
       return m_host;
     }
+    std::mutex& getMutex() {
+        return m_hostMtx;
+    }
 };
 
 }  // namespace client

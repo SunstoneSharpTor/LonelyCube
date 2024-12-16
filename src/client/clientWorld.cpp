@@ -27,6 +27,7 @@
 #include "core/lighting.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
+#include <system_error>
 
 namespace client {
 
@@ -36,8 +37,9 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const IVec3& playerPos, ENetPeer* peer) : integratedServer(seed), m_singleplayer(singleplayer),
-    m_peer(peer), m_clientID(-1), m_chunkRequestScheduled(true),
+    const IVec3& playerPos, ENetPeer* peer, std::mutex& networkingMutex)
+    : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_peer(peer),
+    m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
     m_meshManager(integratedServer, 1680000, 360000)
 {
     m_renderDistance = renderDistance + 1;
@@ -657,7 +659,9 @@ void ClientWorld::requestMoreChunks()
         ENetPacket* packet = enet_packet_create(
             (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE
         );
+        m_networkingMtx.lock();
         enet_peer_send(m_peer, 0, packet);
+        m_networkingMtx.unlock();
         m_chunkRequestScheduled = false;
     }
 }

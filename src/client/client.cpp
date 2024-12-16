@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(
         settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
-        multiplayer ? networking.getPeer() : nullptr
+        multiplayer ? networking.getPeer() : nullptr, networking.getMutex()
     );
     std::cout << "World Seed: " << worldSeed << std::endl;
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
@@ -115,9 +115,10 @@ int main(int argc, char* argv[]) {
                 payload[0] = mainPlayer.cameraBlockPosition[0];
                 payload[1] = mainPlayer.cameraBlockPosition[1];
                 payload[2] = mainPlayer.cameraBlockPosition[2];
-                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-                enet_peer_send(networking.getPeer(), 0, packet);
-                std::cout << "sent player position\n";
+                ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), 0);
+                networking.getMutex().lock();
+                enet_peer_send(networking.getPeer(), 1, packet);
+                networking.getMutex().unlock();
                 mainWorld.scheduleChunkRequest();
 
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);

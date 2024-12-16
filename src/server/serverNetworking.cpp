@@ -42,7 +42,7 @@ bool ServerNetworking::initServer(ENetAddress& address) {
 
     m_host = enet_host_create (&address,    // the address to bind the server host to
                     MAX_PLAYERS,  // allow up to 32 clients and/or outgoing connections
-                    1,  // allow up to 1 channel to be used, 0
+                    2,  // allow up to 2 channels to be used, 0 and 1
                     0,  // assume any amount of incoming bandwidth
                     0); // assume any amount of outgoing bandwidth
 
@@ -69,7 +69,9 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         Packet<uint16_t, 1> responsePayload(0, PacketType::ClientConnection, 1);
         responsePayload[0] = playerID;
         ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+        m_hostMtx.lock();
         enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
+        m_hostMtx.unlock();
     }
     break;
     case PacketType::ClientPosition:
@@ -78,7 +80,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
-        std::cout << "Received player position at " << mainWorld.getTickNum() << "\n";
+        // std::cout << "Received player" << playerID << " position at " << mainWorld.getTickNum() << "\n";
         if (it == mainWorld.getPlayers().end()) {
 
         }
@@ -138,7 +140,9 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
 void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
     ENetEvent event;
-    while (enet_host_service (m_host, &event, 4) > 0) {
+    m_hostMtx.lock();
+    while (enet_host_service(m_host, &event, 4) > 0) {
+        m_hostMtx.unlock();
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
                 std::cout << "A new client connected from "
@@ -155,7 +159,9 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
             case ENET_EVENT_TYPE_NONE:
                 break;
         }
+        m_hostMtx.lock();
     }
+    m_hostMtx.unlock();
 }
 
 }  // namespace server

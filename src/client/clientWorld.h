@@ -114,6 +114,7 @@ private:
     int m_numRelights;
 
     ENetPeer* m_peer;
+    std::mutex& m_networkingMtx;
     int m_clientID;
     bool m_chunkRequestScheduled;
 
@@ -133,7 +134,7 @@ private:
 
 public:
     ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
-                ENetPeer* peer);
+                ENetPeer* peer, std::mutex& networkingMutex);
     void renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
         viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
         float skyLightIntensity, double DT);

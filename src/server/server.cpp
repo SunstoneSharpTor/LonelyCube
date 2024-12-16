@@ -60,7 +60,7 @@ int main (int argc, char** argv) {
     }
 
     uint32_t worldSeed = std::time(0);
-    ServerWorld<false> mainWorld(worldSeed);
+    ServerWorld<false> mainWorld(worldSeed, networking.getMutex());
     std::cout << "World Seed: " << worldSeed << std::endl;
 
     uint8_t numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
