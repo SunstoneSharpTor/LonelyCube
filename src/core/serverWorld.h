@@ -33,6 +33,7 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
+#include <sched.h>
 
 template<bool integrated>
 class ServerWorld {
@@ -81,8 +82,8 @@ public:
     void waitIfRequired(uint8_t threadNum);
     void pauseChunkLoaderThreads();
     void releaseChunkLoaderThreads();
-    void findChunksToLoad();
-    bool loadChunk(IVec3* chunkPosition);
+    void findChunksToLoad();  // Must be called with m_chunksToBeLoadedMtx locked
+    bool loadNextChunk(IVec3* chunkPosition);
     void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
@@ -153,16 +154,13 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.unlock();
         m_playersMtx.unlock();
+        player.getChunkPosition(currentPosition);
     }
 }
 
 template<bool integrated>
 void ServerWorld<integrated>::findChunksToLoad() {
-    if (m_chunksToBeLoaded.size() > 0) {
-        return;
-    }
     m_playersMtx.lock();
-    m_chunksToBeLoadedMtx.lock();
     m_chunksBeingLoadedMtx.lock();
     m_chunksMtx.lock();
     for (auto& [playerID, player] : m_players) {
@@ -189,14 +187,14 @@ void ServerWorld<integrated>::findChunksToLoad() {
     }
     m_chunksMtx.unlock();
     m_chunksBeingLoadedMtx.unlock();
-    m_chunksToBeLoadedMtx.unlock();
     m_playersMtx.unlock();
 }
 
 template<bool integrated>
-bool ServerWorld<integrated>::loadChunk(IVec3* chunkPosition) {
-    findChunksToLoad();
+bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
     m_chunksToBeLoadedMtx.lock();
+    if (m_chunksToBeLoaded.empty())
+        findChunksToLoad();
     if (!m_chunksToBeLoaded.empty()) {
         *chunkPosition = m_chunksToBeLoaded.front();
         m_chunksToBeLoaded.pop();
@@ -243,11 +241,7 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
     if (integrated)
-    {
-        int playerPosition[3];
-        m_players.at(0).getChunkPosition(playerPosition);
-        m_players.at(0).setChunkLoaded(chunkPosition - playerPosition);
-    }
+        m_players.at(0).setChunkLoaded(chunkPosition);
 }
 
 // Overload used by the physical server

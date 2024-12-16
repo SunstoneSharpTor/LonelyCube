@@ -37,7 +37,8 @@ static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
     const IVec3& playerPos, ENetPeer* peer) : integratedServer(seed), m_singleplayer(singleplayer),
-    m_peer(peer), m_clientID(-1), m_meshManager(integratedServer, 1680000, 360000)
+    m_peer(peer), m_clientID(-1), m_chunkRequestScheduled(true),
+    m_meshManager(integratedServer, 1680000, 360000)
 {
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
@@ -240,6 +241,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
         unmeshChunks();
         unmeshCompleted = true;
         m_unmeshNeeded = false;
+        m_chunkRequestScheduled = true;
         // lock release 
         std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
         // notify consumer when done
@@ -258,7 +260,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
     }
     if (m_meshUpdates.empty()) {
         IVec3 chunkPosition;
-        if (integratedServer.loadChunk(&chunkPosition)) {
+        if (integratedServer.loadNextChunk(&chunkPosition)) {
             m_unmeshedChunksMtx.lock();
             m_unmeshedChunks.insert(chunkPosition);
             m_recentChunksBuilt.push(chunkPosition);
@@ -646,9 +648,9 @@ void ClientWorld::deinitialiseEntityRenderBuffers()
 void ClientWorld::requestMoreChunks()
 {
     ServerPlayer& player = integratedServer.getPlayer(0);
-    if (player.updateChunkLoadingTarget())
+    if (player.updateChunkLoadingTarget() || m_chunkRequestScheduled)
     {
-        std::cout << "Requesting " << player.getChunkLoadingTarget() << " chunks\n";
+        // std::cout << "Requesting " << player.getChunkLoadingTarget() << " chunks\n";
         Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
         payload[0] = player.incrementNumChunkRequests();
         payload[1] = player.getChunkLoadingTarget();
@@ -656,6 +658,7 @@ void ClientWorld::requestMoreChunks()
             (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE
         );
         enet_peer_send(m_peer, 0, packet);
+        m_chunkRequestScheduled = false;
     }
 }
 

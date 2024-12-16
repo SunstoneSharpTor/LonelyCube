@@ -53,7 +53,22 @@ void ServerPlayer::initChunkPositions() {
     }
     std::sort(&(m_unloadedChunks[0]), &(m_unloadedChunks[0]) + i,
     [](IVec3 a, IVec3 b) {
-        return a.x * a.x + a.y * a.y + a.z * a.z < b.x * b.x + b.y * b.y + b.z * b.z;
+        int aDistance = a.x * a.x + a.y * a.y + a.z * a.z;
+        int bDistance = b.x * b.x + b.y * b.y + b.z * b.z;
+        if (aDistance == bDistance)
+        {
+            if (a.x == b.x)
+            {
+                if (a.y == b.y)
+                    return a.z < b.z;
+                else
+                    return a.y < b.y;
+            }
+            else
+                return a.x < b.x;
+        }
+        else
+            return aDistance < bDistance;
     });
     m_nextUnloadedChunk = 0;
 }
@@ -86,7 +101,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(1), m_targetNumLoadedChunks(-1), m_numChunkRequests(0), m_playerID(playerID)
+    m_targetBufferSize(1), m_targetNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -162,7 +177,7 @@ bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chun
 bool ServerPlayer::updateChunkLoadingTarget()
 {
     updateNextUnloadedChunk();
-    std::cout << m_nextUnloadedChunk << " chunks loaded\n";
+    // std::cout << m_nextUnloadedChunk << " chunks loaded\n";
     int oldTarget = m_targetNumLoadedChunks;
     m_targetNumLoadedChunks = m_nextUnloadedChunk + m_targetBufferSize;
     return m_targetNumLoadedChunks != oldTarget;

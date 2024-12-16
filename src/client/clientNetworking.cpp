@@ -96,6 +96,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     default:
         break;
     }
+    enet_packet_destroy(packet);
 }
 
 void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
@@ -106,6 +107,8 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
                 receivePacket(event.packet, mainWorld);
+                break;
+            default:
                 break;
         }
         m_hostMtx.lock();
