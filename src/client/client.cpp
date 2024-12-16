@@ -118,6 +118,7 @@ int main(int argc, char* argv[]) {
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
                 enet_peer_send(networking.getPeer(), 0, packet);
                 std::cout << "sent player position\n";
+                mainWorld.scheduleChunkRequest();
 
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
             }

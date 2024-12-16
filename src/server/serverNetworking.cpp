@@ -120,7 +120,6 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
-        std::cout << "Received chunk request from player " << playerID << "\n";
         if (it == mainWorld.getPlayers().end()) {
 
         }
@@ -134,6 +133,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     default:
         break;
     }
+    enet_packet_destroy(packet);
 }
 
 void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
@@ -144,16 +144,16 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
                 std::cout << "A new client connected from "
                     << event.peer -> address.host << ":"
                     << event.peer -> address.port << "\n";
-            break;
-
+                break;
             case ENET_EVENT_TYPE_RECEIVE:
                 receivePacket(event.packet, event.peer, mainWorld);
-            break;
-
+                break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 std::cout << event.peer->data << " disconnected.\n";
                 // Reset the peer's client information
                 event.peer->data = NULL;
+            case ENET_EVENT_TYPE_NONE:
+                break;
         }
     }
 }

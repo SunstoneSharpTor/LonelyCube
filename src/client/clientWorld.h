@@ -115,6 +115,7 @@ private:
 
     ENetPeer* m_peer;
     int m_clientID;
+    bool m_chunkRequestScheduled;
 
     EntityMeshManager<true> m_meshManager;
     VertexArray* m_entityVertexArray;
@@ -168,8 +169,11 @@ public:
     {
         m_viewCamera = camera;
     }
-
     void requestMoreChunks();
+    inline void scheduleChunkRequest()
+    {
+        m_chunkRequestScheduled = true;
+    }
 };
 
 }  // namespace client

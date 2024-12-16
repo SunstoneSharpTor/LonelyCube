@@ -43,7 +43,7 @@ static void chunkLoaderThread(ServerWorld<false>* mainWorld, bool* running, int8
     while (*running) {
         mainWorld->waitIfRequired(threadNum);
         IVec3 chunkPosition;
-        if (mainWorld->loadChunk(&chunkPosition)) {
+        if (mainWorld->loadNextChunk(&chunkPosition)) {
 
         }
     }
