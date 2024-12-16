@@ -29,12 +29,16 @@ namespace server {
 class ServerNetworking {
 private:
     ENetHost* m_host;
+    std::mutex m_hostMtx;
 public:
     bool initServer(ENetAddress& address);
     void receivePacket(ENetPacket* packet, ENetPeer* peer, ServerWorld<false>& mainWorld);
     void receiveEvents(ServerWorld<false>& mainWorld);
     ENetHost* getHost() {
-      return m_host;
+        return m_host;
+    }
+    std::mutex& getMutex() {
+        return m_hostMtx;
     }
 };
 

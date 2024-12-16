@@ -18,6 +18,7 @@
 
 #include "clientNetworking.h"
 
+#include "core/packet.h"
 #include "core/pch.h"
 #include <cstring>
 
@@ -30,7 +31,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
         return EXIT_FAILURE;
     }
 
-    m_host = enet_host_create(NULL, 1, 1, 0, 0);
+    m_host = enet_host_create(NULL, 1, 2, 0, 0);
 
     if (m_host == NULL) {
         return EXIT_FAILURE;
@@ -41,7 +42,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
     enet_address_set_host(&address, serverIP.c_str());
     address.port = 5555;
 
-    m_peer = enet_host_connect(m_host, &address, 1, 0);
+    m_peer = enet_host_connect(m_host, &address, 2, 0);
     if (m_peer == NULL) {
         return EXIT_FAILURE;
     }
@@ -53,7 +54,9 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
         Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
         payload[0] = renderDistance;
         ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+        m_hostMtx.lock();
         enet_peer_send(m_peer, 0, packet);
+        m_hostMtx.unlock();
         return true;
     }
     else {

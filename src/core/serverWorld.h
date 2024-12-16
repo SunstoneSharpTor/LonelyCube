@@ -61,6 +61,7 @@ private:
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
     std::mutex m_threadsWaitMtx;
+    std::mutex& m_networkingMtx;
     std::condition_variable m_threadsWaitCV;
     bool m_threadsWait;
     bool* m_threadWaiting;
@@ -68,7 +69,7 @@ private:
     void disconnectPlayer(uint16_t playerID);
 
 public:
-    ServerWorld(uint64_t seed);
+    ServerWorld(uint64_t seed, std::mutex& networkingMtx);
     void tick();
     void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
     uint16_t addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer);
@@ -106,9 +107,10 @@ public:
 };
 
 template<bool integrated>
-ServerWorld<integrated>::ServerWorld(uint64_t seed) : m_seed(seed), m_nextPlayerID(0),
-    m_gameTick(0), m_resourcePack("res/resourcePack"),
-    m_entityManager(10000, chunkManager, m_resourcePack), m_threadsWait(false)
+ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
+    : m_seed(seed), m_nextPlayerID(0), m_gameTick(0), m_resourcePack("res/resourcePack"),
+    m_entityManager(10000, chunkManager, m_resourcePack), m_networkingMtx(networkingMtx),
+    m_threadsWait(false)
 {
     PCG_SeedRandom32(m_seed);
     seedNoise();
@@ -176,7 +178,9 @@ void ServerWorld<integrated>::findChunksToLoad() {
                         Compression::compressChunk(payload, it->second);
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-                    !enet_peer_send(player.getPeer(), 0, packet);
+                    m_networkingMtx.lock();
+                    enet_peer_send(player.getPeer(), 0, packet);
+                    m_networkingMtx.unlock();
                 }
             }
             else if (!m_chunksBeingLoaded.contains(IVec3(chunkPosition))) {
@@ -218,7 +222,9 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                 if (!integrated) {
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                    m_networkingMtx.lock();
                     enet_peer_send(player.getPeer(), 0, packet);
+                    m_networkingMtx.unlock();
                 }
             }
         }
@@ -383,7 +389,9 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
     for (auto& [playerID, player] : m_players) {
         if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+            m_networkingMtx.lock();
             enet_peer_send(player.getPeer(), 0, packet);
+            m_networkingMtx.unlock();
         }
     }
 }
