@@ -1,41 +1,41 @@
 {
-    "boundingBox": [7,0,7, 9,12,9],
+    "boundingBox": [-1,-8,-1, 1,4,1],
     "faces":
     [
         {
-            "coordinates": [7,0,7, 9,0,7, 9,0,9, 7,0,9],
+            "coordinates": [-1,-8,-1, 1,-8,-1, 1,-8,1, -1,-8,1],
             "uv": [4,0, 6,2],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "negY"
         },
         {
-            "coordinates": [7,12,9, 9,12,9, 9,12,7, 7,12,7],
+            "coordinates": [-1,4,1, 1,4,1, 1,4,-1, -1,4,-1],
             "uv": [4,4, 6,6],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "this"
         },
         {
-            "coordinates": [7,0,7, 7,0,9, 7,12,9, 7,12,7],
+            "coordinates": [-1,-8,-1, -1,-8,1, -1,4,1, -1,4,-1],
             "uv": [0,0, 2,12],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "this"
         },
         {
-            "coordinates": [9,0,9, 9,0,7, 9,12,7, 9,12,9],
+            "coordinates": [1,-8,1, 1,-8,-1, 1,4,-1, 1,4,1],
             "uv": [0,0, 2,12],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "this"
         },
         {
-            "coordinates": [9,0,7, 7,0,7, 7,12,7, 9,12,7],
+            "coordinates": [1,-8,-1, -1,-8,-1, -1,4,-1, 1,4,-1],
             "uv": [2,0, 0,12],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "this"
         },
         {
-            "coordinates": [7,0,9, 9,0,9, 9,12,9, 7,12,9],
+            "coordinates": [-1,-8,1, 1,-8,1, 1,4,1, -1,4,1],
             "uv": [2,0, 0,12],
-            "ambientOcclusion": true,
+            "ambientOcclusion": false,
             "lighting": "this"
         }
     ]
