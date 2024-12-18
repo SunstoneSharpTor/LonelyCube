@@ -302,6 +302,13 @@ void RenderThread::go(bool* running) {
                     frameStart = currentTime;
                 }
 
+                m_mainPlayer->processUserInput(m_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
+                float cameraPos[3];
+                cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
+                cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];
+                cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
+                m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+
                 //create model view projection matrix for the world
                 float fov = 70.0;
                 fov = fov - fov * (2.0 / 3.0) * m_mainPlayer->zoom;
@@ -450,13 +457,6 @@ void RenderThread::go(bool* running) {
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
                 glfwSwapBuffers(m_window);
-
-                m_mainPlayer->processUserInput(m_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
-                float cameraPos[3];
-                cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
-                cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];
-                cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
-                m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
 
                 *m_frameTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - end).count();
                 frames++;
