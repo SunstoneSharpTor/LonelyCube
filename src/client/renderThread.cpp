@@ -324,6 +324,7 @@ void RenderThread::go(bool* running) {
                 blockShader.setUniformMat4f("u_modelView", view * model);
                 blockShader.setUniformMat4f("u_proj", projection);
 
+                // Set up block outline
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
                 uint8_t lookingAtBlock = m_mainWorld->shootRay(m_mainPlayer->viewCamera.position,
@@ -433,13 +434,24 @@ void RenderThread::go(bool* running) {
                 #ifndef GLES3
                 float luminanceVal = luminance.calculate();
                 #else
-                float luminanceVal = groundLuminance / 10;
+                const float minDarknessAmbientLight = 0.00002f;
+                float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
+                float skyLightLevel = (float)m_mainWorld->integratedServer.chunkManager.getSkyLight(
+                    m_mainPlayer->cameraBlockPosition) / constants::skyLightMaxValue;
+                float factor = skyLightLevel * skyLightLevel * skyLightLevel;
+                float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
+                    * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
+                    45.0f) * (1.0f - factor);
+                float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
                 #endif
                 float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.005f));
                 exposureTimeByDTs += actualDT;
                 while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
                     float fac = 0.008;
-                    exposure += ((targetExposure > exposure) * 2 - 1) * std::min(std::abs(targetExposure - exposure), (targetExposure - exposure) * (targetExposure - exposure) * fac);
+                    exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
+                        std::abs(targetExposure - exposure),
+                        (targetExposure - exposure) * (targetExposure - exposure) * fac
+                    );
                     exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
                 }
                 screenShader.bind();
