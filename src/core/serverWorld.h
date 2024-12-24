@@ -104,6 +104,7 @@ public:
     {
         return m_entityManager;
     }
+    bool updateClientChunkLoadingTarget();
 };
 
 template<bool integrated>
@@ -181,6 +182,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
                     m_networkingMtx.lock();
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
+                    std::cout << player.getChunkNumber(chunkPosition) << " sent\n";
                 }
             }
             else if (!m_chunksBeingLoaded.contains(IVec3(chunkPosition))) {
@@ -322,9 +324,9 @@ void ServerWorld<integrated>::waitIfRequired(uint8_t threadNum) {
     while (m_threadsWait) {
         m_threadWaiting[threadNum] = true;
     m_threadsWaitCV.notify_all();
-        // locking 
+        // locking
         std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
-        // waiting 
+        // waiting
         while (m_threadsWait) {
             m_threadsWaitCV.wait(lock);
         }
@@ -351,7 +353,7 @@ template<bool integrated>
 void ServerWorld<integrated>::releaseChunkLoaderThreads() {
     // Allow chunk loaded threads to continue work
     m_threadsWait = false;
-    // lock release 
+    // lock release
     std::lock_guard<std::mutex> lock(m_threadsWaitMtx);
     // notify consumer when done
     m_threadsWaitCV.notify_all();
@@ -401,4 +403,12 @@ float ServerWorld<integrated>::getTimeSinceLastTick()
 {
     auto currentTime = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_timeOfLastTick).count() * 0.001f;
+}
+
+template<bool integrated>
+bool ServerWorld<integrated>::updateClientChunkLoadingTarget()
+{
+    std::lock_guard<std::mutex> lock(m_chunksMtx);
+    bool changed = m_players.at(0).updateChunkLoadingTarget();
+    return changed;
 }

@@ -649,9 +649,9 @@ void ClientWorld::deinitialiseEntityRenderBuffers()
 
 void ClientWorld::requestMoreChunks()
 {
-    ServerPlayer& player = integratedServer.getPlayer(0);
-    if (player.updateChunkLoadingTarget() || m_chunkRequestScheduled)
+    if (integratedServer.updateClientChunkLoadingTarget() || m_chunkRequestScheduled)
     {
+        ServerPlayer& player = integratedServer.getPlayer(0);
         // std::cout << "Requesting " << player.getChunkLoadingTarget() << " chunks\n";
         Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
         payload[0] = player.incrementNumChunkRequests();
