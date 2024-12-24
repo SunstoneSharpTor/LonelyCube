@@ -117,6 +117,13 @@ public:
     {
         return ++m_numChunkRequests;
     }
+    int getChunkNumber(const IVec3& chunkCoords)
+    {
+        IVec3 relativeChunkCoords = chunkCoords - m_playerChunkPosition;
+        int i;
+        for (i = 0; m_unloadedChunks[i] != relativeChunkCoords; i++) {}
+        return i;
+    }
 };
 
 namespace std {
