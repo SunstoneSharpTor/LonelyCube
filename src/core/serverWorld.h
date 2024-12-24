@@ -124,15 +124,13 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
 
 template<bool integrated>
 void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded) {
-    int currentPosition[3];
-    m_players.at(playerID).getChunkPosition(currentPosition);
+    m_playersMtx.lock();
+    ServerPlayer& player = m_players.at(playerID);
+    player.updatePlayerPos(blockPosition, subBlockPosition);
     if (unloadNeeded) {
-        m_playersMtx.lock();
         m_chunksMtx.lock();
         m_chunksToBeLoadedMtx.lock();
         m_chunksBeingLoadedMtx.lock();
-        ServerPlayer& player = m_players.at(playerID);
-        player.updatePlayerPos(blockPosition, subBlockPosition);
         // If the player has moved chunk, remove all the chunks that are out of
         // render distance from the set of loaded chunks
         IVec3 chunkPosition;
@@ -156,9 +154,8 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, 
         m_chunksBeingLoadedMtx.unlock();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.unlock();
-        m_playersMtx.unlock();
-        player.getChunkPosition(currentPosition);
     }
+    m_playersMtx.unlock();
 }
 
 template<bool integrated>
@@ -227,6 +224,7 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                     m_networkingMtx.lock();
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
+                    std::cout << player.getChunkNumber(*chunkPosition) << " sent\n";
                 }
             }
         }

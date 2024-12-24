@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <cmath>
+#include <ostream>
 #include "core/utils/vec3.h"
 
 struct IVec3 {
@@ -105,3 +107,5 @@ namespace std {
         }
     };
 }
+
+std::ostream& operator<<(std::ostream& os, const IVec3& vec);

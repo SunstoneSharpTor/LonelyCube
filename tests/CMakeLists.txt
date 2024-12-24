@@ -11,7 +11,8 @@ FetchContent_MakeAvailable(Catch2)
 set(SOURCE_FILES
     ECS.cpp
 
-    ../src/core/entities/ECS.cpp)
+    ../src/core/entities/ECS.cpp
+    ../src/core/utils/iVec3.cpp)
 
 add_executable(tests ${SOURCE_FILES})
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
