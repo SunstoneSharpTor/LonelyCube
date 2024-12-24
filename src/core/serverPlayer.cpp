@@ -52,24 +52,25 @@ void ServerPlayer::initChunkPositions() {
         }
     }
     std::sort(&(m_unloadedChunks[0]), &(m_unloadedChunks[0]) + i,
-    [](IVec3 a, IVec3 b) {
-        int aDistance = a.x * a.x + a.y * a.y + a.z * a.z;
-        int bDistance = b.x * b.x + b.y * b.y + b.z * b.z;
-        if (aDistance == bDistance)
-        {
-            if (a.x == b.x)
+        [](IVec3 a, IVec3 b) {
+            int aDistance = a.x * a.x + a.y * a.y + a.z * a.z;
+            int bDistance = b.x * b.x + b.y * b.y + b.z * b.z;
+            if (aDistance == bDistance)
             {
-                if (a.y == b.y)
-                    return a.z < b.z;
+                if (a.x == b.x)
+                {
+                    if (a.y == b.y)
+                        return a.z < b.z;
+                    else
+                        return a.y < b.y;
+                }
                 else
-                    return a.y < b.y;
+                    return a.x < b.x;
             }
             else
-                return a.x < b.x;
+                return aDistance < bDistance;
         }
-        else
-            return aDistance < bDistance;
-    });
+    );
     m_nextUnloadedChunk = 0;
 }
 
@@ -91,7 +92,6 @@ ServerPlayer::ServerPlayer(
     m_playerChunkPosition[0] = playerChunkPosition.x;
     m_playerChunkPosition[1] = playerChunkPosition.y;
     m_playerChunkPosition[2] = playerChunkPosition.z;
-    m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initChunks();
     initChunkPositions();
 }
@@ -113,7 +113,6 @@ ServerPlayer::ServerPlayer(
     m_playerChunkPosition[0] = playerChunkPosition.x;
     m_playerChunkPosition[1] = playerChunkPosition.y;
     m_playerChunkPosition[2] = playerChunkPosition.z;
-    m_playerChunkMovementOffset[0] = m_playerChunkMovementOffset[1] = m_playerChunkMovementOffset[2] = 0;
     initChunks();
     initChunkPositions();
 }
@@ -125,13 +124,10 @@ void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) 
     m_subBlockPosition[0] = subBlockPosition[0];
     m_subBlockPosition[1] = subBlockPosition[1];
     m_subBlockPosition[2] = subBlockPosition[2];
-    IVec3 playerChunkMovementOffset = Chunk::getChunkCoords(blockPosition) - IVec3(m_playerChunkPosition);
-    m_playerChunkMovementOffset[0] = playerChunkMovementOffset.x;
-    m_playerChunkMovementOffset[1] = playerChunkMovementOffset.y;
-    m_playerChunkMovementOffset[2] = playerChunkMovementOffset.z;
-    m_playerChunkPosition[0] += m_playerChunkMovementOffset[0];
-    m_playerChunkPosition[1] += m_playerChunkMovementOffset[1];
-    m_playerChunkPosition[2] += m_playerChunkMovementOffset[2];
+    IVec3 playerChunkCoords = Chunk::getChunkCoords(blockPosition);
+    m_playerChunkPosition[0] = playerChunkCoords[0];
+    m_playerChunkPosition[1] = playerChunkCoords[1];
+    m_playerChunkPosition[2] = playerChunkCoords[2];
     m_processedChunk = m_loadedChunks.begin();
 }
 
@@ -177,7 +173,6 @@ bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chun
 bool ServerPlayer::updateChunkLoadingTarget()
 {
     updateNextUnloadedChunk();
-    // std::cout << m_nextUnloadedChunk << " chunks loaded\n";
     int oldTarget = m_targetNumLoadedChunks;
     m_targetNumLoadedChunks = m_nextUnloadedChunk + m_targetBufferSize;
     return m_targetNumLoadedChunks != oldTarget;

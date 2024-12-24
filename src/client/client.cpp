@@ -122,6 +122,7 @@ int main(int argc, char* argv[]) {
                 mainWorld.scheduleChunkRequest();
 
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
+                std::cout << mainWorld.integratedServer.getPlayer(0).getChunkPosition() << "\n";
             }
         }
     }

@@ -50,7 +50,8 @@ set(CLIENT_SOURCE_FILES
     src/core/resourcePack.cpp
     src/core/resourceMonitor.cpp
     src/core/terrainGen.cpp
-    src/core/threadManager.cpp)
+    src/core/threadManager.cpp
+    src/core/utils/iVec3.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
 target_link_libraries(client enet glfw)
@@ -73,6 +74,7 @@ set(SERVER_SOURCE_FILES
     src/core/resourcePack.cpp
     src/core/terrainGen.cpp
     src/core/threadManager.cpp
+    src/core/utils/iVec3.cpp
     src/server/server.cpp
     src/server/serverNetworking.cpp)
 

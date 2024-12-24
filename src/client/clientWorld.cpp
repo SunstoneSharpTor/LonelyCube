@@ -652,7 +652,8 @@ void ClientWorld::requestMoreChunks()
     if (integratedServer.updateClientChunkLoadingTarget() || m_chunkRequestScheduled)
     {
         ServerPlayer& player = integratedServer.getPlayer(0);
-        // std::cout << "Requesting " << player.getChunkLoadingTarget() << " chunks\n";
+        if (!m_chunkRequestScheduled)
+            std::cout << "Requesting " << player.getChunkLoadingTarget() - 1 << "\n";
         Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
         payload[0] = player.incrementNumChunkRequests();
         payload[1] = player.getChunkLoadingTarget();

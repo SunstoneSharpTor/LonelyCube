@@ -35,7 +35,6 @@ private:
     float m_subBlockPosition[3];
     std::unique_ptr<IVec3[]> m_unloadedChunks;
     int m_playerChunkPosition[3];
-    int m_playerChunkMovementOffset[3];
     int m_nextUnloadedChunk;
     int m_targetBufferSize;
     int m_targetNumLoadedChunks;
@@ -77,6 +76,11 @@ public:
         position[2] = m_playerChunkPosition[2];
     }
 
+    inline IVec3 getChunkPosition()
+    {
+        return { m_playerChunkPosition[0], m_playerChunkPosition[1], m_playerChunkPosition[2] };
+    }
+
     inline bool hasChunkLoaded(const IVec3& chunkPosition) {
         return m_loadedChunks.contains(chunkPosition);
     }
@@ -92,6 +96,7 @@ public:
     inline uint16_t getRenderDistance() const {
         return m_renderDistance;
     }
+
     inline void getBlockPosition(int* blockPosition) {
         blockPosition[0] = m_blockPosition[0];
         blockPosition[1] = m_blockPosition[1];
@@ -99,6 +104,12 @@ public:
     }
     inline void setChunkLoadingTarget(int target)
     {
+        if (target != m_targetNumLoadedChunks)
+        {
+            std::cout << "target (" << target - 1 << ") ";
+            if (target > 0 && target < m_maxNumChunks)
+                std::cout << (m_loadedChunks.contains(m_unloadedChunks[target - 1]) ? "loaded\n" : "not loaded\n");
+        }
         m_targetNumLoadedChunks = target;
     }
     inline int getChunkLoadingTarget() const

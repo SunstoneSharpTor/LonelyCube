@@ -82,6 +82,8 @@ int main (int argc, char** argv) {
         if (currentTime >= nextTick) {
             mainWorld.tick();
             nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
+            if (mainWorld.getPlayers().size() > 0)
+                std::cout << mainWorld.getPlayer(0).getChunkPosition() << "\n";
         }
 
         networking.receiveEvents(mainWorld);
