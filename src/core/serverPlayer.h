@@ -51,7 +51,7 @@ public:
     ServerPlayer() {};
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick);
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
-    void updatePlayerPos(int* blockPosition, float* subBlockPosition);
+    void updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition);
     bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords);
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);

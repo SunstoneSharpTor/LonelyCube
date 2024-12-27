@@ -73,7 +73,7 @@ public:
     void tick();
     void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
     uint16_t addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer);
-    void updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded);
+    void updatePlayerPos(int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded);
     ServerPlayer& getPlayer(int playerID) {
         return m_players.at(playerID);
     }
@@ -123,7 +123,7 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::updatePlayerPos(int playerID, int* blockPosition, float* subBlockPosition, bool unloadNeeded) {
+void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded) {
     m_playersMtx.lock();
     ServerPlayer& player = m_players.at(playerID);
     player.updatePlayerPos(blockPosition, subBlockPosition);

@@ -206,8 +206,8 @@ void ClientWorld::updateMeshes() {
     m_unmeshedChunksMtx.unlock();
 }
 
-void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
-    IVec3 newPlayerChunkPosition = Chunk::getChunkCoords(IVec3(playerX, playerY, playerZ));
+void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords) {
+    IVec3 newPlayerChunkPosition = Chunk::getChunkCoords(playerBlockCoords);
     m_newPlayerChunkPosition[0] = newPlayerChunkPosition.x;
     m_newPlayerChunkPosition[1] = newPlayerChunkPosition.y;
     m_newPlayerChunkPosition[2] = newPlayerChunkPosition.z;
@@ -220,12 +220,6 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
     for (int8_t i = 0; i < 3; i++) {
         m_updatingPlayerChunkPosition[i] = m_newPlayerChunkPosition[i];
     }
-    int blockPosition[3] = { m_playerChunkPosition[0] * constants::CHUNK_SIZE,
-                             m_playerChunkPosition[1] * constants::CHUNK_SIZE,
-                             m_playerChunkPosition[2] * constants::CHUNK_SIZE };
-    float subBlockPosition[3] = { playerX - blockPosition[0],
-        playerY - blockPosition[1],
-        playerZ - blockPosition[2] };
 
     bool readyToRelable = false;
     while (m_unmeshNeeded && (!readyToRelable)) {
@@ -237,7 +231,7 @@ void ClientWorld::updatePlayerPos(float playerX, float playerY, float playerZ) {
         readyToRelable = !readyToRelable;
     }
 
-    integratedServer.updatePlayerPos(0, blockPosition, subBlockPosition, m_unmeshNeeded);
+    integratedServer.updatePlayerPos(0, playerBlockCoords, playerSubBlockCoords, m_unmeshNeeded);
 
     if (m_unmeshNeeded) {
         unmeshChunks();

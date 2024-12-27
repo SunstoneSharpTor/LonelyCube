@@ -151,7 +151,7 @@ public:
     }
     void doRenderThreadJobs();
     void updateMeshes();
-    void updatePlayerPos(float playerX, float playerY, float playerZ);
+    void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
     void initialiseEntityRenderBuffers();
     void deinitialiseEntityRenderBuffers();
     inline void setClientID(int ID) {
