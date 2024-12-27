@@ -104,12 +104,6 @@ public:
     }
     inline void setChunkLoadingTarget(int target)
     {
-        if (target != m_targetNumLoadedChunks)
-        {
-            std::cout << "target (" << target - 1 << ") ";
-            if (target > 0 && target < m_maxNumChunks)
-                std::cout << (m_loadedChunks.contains(m_unloadedChunks[target - 1]) ? "loaded\n" : "not loaded\n");
-        }
         m_targetNumLoadedChunks = target;
     }
     inline int getChunkLoadingTarget() const

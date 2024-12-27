@@ -179,7 +179,6 @@ void ServerWorld<integrated>::findChunksToLoad() {
                     m_networkingMtx.lock();
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
-                    std::cout << player.getChunkNumber(chunkPosition) << " sent\n";
                 }
             }
             else if (!m_chunksBeingLoaded.contains(IVec3(chunkPosition))) {
@@ -224,7 +223,6 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                     m_networkingMtx.lock();
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
-                    std::cout << player.getChunkNumber(*chunkPosition) << " sent\n";
                 }
             }
         }
