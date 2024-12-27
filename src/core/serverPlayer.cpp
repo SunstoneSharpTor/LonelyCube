@@ -117,7 +117,7 @@ ServerPlayer::ServerPlayer(
     initChunkPositions();
 }
 
-void ServerPlayer::updatePlayerPos(int* blockPosition, float* subBlockPosition) {
+void ServerPlayer::updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition) {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
     m_blockPosition[2] = blockPosition[2];

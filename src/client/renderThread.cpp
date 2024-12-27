@@ -210,11 +210,7 @@ void RenderThread::go(bool* running) {
         FrameBuffer<false> skyFrameBuffer(windowDimensions);
         #endif
 
-        float cameraPos[3];
-        cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
-        cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];
-        cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
-        m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+        m_mainWorld->updatePlayerPos(m_mainPlayer->cameraBlockPosition, &(m_mainPlayer->viewCamera.position[0]));
 
         auto start = std::chrono::steady_clock::now();
         auto end = std::chrono::steady_clock::now();
@@ -303,11 +299,7 @@ void RenderThread::go(bool* running) {
                 }
 
                 m_mainPlayer->processUserInput(m_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
-                float cameraPos[3];
-                cameraPos[0] = m_mainPlayer->cameraBlockPosition[0] + m_mainPlayer->viewCamera.position[0];
-                cameraPos[1] = m_mainPlayer->cameraBlockPosition[1] + m_mainPlayer->viewCamera.position[1];
-                cameraPos[2] = m_mainPlayer->cameraBlockPosition[2] + m_mainPlayer->viewCamera.position[2];
-                m_mainWorld->updatePlayerPos(cameraPos[0], cameraPos[1], cameraPos[2]);
+                m_mainWorld->updatePlayerPos(m_mainPlayer->cameraBlockPosition, &(m_mainPlayer->viewCamera.position[0]));
 
                 //create model view projection matrix for the world
                 float fov = 70.0;
