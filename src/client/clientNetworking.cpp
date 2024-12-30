@@ -27,6 +27,7 @@
 namespace client {
 
 bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t renderDistance) {
+    std::lock_guard<std::mutex> lock(m_hostMtx);
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
     }
@@ -54,9 +55,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
         Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
         payload[0] = renderDistance;
         ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
-        m_hostMtx.lock();
         enet_peer_send(m_peer, 0, packet);
-        m_hostMtx.unlock();
         return true;
     }
     else {

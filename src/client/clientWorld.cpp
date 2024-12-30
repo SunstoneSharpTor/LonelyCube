@@ -649,10 +649,10 @@ void ClientWorld::requestMoreChunks()
         Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
         payload[0] = player.incrementNumChunkRequests();
         payload[1] = player.getChunkLoadingTarget();
+        m_networkingMtx.lock();
         ENetPacket* packet = enet_packet_create(
             (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE
         );
-        m_networkingMtx.lock();
         enet_peer_send(m_peer, 0, packet);
         m_networkingMtx.unlock();
         m_chunkRequestScheduled = false;
