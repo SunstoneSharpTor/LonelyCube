@@ -143,8 +143,8 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
                             payload[i] = breakBlockCoords[i];
                         }
                         payload[3] = 0;
-                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                         networking.getMutex().lock();
+                        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                         enet_peer_send(networking.getPeer(), 0, packet);
                         networking.getMutex().unlock();
                     }
@@ -170,8 +170,8 @@ void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDim
                                 payload[i] = placeBlockCoords[i];
                             }
                             payload[3] = m_blockHolding;
-                            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                             networking.getMutex().lock();
+                            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                             enet_peer_send(networking.getPeer(), 0, packet);
                             networking.getMutex().unlock();
                         }

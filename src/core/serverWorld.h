@@ -175,8 +175,8 @@ void ServerWorld<integrated>::findChunksToLoad() {
                         * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
                         Compression::compressChunk(payload, it->second);
                     payload.setPeerID(playerID);
-                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     m_networkingMtx.lock();
+                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
                 }
@@ -219,8 +219,8 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                 chunk.incrementPlayerCount();
                 if (!integrated) {
                     payload.setPeerID(playerID);
-                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     m_networkingMtx.lock();
+                    ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(player.getPeer(), 0, packet);
                     m_networkingMtx.unlock();
                 }
@@ -363,7 +363,7 @@ void ServerWorld<integrated>::tick() {
     if (!integrated) {
         auto it = m_players.begin();
         while (it != m_players.end()) {
-            if (m_gameTick - it->second.getLastPacketTick() > 20) {
+            if (m_gameTick - it->second.getLastPacketTick() > 20000000) {
                 disconnectPlayer(it->first);
                 it = m_players.erase(it);
             }
@@ -386,8 +386,8 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
     for (auto& [playerID, player] : m_players) {
         if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
-            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
             m_networkingMtx.lock();
+            ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
             enet_peer_send(player.getPeer(), 0, packet);
             m_networkingMtx.unlock();
         }

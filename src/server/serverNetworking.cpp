@@ -27,6 +27,7 @@
 namespace server {
 
 bool ServerNetworking::initServer(ENetAddress& address) {
+    std::lock_guard<std::mutex> lock(m_hostMtx);
     if (enet_initialize () != 0) {
         return false;
     }
@@ -68,8 +69,8 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         // Send a response
         Packet<uint16_t, 1> responsePayload(0, PacketType::ClientConnection, 1);
         responsePayload[0] = playerID;
-        ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
         m_hostMtx.lock();
+        ENetPacket* response = enet_packet_create((const void*)(&responsePayload), responsePayload.getSize(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(mainWorld.getPlayer(playerID).getPeer(), 0, response);
         m_hostMtx.unlock();
     }
@@ -80,7 +81,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
-        // std::cout << "Received player" << playerID << " position at " << mainWorld.getTickNum() << "\n";
+        std::cout << "Received player" << playerID << " position at " << mainWorld.getTickNum() << std::endl;
         if (it == mainWorld.getPlayers().end()) {
 
         }
@@ -133,9 +134,11 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     break;
 
     default:
-        break;
+    break;
     }
+    m_hostMtx.lock();
     enet_packet_destroy(packet);
+    m_hostMtx.unlock();
 }
 
 void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
@@ -156,6 +159,7 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
                 std::cout << event.peer->data << " disconnected.\n";
                 // Reset the peer's client information
                 event.peer->data = NULL;
+                break;
             case ENET_EVENT_TYPE_NONE:
                 break;
         }
