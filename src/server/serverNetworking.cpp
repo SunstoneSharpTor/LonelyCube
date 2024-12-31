@@ -81,7 +81,6 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
-        std::cout << "Received player" << playerID << " position at " << mainWorld.getTickNum() << std::endl;
         if (it == mainWorld.getPlayers().end()) {
 
         }
