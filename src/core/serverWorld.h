@@ -145,6 +145,8 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPo
                         chunkManager.getWorldChunks().erase(it);
                     }
                 }
+                else
+                    std::cout << "error\n";
             }
         }
         while (!m_chunksToBeLoaded.empty()) {
@@ -292,10 +294,13 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     int i = 0;
     while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
         if (chunkManager.chunkLoaded(chunkPosition)) {
-            chunkManager.getChunk(chunkPosition).decrementPlayerCount();
-            if (chunkManager.getChunk(chunkPosition).hasNoPlayers()) {
-                chunkManager.getChunk(chunkPosition).unload();
-                chunkManager.getChunk(chunkPosition);
+            auto it = chunkManager.getWorldChunks().find(chunkPosition);
+            if (it != chunkManager.getWorldChunks().end()) {
+                it->second.decrementPlayerCount();
+                if (it->second.hasNoPlayers()) {
+                    it->second.unload();
+                    chunkManager.getWorldChunks().erase(it);
+                }
             }
         }
         i++;
@@ -363,7 +368,7 @@ void ServerWorld<integrated>::tick() {
     if (!integrated) {
         auto it = m_players.begin();
         while (it != m_players.end()) {
-            if (m_gameTick - it->second.getLastPacketTick() > 20000000) {
+            if (m_gameTick - it->second.getLastPacketTick() > 40) {
                 disconnectPlayer(it->first);
                 it = m_players.erase(it);
             }
