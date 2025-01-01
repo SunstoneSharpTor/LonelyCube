@@ -40,6 +40,7 @@
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
+#include "client/gui/font.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
 #include "core/chunk.h"
@@ -219,6 +220,8 @@ void RenderThread::go(bool* running) {
         m_mainWorld->doRenderThreadJobs();
 
         m_mainWorld->initialiseEntityRenderBuffers();
+
+        Font font("res/resourcePack/font.png", windowDimensions);
 
         //set up game loop
         float exposure = 0.0;
@@ -454,11 +457,15 @@ void RenderThread::go(bool* running) {
                 glClear(GL_COLOR_BUFFER_BIT);
                 glDisable(GL_DEPTH_TEST);
                 worldFrameBuffer.draw(screenShader);
+
                 // Draw the crosshair
                 glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
                 glActiveTexture(GL_TEXTURE0);
                 mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                font.queue("a", glm::vec2(100.0f, 100.0f), 5.0f);
+                font.draw(mainRenderer);
 
                 glfwSwapBuffers(m_window);
 

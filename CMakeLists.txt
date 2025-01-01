@@ -34,6 +34,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/texture.cpp
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp
+    src/client/gui/font.cpp
     src/client/renderThread.cpp
     src/core/chunk.cpp
     src/core/chunkManager.cpp

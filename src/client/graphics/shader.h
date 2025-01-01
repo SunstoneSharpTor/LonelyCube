@@ -25,33 +25,33 @@
 namespace client {
 
 struct shaderProgramSources {
-	std::string vertexSource;
-	std::string fragmentSource;
+    std::string vertexSource;
+    std::string fragmentSource;
 };
 
 class Shader {
 private:
-	std::string m_vertexFilePath, m_fragmentFilePath;
-	uint32_t m_rendererID;
-	std::unordered_map<std::string, int> m_uniformLocationCache;
+    std::string m_vertexFilePath, m_fragmentFilePath;
+    uint32_t m_rendererID;
+    std::unordered_map<std::string, int> m_uniformLocationCache;
 public:
-	Shader(const std::string& vertexFilePath, const std::string& fragmantFilePath);
-	~Shader();
+    Shader(const std::string& vertexFilePath, const std::string& fragmantFilePath);
+    ~Shader();
 
-	void bind() const;
-	void unbind() const;
+    void bind() const;
+    void unbind() const;
 
-	//set uniforms
-	void setUniform1i(const std::string& name, int value);
-	void setUniform1f(const std::string& name, float value);
-	void setUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
-	void setUniformMat4f(const std::string& name, const glm::mat4& value);
+    //set uniforms
+    void setUniform1i(const std::string& name, int value);
+    void setUniform1f(const std::string& name, float value);
+    void setUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
+    void setUniformMat4f(const std::string& name, const glm::mat4& value);
 private:
-	shaderProgramSources parseShaders(const std::string& vertexFilePath, const std::string& fragmentFilePath);
-	uint32_t compileShader(uint32_t type, const std::string& source);
-	uint32_t createShader(const std::string& vertexShader, const std::string& fragmentShader);
+    shaderProgramSources parseShaders(const std::string& vertexFilePath, const std::string& fragmentFilePath);
+    uint32_t compileShader(uint32_t type, const std::string& source);
+    uint32_t createShader(const std::string& vertexShader, const std::string& fragmentShader);
 
-	int getUniformLocation(const std::string& name);
+    int getUniformLocation(const std::string& name);
 };
 
 }  // namespace client
