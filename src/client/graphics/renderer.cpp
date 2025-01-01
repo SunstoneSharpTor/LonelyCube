@@ -32,6 +32,12 @@ void GLPrintErrors() {
     }
 }
 
+void Renderer::draw(const VertexArray& va, uint32_t count, const Shader& s) const {
+    s.bind();
+    va.bind();
+    glDrawArrays(GL_TRIANGLES, 0, count);
+}
+
 void Renderer::draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const {
     s.bind();
     va.bind();

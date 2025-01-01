@@ -28,7 +28,7 @@
 #include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
 #include "core/chunk.h"
-#include "core/entities/meshManager.h"
+#include "core/entities/entityMeshManager.h"
 #include "core/packet.h"
 #include "core/utils/iVec3.h"
 #include "core/serverWorld.h"
