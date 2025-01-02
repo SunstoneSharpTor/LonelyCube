@@ -464,7 +464,7 @@ void RenderThread::go(bool* running) {
                 mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                font.queue("a", glm::vec2(100.0f, 100.0f), 5.0f);
+                font.queue("a", glm::vec2(100.0f, 100.0f), 5.0f, glm::vec3(1.0f, 1.0f, 1.0f));
                 font.draw(mainRenderer);
 
                 glfwSwapBuffers(m_window);

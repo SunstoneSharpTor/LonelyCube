@@ -35,13 +35,15 @@ private:
     Texture m_texture;
     VertexArray m_vertexArray;
     VertexBuffer m_vertexBuffer;
+    IndexBuffer m_indexBuffer;
     VertexBufferLayout m_vbl;
     std::vector<float> m_vertices;
+    std::vector<uint32_t> m_indices;
 
 public:
     Font(const std::string& textureFilePath, uint32_t* windowDimensions);
 
-    void queue(const std::string& text, const glm::vec2& position, float size);
+    void queue(const std::string& text, const glm::vec2& position, float size, const glm::vec3& colour);
 
     void draw(const Renderer& renderer);
 

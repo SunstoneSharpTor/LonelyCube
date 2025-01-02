@@ -23,10 +23,14 @@
 namespace client {
 
 Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
-    : m_shader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt"),
-    m_texture(textureFilePath), m_vertexBuffer(nullptr, 0, true)
+    : m_shader("res/shaders/fontVertex.txt", "res/shaders/fontFragment.txt"),
+    m_texture(textureFilePath), m_vertexBuffer(nullptr, 0, true), m_indexBuffer(nullptr, 0, true)
 {
+    m_shader.bind();
+    m_shader.setUniform1i("u_fontTexture", 0);
     m_vbl.push<float>(2);
+    m_vbl.push<float>(2);
+    m_vbl.push<float>(3);
     m_vertexArray.addBuffer(m_vertexBuffer, m_vbl);
     resize(windowDimensions);
 }
@@ -44,16 +48,35 @@ void Font::resize(uint32_t* windowDimensions)
     m_shader.setUniformMat4f("u_MVP", projectionMatrix);
 }
 
-void Font::queue(const std::string& text, const glm::vec2& position, float size)
+void Font::queue(const std::string& text, const glm::vec2& position, float size,
+    const glm::vec3& colour)
 {
     for (char c : text)
     {
         m_vertices.push_back(25.0f);
         m_vertices.push_back(25.0f);
-        m_vertices.push_back(30.0);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(300.0);
         m_vertices.push_back(25.0f);
+        m_vertices.push_back(0.7f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
         m_vertices.push_back(25.0f);
-        m_vertices.push_back(30.0f);
+        m_vertices.push_back(300.0f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.7f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_vertices.push_back(0.5f);
+        m_indices.push_back(0);
+        m_indices.push_back(1);
+        m_indices.push_back(2);
     }
 }
 
@@ -63,18 +86,11 @@ void Font::draw(const Renderer& renderer)
         return;
 
     m_vertexBuffer.update(&m_vertices.front(), m_vertices.size() * sizeof(float));
+    m_indexBuffer.update(&m_indices.front(), m_indices.size() * sizeof(uint32_t));
     m_vertices.clear();
-    renderer.draw(m_vertexArray, m_vertices.size() / 2, m_shader);
-
-        uint32_t crosshairIndices[18] = { 0, 1,  2,
-                                              3,  4,  5,
-                                              6,  5,  4,
-                                              4,  7,  6,
-                                             10,  8,  9,
-                                              8, 10, 11 };
-
-        IndexBuffer crosshairIB(crosshairIndices, 6);
-    // renderer.draw(m_vertexArray, crosshairIB, m_shader);
+    m_indices.clear();
+    m_texture.bind();
+    renderer.draw(m_vertexArray, m_indexBuffer, m_shader);
 }
 
 }  // namespace client
