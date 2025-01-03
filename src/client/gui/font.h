@@ -37,21 +37,21 @@ private:
     VertexBuffer m_vertexBuffer;
     IndexBuffer m_indexBuffer;
     VertexBufferLayout m_vbl;
-    std::array<float, 96> m_charWidths;
+    std::array<int, 96> m_charWidths;
     std::vector<float> m_vertices;
     std::vector<uint32_t> m_indices;
-    float m_charAspectRatio;
+    int m_maxCharSize[2];
 
     void calculateCharWidths(const std::string& textureFilePath);
 
 public:
     Font(const std::string& textureFilePath, uint32_t* windowDimensions);
 
-    void queue(const std::string& text, const glm::vec2& position, float size, const glm::vec3& colour);
+    void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
 
     void draw(const Renderer& renderer);
 
-    void resize(uint32_t* windowDimensions);
+    void resize(const uint32_t* windowDimensions);
 };
 
 }  // namespace client
