@@ -37,8 +37,11 @@ private:
     VertexBuffer m_vertexBuffer;
     IndexBuffer m_indexBuffer;
     VertexBufferLayout m_vbl;
+    std::array<int, 96> m_charWidths;
     std::vector<float> m_vertices;
     std::vector<uint32_t> m_indices;
+
+    void calculateCharWidths(const std::string& textureFilePath);
 
 public:
     Font(const std::string& textureFilePath, uint32_t* windowDimensions);

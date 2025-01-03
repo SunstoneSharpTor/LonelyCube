@@ -82,6 +82,7 @@ void RenderThread::go(bool* running) {
         glfwMakeContextCurrent(m_window);
 
         GLFWimage images[1];
+        stbi_set_flip_vertically_on_load(0);
         images[0].pixels = stbi_load(
             "res/resourcePack/logo.png", &images[0].width, &images[0].height, 0, 4
         );
@@ -221,7 +222,7 @@ void RenderThread::go(bool* running) {
 
         m_mainWorld->initialiseEntityRenderBuffers();
 
-        Font font("res/resourcePack/font.png", windowDimensions);
+        Font font("res/resourcePack/gui/font.png", windowDimensions);
 
         //set up game loop
         float exposure = 0.0;
@@ -233,7 +234,6 @@ void RenderThread::go(bool* running) {
         end = std::chrono::steady_clock::now();
         time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         double frameStart = time - DT;
-        bool windowevent_resized = false;
         float lastFrameRateTime = frameStart + DT;
         bool loopRunning = *running;
         while (loopRunning) {
@@ -257,7 +257,6 @@ void RenderThread::go(bool* running) {
                 windowFullScreen = !windowFullScreen;
             }
             lastF11 = glfwGetKey(m_window, GLFW_KEY_F11) == GLFW_PRESS;
-            windowevent_resized = false;
             if (glfwWindowShouldClose(m_window))
                 *running = false;
             int windowSize[2];
@@ -267,6 +266,7 @@ void RenderThread::go(bool* running) {
                 windowDimensions[1] = windowSize[1];
                 worldFrameBuffer.resize(windowDimensions);
                 glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+                font.resize(windowDimensions);
                 #ifndef GLES3
                 glBindTexture(GL_TEXTURE_2D, skyTexture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);

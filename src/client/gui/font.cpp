@@ -20,6 +20,8 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "client/graphics/stb_image.h"
+
 namespace client {
 
 Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
@@ -32,6 +34,7 @@ Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
     m_vbl.push<float>(2);
     m_vbl.push<float>(3);
     m_vertexArray.addBuffer(m_vertexBuffer, m_vbl);
+    calculateCharacterWidths(textureFilePath);
     resize(windowDimensions);
 }
 
@@ -53,30 +56,7 @@ void Font::queue(const std::string& text, const glm::vec2& position, float size,
 {
     for (char c : text)
     {
-        m_vertices.push_back(25.0f);
-        m_vertices.push_back(25.0f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(300.0);
-        m_vertices.push_back(25.0f);
-        m_vertices.push_back(0.7f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(25.0f);
-        m_vertices.push_back(300.0f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.7f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_vertices.push_back(0.5f);
-        m_indices.push_back(0);
-        m_indices.push_back(1);
-        m_indices.push_back(2);
+        
     }
 }
 
@@ -91,6 +71,47 @@ void Font::draw(const Renderer& renderer)
     m_indices.clear();
     m_texture.bind();
     renderer.draw(m_vertexArray, m_indexBuffer, m_shader);
+}
+
+void Font::calculateCharWidths(const std::string& textureFilePath)
+{
+    int textureSize[2];
+    const int NUM_CHANNELS = 4;
+    stbi_set_flip_vertically_on_load(0);
+    uint8_t* pixels = stbi_load(
+        textureFilePath.c_str(), &textureSize[0], &textureSize[1], 0, NUM_CHANNELS
+    );
+    const int maxCharWidth = textureSize[0] / 16;
+    const int maxCharHeight = textureSize[1] / 6;
+
+    char character = 32;
+    for (int col = 0; col < 6; col++)
+    {
+        for (int row = 0; row < 16; row++)
+        {
+            int width = 0;
+            for (int x = row * maxCharWidth; x < (row + 1) * maxCharWidth; x++)
+            {
+                int y = col * maxCharHeight;
+                while (
+                    y < (col + 1) * maxCharHeight
+                    && !pixels[
+                        y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
+                    ]
+                )
+                    y++;
+                if (
+                    y < (col + 1) * maxCharHeight
+                    && pixels[
+                        y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
+                    ]
+                )
+                    width = x + 1 - row * maxCharWidth;
+            }
+
+            m_charWidths[character++] = width;
+        }
+    }
 }
 
 }  // namespace client
