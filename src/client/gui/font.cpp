@@ -34,7 +34,7 @@ Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
     m_vbl.push<float>(2);
     m_vbl.push<float>(3);
     m_vertexArray.addBuffer(m_vertexBuffer, m_vbl);
-    calculateCharacterWidths(textureFilePath);
+    calculateCharWidths(textureFilePath);
     resize(windowDimensions);
 }
 
@@ -54,9 +54,57 @@ void Font::resize(uint32_t* windowDimensions)
 void Font::queue(const std::string& text, const glm::vec2& position, float size,
     const glm::vec3& colour)
 {
+    int verticesSize = m_vertices.size();
+    int indicesSize = m_indices.size();
+    int numVertices = verticesSize / 28;
+    m_vertices.resize(m_vertices.size() + 28 * text.length());
+    m_indices.resize(m_indices.size() + 6 * text.length());
+
     for (char c : text)
     {
-        
+        int row = 7 - c / 16;
+        int col = c % 16;
+
+        // Screen coordinates
+        m_vertices[verticesSize] = position.x;
+        m_vertices[verticesSize + 1] = position.y;
+        m_vertices[verticesSize + 7] = position.x;
+        m_vertices[verticesSize + 8] = position.y + size;
+        m_vertices[verticesSize + 14] = position.x + size * m_charAspectRatio * m_charWidths[c - 32];
+        m_vertices[verticesSize + 15] = position.y + size;
+        m_vertices[verticesSize + 21] = position.x + size * m_charAspectRatio * m_charWidths[c - 32];
+        m_vertices[verticesSize + 22] = position.y;
+
+        // Texture coordinates
+        m_vertices[verticesSize + 2] = static_cast<float>(col) / 16;
+        m_vertices[verticesSize + 3] = static_cast<float>(row) / 6;
+        m_vertices[verticesSize + 9] = static_cast<float>(col) / 16;
+        m_vertices[verticesSize + 10] = static_cast<float>(row) / 6 + 1.0f / 6;
+        m_vertices[verticesSize + 16] = static_cast<float>(col) / 16 + 1.0f / 16;
+        m_vertices[verticesSize + 17] = static_cast<float>(row) / 6 + 1.0f / 6;
+        m_vertices[verticesSize + 23] = static_cast<float>(col) / 16 + 1.0f / 16;
+        m_vertices[verticesSize + 24] = static_cast<float>(row) / 6;
+
+        // Colour data
+        for (int i = 0; i < 3; i++)
+        {
+            m_vertices[verticesSize + 4 + i] = colour[i];
+            m_vertices[verticesSize + 11 + i] = colour[i];
+            m_vertices[verticesSize + 18 + i] = colour[i];
+            m_vertices[verticesSize + 25 + i] = colour[i];
+        }
+
+        // Index data
+        m_indices[indicesSize] = numVertices;
+        m_indices[indicesSize + 1] = numVertices + 3;
+        m_indices[indicesSize + 2] = numVertices + 1;
+        m_indices[indicesSize + 3] = numVertices + 1;
+        m_indices[indicesSize + 4] = numVertices + 3;
+        m_indices[indicesSize + 5] = numVertices + 2;
+
+        verticesSize += 28;
+        indicesSize += 6;
+        numVertices++;
     }
 }
 
@@ -66,7 +114,7 @@ void Font::draw(const Renderer& renderer)
         return;
 
     m_vertexBuffer.update(&m_vertices.front(), m_vertices.size() * sizeof(float));
-    m_indexBuffer.update(&m_indices.front(), m_indices.size() * sizeof(uint32_t));
+    m_indexBuffer.update(&m_indices.front(), m_indices.size());
     m_vertices.clear();
     m_indices.clear();
     m_texture.bind();
@@ -83,35 +131,38 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
     );
     const int maxCharWidth = textureSize[0] / 16;
     const int maxCharHeight = textureSize[1] / 6;
+    m_charAspectRatio = static_cast<float>(maxCharWidth) / maxCharHeight;
 
     char character = 32;
-    for (int col = 0; col < 6; col++)
+    for (int row = 0; row < 6; row++)
     {
-        for (int row = 0; row < 16; row++)
+        for (int col = 0; col < 16; col++)
         {
             int width = 0;
-            for (int x = row * maxCharWidth; x < (row + 1) * maxCharWidth; x++)
+            for (int x = col * maxCharWidth; x < (col + 1) * maxCharWidth; x++)
             {
-                int y = col * maxCharHeight;
+                int y = row * maxCharHeight;
                 while (
-                    y < (col + 1) * maxCharHeight
+                    y < (row + 1) * maxCharHeight
                     && !pixels[
                         y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
                     ]
                 )
                     y++;
                 if (
-                    y < (col + 1) * maxCharHeight
+                    y < (row + 1) * maxCharHeight
                     && pixels[
                         y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
                     ]
                 )
-                    width = x + 1 - row * maxCharWidth;
+                    width = x + 1 - col * maxCharWidth;
             }
 
-            m_charWidths[character++] = width;
+            m_charWidths[character++ - 32] = static_cast<float>(width) / maxCharWidth;
         }
     }
+
+    stbi_image_free(pixels);
 }
 
 }  // namespace client
