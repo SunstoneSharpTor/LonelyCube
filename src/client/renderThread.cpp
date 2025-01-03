@@ -82,7 +82,6 @@ void RenderThread::go(bool* running) {
         glfwMakeContextCurrent(m_window);
 
         GLFWimage images[1];
-        stbi_set_flip_vertically_on_load(0);
         images[0].pixels = stbi_load(
             "res/resourcePack/logo.png", &images[0].width, &images[0].height, 0, 4
         );
@@ -276,6 +275,7 @@ void RenderThread::go(bool* running) {
                 skyFrameBuffer.resize(windowDimensions);
                 #endif
                 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
+                crosshairShader.bind();
                 crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
             }
             lastLastWindowFullScreen = lastWindowFullScreen;
@@ -464,7 +464,7 @@ void RenderThread::go(bool* running) {
                 mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                font.queue("a", glm::vec2(100.0f, 100.0f), 20.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+                font.queue("Cubeee", glm::ivec2(100, 100), 4, glm::vec3(1.0f, 1.0f, 1.0f));
                 font.draw(mainRenderer);
 
                 glfwSwapBuffers(m_window);

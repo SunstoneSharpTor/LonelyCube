@@ -38,7 +38,7 @@ Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
     resize(windowDimensions);
 }
 
-void Font::resize(uint32_t* windowDimensions)
+void Font::resize(const uint32_t* windowDimensions)
 {
     glm::mat4 projectionMatrix = glm::ortho(
         -(float)windowDimensions[0] / 2,
@@ -51,9 +51,11 @@ void Font::resize(uint32_t* windowDimensions)
     m_shader.setUniformMat4f("u_MVP", projectionMatrix);
 }
 
-void Font::queue(const std::string& text, const glm::vec2& position, float size,
+void Font::queue(const std::string& text, glm::ivec2 position, int size,
     const glm::vec3& colour)
 {
+    const int spacing = std::max(size / 7, 1);
+
     int verticesSize = m_vertices.size();
     int indicesSize = m_indices.size();
     int numVertices = verticesSize / 28;
@@ -66,13 +68,14 @@ void Font::queue(const std::string& text, const glm::vec2& position, float size,
         int col = c % 16;
 
         // Screen coordinates
+        int charWidth = size * m_charWidths[c - 32];
         m_vertices[verticesSize] = position.x;
         m_vertices[verticesSize + 1] = position.y;
         m_vertices[verticesSize + 7] = position.x;
-        m_vertices[verticesSize + 8] = position.y + size;
-        m_vertices[verticesSize + 14] = position.x + size * m_charAspectRatio * m_charWidths[c - 32];
-        m_vertices[verticesSize + 15] = position.y + size;
-        m_vertices[verticesSize + 21] = position.x + size * m_charAspectRatio * m_charWidths[c - 32];
+        m_vertices[verticesSize + 8] = position.y + m_maxCharSize[1] * size;
+        m_vertices[verticesSize + 14] = position.x + charWidth;
+        m_vertices[verticesSize + 15] = position.y + m_maxCharSize[1] * size;
+        m_vertices[verticesSize + 21] = position.x + charWidth;
         m_vertices[verticesSize + 22] = position.y;
 
         // Texture coordinates
@@ -104,7 +107,8 @@ void Font::queue(const std::string& text, const glm::vec2& position, float size,
 
         verticesSize += 28;
         indicesSize += 6;
-        numVertices++;
+        numVertices += 4;
+        position.x += charWidth + spacing;
     }
 }
 
@@ -129,9 +133,8 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
     uint8_t* pixels = stbi_load(
         textureFilePath.c_str(), &textureSize[0], &textureSize[1], 0, NUM_CHANNELS
     );
-    const int maxCharWidth = textureSize[0] / 16;
-    const int maxCharHeight = textureSize[1] / 6;
-    m_charAspectRatio = static_cast<float>(maxCharWidth) / maxCharHeight;
+    m_maxCharSize[0] = textureSize[0] / 16;
+    m_maxCharSize[1] = textureSize[1] / 6;
 
     char character = 32;
     for (int row = 0; row < 6; row++)
@@ -139,26 +142,26 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
         for (int col = 0; col < 16; col++)
         {
             int width = 0;
-            for (int x = col * maxCharWidth; x < (col + 1) * maxCharWidth; x++)
+            for (int x = col * m_maxCharSize[0]; x < (col + 1) * m_maxCharSize[0]; x++)
             {
-                int y = row * maxCharHeight;
+                int y = row * m_maxCharSize[1];
                 while (
-                    y < (row + 1) * maxCharHeight
+                    y < (row + 1) * m_maxCharSize[1]
                     && !pixels[
                         y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
                     ]
                 )
                     y++;
                 if (
-                    y < (row + 1) * maxCharHeight
+                    y < (row + 1) * m_maxCharSize[1]
                     && pixels[
                         y * textureSize[0] * NUM_CHANNELS + x * NUM_CHANNELS + NUM_CHANNELS - 1
                     ]
                 )
-                    width = x + 1 - col * maxCharWidth;
+                    width = x + 1 - col * m_maxCharSize[0];
             }
 
-            m_charWidths[character++ - 32] = static_cast<float>(width) / maxCharWidth;
+            m_charWidths[character++ - 32] = width;
         }
     }
 
