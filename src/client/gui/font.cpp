@@ -41,11 +41,7 @@ Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
 void Font::resize(const uint32_t* windowDimensions)
 {
     glm::mat4 projectionMatrix = glm::ortho(
-        -(float)windowDimensions[0] / 2,
-        (float)windowDimensions[0] / 2,
-        -(float)windowDimensions[1] / 2,
-        (float)windowDimensions[1] / 2,
-        -1.0f, 1.0f
+        0.0f, (float)windowDimensions[0], 0.0f, (float)windowDimensions[1], 0.0f, 1.0f
     );
     m_shader.bind();
     m_shader.setUniformMat4f("u_MVP", projectionMatrix);
@@ -54,7 +50,7 @@ void Font::resize(const uint32_t* windowDimensions)
 void Font::queue(const std::string& text, glm::ivec2 position, int size,
     const glm::vec3& colour)
 {
-    const int spacing = std::max(size / 7, 1);
+    const int spacing = std::max(size, 1);
 
     int verticesSize = m_vertices.size();
     int indicesSize = m_indices.size();
@@ -79,13 +75,14 @@ void Font::queue(const std::string& text, glm::ivec2 position, int size,
         m_vertices[verticesSize + 22] = position.y;
 
         // Texture coordinates
+        float charTextureWidth = static_cast<float>(m_charWidths[c - 32]) / m_maxCharSize[0] / 16;
         m_vertices[verticesSize + 2] = static_cast<float>(col) / 16;
         m_vertices[verticesSize + 3] = static_cast<float>(row) / 6;
         m_vertices[verticesSize + 9] = static_cast<float>(col) / 16;
         m_vertices[verticesSize + 10] = static_cast<float>(row) / 6 + 1.0f / 6;
-        m_vertices[verticesSize + 16] = static_cast<float>(col) / 16 + 1.0f / 16;
+        m_vertices[verticesSize + 16] = static_cast<float>(col) / 16 + charTextureWidth;
         m_vertices[verticesSize + 17] = static_cast<float>(row) / 6 + 1.0f / 6;
-        m_vertices[verticesSize + 23] = static_cast<float>(col) / 16 + 1.0f / 16;
+        m_vertices[verticesSize + 23] = static_cast<float>(col) / 16 + charTextureWidth;
         m_vertices[verticesSize + 24] = static_cast<float>(row) / 6;
 
         // Colour data
@@ -164,6 +161,7 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
             m_charWidths[character++ - 32] = width;
         }
     }
+    m_charWidths[0] = m_maxCharSize[0];
 
     stbi_image_free(pixels);
 }

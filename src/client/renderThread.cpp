@@ -464,7 +464,7 @@ void RenderThread::go(bool* running) {
                 mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                font.queue("Cubeee", glm::ivec2(100, 100), 4, glm::vec3(1.0f, 1.0f, 1.0f));
+                font.queue("Lonely Cube!", glm::ivec2(100, 100), 4, glm::vec3(1.0f, 1.0f, 1.0f));
                 font.draw(mainRenderer);
 
                 glfwSwapBuffers(m_window);
