@@ -161,7 +161,7 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
             m_charWidths[character++ - 32] = width;
         }
     }
-    m_charWidths[0] = m_maxCharSize[0];
+    m_charWidths[0] = m_maxCharSize[0] / 2;
 
     stbi_image_free(pixels);
 }
