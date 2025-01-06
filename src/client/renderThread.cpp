@@ -51,6 +51,12 @@
 
 namespace client {
 
+static std::string testText;
+
+void characterCallback(GLFWwindow* m_window, unsigned int codepoint)
+{
+    testText = testText + (char)codepoint;
+}
 void RenderThread::go(bool* running) {
     {
         const int defaultWindowDimensions[2] = { 853, 480 };
@@ -222,6 +228,7 @@ void RenderThread::go(bool* running) {
         m_mainWorld->initialiseEntityRenderBuffers();
 
         Font font("res/resourcePack/gui/font.png", windowDimensions);
+        // glfwSetCharCallback(m_window, characterCallback);
 
         //set up game loop
         float exposure = 0.0;
@@ -464,7 +471,7 @@ void RenderThread::go(bool* running) {
                 mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                font.queue("Lonely Cube!", glm::ivec2(100, 100), 4, glm::vec3(1.0f, 1.0f, 1.0f));
+                font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
                 font.draw(mainRenderer);
 
                 glfwSwapBuffers(m_window);

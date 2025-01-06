@@ -53,7 +53,7 @@ constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
     14000.0f, 10.0f,
     18000.0f, 0.04f,
     18300.0f, 0.0025f,
-    1900.0f, 0.0003f,
+    19000.0f, 0.0003f,
     19200.0f, 0.0001f,
     20400.0f, 0.000025f };
 
