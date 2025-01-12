@@ -1,0 +1,84 @@
+/*
+  Lonely Cube, a voxel game
+  Copyright (C) 2024 Bertie Cartwright
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// This shader performs downsampling on a texture,
+// as taken from Call Of Duty method, presented at ACM Siggraph 2014.
+// This particular method was customly designed to eliminate
+// "pulsating artifacts and temporal stability issues".
+
+// Remember to add bilinear minification filter for this texture!
+// Remember to use a floating-point texture format (for HDR)!
+// Remember to use edge clamping for this texture!
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba16f, binding = 0) uniform image2D downsampleImage;
+uniform sampler2D srcTexture;
+
+void main() {
+    ivec2 downsampleTexelCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 downsampleTexelSize = 1.0 / vec2(imageSize(downsampleImage));
+    vec2 srcTexelCoord = downsampleTexelSize * (vec2(downsampleTexelCoords) + vec2(0.5, 0.5));
+    vec2 srcTexelSize = 1.0 / vec2(textureSize(srcTexture, 0));
+    float x = srcTexelSize.x;
+    float y = srcTexelSize.y;
+
+    // Take 13 samples around current texel:
+    // a - b - c
+    // - j - k -
+    // d - e - f
+    // - l - m -
+    // g - h - i
+    // === ('e' is the current texel) ===
+    vec3 a = texture(srcTexture, vec2(srcTexelCoord.x - 2*x, srcTexelCoord.y + 2*y)).rgb;
+    vec3 b = texture(srcTexture, vec2(srcTexelCoord.x,       srcTexelCoord.y + 2*y)).rgb;
+    vec3 c = texture(srcTexture, vec2(srcTexelCoord.x + 2*x, srcTexelCoord.y + 2*y)).rgb;
+
+    vec3 d = texture(srcTexture, vec2(srcTexelCoord.x - 2*x, srcTexelCoord.y)).rgb;
+    vec3 e = texture(srcTexture, vec2(srcTexelCoord.x,       srcTexelCoord.y)).rgb;
+    vec3 f = texture(srcTexture, vec2(srcTexelCoord.x + 2*x, srcTexelCoord.y)).rgb;
+
+    vec3 g = texture(srcTexture, vec2(srcTexelCoord.x - 2*x, srcTexelCoord.y - 2*y)).rgb;
+    vec3 h = texture(srcTexture, vec2(srcTexelCoord.x,       srcTexelCoord.y - 2*y)).rgb;
+    vec3 i = texture(srcTexture, vec2(srcTexelCoord.x + 2*x, srcTexelCoord.y - 2*y)).rgb;
+
+    vec3 j = texture(srcTexture, vec2(srcTexelCoord.x - x, srcTexelCoord.y + y)).rgb;
+    vec3 k = texture(srcTexture, vec2(srcTexelCoord.x + x, srcTexelCoord.y + y)).rgb;
+    vec3 l = texture(srcTexture, vec2(srcTexelCoord.x - x, srcTexelCoord.y - y)).rgb;
+    vec3 m = texture(srcTexture, vec2(srcTexelCoord.x + x, srcTexelCoord.y - y)).rgb;
+
+    // Apply weighted distribution:
+    // 0.5 + 0.125 + 0.125 + 0.125 + 0.125 = 1
+    // a,b,d,e * 0.125
+    // b,c,e,f * 0.125
+    // d,e,g,h * 0.125
+    // e,f,h,i * 0.125
+    // j,k,l,m * 0.5
+    // This shows 5 square areas that are being sampled. But some of them overlap,
+    // so to have an energy preserving downsample we need to make some adjustments.
+    // The weights are then distributed, so that the sum of j,k,l,m (e.g.)
+    // contribute 0.5 to the final color output. The code below is written
+    // to effectively yield this sum. We get:
+    // 0.125*5 + 0.03125*4 + 0.0625*4 = 1
+    vec3 downsample = e*0.125;
+    downsample += (a+c+g+i)*0.03125;
+    downsample += (b+d+f+h)*0.0625;
+    downsample += (j+k+l+m)*0.125;
+
+    imageStore(downsampleImage, downsampleTexelCoords, vec4(downsample, 1.0));
+}
