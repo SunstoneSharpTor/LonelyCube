@@ -18,30 +18,8 @@
 
 #pragma once
 
-#include "client/clientNetworking.h"
-#include "client/clientPlayer.h"
-#include "client/clientWorld.h"
-
 namespace client {
 
-class RenderThread {
-private:
-    ClientWorld* m_mainWorld;
-    bool* m_chunkLoaderThreadsRunning;
-    ClientPlayer* m_mainPlayer;
-    ClientNetworking& m_networking;
-    int* m_frameTime;
-    GLFWwindow* m_window;
-
-    float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time);
-
-    // void setSDLIcon(SDL_Window* window);
-public:
-    RenderThread(ClientWorld* mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer*
-    mainPlayer, ClientNetworking& networking, int* frameTime) : m_mainWorld(mainWorld),
-    m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning), m_mainPlayer(mainPlayer),
-    m_networking(networking), m_frameTime(frameTime) {}
-    void go(bool* running);
-};
+void renderThread();
 
 }  // namespace client
