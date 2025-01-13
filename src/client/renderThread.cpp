@@ -18,14 +18,16 @@
 
 #include "client/renderThread.h"
 
-#include <cstdint>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
 #include "client/graphics/stb_image.h"
 
-#include "core/constants.h"
+#include "client/logicThread.h"
 #include "core/pch.h"
+
+#include "core/config.h"
+#include "core/constants.h"
 #include <time.h>
 
 #include "client/clientNetworking.h"
@@ -43,21 +45,76 @@
 #include "client/gui/font.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
-#include "core/chunk.h"
-#include "core/packet.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace client {
 
+static float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
+    uint32_t preceedingPoint = numPoints * 2 - 2;
+    uint32_t succeedingPoint = 0;
+    if (time < points[numPoints * 2 - 2]) {
+        int i = 0;
+        while (i < numPoints * 2 && points[i] < time) {
+            i += 2;
+            preceedingPoint = i - 2;
+            succeedingPoint = i;
+        }
+    }
+    float preceedingTime = points[preceedingPoint];
+    float succeedingTime = points[succeedingPoint];
+    if (succeedingTime < preceedingTime) {
+        float offset = (float)constants::DAY_LENGTH - preceedingTime;
+        preceedingTime = 0;
+        time = (time + (int)offset) % constants::DAY_LENGTH;
+        succeedingTime += offset;
+    }
+    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
+
+    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
+}
+
 static std::string testText;
 
-void characterCallback(GLFWwindow* m_window, unsigned int codepoint)
+void characterCallback(GLFWwindow* window, unsigned int codepoint)
 {
     testText = testText + (char)codepoint;
 }
-void RenderThread::go(bool* running) {
+
+void renderThread() {
+    Config settings("res/settings.txt");
+
+    bool multiplayer = settings.getMultiplayer();
+
+    ClientNetworking networking;
+
+    if (multiplayer) {
+        if (!networking.establishConnection(settings.getServerIP(), settings.getRenderDistance())) {
+            multiplayer = false;
+        }
+    }
+
+    uint32_t worldSeed = std::time(0);
+    int playerSpawnPoint[3] = { 0, 200, 0 };
+    ClientWorld mainWorld(
+        settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
+        multiplayer ? networking.getPeer() : nullptr, networking.getMutex()
+    );
+    std::cout << "World Seed: " << worldSeed << std::endl;
+    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
+
+    bool running = true;
+    GLFWwindow* window;
+
+    bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
+    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
+
+    LogicThread logicThread(
+        mainWorld, chunkLoaderThreadsRunning, mainPlayer, networking, settings, multiplayer
+    );
+    std::thread logicWorker(&LogicThread::go, logicThread, std::ref(running));
+
     {
         const int defaultWindowDimensions[2] = { 853, 480 };
         uint32_t windowDimensions[2] = { (uint32_t)defaultWindowDimensions[0],
@@ -82,16 +139,18 @@ void RenderThread::go(bool* running) {
         #endif
         glfwWindowHint(GLFW_DEPTH_BITS, 24);
 
-        m_window = glfwCreateWindow(windowDimensions[0], windowDimensions[1], "Lonely Cube", NULL, NULL);
-        glfwSetWindowPos(m_window, displayMode->width / 2 - windowDimensions[0] / 2,
+        window = glfwCreateWindow(
+            windowDimensions[0], windowDimensions[1], "Lonely Cube", NULL, NULL
+        );
+        glfwSetWindowPos(window, displayMode->width / 2 - windowDimensions[0] / 2,
             displayMode->height / 2 - windowDimensions[1] / 2);
-        glfwMakeContextCurrent(m_window);
+        glfwMakeContextCurrent(window);
 
         GLFWimage images[1];
         images[0].pixels = stbi_load(
             "res/resourcePack/logo.png", &images[0].width, &images[0].height, 0, 4
         );
-        glfwSetWindowIcon(m_window, 1, images);
+        glfwSetWindowIcon(window, 1, images);
 
         bool VSYNC = false;
         if (VSYNC)
@@ -121,12 +180,12 @@ void RenderThread::go(bool* running) {
         waterShader.bind();
         waterShader.setUniform1i("u_blockTextures", 0);
         waterShader.setUniform1i("u_skyTexture", 1);
-        waterShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
+        waterShader.setUniform1f("u_renderDistance", (mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE);
         Shader blockShader("res/shaders/blockVertex.txt", "res/shaders/blockFragment.txt");
         blockShader.bind();
         blockShader.setUniform1i("u_blockTextures", 0);
         blockShader.setUniform1i("u_skyTexture", 1);
-        blockShader.setUniform1f("u_renderDistance", (m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE);
+        blockShader.setUniform1f("u_renderDistance", (mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE);
         Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
         Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
         crosshairShader.bind();
@@ -217,18 +276,16 @@ void RenderThread::go(bool* running) {
         FrameBuffer<false> skyFrameBuffer(windowDimensions);
         #endif
 
-        m_mainWorld->updatePlayerPos(m_mainPlayer->cameraBlockPosition, &(m_mainPlayer->viewCamera.position[0]));
+        mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
 
-        auto start = std::chrono::steady_clock::now();
-        auto end = std::chrono::steady_clock::now();
-        double time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000;
-        m_mainPlayer->processUserInput(m_window, windowDimensions, &windowLastFocus, running, time, m_networking);
-        m_mainWorld->doRenderThreadJobs();
+        double time;
+        mainPlayer.processUserInput(window, windowDimensions, &windowLastFocus, &running, time, networking);
+        mainWorld.doRenderThreadJobs();
 
-        m_mainWorld->initialiseEntityRenderBuffers();
+        mainWorld.initialiseEntityRenderBuffers();
 
         Font font("res/resourcePack/gui/font.png", windowDimensions);
-        // glfwSetCharCallback(m_window, characterCallback);
+        // glfwSetCharCallback(window, characterCallback);
 
         //set up game loop
         float exposure = 0.0;
@@ -237,17 +294,18 @@ void RenderThread::go(bool* running) {
         double DT = 1.0 / FPS_CAP;
         uint64_t frames = 0;
         uint64_t lastFrameRateFrames = 0;
-        end = std::chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
+        auto end = start;
         time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         double frameStart = time - DT;
         float lastFrameRateTime = frameStart + DT;
-        bool loopRunning = *running;
+        bool loopRunning = running;
         while (loopRunning) {
             glfwPollEvents();
             //toggle fullscreen if F11 pressed
-            if (glfwGetKey(m_window, GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
+            if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
                 if (windowFullScreen) {
-                    glfwSetWindowMonitor(m_window, nullptr,
+                    glfwSetWindowMonitor(window, nullptr,
                         smallScreenWindowPos[0], smallScreenWindowPos[1],
                         smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
                         displayMode->refreshRate );
@@ -255,18 +313,18 @@ void RenderThread::go(bool* running) {
                 else {
                     smallScreenWindowDimensions[0] = windowDimensions[0];
                     smallScreenWindowDimensions[1] = windowDimensions[1];
-                    glfwGetWindowPos(m_window, &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
-                    glfwSetWindowMonitor(m_window, glfwGetPrimaryMonitor(),
+                    glfwGetWindowPos(window, &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
+                    glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(),
                         0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
                 }
 
                 windowFullScreen = !windowFullScreen;
             }
-            lastF11 = glfwGetKey(m_window, GLFW_KEY_F11) == GLFW_PRESS;
-            if (glfwWindowShouldClose(m_window))
-                *running = false;
+            lastF11 = glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS;
+            if (glfwWindowShouldClose(window))
+                running = false;
             int windowSize[2];
-            glfwGetWindowSize(m_window, &windowSize[0], &windowSize[1]);
+            glfwGetWindowSize(window, &windowSize[0], &windowSize[1]);
             if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
                 windowDimensions[0] = windowSize[0];
                 windowDimensions[1] = windowSize[1];
@@ -296,7 +354,9 @@ void RenderThread::go(bool* running) {
                 double actualDT = currentTime - frameStart;
                 if (currentTime - lastFrameRateTime > 1) {
                     std::cout << frames - lastFrameRateFrames << " FPS\n";
-                    std::cout << m_mainPlayer->viewCamera.position[0] + m_mainPlayer->cameraBlockPosition[0] << ", " << m_mainPlayer->viewCamera.position[1] + m_mainPlayer->cameraBlockPosition[1] << ", " << m_mainPlayer->viewCamera.position[2] + m_mainPlayer->cameraBlockPosition[2] << "\n";
+                    std::cout << mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0] << ", "
+                        << mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1] << ", " 
+                        << mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2] << "\n";
                     lastFrameRateTime += 1;
                     lastFrameRateFrames = frames;
                 }
@@ -308,16 +368,16 @@ void RenderThread::go(bool* running) {
                     frameStart = currentTime;
                 }
 
-                m_mainPlayer->processUserInput(m_window, windowDimensions, &windowLastFocus, running, currentTime, m_networking);
-                m_mainWorld->updatePlayerPos(m_mainPlayer->cameraBlockPosition, &(m_mainPlayer->viewCamera.position[0]));
+                mainPlayer.processUserInput(window, windowDimensions, &windowLastFocus, &running, currentTime, networking);
+                mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
 
                 //create model view projection matrix for the world
                 float fov = 70.0;
-                fov = fov - fov * (2.0 / 3.0) * m_mainPlayer->zoom;
-                glm::mat4 projection = glm::perspective(glm::radians(fov), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((m_mainWorld->getRenderDistance() - 1) * constants::CHUNK_SIZE));
+                fov = fov - fov * (2.0 / 3.0) * mainPlayer.zoom;
+                glm::mat4 projection = glm::perspective(glm::radians(fov), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE));
                 glm::mat4 inverseProjection = glm::inverse(projection);
                 glm::mat4 view;
-                m_mainPlayer->viewCamera.getViewMatrix(&view);
+                mainPlayer.viewCamera.getViewMatrix(&view);
                 glm::mat4 inverseView = glm::inverse(view);
                 glm::mat4 model = (glm::mat4(1.0f));
                 glm::mat4 mvp = projection * view * model;
@@ -329,14 +389,14 @@ void RenderThread::go(bool* running) {
                 // Set up block outline
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                uint8_t lookingAtBlock = m_mainWorld->shootRay(m_mainPlayer->viewCamera.position,
-                    m_mainPlayer->cameraBlockPosition, m_mainPlayer->viewCamera.front,
+                uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
+                    mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
                     breakBlockCoords, placeBlockCoords);
                 if (lookingAtBlock) {
                     //create the model view projection matrix for the outline
                     glm::vec3 outlinePosition;
                     for (uint8_t i = 0; i < 3; i++) {
-                        outlinePosition[i] = breakBlockCoords[i] - m_mainPlayer->cameraBlockPosition[i];
+                        outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
                     }
                     model = glm::translate(model, outlinePosition);
                     glm::mat4 mvp = projection * view * model;
@@ -344,7 +404,7 @@ void RenderThread::go(bool* running) {
                     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
                 }
 
-                uint32_t timeOfDay = (m_mainWorld->integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+                uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
                 // std::cout << timeOfDay << ": " << groundLuminance << "\n";
@@ -409,8 +469,8 @@ void RenderThread::go(bool* running) {
                 glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
                 #endif
                 //auto tp1 = std::chrono::high_resolution_clock::now();
-                m_mainWorld->renderWorld(mainRenderer, blockShader, waterShader, view, projection,
-                    m_mainPlayer->cameraBlockPosition, (float)windowDimensions[0] /
+                mainWorld.renderWorld(mainRenderer, blockShader, waterShader, view, projection,
+                    mainPlayer.cameraBlockPosition, (float)windowDimensions[0] /
                     (float)windowDimensions[1], fov, groundLuminance, actualDT);
                 //auto tp2 = std::chrono::high_resolution_clock::now();
                 //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
@@ -425,7 +485,7 @@ void RenderThread::go(bool* running) {
                 // Draw the block outline
                 if (lookingAtBlock) {
                     VertexArray blockOutlineVA;
-                    VertexBuffer blockOutlineVB((*m_mainWorld).integratedServer.getResourcePack().getBlockData(
+                    VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
                         lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
                     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
                     mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
@@ -438,8 +498,8 @@ void RenderThread::go(bool* running) {
                 #else
                 const float minDarknessAmbientLight = 0.00002f;
                 float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
-                float skyLightLevel = (float)m_mainWorld->integratedServer.chunkManager.getSkyLight(
-                    m_mainPlayer->cameraBlockPosition) / constants::skyLightMaxValue;
+                float skyLightLevel = (float)mainWorld->integratedServer.chunkManager.getSkyLight(
+                    mainPlayer->cameraBlockPosition) / constants::skyLightMaxValue;
                 float factor = skyLightLevel * skyLightLevel * skyLightLevel;
                 float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
                     * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
@@ -474,47 +534,44 @@ void RenderThread::go(bool* running) {
                 font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
                 font.draw(mainRenderer);
 
-                glfwSwapBuffers(m_window);
+                glfwSwapBuffers(window);
 
-                *m_frameTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - end).count();
                 frames++;
             }
-            m_mainWorld->updateMeshes();
-            m_mainWorld->doRenderThreadJobs();
+            mainWorld.updateMeshes();
+            mainWorld.doRenderThreadJobs();
 
-            loopRunning = *running;
-            for (int8_t i = 0; i < m_mainWorld->getNumChunkLoaderThreads(); i++) {
-                loopRunning |= m_chunkLoaderThreadsRunning[i];
+            loopRunning = running;
+            for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
+                loopRunning |= chunkLoaderThreadsRunning[i];
             }
         }
     }
-    m_mainWorld->deinitialiseEntityRenderBuffers();
-    glfwDestroyWindow(m_window);
+    mainWorld.deinitialiseEntityRenderBuffers();
+    glfwDestroyWindow(window);
     glfwTerminate();
-}
 
-float RenderThread::calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
-    uint32_t preceedingPoint = numPoints * 2 - 2;
-    uint32_t succeedingPoint = 0;
-    if (time < points[numPoints * 2 - 2]) {
-        int i = 0;
-        while (i < numPoints * 2 && points[i] < time) {
-            i += 2;
-            preceedingPoint = i - 2;
-            succeedingPoint = i;
+    logicWorker.join();
+
+    delete[] chunkLoaderThreadsRunning;
+
+    if (multiplayer) {
+        std::lock_guard<std::mutex> lock(networking.getMutex());
+        enet_peer_disconnect(networking.getPeer(), 0);
+        ENetEvent event;
+        while (enet_host_service(networking.getHost(), &event, 3000) > 0) {
+            switch (event.type) {
+                case ENET_EVENT_TYPE_RECEIVE:
+                enet_packet_destroy(event.packet);
+                break;
+                case ENET_EVENT_TYPE_DISCONNECT:
+                std::cout << "Disconnection succeeded!" << std::endl;
+                break;
+            }
         }
-    }
-    float preceedingTime = points[preceedingPoint];
-    float succeedingTime = points[succeedingPoint];
-    if (succeedingTime < preceedingTime) {
-        float offset = (float)constants::DAY_LENGTH - preceedingTime;
-        preceedingTime = 0;
-        time = (time + (int)offset) % constants::DAY_LENGTH;
-        succeedingTime += offset;
-    }
-    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
 
-    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
+        enet_deinitialize();
+    }
 }
 
 }  // namespace client
