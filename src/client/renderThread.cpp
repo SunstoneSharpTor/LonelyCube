@@ -21,7 +21,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
-#include "client/graphics/stb_image.h"
+#include "lib/stb_image/stb_image.h"
 
 #include "client/logicThread.h"
 #include "core/pch.h"
