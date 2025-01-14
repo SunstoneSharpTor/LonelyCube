@@ -21,6 +21,8 @@
 #include "core/chunk.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 class ChunkManager
 {
 private:
@@ -42,3 +44,5 @@ public:
         return m_chunks;
     }
 };
+
+}  // namespace lonelycube

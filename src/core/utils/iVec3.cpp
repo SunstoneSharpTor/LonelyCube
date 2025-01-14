@@ -18,6 +18,10 @@
 
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 std::ostream& operator<<(std::ostream& os, const IVec3& vec) {
     return os << std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z);
 }
+
+}  // namespace lonelycube

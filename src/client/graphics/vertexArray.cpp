@@ -19,6 +19,8 @@
 #include "client/graphics/vertexArray.h"
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 VertexArray::VertexArray(bool empty) {
@@ -57,3 +59,5 @@ void VertexArray::unbind() const {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

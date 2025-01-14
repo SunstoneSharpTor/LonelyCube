@@ -24,6 +24,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 namespace client {
 
 Bloom::Bloom(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader& downsampleShader,
@@ -148,5 +150,7 @@ void Bloom::resize(uint32_t windowSize[2]) {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube
 
 #endif

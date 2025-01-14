@@ -22,6 +22,8 @@
 
 #include "core/resourceMonitor.h"
 
+namespace lonelycube {
+
 ThreadManager::ThreadManager(int numThreads) :
     m_numThreads(numThreads), m_numThreadsBeingUsed(1),
     m_numSystemThreads(std::thread::hardware_concurrency()),
@@ -51,3 +53,5 @@ void ThreadManager::joinThreads()
         m_threads[threadNum].join();
     }
 }
+
+}  // namespace lonelycube

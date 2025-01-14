@@ -21,6 +21,8 @@
 #include "core/pch.h"
 #include "core/resourcePack.h"
 
+namespace lonelycube {
+
 // Struct that stores a reference to a mesh in an instance of a mesh manager class, as well as a
 // copy of the untranslated vertices
 struct MeshComponent {
@@ -29,3 +31,5 @@ struct MeshComponent {
 
     MeshComponent(const Model* model, const uint16_t* faceTextureIndices);
 };
+
+}  // namespace lonelycube

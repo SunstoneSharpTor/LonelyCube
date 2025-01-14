@@ -18,6 +18,8 @@
 
 #include "core/entities/ECS.h"
 
+namespace lonelycube {
+
 ECS::ECS(int maxEntities) : m_maxEntities(maxEntities) {}
 
 ECS::~ECS() {
@@ -48,3 +50,5 @@ void ECS::destroyEntity(const EntityId id)
     m_entities[getEntityIndex(id)].mask.reset();
     m_freeEntities.push_back(getEntityIndex(id));
 }
+
+}  // namespace lonelycube

@@ -20,6 +20,8 @@
 
 #include "core/utils/vec3.h"
 
+namespace lonelycube {
+
 struct PhysicsComponent
 {
     Vec3 velocity;
@@ -28,3 +30,5 @@ struct PhysicsComponent
     PhysicsComponent(Vec3 velocity, Vec3 angularVelocity)
         : velocity(velocity), angularVelocity(angularVelocity) {}
 };
+
+}  // namespace lonelycube

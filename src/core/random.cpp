@@ -20,6 +20,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 static uint64_t PCG_Ramdom32State = 0x4d595df4d0f33173;
 
 uint32_t PCG_Hash32(uint32_t input) {
@@ -611,3 +613,5 @@ void seedNoise() {
         numbers.erase(numbers.begin() + location);
     }
 }
+
+}  // namespace lonelycube

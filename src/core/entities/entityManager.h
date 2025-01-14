@@ -25,6 +25,8 @@
 #include "core/utils/iVec3.h"
 #include "core/utils/vec3.h"
 
+namespace lonelycube {
+
 class EntityManager {
 private:
     ECS m_ecs;
@@ -47,3 +49,4 @@ public:
     }
 };
 
+}  // namespace lonelycube

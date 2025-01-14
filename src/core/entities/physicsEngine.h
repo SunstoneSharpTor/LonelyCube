@@ -22,6 +22,8 @@
 #include "core/entities/ECS.h"
 #include "core/resourcePack.h"
 
+namespace lonelycube {
+
 class PhysicsEngine
 {
 private:
@@ -35,3 +37,5 @@ public:
     bool entityCollidingWithWorld(EntityId entity);
     void extrapolateTransforms(float DT);
 };
+
+}  // namespace lonelycube

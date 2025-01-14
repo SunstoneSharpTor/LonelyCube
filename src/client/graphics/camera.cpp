@@ -18,10 +18,12 @@
 
 #include "client/graphics/camera.h"
 
+namespace lonelycube {
+
 namespace client {
 
 Camera::Camera(glm::vec3 Position, float yaw, float pitch, glm::vec3 WorldUp) {
-	position = Position;
+        position = Position;
     worldUp = WorldUp;
     updateRotationVectors(yaw, pitch);
 }
@@ -63,3 +65,5 @@ Frustum Camera::createViewFrustum(float aspect, float fovY, float zNear, float z
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

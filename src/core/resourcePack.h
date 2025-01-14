@@ -20,6 +20,8 @@
 
 #include "pch.h"
 
+namespace lonelycube {
+
 const uint8_t maxNumFaces = 6;
 
 struct Face {
@@ -63,3 +65,5 @@ public:
         return m_blockData[blockType];
     }
 };
+
+}  // namespace lonelycube

@@ -22,6 +22,8 @@
 #include <ostream>
 #include "core/utils/vec3.h"
 
+namespace lonelycube {
+
 struct IVec3 {
 private:
     int m_coords[3];
@@ -97,15 +99,17 @@ public:
     }
 };
 
+std::ostream& operator<<(std::ostream& os, const lonelycube::IVec3& vec);
+
+}  // namespace lonelycube
+
 namespace std {
     template<>
-    struct hash<IVec3> {
-        size_t operator()(const IVec3& key) const {
+    struct hash<lonelycube::IVec3> {
+        size_t operator()(const lonelycube::IVec3& key) const {
             return key.x * 8410720864772165619u
                 ^ key.y * 8220336697060211182u
                 ^ key.z * 11615669650507345147u;
         }
     };
 }
-
-std::ostream& operator<<(std::ostream& os, const IVec3& vec);

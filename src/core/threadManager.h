@@ -20,6 +20,8 @@
 
 #include "pch.h"
 
+namespace lonelycube {
+
 class ThreadManager
 {
     private:
@@ -27,7 +29,7 @@ class ThreadManager
         int m_numThreadsBeingUsed;
         int m_numSystemThreads;
         std::unique_ptr<std::thread[]> m_threads;
-    
+
     public:
         ThreadManager(int numThreads);
         void throttleThreads();
@@ -46,3 +48,5 @@ class ThreadManager
             return m_numThreadsBeingUsed;
         }
 };
+
+}  // namespace lonelycube

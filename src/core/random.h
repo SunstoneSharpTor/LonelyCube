@@ -16,6 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+namespace lonelycube {
+
 uint32_t PCG_Hash32(uint32_t input);
 
 uint32_t PCG_Random32();
@@ -33,3 +35,5 @@ float simplexNoise2d(float x, float y, float* borderDistance);
 void simplexNoiseGrad2d(float x, float y, float* value, float* gradient);
 
 //float simplexNoise3d(float x, float y);
+
+}  // namespace lonelycube

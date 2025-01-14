@@ -49,6 +49,8 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+namespace lonelycube {
+
 namespace client {
 
 static float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
@@ -575,3 +577,5 @@ void renderThread() {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

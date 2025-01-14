@@ -18,6 +18,8 @@
 
 #pragma once
 
+namespace lonelycube {
+
 namespace client {
 
 class VertexBuffer {
@@ -35,3 +37,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

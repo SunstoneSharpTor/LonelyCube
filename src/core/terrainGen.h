@@ -20,6 +20,8 @@
 
 #include "chunk.h"
 
+namespace lonelycube {
+
 class TerrainGen {
 private:
     static const int s_PV_NUM_OCTAVES;
@@ -66,3 +68,5 @@ private:
 public:
     void generateTerrain(Chunk& chunk, uint64_t seed);
 };
+
+}  // namespace lonelycube

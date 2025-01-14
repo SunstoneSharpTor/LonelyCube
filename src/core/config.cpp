@@ -20,6 +20,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 Config::Config(std::filesystem::path settingsPath) {
     // Set defaults
     m_renderDistance = 8;
@@ -56,3 +58,5 @@ Config::Config(std::filesystem::path settingsPath) {
     }
     stream.close();
 }
+
+}  // namespace lonelycube

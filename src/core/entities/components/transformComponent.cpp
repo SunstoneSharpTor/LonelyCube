@@ -21,6 +21,8 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/fwd.hpp"
 
+namespace lonelycube {
+
 TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3
     rotation) : scale(scale), blockCoords(blockCoords), subBlockCoords(subBlockCoords),
     rotation(rotation)
@@ -37,3 +39,5 @@ void TransformComponent::updateTransform()
     subBlockTransform = glm::rotate(subBlockTransform, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
     subBlockTransform *= glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 }
+
+}  // namespace lonelycube

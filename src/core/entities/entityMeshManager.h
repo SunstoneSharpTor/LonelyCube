@@ -28,6 +28,8 @@
 #include "core/utils/iVec3.h"
 #include "core/utils/vec3.h"
 
+namespace lonelycube {
+
 template<bool integrated>
 class EntityMeshManager
 {
@@ -124,3 +126,5 @@ float EntityMeshManager<integrated>::interpolateBlockLight(const IVec3& blockCoo
 {
     return (float)m_serverWorld.chunkManager.getBlockLight(blockCoords) / constants::blockLightMaxValue;
 }
+
+}  // namespace lonelycube

@@ -24,6 +24,8 @@
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 void ServerPlayer::initChunks() {
     m_minUnloadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);
     m_maxNumChunks = 0;
@@ -177,3 +179,5 @@ bool ServerPlayer::updateChunkLoadingTarget()
     m_targetNumLoadedChunks = m_nextUnloadedChunk + m_targetBufferSize;
     return m_targetNumLoadedChunks != oldTarget;
 }
+
+}  // namespace lonelycube

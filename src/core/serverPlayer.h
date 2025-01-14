@@ -25,6 +25,8 @@
 #include "core/chunk.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 class ServerPlayer {
 private:
     uint16_t m_renderDistance;
@@ -131,10 +133,12 @@ public:
     }
 };
 
+}  // namespace lonelycube
+
 namespace std {
     template<>
-    struct hash<ServerPlayer> {
-        size_t operator()(const ServerPlayer& key) const {
+    struct hash<lonelycube::ServerPlayer> {
+        size_t operator()(const lonelycube::ServerPlayer& key) const {
             return key.getID();
         }
     };

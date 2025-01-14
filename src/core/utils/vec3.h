@@ -18,6 +18,8 @@
 
 #pragma once
 
+namespace lonelycube {
+
 struct Vec3 {
 private:
     float m_coords[3];
@@ -95,3 +97,5 @@ public:
         z *= scalar;
     }
 };
+
+}  // namespace lonelycube

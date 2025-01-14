@@ -20,6 +20,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 bool ResourcePack::isTrue(std::basic_istream<char>& stream) const {
     std::string value;
     std::getline(stream, value, '\n');
@@ -277,3 +279,5 @@ void ResourcePack::getTextureCoordinates(float* coords, const float* textureBox,
     coords[6] = coords[0];
     coords[7] = coords[5];
 }
+
+}  // namespace lonelycube

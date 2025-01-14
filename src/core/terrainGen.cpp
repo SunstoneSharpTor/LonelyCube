@@ -23,6 +23,8 @@
 #include "core/block.h"
 #include "core/random.h"
 
+namespace lonelycube {
+
 //define world generation constants
 const int TerrainGen::s_PV_NUM_OCTAVES = 5;
 const int TerrainGen::s_CONTINENTALNESS_NUM_OCTAVES = 7;
@@ -453,3 +455,5 @@ void TerrainGen::generateTerrain(Chunk& chunk, uint64_t seed) {
 
     chunk.compressBlocksAndLight();
 }
+
+}  // namespace lonelycube

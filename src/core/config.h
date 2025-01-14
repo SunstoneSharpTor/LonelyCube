@@ -20,6 +20,8 @@
 
 #include "pch.h"
 
+namespace lonelycube {
+
 class Config {
 private:
     uint16_t m_renderDistance;
@@ -37,3 +39,5 @@ public:
         return m_multiplayer;
     }
 };
+
+}  // namespace lonelycube

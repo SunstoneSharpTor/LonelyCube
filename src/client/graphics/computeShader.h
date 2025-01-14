@@ -22,32 +22,36 @@
 
 #include "glm/glm.hpp"
 
+namespace lonelycube {
+
 namespace client {
 
 class ComputeShader {
 private:
-	std::string m_filePath;
-	uint32_t m_rendererID;
-	std::unordered_map<std::string, int> m_uniformLocationCache;
+    std::string m_filePath;
+    uint32_t m_rendererID;
+    std::unordered_map<std::string, int> m_uniformLocationCache;
 public:
-	ComputeShader(const std::string& filePath);
-	~ComputeShader();
+    ComputeShader(const std::string& filePath);
+    ~ComputeShader();
 
-	void bind() const;
-	void unbind() const;
+    void bind() const;
+    void unbind() const;
 
-	//set uniforms
-	void setUniform1i(const std::string& name, int value);
-	void setUniform1f(const std::string& name, float value);
-	void setUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
-	void setUniformMat4f(const std::string& name, const glm::mat4& value);
-	void setUniformVec3(const std::string& name, const glm::vec3& value);
+    //set uniforms
+    void setUniform1i(const std::string& name, int value);
+    void setUniform1f(const std::string& name, float value);
+    void setUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
+    void setUniformMat4f(const std::string& name, const glm::mat4& value);
+    void setUniformVec3(const std::string& name, const glm::vec3& value);
 private:
-	std::string parseShader(const std::string& filePath);
-	uint32_t compileShader(const std::string& source);
-	uint32_t createShader(const std::string& shader);
+    std::string parseShader(const std::string& filePath);
+    uint32_t compileShader(const std::string& source);
+    uint32_t createShader(const std::string& shader);
 
-	int getUniformLocation(const std::string& name);
+    int getUniformLocation(const std::string& name);
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

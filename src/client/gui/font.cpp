@@ -22,6 +22,8 @@
 
 #include "lib/stb_image/stb_image.h"
 
+namespace lonelycube {
+
 namespace client {
 
 Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
@@ -167,3 +169,5 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

@@ -23,6 +23,8 @@
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 class Chunk {
 private:
     std::array<uint8_t*, constants::CHUNK_SIZE> m_blocks;
@@ -213,3 +215,5 @@ public:
         return m_layerBlockTypes[layerNum];
     }
 };
+
+}  // namespace lonelycube

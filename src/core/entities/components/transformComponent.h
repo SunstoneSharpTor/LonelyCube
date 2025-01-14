@@ -22,6 +22,8 @@
 #include "core/utils/vec3.h"
 #include "glm/glm.hpp"
 
+namespace lonelycube {
+
 struct TransformComponent
 {
     float scale;
@@ -33,3 +35,5 @@ struct TransformComponent
     TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3 rotation);
     void updateTransform();
 };
+
+}  // namespace lonelycube

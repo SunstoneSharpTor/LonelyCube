@@ -29,6 +29,8 @@
 #include "core/serverWorld.h"
 #include <system_error>
 
+namespace lonelycube {
+
 namespace client {
 
 static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, false, false,
@@ -660,3 +662,5 @@ void ClientWorld::requestMoreChunks()
 }
 
 }  // namespace client
+
+}  // namespace lonelycube
