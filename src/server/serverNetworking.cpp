@@ -24,6 +24,8 @@
 #include "core/packet.h"
 #include "core/serverWorld.h"
 
+namespace lonelycube {
+
 namespace server {
 
 bool ServerNetworking::initServer(ENetAddress& address) {
@@ -168,3 +170,5 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
 }
 
 }  // namespace server
+
+}  // namespace lonelycube

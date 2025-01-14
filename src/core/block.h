@@ -16,6 +16,10 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+namespace lonelycube {
+
 enum Block {
     air, dirt, grass, stone, water, oakLog, oakLeaves, longGrass, sand, torch
 };
+
+}  // namespace lonelycube

@@ -18,9 +18,13 @@
 
 #pragma once
 
+namespace lonelycube {
+
 struct ItemComponent
 {
     int timer;
 
     ItemComponent(int timer) : timer(timer) {}
 };
+
+}  // namespace lonelycube

@@ -23,6 +23,8 @@
 #include "core/chunk.h"
 #include "core/packet.h"
 
+namespace lonelycube {
+
 void Compression::compressChunk(Packet<uint8_t,
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     Chunk& chunk) {
@@ -161,3 +163,5 @@ void Compression::getChunkPosition(Packet<uint8_t,
     }
     position = chunkPosition;
 }
+
+}  // namespace lonelycube

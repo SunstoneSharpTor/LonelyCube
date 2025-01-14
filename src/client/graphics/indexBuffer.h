@@ -18,6 +18,8 @@
 
 #pragma once
 
+namespace lonelycube {
+
 namespace client {
 
 class IndexBuffer {
@@ -40,3 +42,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

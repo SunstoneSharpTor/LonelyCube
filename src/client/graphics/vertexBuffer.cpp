@@ -19,6 +19,8 @@
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 VertexBuffer::VertexBuffer() {
@@ -58,3 +60,5 @@ void VertexBuffer::update(const void* data, uint32_t size) const
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

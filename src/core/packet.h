@@ -20,6 +20,8 @@
 
 #include "pch.h"
 
+namespace lonelycube {
+
 enum PacketType {
     ClientConnection, ChunkSent, ClientPosition, BlockReplaced, ChunkRequest
 };
@@ -74,3 +76,5 @@ public:
         return m_payload.data();
     }
 };
+
+}  // namespace lonelycube

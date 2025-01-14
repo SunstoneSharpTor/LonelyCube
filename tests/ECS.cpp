@@ -21,6 +21,8 @@
 #include "core/utils/iVec3.h"
 #include <catch2/catch_test_macros.hpp>
 
+using namespace lonelycube;
+
 TEST_CASE( "Entities can be added, destroyed and have components assigned to them", "[ECS]" ) {
     ECS ecs(1000);
     EntityId entity1 = ecs.newEntity();

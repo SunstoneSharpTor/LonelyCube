@@ -18,8 +18,12 @@
 
 #pragma once
 
+namespace lonelycube {
+
 namespace client {
 
 void renderThread();
 
 }  // namespace client
+
+}  // namespace lonelycube

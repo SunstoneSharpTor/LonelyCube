@@ -24,6 +24,8 @@
 #include "core/block.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 std::mutex Chunk::s_checkingNeighbouringRelights;
 
 const int16_t Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
@@ -323,3 +325,5 @@ void Chunk::uncompressBlocksAndLight()
         }
     }
 }
+
+}  // namespace lonelycube

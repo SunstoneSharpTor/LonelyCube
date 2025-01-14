@@ -25,6 +25,8 @@
 
 #include <GLFW/glfw3.h>
 
+namespace lonelycube {
+
 namespace client {
 
 class ClientPlayer {
@@ -84,3 +86,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

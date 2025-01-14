@@ -20,6 +20,8 @@
 
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 class Texture {
@@ -40,3 +42,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

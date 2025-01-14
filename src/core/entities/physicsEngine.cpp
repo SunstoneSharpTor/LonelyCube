@@ -27,6 +27,8 @@
 #include "core/random.h"
 #include "core/resourcePack.h"
 
+namespace lonelycube {
+
 PhysicsEngine::PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack)
     : m_chunkManager(chunkManager), m_ecs(ecs), m_resourcePack(resourcePack) {}
 
@@ -119,3 +121,5 @@ void PhysicsEngine::extrapolateTransforms(float DT)
         transform.rotation = actualRotation;
     }
 }
+
+}  // namespace lonelycube

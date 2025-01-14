@@ -21,6 +21,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+namespace lonelycube {
+
 namespace constants {
 
 constexpr uint16_t CHUNK_SIZE{ 32 };
@@ -60,4 +62,7 @@ constexpr float GROUND_LUMINANCE[NUM_GROUND_LUMINANCE_POINTS * 2] = {
 constexpr uint32_t CUBE_WIREFRAME_IB[16] = { 0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7 };
 
 }
+
 #endif
+
+}  // namespace lonelycube

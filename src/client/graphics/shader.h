@@ -22,6 +22,8 @@
 
 #include "glm/glm.hpp"
 
+namespace lonelycube {
+
 namespace client {
 
 struct shaderProgramSources {
@@ -55,3 +57,5 @@ private:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

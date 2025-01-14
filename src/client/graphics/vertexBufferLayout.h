@@ -22,6 +22,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 namespace client {
 
 struct VertexBufferElement {
@@ -77,3 +79,5 @@ inline void VertexBufferLayout::push<uint8_t>(uint32_t count) {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

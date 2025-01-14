@@ -26,6 +26,8 @@
 
 #include "client/graphics/computeShader.h"
 
+namespace lonelycube {
+
 namespace client {
 
 struct BloomMip {
@@ -59,5 +61,7 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube
 
 #endif

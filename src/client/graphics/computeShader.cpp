@@ -22,10 +22,12 @@
 
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 ComputeShader::ComputeShader(const std::string& filePath)
-	: m_filePath(filePath), m_rendererID(0) {
+        : m_filePath(filePath), m_rendererID(0) {
     std::string shaderSource = parseShader(filePath);
     m_rendererID = createShader(shaderSource);
 }
@@ -128,3 +130,5 @@ int ComputeShader::getUniformLocation(const std::string& name) {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

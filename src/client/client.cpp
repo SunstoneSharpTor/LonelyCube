@@ -20,8 +20,10 @@
 
 #include "client/renderThread.h"
 
-using namespace client;
+using namespace lonelycube::client;
 
 int main(int argc, char* argv[]) {
     renderThread();
+
+    return 0;
 }

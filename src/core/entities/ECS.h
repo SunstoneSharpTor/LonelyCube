@@ -22,6 +22,8 @@
 
 #include <bitset>
 
+namespace lonelycube {
+
 const int MAX_COMPONENTS = 32;
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
 typedef uint32_t EntityIndex;
@@ -178,3 +180,5 @@ void ECS::set(const EntityId id, const T& value)
     int componentId = getComponentId<T>();
     *static_cast<T*>(m_componentPools[componentId]->get(getEntityIndex(id))) = value;
 }
+
+}  // namespace lonelycube

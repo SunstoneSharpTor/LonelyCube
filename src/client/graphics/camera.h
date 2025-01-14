@@ -24,6 +24,8 @@
 
 #include "core/constants.h"
 
+namespace lonelycube {
+
 namespace client {
 
 struct Plane {
@@ -107,3 +109,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

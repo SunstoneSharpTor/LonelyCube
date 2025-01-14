@@ -19,6 +19,8 @@
 #include "resourceMonitor.h"
 #include "pch.h"
 
+namespace lonelycube {
+
 static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
 {
    static uint64_t _previousTotalTicks = 0;
@@ -72,3 +74,5 @@ float getCPULoad()
         return -1.0f;
     }
 #endif
+
+}  // namespace lonelycube

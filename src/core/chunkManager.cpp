@@ -18,6 +18,8 @@
 
 #include "core/chunkManager.h"
 
+namespace lonelycube {
+
 ChunkManager::ChunkManager()
 {
     // TODO:
@@ -97,3 +99,5 @@ uint8_t ChunkManager::getBlockLight(const IVec3& position) const {
 
     return chunkIterator->second.getBlockLight(chunkBlockNum);
 }
+
+}  // namespace lonelycube

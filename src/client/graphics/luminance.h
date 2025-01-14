@@ -26,6 +26,8 @@
 
 #include "client/graphics/computeShader.h"
 
+namespace lonelycube {
+
 namespace client {
 
 struct LuminanceMip {
@@ -53,5 +55,7 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube
 
 #endif

@@ -20,6 +20,8 @@
 
 #include "core/pch.h"
 
+namespace lonelycube {
+
 namespace client {
 
 void GLClearError() {
@@ -64,3 +66,5 @@ void Renderer::setOpenGlOptions() const {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

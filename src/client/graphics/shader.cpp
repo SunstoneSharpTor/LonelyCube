@@ -22,10 +22,12 @@
 
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFilePath)
-	: m_vertexFilePath(vertexFilePath), m_fragmentFilePath(fragmentFilePath), m_rendererID(0) {
+        : m_vertexFilePath(vertexFilePath), m_fragmentFilePath(fragmentFilePath), m_rendererID(0) {
     shaderProgramSources shaderSources = parseShaders(vertexFilePath, fragmentFilePath);
     m_rendererID = createShader(shaderSources.vertexSource, shaderSources.fragmentSource);
 }
@@ -134,3 +136,5 @@ int Shader::getUniformLocation(const std::string& name) {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

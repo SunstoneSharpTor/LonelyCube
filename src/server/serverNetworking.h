@@ -24,6 +24,8 @@
 
 #include "core/serverWorld.h"
 
+namespace lonelycube {
+
 namespace server {
 
 class ServerNetworking {
@@ -43,3 +45,5 @@ public:
 };
 
 }  // namespace server
+
+}  // namespace lonelycube

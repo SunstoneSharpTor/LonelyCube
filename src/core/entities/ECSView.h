@@ -20,6 +20,8 @@
 
 #include "core/entities/ECS.h"
 
+namespace lonelycube {
+
 template<typename... ComponentTypes>
 class ECSView
 {
@@ -134,3 +136,5 @@ const ECSView<ComponentTypes...>::Iterator ECSView<ComponentTypes...>::end() con
 {
     return Iterator(ecs, EntityIndex(ecs.getSize()), componentMask, all);
 }
+
+}  // namespace lonelycube

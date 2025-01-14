@@ -24,6 +24,8 @@
 #include "core/utils/iVec3.h"
 #include "core/resourcePack.h"
 
+namespace lonelycube {
+
 class Lighting {
 public:
     // Propagates the sky light through the chunk
@@ -165,3 +167,5 @@ private:
         }
     }
 };
+
+}  // namespace lonelycube

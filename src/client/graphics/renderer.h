@@ -24,6 +24,8 @@
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/shader.h"
 
+namespace lonelycube {
+
 namespace client {
 
 void GLClearError();
@@ -44,3 +46,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

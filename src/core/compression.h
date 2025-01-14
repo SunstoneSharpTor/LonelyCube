@@ -23,6 +23,8 @@
 #include "core/chunk.h"
 #include "core/packet.h"
 
+namespace lonelycube {
+
 class Compression {
 public:
     static void compressChunk(Packet<uint8_t,
@@ -35,3 +37,5 @@ public:
     9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE>& compressedChunk,
     IVec3& position);
 };
+
+}  // namespace lonelycube

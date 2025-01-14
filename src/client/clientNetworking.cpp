@@ -24,6 +24,8 @@
 
 #include "client/clientWorld.h"
 
+namespace lonelycube {
+
 namespace client {
 
 bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t renderDistance) {
@@ -119,3 +121,5 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

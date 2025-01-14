@@ -35,6 +35,8 @@
 #include "core/terrainGen.h"
 #include <sched.h>
 
+namespace lonelycube {
+
 template<bool integrated>
 class ServerWorld {
 public:
@@ -413,3 +415,5 @@ bool ServerWorld<integrated>::updateClientChunkLoadingTarget()
     bool changed = m_players.at(0).updateChunkLoadingTarget();
     return changed;
 }
+
+}  // namespace lonelycube

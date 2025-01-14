@@ -28,6 +28,8 @@
 #include "core/entities/components/transformComponent.h"
 #include "core/random.h"
 
+namespace lonelycube {
+
 EntityManager::EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack&
     resourcePack)
     : m_ecs(maxNumEntities), m_chunkManager(chunkManager), m_resourcePack(resourcePack),
@@ -54,3 +56,5 @@ void EntityManager::tick()
 {
     m_physicsEngine.stepPhysics();
 }
+
+}  // namespace lonelycube

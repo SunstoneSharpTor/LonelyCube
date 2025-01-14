@@ -27,7 +27,9 @@
 #include "server/serverNetworking.h"
 #include "core/resourceMonitor.h"
 
-using namespace server;
+using namespace lonelycube;
+
+using namespace lonelycube::server;
 
 static void receiveCommands(bool* running) {
     std::string command;

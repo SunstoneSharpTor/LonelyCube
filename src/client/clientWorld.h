@@ -38,6 +38,8 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "enet/enet.h"
 
+namespace lonelycube {
+
 namespace client {
 
 struct MeshData {
@@ -178,3 +180,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

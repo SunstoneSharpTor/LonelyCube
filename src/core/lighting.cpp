@@ -23,6 +23,8 @@
 #include "core/chunk.h"
 #include "core/utils/iVec3.h"
 
+namespace lonelycube {
+
 void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& worldChunks,
     bool* neighbouringChunksToBeRelit, bool* chunksToRemesh, const ResourcePack& resourcePack,
     uint32_t modifiedBlock)
@@ -970,3 +972,5 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
         // std::cout << numChunksLightened + numChunksDarkened << " chunks relit\n";
     }
 }
+
+}  // namespace lonelycube

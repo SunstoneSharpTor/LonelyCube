@@ -20,5 +20,9 @@
 
 #include "core/resourcePack.h"
 
+namespace lonelycube {
+
 MeshComponent::MeshComponent(const Model* model, const uint16_t* faceTextureIndices)
     : model(model), faceTextureIndices(faceTextureIndices) {}
+
+}  // namespace lonelycube

@@ -19,6 +19,8 @@
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/renderer.h"
 
+namespace lonelycube {
+
 namespace client {
 
 IndexBuffer::IndexBuffer() {
@@ -60,3 +62,5 @@ void IndexBuffer::update(const uint32_t* data, uint32_t count)
 }
 
 }  // namespace client
+
+}  // namespace lonelycube

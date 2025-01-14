@@ -25,6 +25,8 @@
 #include "client/clientWorld.h"
 #include "core/config.h"
 
+namespace lonelycube {
+
 namespace client {
 
 class LogicThread
@@ -49,3 +51,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube

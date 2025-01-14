@@ -26,6 +26,8 @@
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 
+namespace lonelycube {
+
 namespace client {
 
 class Font
@@ -55,3 +57,5 @@ public:
 };
 
 }  // namespace client
+
+}  // namespace lonelycube
