@@ -22,9 +22,7 @@
 
 #include "lib/stb_image/stb_image.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 Font::Font(const std::string& textureFilePath, uint32_t* windowDimensions)
     : m_shader("res/shaders/fontVertex.txt", "res/shaders/fontFragment.txt"),
@@ -168,6 +166,4 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
     stbi_image_free(pixels);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

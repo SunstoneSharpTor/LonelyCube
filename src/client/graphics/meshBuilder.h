@@ -25,9 +25,7 @@
 #include "core/resourcePack.h"
 #include "core/serverWorld.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class MeshBuilder {
 private:
@@ -70,6 +68,4 @@ public:
     void buildMesh();
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

@@ -38,9 +38,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "enet/enet.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct MeshData {
     VertexArray* vertexArray;
@@ -179,6 +177,4 @@ public:
     }
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

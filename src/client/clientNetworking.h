@@ -25,9 +25,7 @@
 #include "client/clientWorld.h"
 #include "core/packet.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class ClientNetworking {
 private:
@@ -49,6 +47,4 @@ public:
     }
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

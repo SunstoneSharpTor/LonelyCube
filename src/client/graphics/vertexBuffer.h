@@ -18,9 +18,7 @@
 
 #pragma once
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class VertexBuffer {
 private:
@@ -36,6 +34,4 @@ public:
     void update(const void* data, uint32_t size) const;
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

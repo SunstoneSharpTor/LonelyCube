@@ -21,9 +21,7 @@
 
 #include "client/graphics/texture.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 Texture::Texture(const std::string& path) : m_rendererID(0), m_filePath(path), m_localBuffer(nullptr), m_width(0), m_height(0), m_BPP(0) {
     //create and bind opengl texture object
@@ -68,6 +66,4 @@ void Texture::unbind() const {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

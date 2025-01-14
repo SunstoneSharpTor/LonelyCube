@@ -25,9 +25,7 @@
 
 #include "core/pch.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 Luminance::Luminance(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader&
     luminanceShader, ComputeShader& downsampleShader) : m_luminanceShader(luminanceShader),
@@ -122,8 +120,6 @@ void Luminance::resize(uint32_t windowSize[2]) {
     createMips(m_srcTexture.intSize);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client
 
 #endif

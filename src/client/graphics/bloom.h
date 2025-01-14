@@ -26,9 +26,7 @@
 
 #include "client/graphics/computeShader.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct BloomMip {
     glm::vec2 size;
@@ -60,8 +58,6 @@ public:
     }
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client
 
 #endif

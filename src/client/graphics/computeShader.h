@@ -22,9 +22,7 @@
 
 #include "glm/glm.hpp"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class ComputeShader {
 private:
@@ -52,6 +50,4 @@ private:
     int getUniformLocation(const std::string& name);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

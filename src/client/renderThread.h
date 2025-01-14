@@ -18,12 +18,8 @@
 
 #pragma once
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 void renderThread();
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

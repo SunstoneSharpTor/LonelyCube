@@ -26,9 +26,7 @@
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class Font
 {
@@ -56,6 +54,4 @@ public:
     void resize(const uint32_t* windowDimensions);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

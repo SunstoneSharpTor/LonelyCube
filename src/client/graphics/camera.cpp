@@ -18,9 +18,7 @@
 
 #include "client/graphics/camera.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 Camera::Camera(glm::vec3 Position, float yaw, float pitch, glm::vec3 WorldUp) {
         position = Position;
@@ -64,6 +62,4 @@ Frustum Camera::createViewFrustum(float aspect, float fovY, float zNear, float z
     return viewFrustum;
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

@@ -22,9 +22,7 @@
 
 #include "client/graphics/renderer.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFilePath)
         : m_vertexFilePath(vertexFilePath), m_fragmentFilePath(fragmentFilePath), m_rendererID(0) {
@@ -135,6 +133,4 @@ int Shader::getUniformLocation(const std::string& name) {
     return location;
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

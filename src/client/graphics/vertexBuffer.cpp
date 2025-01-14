@@ -19,9 +19,7 @@
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/renderer.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 VertexBuffer::VertexBuffer() {
     m_rendererID = 0;
@@ -59,6 +57,4 @@ void VertexBuffer::update(const void* data, uint32_t size) const
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

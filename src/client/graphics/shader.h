@@ -22,9 +22,7 @@
 
 #include "glm/glm.hpp"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct shaderProgramSources {
     std::string vertexSource;
@@ -56,6 +54,4 @@ private:
     int getUniformLocation(const std::string& name);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

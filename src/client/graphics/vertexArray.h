@@ -21,9 +21,7 @@
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/vertexBufferLayout.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class VertexArray {
 private:
@@ -39,6 +37,4 @@ public:
     void unbind() const;
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

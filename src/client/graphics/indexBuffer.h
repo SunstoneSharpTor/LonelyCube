@@ -18,9 +18,7 @@
 
 #pragma once
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class IndexBuffer {
 private:
@@ -41,6 +39,4 @@ public:
     void update(const uint32_t* data, uint32_t count);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

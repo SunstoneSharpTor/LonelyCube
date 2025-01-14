@@ -19,9 +19,7 @@
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/renderer.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 IndexBuffer::IndexBuffer() {
     m_rendererID = 0;
@@ -61,6 +59,4 @@ void IndexBuffer::update(const uint32_t* data, uint32_t count)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(GLuint), data, GL_DYNAMIC_DRAW);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

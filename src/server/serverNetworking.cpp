@@ -24,9 +24,7 @@
 #include "core/packet.h"
 #include "core/serverWorld.h"
 
-namespace lonelycube {
-
-namespace server {
+namespace lonelycube::server {
 
 bool ServerNetworking::initServer(ENetAddress& address) {
     std::lock_guard<std::mutex> lock(m_hostMtx);
@@ -169,6 +167,4 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
     m_hostMtx.unlock();
 }
 
-}  // namespace server
-
-}  // namespace lonelycube
+}  // namespace lonelycube::server
