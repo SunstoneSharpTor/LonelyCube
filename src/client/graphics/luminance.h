@@ -26,9 +26,7 @@
 
 #include "client/graphics/computeShader.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct LuminanceMip {
     glm::vec2 size;
@@ -54,8 +52,6 @@ public:
     void resize(uint32_t windowSize[2]);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client
 
 #endif

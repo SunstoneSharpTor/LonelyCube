@@ -25,9 +25,7 @@
 #include "client/clientWorld.h"
 #include "core/config.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class LogicThread
 {
@@ -50,6 +48,4 @@ public:
     void go(bool& running);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

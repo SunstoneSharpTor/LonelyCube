@@ -22,9 +22,7 @@
 
 #include "core/pch.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct VertexBufferElement {
    uint32_t type;
@@ -78,6 +76,4 @@ inline void VertexBufferLayout::push<uint8_t>(uint32_t count) {
    m_stride += VertexBufferElement::getSizeOfType(GL_UNSIGNED_BYTE) * count;
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

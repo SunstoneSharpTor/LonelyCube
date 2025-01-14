@@ -20,9 +20,7 @@
 
 #include "client/graphics/renderer.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class Texture {
 private:
@@ -41,6 +39,4 @@ public:
     inline int getHeight() const { return m_height; }
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

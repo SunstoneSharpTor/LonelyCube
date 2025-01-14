@@ -28,9 +28,7 @@
 #include "core/packet.h"
 #include "core/threadManager.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t threadNum, int&
     numThreadsBeingUsed) {
@@ -122,6 +120,4 @@ void LogicThread::go(bool& running)
     }
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

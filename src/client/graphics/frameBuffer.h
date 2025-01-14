@@ -27,9 +27,7 @@
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/vertexBufferLayout.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 template<bool zBuffer>
 class FrameBuffer {
@@ -156,6 +154,4 @@ void FrameBuffer<zBuffer>::draw(Shader& shader) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

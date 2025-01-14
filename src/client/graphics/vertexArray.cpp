@@ -19,9 +19,7 @@
 #include "client/graphics/vertexArray.h"
 #include "client/graphics/renderer.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 VertexArray::VertexArray(bool empty) {
     if (empty) {
@@ -58,6 +56,4 @@ void VertexArray::unbind() const {
     glBindVertexArray(0);
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

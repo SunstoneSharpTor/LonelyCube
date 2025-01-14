@@ -25,9 +25,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 class ClientPlayer {
 private:
@@ -85,6 +83,4 @@ public:
       windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

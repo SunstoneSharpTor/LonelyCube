@@ -24,9 +24,7 @@
 
 #include "client/clientWorld.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t renderDistance) {
     std::lock_guard<std::mutex> lock(m_hostMtx);
@@ -120,6 +118,4 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
     m_hostMtx.unlock();
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

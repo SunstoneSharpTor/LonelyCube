@@ -24,9 +24,7 @@
 
 #include "core/constants.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 struct Plane {
     //unit vector
@@ -108,6 +106,4 @@ public:
     Frustum createViewFrustum(float aspect, float fovY, float zNear, float zFar);
 };
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

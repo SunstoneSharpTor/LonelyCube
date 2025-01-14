@@ -22,9 +22,7 @@
 #include "core/constants.h"
 #include "core/packet.h"
 
-namespace lonelycube {
-
-namespace client {
+namespace lonelycube::client {
 
 const float ClientPlayer::m_hitBoxCorners[36] = { 0.0f, 0.0f, 0.0f,
                                             0.6f, 0.0f, 0.0f,
@@ -462,6 +460,4 @@ bool ClientPlayer::intersectingBlock(int* blockPos) {
     return false;
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client

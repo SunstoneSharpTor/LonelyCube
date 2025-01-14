@@ -23,9 +23,7 @@
 #include "core/chunk.h"
 #include "core/constants.h"
 
-namespace lonelycube {
-
-namespace client{
+namespace lonelycube::client {
 
 const int16_t MeshBuilder::s_neighbouringBlocksX[7] = { 0, 0, -1, 1, 0, 0,  0 };
 
@@ -329,6 +327,4 @@ void MeshBuilder::buildMesh()
     }
 }
 
-}  // namespace client
-
-}  // namespace lonelycube
+}  // namespace lonelycube::client
