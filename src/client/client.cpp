@@ -18,12 +18,15 @@
 
 #include <enet/enet.h>
 
-#include "client/renderThread.h"
+// #include "client/renderThread.h"
+#include "client/graphics/vulkan/helloTriangle.h"
 
 using namespace lonelycube::client;
 
 int main(int argc, char* argv[]) {
-    renderThread();
+    // renderThread();
+    HelloTriangleApplication app;
+    app.run();
 
     return 0;
 }

@@ -3,6 +3,8 @@ project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 
 enable_testing()
 
+find_package(Vulkan REQUIRED)
+
 add_subdirectory(lib/enet-1.3.18)
 add_subdirectory(lib/glfw-3.4)
 
@@ -34,6 +36,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/texture.cpp
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp
+    src/client/graphics/vulkan/helloTriangle.cpp
     src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
@@ -56,7 +59,7 @@ set(CLIENT_SOURCE_FILES
     src/core/utils/iVec3.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
-target_link_libraries(client enet glfw)
+target_link_libraries(client enet glfw Vulkan::Vulkan)
 target_precompile_headers(client PRIVATE
 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
