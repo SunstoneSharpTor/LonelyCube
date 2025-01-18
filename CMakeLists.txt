@@ -11,6 +11,9 @@ set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TY
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (CMAKE_BUILD_TYPE MATCHES Release)
+    add_compile_definitions(RELEASE)
+endif()
 
 set (CMAKE_CXX_STANDARD 20)
 
@@ -47,6 +50,7 @@ set(CLIENT_SOURCE_FILES
     src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp
+    src/core/log.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
     src/core/resourcePack.cpp
@@ -70,6 +74,7 @@ set(SERVER_SOURCE_FILES
     src/core/entities/components/meshComponent.cpp
     src/core/entities/components/transformComponent.cpp
     src/core/lighting.cpp
+    src/core/log.cpp
     src/core/serverPlayer.cpp
     src/core/random.cpp
     src/core/resourceMonitor.cpp
@@ -86,7 +91,9 @@ target_precompile_headers(server REUSE_FROM client)
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
-    target_link_options(client PRIVATE -mconsole)
+    if (NOT ${CMAKE_BUILD_TYPE} MATCHES Release)
+        target_link_options(client PRIVATE -mconsole)
+    endif()
     target_link_libraries(client winmm ws2_32)
     target_link_libraries(server winmm ws2_32)
 endif (MINGW)
@@ -98,8 +105,15 @@ endif()
 
 
 add_custom_command(TARGET client POST_BUILD
+    # Copy the res folder to the bin directory
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/res
-            ${FullOutputDir}/res)
+            ${FullOutputDir}/res
+
+    # Copy compile_commands.json to the build directory
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+            ${CMAKE_SOURCE_DIR}/build/compile_commands.json
+)
 
 add_subdirectory(tests)

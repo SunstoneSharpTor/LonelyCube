@@ -42,8 +42,8 @@ void ThreadManager::throttleThreads() {
     if (CPULoad < std::min(0.90f, 1.0f - 1.0f / m_numSystemThreads)) {
         m_numThreadsBeingUsed = std::min(m_numThreads, m_numThreadsBeingUsed + 1);
     }
-    // std::cout << CPULoad << " cpu load\n";
-    // std::cout << m_numThreadsBeingUsed << " threads\n";
+    // LOG(std::to_string(CPULoad) + " cpu load");
+    // LOG(std::to_string(m_numThreadsBeingUsed) + " threads\n");
 }
 
 void ThreadManager::joinThreads()

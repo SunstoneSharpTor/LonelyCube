@@ -30,6 +30,6 @@ folder in a terminal and run the following commands to build the
 project:
 
 ```sh
-cmake .
-make
+cmake -DCMAKE_BUILD_TYPE=Release -B build
+cmake --build build
 ```

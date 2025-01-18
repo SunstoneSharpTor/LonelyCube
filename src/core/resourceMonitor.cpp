@@ -33,7 +33,7 @@ static float calculateCPULoad(uint64_t idleTicks, uint64_t totalTicks)
 
    _previousTotalTicks = totalTicks;
    _previousIdleTicks  = idleTicks;
-   // std::cout << totalTicks << ", " << idleTicks << "\n";
+   // LOG(std::to_string(totalTicks) + ", " + std::to_string(idleTicks));
    return ret;
 }
 
