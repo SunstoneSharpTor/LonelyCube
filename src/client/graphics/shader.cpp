@@ -21,6 +21,7 @@
 #include "core/pch.h"
 
 #include "client/graphics/renderer.h"
+#include "core/log.h"
 
 namespace lonelycube::client {
 
@@ -70,7 +71,7 @@ uint32_t Shader::compileShader(uint32_t type, const std::string& source) {
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char* message = (char*)alloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
-        std::cout << "Failed to compile shader. " << message << std::endl;
+        LOG(std::string("Failed to compile shader. ") + message);
         glDeleteShader(id);
         return 0;
     }
@@ -126,7 +127,7 @@ int Shader::getUniformLocation(const std::string& name) {
     //otherwise, get the location, and cache it
     int location = glGetUniformLocation(m_rendererID, name.c_str());
     if (location == -1) {
-        std::cout << "Warning: uniform " << name << " doesn't exist." << std::endl;
+        LOG("Warning: uniform " + name + " doesn't exist.");
     }
     //cache the uniform location
     m_uniformLocationCache[name] = location;

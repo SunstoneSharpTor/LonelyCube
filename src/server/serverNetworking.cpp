@@ -21,6 +21,7 @@
 #include "core/pch.h"
 #include <cstring>
 
+#include "core/log.h"
 #include "core/packet.h"
 #include "core/serverWorld.h"
 
@@ -147,15 +148,15 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
         m_hostMtx.unlock();
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
-                std::cout << "A new client connected from "
-                    << event.peer -> address.host << ":"
-                    << event.peer -> address.port << "\n";
+                LOG("A new client connected from "
+                    + std::to_string(event.peer->address.host) + ":"
+                    + std::to_string(event.peer->address.port));
                 break;
             case ENET_EVENT_TYPE_RECEIVE:
                 receivePacket(event.packet, event.peer, mainWorld);
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
-                std::cout << event.peer->data << " disconnected.\n";
+                LOG(std::string((const char*)event.peer->data) + " disconnected.");
                 // Reset the peer's client information
                 event.peer->data = NULL;
                 break;

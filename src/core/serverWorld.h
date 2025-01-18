@@ -28,12 +28,12 @@
 #include "core/chunk.h"
 #include "core/compression.h"
 #include "core/constants.h"
+#include "core/log.h"
 #include "core/packet.h"
 #include "core/random.h"
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
-#include <sched.h>
 
 namespace lonelycube {
 
@@ -148,7 +148,7 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPo
                     }
                 }
                 else
-                    std::cout << "error\n";
+                    LOG("error");
             }
         }
         while (!m_chunksToBeLoaded.empty()) {
@@ -275,7 +275,7 @@ void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosit
 
 template<bool integrated>
 void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
-    std::cout << chunkManager.getWorldChunks().size() << std::endl;
+    LOG(std::to_string(chunkManager.getWorldChunks().size()));
     pauseChunkLoaderThreads();
 
     // Remove the player from all chunks that it had loaded
@@ -307,7 +307,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
         }
         i++;
     }
-    std::cout << i << " chunks checked\n";
+    LOG(std::to_string(i) + " chunks checked");
     while (!m_chunksToBeLoaded.empty()) {
         m_chunksToBeLoaded.pop();
     }
@@ -318,8 +318,8 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     m_playersMtx.unlock();
 
     releaseChunkLoaderThreads();
-    std::cout << playerID << " disconnected\n";
-    std::cout << chunkManager.getWorldChunks().size() << std::endl;
+    LOG(std::to_string(playerID) + " disconnected");
+    LOG(std::to_string(chunkManager.getWorldChunks().size()));
 }
 
 template<bool integrated>
