@@ -18,13 +18,14 @@
 
 #include "client/clientWorld.h"
 
-#include "client/graphics/camera.h"
-#include "client/graphics/renderer.h"
 #include "core/pch.h"
 
+#include "client/graphics/camera.h"
+#include "client/graphics/renderer.h"
 #include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
 #include "core/lighting.h"
+#include "core/log.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
 #include <system_error>
@@ -127,7 +128,7 @@ void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader
             doRenderThreadJobs();
         }
         // auto tp2 = std::chrono::high_resolution_clock::now();
-        // std::cout << "waited " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us for chunks to remesh\n";
+        // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
     }
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.indexBuffer->getCount() > 0) {
@@ -340,27 +341,21 @@ void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IV
     IVec3 blockPosInChunk = modifiedBlockPos - modifiedBlockChunk * constants::CHUNK_SIZE;
     if (blockPosInChunk.x == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(-1, 0, 0));
-        // std::cout << "1\n";
     }
     else if (blockPosInChunk.x == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(1, 0, 0));
-        // std::cout << "2\n";
     }
     if (blockPosInChunk.y == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, -1, 0));
-        // std::cout << "3\n";
     }
     else if (blockPosInChunk.y == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 1, 0));
-        // std::cout << "4\n";
     }
     if (blockPosInChunk.z == 0) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, -1));
-        // std::cout << "5\n";
     }
     else if (blockPosInChunk.z == constants::CHUNK_SIZE - 1) {
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, 1));
-        // std::cout << "6\n";
     }
 }
 
@@ -579,7 +574,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
 void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
-    // std::cout << (uint32_t)m_integratedServer.getBlockLight(blockCoords) << " block light level\n";
+    // LOG(std::to_string((uint32_t)m_integratedServer.getBlockLight(blockCoords)) + " block light level\n");
     uint8_t originalBlockType = integratedServer.chunkManager.getBlock(blockCoords);
     integratedServer.chunkManager.setBlock(blockCoords, blockType);
 
@@ -590,8 +585,8 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
         chunksToRemesh, integratedServer.chunkManager.getWorldChunks(), integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
-    // std::cout << chunksToRemesh.size() << " chunks remeshed\n";
-    // std::cout << "relight took " << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+    // LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
+    // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
     m_accessingArrIndicesVectorsMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {

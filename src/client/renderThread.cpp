@@ -23,13 +23,12 @@
 #include <enet/enet.h>
 #include "lib/stb_image/stb_image.h"
 
-#include "client/logicThread.h"
 #include "core/pch.h"
 
-#include "core/config.h"
-#include "core/constants.h"
+#include <string>
 #include <time.h>
 
+#include "client/logicThread.h"
 #include "client/clientNetworking.h"
 #include "client/graphics/bloom.h"
 #include "client/graphics/computeShader.h"
@@ -45,6 +44,9 @@
 #include "client/gui/font.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
+#include "core/config.h"
+#include "core/constants.h"
+#include "core/log.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -101,7 +103,7 @@ void renderThread() {
         settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
         multiplayer ? networking.getPeer() : nullptr, networking.getMutex()
     );
-    std::cout << "World Seed: " << worldSeed << std::endl;
+    LOG("World Seed: " + std::to_string(worldSeed));
     ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
 
     bool running = true;
@@ -353,10 +355,10 @@ void renderThread() {
             if (currentTime > frameStart + DT) {
                 double actualDT = currentTime - frameStart;
                 if (currentTime - lastFrameRateTime > 1) {
-                    std::cout << frames - lastFrameRateFrames << " FPS\n";
-                    std::cout << mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0] << ", "
-                        << mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1] << ", " 
-                        << mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2] << "\n";
+                    LOG(std::to_string(frames - lastFrameRateFrames) + " FPS");
+                    LOG(std::to_string(mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]) + ", "
+                        + std::to_string(mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]) + ", "
+                        + std::to_string(mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]));
                     lastFrameRateTime += 1;
                     lastFrameRateFrames = frames;
                 }
@@ -407,7 +409,7 @@ void renderThread() {
                 uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
-                // std::cout << timeOfDay << ": " << groundLuminance << "\n";
+                // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
 
                 // Render sky
                 #ifndef GLES3
@@ -473,14 +475,14 @@ void renderThread() {
                     mainPlayer.cameraBlockPosition, (float)windowDimensions[0] /
                     (float)windowDimensions[1], fov, groundLuminance, actualDT);
                 //auto tp2 = std::chrono::high_resolution_clock::now();
-                //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+                //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
                 //auto tp1 = std::chrono::high_resolution_clock::now();
                 #ifndef GLES3
                 bloom.render(0.005f, 0.005f);
                 #endif
                 //auto tp2 = std::chrono::high_resolution_clock::now();
-                //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count() << "us\n";
+                //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
                 // Draw the block outline
                 if (lookingAtBlock) {
@@ -565,7 +567,7 @@ void renderThread() {
                 enet_packet_destroy(event.packet);
                 break;
                 case ENET_EVENT_TYPE_DISCONNECT:
-                std::cout << "Disconnection succeeded!" << std::endl;
+                LOG("Disconnection succeeded!");
                 break;
             }
         }
