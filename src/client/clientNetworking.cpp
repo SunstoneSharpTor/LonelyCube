@@ -18,9 +18,10 @@
 
 #include "clientNetworking.h"
 
+#include "core/log.h"
 #include "core/packet.h"
-#include "core/pch.h"
 #include <cstring>
+#include <string>
 
 #include "client/clientWorld.h"
 
@@ -50,7 +51,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
 
     ENetEvent event;
     if ((enet_host_service(m_host, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
-        std::cout << "Connection to " << serverIP << " succeeded!" << std::endl;
+        LOG("Connection to " + serverIP + " succeeded!");
 
         Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
         payload[0] = renderDistance;
@@ -60,7 +61,7 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
     }
     else {
         enet_peer_reset(m_peer);
-        std::cout << "Connection to 127.0.0.1 failed." << std::endl;
+        LOG("Connection to 127.0.0.1 failed.");
         return false;
     }
 }
@@ -74,7 +75,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         Packet<uint16_t, 1> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         mainWorld.setClientID(payload[0]);
-        std::cout << "connected to server with clientID " << mainWorld.getClientID() << std::endl;
+        LOG("connected to server with clientID " + std::to_string(mainWorld.getClientID()));
     }
     break;
     case PacketType::ChunkSent:

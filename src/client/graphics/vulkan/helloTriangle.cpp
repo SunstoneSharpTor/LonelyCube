@@ -20,6 +20,8 @@
 
 #include "core/pch.h"
 
+#include "core/log.h"
+
 namespace lonelycube::client {
 
 const uint32_t WIDTH = 800;
@@ -88,7 +90,7 @@ void HelloTriangleApplication::createInstance()
     createInfo.enabledLayerCount = 0;
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
-        std::cerr << "Failed to create instance!\n";
+        LOG("Failed to create instance!");
 }
 
 }  // namespace lonelycube::client

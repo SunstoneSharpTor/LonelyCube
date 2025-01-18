@@ -18,7 +18,7 @@
 
 #include "client/graphics/renderer.h"
 
-#include "core/pch.h"
+#include "core/log.h"
 
 namespace lonelycube::client {
 
@@ -28,7 +28,7 @@ void GLClearError() {
 
 void GLPrintErrors() {
     while (GLenum error = glGetError()) {
-        std::cout << "OpenGL error: " << error << std::endl;
+        LOG("OpenGL error: " + std::to_string(error));
     }
 }
 

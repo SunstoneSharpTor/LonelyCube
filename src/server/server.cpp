@@ -17,11 +17,11 @@
 */
 
 #include "core/pch.h"
-#include <cstring>
 
 #include <enet/enet.h>
 
 #include "core/chunk.h"
+#include "core/log.h"
 #include "core/packet.h"
 #include "core/serverWorld.h"
 #include "server/serverNetworking.h"
@@ -57,13 +57,13 @@ int main (int argc, char** argv) {
     ServerNetworking networking;
 
     if (!networking.initServer(address)) {
-        std::cout << "Failed to initialise server" << std::endl;
+        LOG("Failed to initialise server");
         return 0;
     }
 
     uint32_t worldSeed = std::time(0);
     ServerWorld<false> mainWorld(worldSeed, networking.getMutex());
-    std::cout << "World Seed: " << worldSeed << std::endl;
+    LOG("World Seed: " + std::to_string(worldSeed));
 
     uint8_t numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
     bool* chunkLoaderThreadsRunning = new bool[numChunkLoaderThreads];
