@@ -498,8 +498,8 @@ void renderThread() {
                 #else
                 const float minDarknessAmbientLight = 0.00002f;
                 float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
-                float skyLightLevel = (float)mainWorld->integratedServer.chunkManager.getSkyLight(
-                    mainPlayer->cameraBlockPosition) / constants::skyLightMaxValue;
+                float skyLightLevel = (float)mainWorld.integratedServer.chunkManager.getSkyLight(
+                    mainPlayer.cameraBlockPosition) / constants::skyLightMaxValue;
                 float factor = skyLightLevel * skyLightLevel * skyLightLevel;
                 float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
                     * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
