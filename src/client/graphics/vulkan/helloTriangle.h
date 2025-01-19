@@ -21,23 +21,34 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
+#include "core/pch.h"
+
 namespace lonelycube::client {
 
 class HelloTriangleApplication
 {
 public:
+    HelloTriangleApplication();
     void run();
 
 private:
+    const uint32_t m_WIDTH = 800;
+    const uint32_t m_HEIGHT = 600;
+
     GLFWwindow* m_window;
     VkInstance m_instance;
+    const bool m_enableValidationLayers;
+    const std::vector<const char*> s_validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
     void initWindow();
-    void initVulkan();
+    bool initVulkan();
     void mainLoop();
     void cleanup();
 
-    void createInstance();
+    bool createInstance();
+    bool checkValidationLayerSupport();
 };
 
 }  // namespace lonelycube::client

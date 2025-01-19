@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <condition_variable>
 #include <cstdint>
 #include <filesystem>
