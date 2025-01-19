@@ -18,21 +18,28 @@
 
 #include "src/client/graphics/vulkan/helloTriangle.h"
 
-#include "core/pch.h"
-
 #include "core/log.h"
+#include <cstdint>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+HelloTriangleApplication::HelloTriangleApplication() :
+#ifdef RELEASE
+    m_enableValidationLayers(false)
+#else
+    m_enableValidationLayers(true)
+#endif
+{}
 
 void HelloTriangleApplication::run()
 {
     initWindow();
-    initVulkan();
-    mainLoop();
-    cleanup();
+    if (initVulkan())
+    {
+        mainLoop();
+        cleanup();
+    }
 }
 
 void HelloTriangleApplication::initWindow()
@@ -42,12 +49,12 @@ void HelloTriangleApplication::initWindow()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    m_window = glfwCreateWindow(m_WIDTH, m_HEIGHT, "Vulkan", nullptr, nullptr);
 }
 
-void HelloTriangleApplication::initVulkan()
+bool HelloTriangleApplication::initVulkan()
 {
-    createInstance();
+    return createInstance();
 }
 
 void HelloTriangleApplication::mainLoop()
@@ -59,15 +66,21 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
-    vkDestroyInstance(m_instance, nullptr);
+    // vkDestroyInstance(m_instance, nullptr);
 
     glfwDestroyWindow(m_window);
 
     glfwTerminate();
 }
 
-void HelloTriangleApplication::createInstance()
+bool HelloTriangleApplication::createInstance()
 {
+    if (m_enableValidationLayers && !checkValidationLayerSupport())
+    {
+        LOG("Validation layers requested but not available!");
+        return false;
+    }
+
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Lonely Cube";
@@ -87,10 +100,49 @@ void HelloTriangleApplication::createInstance()
 
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
-    createInfo.enabledLayerCount = 0;
+    if (m_enableValidationLayers)
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(s_validationLayers.size());
+        createInfo.ppEnabledLayerNames = s_validationLayers.data();
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+    }
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
+    {
         LOG("Failed to create instance!");
+        return false;
+    }
+
+    return true;
+}
+
+bool HelloTriangleApplication::checkValidationLayerSupport()
+{
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName: s_validationLayers)
+    {
+        bool layerFound = false;
+
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound)
+            return false;
+    }
+
+    return true;
 }
 
 }  // namespace lonelycube::client
