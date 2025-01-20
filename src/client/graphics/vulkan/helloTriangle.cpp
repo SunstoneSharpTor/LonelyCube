@@ -19,8 +19,6 @@
 #include "src/client/graphics/vulkan/helloTriangle.h"
 
 #include "core/log.h"
-#include <cstdint>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -54,7 +52,13 @@ void HelloTriangleApplication::initWindow()
 
 bool HelloTriangleApplication::initVulkan()
 {
-    return createInstance();
+    if (!createInstance())
+        return false;
+
+    if (!pickPhysicalDevice())
+        return false;
+
+    return true;
 }
 
 void HelloTriangleApplication::mainLoop()
@@ -77,7 +81,7 @@ bool HelloTriangleApplication::createInstance()
 {
     if (m_enableValidationLayers && !checkValidationLayerSupport())
     {
-        LOG("Validation layers requested but not available!");
+        LOG("Validation layers requested but not available");
         return false;
     }
 
@@ -87,7 +91,7 @@ bool HelloTriangleApplication::createInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.apiVersion = VK_API_VERSION_1_3;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -112,7 +116,7 @@ bool HelloTriangleApplication::createInstance()
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     {
-        LOG("Failed to create instance!");
+        LOG("Failed to create instance");
         return false;
     }
 
@@ -143,6 +147,85 @@ bool HelloTriangleApplication::checkValidationLayerSupport()
     }
 
     return true;
+}
+
+bool HelloTriangleApplication::pickPhysicalDevice()
+{
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+    if (deviceCount == 0)
+    {
+        LOG("Failed to find devices with vulkan support");
+        return false;
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
+
+    int maxRating = 0;
+    for (const auto& device : devices)
+    {
+        int rating = ratePhysicalDeviceSuitability(device);
+        if (rating > maxRating)
+        {
+            m_physicalDevice = device;
+            maxRating = rating;
+        }
+    }
+
+    if (m_physicalDevice == VK_NULL_HANDLE)
+    {
+        LOG("Failed to find a suitable GPU");
+        return false;
+    }
+
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
+    LOG(deviceProperties.deviceName + std::string(" selected for Vulkan"));
+
+    return true;
+}
+
+int HelloTriangleApplication::ratePhysicalDeviceSuitability(const VkPhysicalDevice& device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    QueueFamilyIndices indices = findQueueFamilies(device);
+
+    if (VK_VERSION_MINOR(deviceProperties.apiVersion) < 3
+        && VK_VERSION_MAJOR(deviceProperties.apiVersion) <= 1
+        || !indices.graphicsFamily.has_value()
+    ) {
+        return 0;
+    }
+
+    int score = 1;
+    score += 300 * (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
+    score += 1000 * (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+
+    return score;
+}
+
+HelloTriangleApplication::QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(
+    const VkPhysicalDevice& device
+) {
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    QueueFamilyIndices indices;
+    int i = 0;
+    for (int i = 0; i < queueFamilies.size(); i++)
+    {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            indices.graphicsFamily = i;
+    }
+
+    return indices;
 }
 
 }  // namespace lonelycube::client
