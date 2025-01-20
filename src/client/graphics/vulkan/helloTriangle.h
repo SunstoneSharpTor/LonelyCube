@@ -32,6 +32,11 @@ public:
     void run();
 
 private:
+    struct QueueFamilyIndices
+    {
+        std::optional<uint32_t> graphicsFamily;
+    };
+
     const uint32_t m_WIDTH = 800;
     const uint32_t m_HEIGHT = 600;
 
@@ -41,6 +46,7 @@ private:
     const std::vector<const char*> s_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 
     void initWindow();
     bool initVulkan();
@@ -49,6 +55,9 @@ private:
 
     bool createInstance();
     bool checkValidationLayerSupport();
+    bool pickPhysicalDevice();
+    int ratePhysicalDeviceSuitability(const VkPhysicalDevice& device);
+    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
 };
 
 }  // namespace lonelycube::client
