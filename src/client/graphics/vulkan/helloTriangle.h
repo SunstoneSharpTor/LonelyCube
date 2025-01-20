@@ -47,6 +47,8 @@ private:
         "VK_LAYER_KHRONOS_validation"
     };
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkDevice m_device;
+    VkQueue m_graphicsQueue;
 
     void initWindow();
     bool initVulkan();
@@ -58,6 +60,7 @@ private:
     bool pickPhysicalDevice();
     int ratePhysicalDeviceSuitability(const VkPhysicalDevice& device);
     QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
+    bool createLogicalDevice();
 };
 
 }  // namespace lonelycube::client

@@ -19,6 +19,7 @@
 #include "src/client/graphics/vulkan/helloTriangle.h"
 
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -54,8 +55,9 @@ bool HelloTriangleApplication::initVulkan()
 {
     if (!createInstance())
         return false;
-
     if (!pickPhysicalDevice())
+        return false;
+    if (!createLogicalDevice())
         return false;
 
     return true;
@@ -70,7 +72,9 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
-    // vkDestroyInstance(m_instance, nullptr);
+    vkDestroyDevice(m_device, nullptr);
+
+    vkDestroyInstance(m_instance, nullptr);
 
     glfwDestroyWindow(m_window);
 
@@ -226,6 +230,47 @@ HelloTriangleApplication::QueueFamilyIndices HelloTriangleApplication::findQueue
     }
 
     return indices;
+}
+
+bool HelloTriangleApplication::createLogicalDevice()
+{
+    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+
+    createInfo.enabledExtensionCount = 0;
+
+    if (m_enableValidationLayers)
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(s_validationLayers.size());
+        createInfo.ppEnabledLayerNames = s_validationLayers.data();
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
+    {
+        LOG("Failed to create logical device");
+        return false;
+    }
+
+    vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
+
+    return true;
 }
 
 }  // namespace lonelycube::client
