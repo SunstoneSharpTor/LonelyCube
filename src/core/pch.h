@@ -35,6 +35,7 @@
 // Data structures
 #include <array>
 #include <queue>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
