@@ -35,6 +35,7 @@ private:
     struct QueueFamilyIndices
     {
         std::optional<uint32_t> graphicsFamily;
+        std::optional<uint32_t> presentFamily;
     };
 
     const uint32_t m_WIDTH = 800;
@@ -49,6 +50,8 @@ private:
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
+    VkQueue m_presentQueue;
+    VkSurfaceKHR m_surface;
 
     void initWindow();
     bool initVulkan();
@@ -61,6 +64,7 @@ private:
     int ratePhysicalDeviceSuitability(const VkPhysicalDevice& device);
     QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
     bool createLogicalDevice();
+    bool createSurface();
 };
 
 }  // namespace lonelycube::client
