@@ -111,8 +111,8 @@ bool HelloTriangleApplication::createInstance()
     createInfo.ppEnabledExtensionNames = glfwExtensions;
     if (m_enableValidationLayers)
     {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(s_validationLayers.size());
-        createInfo.ppEnabledLayerNames = s_validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+        createInfo.ppEnabledLayerNames = m_validationLayers.data();
     }
     else
     {
@@ -136,7 +136,7 @@ bool HelloTriangleApplication::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName: s_validationLayers)
+    for (const char* layerName: m_validationLayers)
     {
         bool layerFound = false;
 
@@ -203,7 +203,8 @@ int HelloTriangleApplication::ratePhysicalDeviceSuitability(const VkPhysicalDevi
     if (VK_VERSION_MINOR(deviceProperties.apiVersion) < 3
         && VK_VERSION_MAJOR(deviceProperties.apiVersion) <= 1
         || !(indices.graphicsFamily.has_value()
-            && indices.presentFamily.has_value())
+            && indices.presentFamily.has_value()
+            && checkDeviceExtensionSupport(device))
     ) {
         return 0;
     }
@@ -213,6 +214,32 @@ int HelloTriangleApplication::ratePhysicalDeviceSuitability(const VkPhysicalDevi
     score += 1000 * (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
     return score;
+}
+
+bool HelloTriangleApplication::checkDeviceExtensionSupport(const VkPhysicalDevice& device)
+{
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(
+        device, nullptr, &extensionCount, availableExtensions.data()
+    );
+
+    std::set<std::string> requiredExtensions(m_deviceExtensions.begin(), m_deviceExtensions.end());
+
+    for (const auto& extension : availableExtensions)
+        requiredExtensions.erase(extension.extensionName);
+
+    return requiredExtensions.empty();
+}
+
+HelloTriangleApplication::SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(
+    VkPhysicalDevice device
+) {
+    SwapChainSupportDetails details;
+
+    return details;
 }
 
 HelloTriangleApplication::QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(
@@ -266,13 +293,13 @@ bool HelloTriangleApplication::createLogicalDevice()
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
-
-    createInfo.enabledExtensionCount = 0;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
     if (m_enableValidationLayers)
     {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(s_validationLayers.size());
-        createInfo.ppEnabledLayerNames = s_validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+        createInfo.ppEnabledLayerNames = m_validationLayers.data();
     }
     else
     {

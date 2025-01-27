@@ -38,14 +38,24 @@ private:
         std::optional<uint32_t> presentFamily;
     };
 
+    struct SwapChainSupportDetails
+    {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
     const uint32_t m_WIDTH = 800;
     const uint32_t m_HEIGHT = 600;
 
     GLFWwindow* m_window;
     VkInstance m_instance;
     const bool m_enableValidationLayers;
-    const std::vector<const char*> s_validationLayers = {
+    const std::vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
+    };
+    const std::vector<const char*> m_deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device;
@@ -65,6 +75,8 @@ private:
     QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
     bool createLogicalDevice();
     bool createSurface();
+    bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 };
 
 }  // namespace lonelycube::client
