@@ -27,7 +27,7 @@ namespace lonelycube {
 
 //define world generation constants
 const int TerrainGen::s_PV_NUM_OCTAVES = 5;
-const int TerrainGen::s_CONTINENTALNESS_NUM_OCTAVES = 7;
+const int TerrainGen::s_CONTINENTALNESS_NUM_OCTAVES = 8;
 const int TerrainGen::s_PVLOC_NUM_OCTAVES = 2;
 const int TerrainGen::s_RIVERS_NUM_OCTAVES = 5;
 const int TerrainGen::s_RIVER_BUMPS_NUM_OCTAVES = 2;
@@ -37,7 +37,7 @@ const float TerrainGen::s_RIVER_BUMPS_HEIGHT = 1.5f;
 
 const float TerrainGen::s_cliffTop = -0.4f;
 const float TerrainGen::s_cliffBase = -0.42f;
-const float TerrainGen::s_cliffHeight = 0.7f;
+const float TerrainGen::s_cliffHeight = 0.6f;
 const float TerrainGen::s_cliffDepth = -0.08f;
 
 void TerrainGen::calculateFractalNoiseOctaves(float* noiseArray, int minX, int minZ, int size, int numOctaves, float scale) {
@@ -68,9 +68,9 @@ void TerrainGen::calculateAllHeightMapNoise(int minX, int minZ, int size) {
         }
     }
 
-    calculateFractalNoiseOctaves(m_CONTINENTALNESS_n, minX, minZ, size, s_CONTINENTALNESS_NUM_OCTAVES, 2304.0f);
+    calculateFractalNoiseOctaves(m_CONTINENTALNESS_n, minX, minZ, size, s_CONTINENTALNESS_NUM_OCTAVES, 4608.0f);
     calculateFractalNoiseOctaves(m_PVLOC_n, minX, minZ, size, s_PVLOC_NUM_OCTAVES, 768.0f);
-    calculateFractalNoiseOctaves(m_RIVERS_n, minX, minZ, size, s_RIVERS_NUM_OCTAVES, 1600.0f);
+    calculateFractalNoiseOctaves(m_RIVERS_n, minX, minZ, size, s_RIVERS_NUM_OCTAVES, 2400.0f);
     calculateFractalNoiseOctaves(m_RIVER_BUMPS_n, minX, minZ, size, s_RIVER_BUMPS_NUM_OCTAVES, 32.0f);
 }
 
@@ -193,7 +193,7 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
     //using equation -1 / (mx^n + 1) + 1
     m_peaksAndValleysLocation = -1.5f / (1.4 * (m_peaksAndValleysLocation + 1.35f) * (m_peaksAndValleysLocation + 1.35f) + 1.0f) + 1.5f;
     //scale the peaks and valleys location to be higher near coasts so that mountains can still generate near coasts
-    m_peaksAndValleysLocation *= (std::pow(std::abs(m_continentalness / 1.5f), 0.01f) * m_continentalness + 0.6f) / 1.6f;
+    m_peaksAndValleysLocation *= (std::pow(std::abs(m_continentalness / 1.5f), 0.00001f) * m_continentalness + 0.6f) / 1.6f;
     //flatten out peaks and valleys location near continentalness 0 to create long beaches
     //using equation -1 / (mx^n + 1) + 1
     float pccSquared = m_preCliffContinentalness * m_preCliffContinentalness;
