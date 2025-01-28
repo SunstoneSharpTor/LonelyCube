@@ -62,6 +62,10 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
     VkSurfaceKHR m_surface;
+    VkSwapchainKHR m_swapchain;
+    std::vector<VkImage> m_swapchainImages;
+    VkFormat m_swapchainImageFormat;
+    VkExtent2D m_swapChainExtent;
 
     void initWindow();
     bool initVulkan();
@@ -77,6 +81,14 @@ private:
     bool createSurface();
     bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+        const std::vector<VkSurfaceFormatKHR>& availableFormats
+    );
+    VkPresentModeKHR chooseSwapPresentMode(
+        const std::vector<VkPresentModeKHR>& availablePresentModes
+    );
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    bool createSwapChain();
 };
 
 }  // namespace lonelycube::client
