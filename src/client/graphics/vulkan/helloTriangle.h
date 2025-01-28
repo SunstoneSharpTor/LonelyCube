@@ -65,7 +65,8 @@ private:
     VkSwapchainKHR m_swapchain;
     std::vector<VkImage> m_swapchainImages;
     VkFormat m_swapchainImageFormat;
-    VkExtent2D m_swapChainExtent;
+    VkExtent2D m_swapchainExtent;
+    std::vector<VkImageView> m_swapchainImageViews;
 
     void initWindow();
     bool initVulkan();
@@ -89,6 +90,7 @@ private:
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     bool createSwapChain();
+    bool createImageViews();
 };
 
 }  // namespace lonelycube::client
