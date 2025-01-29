@@ -76,11 +76,11 @@ private:
     bool createInstance();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
-    int ratePhysicalDeviceSuitability(const VkPhysicalDevice& device);
-    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
+    int ratePhysicalDeviceSuitability(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool createLogicalDevice();
     bool createSurface();
-    bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats
@@ -91,6 +91,7 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     bool createSwapChain();
     bool createImageViews();
+    bool createGraphicsPipeline();
 };
 
 }  // namespace lonelycube::client
