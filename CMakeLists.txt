@@ -40,6 +40,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp
     src/client/graphics/vulkan/helloTriangle.cpp
+    src/client/graphics/vulkan/shader.cpp
     src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
