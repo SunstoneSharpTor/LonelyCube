@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
@@ -48,7 +47,9 @@ private:
 
     const uint32_t m_WIDTH = 800;
     const uint32_t m_HEIGHT = 600;
+    const int m_MAX_FRAMES_IN_FLIGHT = 2;
 
+    uint32_t m_currentFrame = 0;
     GLFWwindow* m_window;
     VkInstance m_instance;
     const bool m_enableValidationLayers;
@@ -73,10 +74,10 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkCommandPool m_commandPool;
-    VkCommandBuffer m_commandBuffer;
-    VkSemaphore m_imageAvailableSemaphore;
-    VkSemaphore m_renderFinishedSemaphore;
-    VkFence m_inFlightFence;
+    std::vector<VkCommandBuffer> m_commandBuffers;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
 
     void initWindow();
     bool initVulkan();
@@ -105,7 +106,7 @@ private:
     bool createRenderPass();
     bool createFramebuffers();
     bool createCommandPool();
-    bool createCommandBuffer();
+    bool createCommandBuffers();
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createSyncObjects();
     bool drawFrame();
