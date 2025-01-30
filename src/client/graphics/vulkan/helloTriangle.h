@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
@@ -67,6 +68,7 @@ private:
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
     std::vector<VkImageView> m_swapchainImageViews;
+    VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
 
     void initWindow();
@@ -93,6 +95,7 @@ private:
     bool createSwapChain();
     bool createImageViews();
     bool createGraphicsPipeline();
+    bool createRenderPass();
 };
 
 }  // namespace lonelycube::client
