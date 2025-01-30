@@ -20,9 +20,6 @@
 
 #include "client/graphics/vulkan/shader.h"
 #include "core/log.h"
-#include <cstdint>
-#include <ranges>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -66,7 +63,7 @@ bool HelloTriangleApplication::initVulkan()
         && createGraphicsPipeline()
         && createFramebuffers()
         && createCommandPool()
-        && createCommandBuffer()
+        && createCommandBuffers()
         && createSyncObjects()
     ) {
         return true;
@@ -87,9 +84,12 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
-    vkDestroySemaphore(m_device, m_imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(m_device, m_renderFinishedSemaphore, nullptr);
-    vkDestroyFence(m_device, m_inFlightFence, nullptr);
+    for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+    }
 
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
@@ -770,17 +770,19 @@ bool HelloTriangleApplication::createCommandPool()
     return true;
 }
 
-bool HelloTriangleApplication::createCommandBuffer()
+bool HelloTriangleApplication::createCommandBuffers()
 {
+    m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
+
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = m_commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-    if (vkAllocateCommandBuffers(m_device, &allocInfo, &m_commandBuffer) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
     {
-        LOG("Failed to allocate command buffer");
+        LOG("Failed to allocate command buffers");
         return false;
     }
 
@@ -843,26 +845,33 @@ bool HelloTriangleApplication::recordCommandBuffer(
 
 bool HelloTriangleApplication::createSyncObjects()
 {
+    m_imageAvailableSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
+    m_inFlightFences.resize(m_MAX_FRAMES_IN_FLIGHT);
+
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    if (vkCreateSemaphore(
-        m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS
-        || vkCreateSemaphore(
-        m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS)
-    {
-        LOG("Failed to create semaphores");
-        return false;
-    }
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS)
+    for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
     {
-        LOG("Failed to create fence");
-        return false;
+        if (vkCreateSemaphore(
+            m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS
+            || vkCreateSemaphore(
+            m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS)
+        {
+            LOG("Failed to create semaphores");
+            return false;
+        }
+
+        if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+        {
+            LOG("Failed to create fence");
+            return false;
+        }
     }
 
     return true;
@@ -870,29 +879,31 @@ bool HelloTriangleApplication::createSyncObjects()
 
 bool HelloTriangleApplication::drawFrame()
 {
-    vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device, 1, &m_inFlightFence);
+    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     uint32_t imageIndex;
     vkAcquireNextImageKHR(
-        m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex
+        m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
+        VK_NULL_HANDLE, &imageIndex
     );
 
-    vkResetCommandBuffer(m_commandBuffer, 0);
-    recordCommandBuffer(m_commandBuffer, imageIndex);
+    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+    recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &m_imageAvailableSemaphore;
+    submitInfo.pWaitSemaphores = &m_imageAvailableSemaphores[m_currentFrame];
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffer;
+    submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &m_renderFinishedSemaphore;
+    submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 
-    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
+    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame])
+        != VK_SUCCESS)
     {
         LOG("Failed to submit draw command buffer");
         return false;
@@ -901,13 +912,15 @@ bool HelloTriangleApplication::drawFrame()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore;
+    presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapchain;
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 
     vkQueuePresentKHR(m_presentQueue, &presentInfo);
+
+    m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
 
     return true;
 }
