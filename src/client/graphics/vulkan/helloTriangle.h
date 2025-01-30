@@ -68,6 +68,7 @@ private:
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
     std::vector<VkImageView> m_swapchainImageViews;
+    std::vector<VkFramebuffer> m_swapchainFramebuffers;
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
@@ -97,6 +98,7 @@ private:
     bool createImageViews();
     bool createGraphicsPipeline();
     bool createRenderPass();
+    bool createFramebuffers();
 };
 
 }  // namespace lonelycube::client

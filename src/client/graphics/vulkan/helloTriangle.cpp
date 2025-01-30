@@ -63,6 +63,7 @@ bool HelloTriangleApplication::initVulkan()
         && createImageViews()
         && createRenderPass()
         && createGraphicsPipeline()
+        && createFramebuffers()
     ) {
         return true;
     }
@@ -79,6 +80,9 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
+    for (auto framebuffer : m_swapchainFramebuffers)
+        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
@@ -690,6 +694,36 @@ bool HelloTriangleApplication::createRenderPass()
     {
         LOG("Failed to create render pass");
         return false;
+    }
+
+    return true;
+}
+
+bool HelloTriangleApplication::createFramebuffers()
+{
+    m_swapchainFramebuffers.resize(m_swapchainImageViews.size());
+
+    for (size_t i = 0; i < m_swapchainImageViews.size(); i++)
+    {
+        VkImageView attachments[] = {
+            m_swapchainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = m_renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = m_swapchainExtent.width;
+        framebufferInfo.height = m_swapchainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_swapchainFramebuffers[i])
+            != VK_SUCCESS)
+        {
+            LOG("Failed to create framebuffer");
+            return 0;
+        }
     }
 
     return true;
