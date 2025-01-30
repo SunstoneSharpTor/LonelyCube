@@ -74,6 +74,9 @@ private:
     VkPipeline m_graphicsPipeline;
     VkCommandPool m_commandPool;
     VkCommandBuffer m_commandBuffer;
+    VkSemaphore m_imageAvailableSemaphore;
+    VkSemaphore m_renderFinishedSemaphore;
+    VkFence m_inFlightFence;
 
     void initWindow();
     bool initVulkan();
@@ -104,6 +107,8 @@ private:
     bool createCommandPool();
     bool createCommandBuffer();
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    bool createSyncObjects();
+    bool drawFrame();
 };
 
 }  // namespace lonelycube::client
