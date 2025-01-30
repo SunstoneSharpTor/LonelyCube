@@ -72,6 +72,8 @@ private:
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
+    VkCommandPool m_commandPool;
+    VkCommandBuffer m_commandBuffer;
 
     void initWindow();
     bool initVulkan();
@@ -99,6 +101,9 @@ private:
     bool createGraphicsPipeline();
     bool createRenderPass();
     bool createFramebuffers();
+    bool createCommandPool();
+    bool createCommandBuffer();
+    bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 };
 
 }  // namespace lonelycube::client
