@@ -18,10 +18,18 @@
 
 #include "src/client/graphics/vulkan/helloTriangle.h"
 
+#include "GLFW/glfw3.h"
 #include "client/graphics/vulkan/shader.h"
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
+
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+    app->singalFramebufferResize();
+}
 
 HelloTriangleApplication::HelloTriangleApplication() :
 #ifdef RELEASE
@@ -46,9 +54,10 @@ void HelloTriangleApplication::initWindow()
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     m_window = glfwCreateWindow(m_WIDTH, m_HEIGHT, "Vulkan", nullptr, nullptr);
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }
 
 bool HelloTriangleApplication::initVulkan()
@@ -57,7 +66,7 @@ bool HelloTriangleApplication::initVulkan()
         && createSurface()
         && pickPhysicalDevice()
         && createLogicalDevice()
-        && createSwapChain()
+        && createSwapchain()
         && createImageViews()
         && createRenderPass()
         && createGraphicsPipeline()
@@ -82,8 +91,26 @@ void HelloTriangleApplication::mainLoop()
     vkDeviceWaitIdle(m_device);
 }
 
+void HelloTriangleApplication::cleanupSwapchain()
+{
+    for (auto framebuffer : m_swapchainFramebuffers)
+        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+
+    for (auto& imageView : m_swapchainImageViews)
+        vkDestroyImageView(m_device, imageView, nullptr);
+
+    vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+}
+
 void HelloTriangleApplication::cleanup()
 {
+    cleanupSwapchain();
+
+    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+
+    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+
     for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
@@ -93,17 +120,6 @@ void HelloTriangleApplication::cleanup()
 
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
-    for (auto framebuffer : m_swapchainFramebuffers)
-        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-
-    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-
-    for (auto& imageView : m_swapchainImageViews)
-        vkDestroyImageView(m_device, imageView, nullptr);
-
-    vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     vkDestroyDevice(m_device, nullptr);
 
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
@@ -446,7 +462,7 @@ VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitie
     }
 }
 
-bool HelloTriangleApplication::createSwapChain()
+bool HelloTriangleApplication::createSwapchain()
 {
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice);
 
@@ -880,13 +896,25 @@ bool HelloTriangleApplication::createSyncObjects()
 bool HelloTriangleApplication::drawFrame()
 {
     vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(
+    VkResult result = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
         VK_NULL_HANDLE, &imageIndex
     );
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        recreateSwapchain();
+        return true;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        LOG("Failed to acquire swap chain image");
+        return false;
+    }
+
+    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
     recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
@@ -918,11 +946,38 @@ bool HelloTriangleApplication::drawFrame()
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 
-    vkQueuePresentKHR(m_presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized)
+    {
+        m_framebufferResized = false;
+        recreateSwapchain();
+    }
+    else if (result != VK_SUCCESS)
+    {
+        LOG("Failed to present swap chain image");
+        return false;
+    }
 
     m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
 
     return true;
+}
+
+bool HelloTriangleApplication::recreateSwapchain()
+{
+    vkDeviceWaitIdle(m_device);
+
+    cleanupSwapchain();
+
+    if(createSwapchain()
+        && createImageViews()
+        && createFramebuffers())
+    {
+        return true;
+    }
+
+    return false;
 }
 
 }  // namespace lonelycube::client

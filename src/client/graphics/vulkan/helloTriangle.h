@@ -30,6 +30,10 @@ class HelloTriangleApplication
 public:
     HelloTriangleApplication();
     void run();
+    inline void singalFramebufferResize()
+    {
+        m_framebufferResized = true;
+    }
 
 private:
     struct QueueFamilyIndices
@@ -78,12 +82,14 @@ private:
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
+    bool m_framebufferResized = false;
 
     void initWindow();
     bool initVulkan();
     void mainLoop();
     void cleanup();
 
+    void cleanupSwapchain();
     bool createInstance();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
@@ -100,7 +106,8 @@ private:
         const std::vector<VkPresentModeKHR>& availablePresentModes
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    bool createSwapChain();
+    bool createSwapchain();
+    bool recreateSwapchain();
     bool createImageViews();
     bool createGraphicsPipeline();
     bool createRenderPass();
