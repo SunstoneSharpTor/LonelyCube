@@ -19,14 +19,21 @@
 #include <enet/enet.h>
 
 // #include "client/renderThread.h"
-#include "client/graphics/vulkan/helloTriangle.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
 
 using namespace lonelycube::client;
 
 int main(int argc, char* argv[]) {
     // renderThread();
-    HelloTriangleApplication app;
-    app.run();
+    VulkanEngine vulkanEngine;
+    vulkanEngine.init();
+
+    while (!glfwWindowShouldClose(vulkanEngine.getWindow())) {
+        glfwPollEvents();
+        vulkanEngine.drawFrame();
+    }
+
+    vulkanEngine.cleanup();
 
     return 0;
 }
