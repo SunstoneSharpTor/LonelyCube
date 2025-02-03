@@ -43,6 +43,8 @@ struct FrameData
 {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+    VkSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
+    VkFence inFlightFence;
 };
 
 class VulkanEngine
@@ -83,9 +85,6 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     std::vector<FrameData> m_frameData;
-    std::vector<VkSemaphore> m_imageAvailableSemaphores;
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
     bool m_framebufferResized = false;
 
     void initWindow();
@@ -119,7 +118,7 @@ private:
     bool createCommandPool(VkCommandPool& commandPool);
     bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    bool createSyncObjects();
+    bool createSyncObjects(int frameNum);
 
 public:
     inline VkDevice getDevice()
