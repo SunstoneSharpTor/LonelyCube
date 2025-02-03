@@ -42,6 +42,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vulkan/helloTriangle.cpp
     src/client/graphics/vulkan/shader.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
+    src/client/graphics/vulkan/vulkanImage.cpp
     src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
