@@ -18,8 +18,8 @@
 
 #include "src/client/graphics/vulkan/vulkanEngine.h"
 
-#include "GLFW/glfw3.h"
 #include "client/graphics/vulkan/shader.h"
+#include "client/graphics/vulkan/vulkanImage.h"
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
 
@@ -222,9 +222,7 @@ bool VulkanEngine::pickPhysicalDevice()
 int VulkanEngine::ratePhysicalDeviceSuitability(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
     if (VK_VERSION_MINOR(deviceProperties.apiVersion) < 3
         && VK_VERSION_MAJOR(deviceProperties.apiVersion) <= 1
@@ -238,6 +236,9 @@ int VulkanEngine::ratePhysicalDeviceSuitability(VkPhysicalDevice device)
         return 0;
 
     if (!checkDeviceExtensionSupport(device))
+        return 0;
+
+    if (!checkDeviceFeaturesSupport(device))
         return 0;
 
     SwapchainSupportDetails swapChainSupport = querySwapchainSupport(device);
@@ -267,6 +268,27 @@ bool VulkanEngine::checkDeviceExtensionSupport(VkPhysicalDevice device)
         requiredExtensions.erase(extension.extensionName);
 
     return requiredExtensions.empty();
+}
+
+bool VulkanEngine::checkDeviceFeaturesSupport(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceVulkan13Features device13features{};
+    device13features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
+    VkPhysicalDeviceVulkan12Features device12features{};
+    device12features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    device12features.pNext = &device13features;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures{};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.pNext = &device12features;
+
+    vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
+
+    return device12features.bufferDeviceAddress == VK_TRUE
+        && device12features.descriptorIndexing == VK_TRUE
+        && device13features.dynamicRendering == VK_TRUE
+        && device13features.synchronization2 == VK_TRUE;
 }
 
 SwapchainSupportDetails VulkanEngine::querySwapchainSupport(
@@ -347,13 +369,26 @@ bool VulkanEngine::createLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceVulkan13Features device13features{};
+    device13features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    device13features.dynamicRendering = VK_TRUE;
+    device13features.synchronization2 = VK_TRUE;
+
+    VkPhysicalDeviceVulkan12Features device12features{};
+    device12features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    device12features.pNext = &device13features;
+    device12features.bufferDeviceAddress = VK_TRUE;
+    device12features.descriptorIndexing = VK_TRUE;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures{};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.pNext = &device12features;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pNext = &deviceFeatures;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
@@ -465,7 +500,7 @@ bool VulkanEngine::createSwapchain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
     uint32_t queueFamilyIndices[] = {
@@ -842,11 +877,11 @@ bool VulkanEngine::createSyncObjects(int frameNum)
 }
 
 bool VulkanEngine::recordCommandBuffer(
-    VkCommandBuffer commandBuffer, uint32_t imageIndex
+    VkCommandBuffer commandBuffer, uint32_t swapchainImageIndex
 ) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     beginInfo.pInheritanceInfo = nullptr;
 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
@@ -855,36 +890,62 @@ bool VulkanEngine::recordCommandBuffer(
         return false;
     }
 
-    VkRenderPassBeginInfo renderPassBeginInfo{};
-    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassBeginInfo.renderPass = m_renderPass;
-    renderPassBeginInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
-    renderPassBeginInfo.renderArea.offset = { 0, 0 };
-    renderPassBeginInfo.renderArea.extent = m_swapchainExtent;
+    transitionImage(
+        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL
+    );
 
-    VkClearValue clearColour = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
-    renderPassBeginInfo.clearValueCount = 1;
-    renderPassBeginInfo.pClearValues = &clearColour;
+    VkClearColorValue clearValue;
+    float flash = std::abs(std::sin(m_currentFrame / 120.0f));
+    clearValue = {{ 0.0f, 0.0f, flash, 1.0f }};
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    VkImageSubresourceRange clearRange{};
+    clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    clearRange.baseMipLevel = 0;
+    clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    clearRange.baseArrayLayer = 0;
+    clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_swapchainExtent.width);
-    viewport.height = static_cast<float>(m_swapchainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    vkCmdClearColorImage(
+        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL,
+        &clearValue, 1, &clearRange
+    );
 
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = m_swapchainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    transitionImage(
+        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    );
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-    vkCmdEndRenderPass(commandBuffer);
+    // VkRenderPassBeginInfo renderPassBeginInfo{};
+    // renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    // renderPassBeginInfo.renderPass = m_renderPass;
+    // renderPassBeginInfo.framebuffer = m_swapchainFramebuffers[swapchainImageIndex];
+    // renderPassBeginInfo.renderArea.offset = { 0, 0 };
+    // renderPassBeginInfo.renderArea.extent = m_swapchainExtent;
+    //
+    // VkClearValue clearColour = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+    // renderPassBeginInfo.clearValueCount = 1;
+    // renderPassBeginInfo.pClearValues = &clearColour;
+    //
+    // vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    //
+    // VkViewport viewport{};
+    // viewport.x = 0.0f;
+    // viewport.y = 0.0f;
+    // viewport.width = static_cast<float>(m_swapchainExtent.width);
+    // viewport.height = static_cast<float>(m_swapchainExtent.height);
+    // viewport.minDepth = 0.0f;
+    // viewport.maxDepth = 1.0f;
+    // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    //
+    // VkRect2D scissor{};
+    // scissor.offset = { 0, 0 };
+    // scissor.extent = m_swapchainExtent;
+    // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    //
+    // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    // vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
     {
@@ -898,12 +959,13 @@ bool VulkanEngine::recordCommandBuffer(
 bool VulkanEngine::drawFrame()
 {
     FrameData currentFrameData = m_frameData[m_currentFrame % 2];
+
     vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX);
 
-    uint32_t imageIndex;
+    uint32_t swapchainImageIndex;
     VkResult result = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore,
-        VK_NULL_HANDLE, &imageIndex
+        VK_NULL_HANDLE, &swapchainImageIndex
     );
 
     // Check for resizing
@@ -922,7 +984,7 @@ bool VulkanEngine::drawFrame()
 
     VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
     vkResetCommandBuffer(commandBuffer, 0);
-    recordCommandBuffer(commandBuffer, imageIndex);
+    recordCommandBuffer(commandBuffer, swapchainImageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -948,7 +1010,7 @@ bool VulkanEngine::drawFrame()
     presentInfo.pWaitSemaphores = &currentFrameData.renderFinishedSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapchain;
-    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pImageIndices = &swapchainImageIndex;
     presentInfo.pResults = nullptr;
 
     result = vkQueuePresentKHR(m_presentQueue, &presentInfo);

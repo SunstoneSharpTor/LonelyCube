@@ -59,17 +59,17 @@ private:
     const uint32_t m_WIDTH = 800;
     const uint32_t m_HEIGHT = 600;
     const int m_MAX_FRAMES_IN_FLIGHT = 2;
-
-    uint32_t m_currentFrame = 0;
-    GLFWwindow* m_window;
-    VkInstance m_instance;
-    const bool m_enableValidationLayers;
     const std::vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char*> m_deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
+    const bool m_enableValidationLayers;
+
+    uint32_t m_currentFrame = 0;
+    GLFWwindow* m_window;
+    VkInstance m_instance;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
@@ -94,11 +94,12 @@ private:
     bool createInstance();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    bool checkDeviceFeaturesSupport(VkPhysicalDevice device);
     int ratePhysicalDeviceSuitability(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool createLogicalDevice();
     bool createSurface();
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats
