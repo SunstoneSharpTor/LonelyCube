@@ -69,7 +69,6 @@ bool VulkanEngine::initVulkan()
         && createGraphicsPipeline()
         && createFramebuffers()
         && createFrameData()
-        && createSyncObjects()
     ) {
         return true;
     }
@@ -98,13 +97,6 @@ void VulkanEngine::cleanup()
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-
-    for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-    }
 
     cleanupFrameData();
 
@@ -763,7 +755,8 @@ bool VulkanEngine::createFrameData()
     for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
     {
         if (!(createCommandPool(m_frameData[i].commandPool)
-            && createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)))
+            && createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)
+            && createSyncObjects(i)))
         {
             return false;
         }
@@ -776,6 +769,10 @@ void VulkanEngine::cleanupFrameData()
 {
     for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
     {
+        vkDestroySemaphore(m_device, m_frameData[i].imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(m_device, m_frameData[i].renderFinishedSemaphore, nullptr);
+        vkDestroyFence(m_device, m_frameData[i].inFlightFence, nullptr);
+
         vkDestroyCommandPool(m_device, m_frameData[i].commandPool, nullptr);
     }
 }
@@ -809,6 +806,35 @@ bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffe
     if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
     {
         LOG("Failed to allocate command buffer");
+        return false;
+    }
+
+    return true;
+}
+
+bool VulkanEngine::createSyncObjects(int frameNum)
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    if (vkCreateSemaphore(
+        m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].imageAvailableSemaphore)
+        != VK_SUCCESS || vkCreateSemaphore(
+        m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].renderFinishedSemaphore)
+        != VK_SUCCESS)
+    {
+        LOG("Failed to create semaphores");
+        return false;
+    }
+
+    if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameNum].inFlightFence)
+        != VK_SUCCESS)
+    {
+        LOG("Failed to create fence");
         return false;
     }
 
@@ -869,50 +895,18 @@ bool VulkanEngine::recordCommandBuffer(
     return true;
 }
 
-bool VulkanEngine::createSyncObjects()
-{
-    m_imageAvailableSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
-    m_renderFinishedSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
-    m_inFlightFences.resize(m_MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        if (vkCreateSemaphore(
-            m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS
-            || vkCreateSemaphore(
-            m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS)
-        {
-            LOG("Failed to create semaphores");
-            return false;
-        }
-
-        if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
-        {
-            LOG("Failed to create fence");
-            return false;
-        }
-    }
-
-    return true;
-}
-
 bool VulkanEngine::drawFrame()
 {
-    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    FrameData currentFrameData = m_frameData[m_currentFrame % 2];
+    vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(
-        m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
+        m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore,
         VK_NULL_HANDLE, &imageIndex
     );
 
+    // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         recreateSwapchain();
@@ -924,24 +918,24 @@ bool VulkanEngine::drawFrame()
         return false;
     }
 
-    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
+    vkResetFences(m_device, 1, &currentFrameData.inFlightFence);
 
-    VkCommandBuffer commandBuffer = m_frameData[m_currentFrame].commandBuffer;
+    VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
     vkResetCommandBuffer(commandBuffer, 0);
     recordCommandBuffer(commandBuffer, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &m_imageAvailableSemaphores[m_currentFrame];
+    submitInfo.pWaitSemaphores = &currentFrameData.imageAvailableSemaphore;
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
+    submitInfo.pSignalSemaphores = &currentFrameData.renderFinishedSemaphore;
 
-    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame])
+    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, currentFrameData.inFlightFence)
         != VK_SUCCESS)
     {
         LOG("Failed to submit draw command buffer");
@@ -951,7 +945,7 @@ bool VulkanEngine::drawFrame()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
+    presentInfo.pWaitSemaphores = &currentFrameData.renderFinishedSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapchain;
     presentInfo.pImageIndices = &imageIndex;
@@ -959,6 +953,7 @@ bool VulkanEngine::drawFrame()
 
     result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 
+    // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized)
     {
         m_framebufferResized = false;
@@ -970,7 +965,7 @@ bool VulkanEngine::drawFrame()
         return false;
     }
 
-    m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
+    m_currentFrame++;
 
     return true;
 }
