@@ -68,8 +68,7 @@ bool VulkanEngine::initVulkan()
         && createRenderPass()
         && createGraphicsPipeline()
         && createFramebuffers()
-        && createCommandPool()
-        && createCommandBuffers()
+        && createFrameData()
         && createSyncObjects()
     ) {
         return true;
@@ -107,7 +106,7 @@ void VulkanEngine::cleanup()
         vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    cleanupFrameData();
 
     vkDestroyDevice(m_device, nullptr);
 
@@ -249,7 +248,7 @@ int VulkanEngine::ratePhysicalDeviceSuitability(VkPhysicalDevice device)
     if (!checkDeviceExtensionSupport(device))
         return 0;
 
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+    SwapchainSupportDetails swapChainSupport = querySwapchainSupport(device);
     if (swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty())
         return 0;
 
@@ -278,10 +277,10 @@ bool VulkanEngine::checkDeviceExtensionSupport(VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-VulkanEngine::SwapChainSupportDetails VulkanEngine::querySwapChainSupport(
+SwapchainSupportDetails VulkanEngine::querySwapchainSupport(
     VkPhysicalDevice device
 ) {
-    SwapChainSupportDetails details;
+    SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.capabilities);
 
     uint32_t formatCount;
@@ -307,7 +306,7 @@ VulkanEngine::SwapChainSupportDetails VulkanEngine::querySwapChainSupport(
     return details;
 }
 
-VulkanEngine::QueueFamilyIndices VulkanEngine::findQueueFamilies(
+QueueFamilyIndices VulkanEngine::findQueueFamilies(
     VkPhysicalDevice device
 ) {
     uint32_t queueFamilyCount = 0;
@@ -453,17 +452,17 @@ VkExtent2D VulkanEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabi
 
 bool VulkanEngine::createSwapchain()
 {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice);
+    SwapchainSupportDetails swapchainSupport = querySwapchainSupport(m_physicalDevice);
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
+    VkExtent2D extent = chooseSwapExtent(swapchainSupport.capabilities);
 
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0
-        && imageCount > swapChainSupport.capabilities.maxImageCount
+    uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+    if (swapchainSupport.capabilities.maxImageCount > 0
+        && imageCount > swapchainSupport.capabilities.maxImageCount
     ) {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
+        imageCount = swapchainSupport.capabilities.maxImageCount;
     }
 
     VkSwapchainCreateInfoKHR createInfo{};
@@ -493,7 +492,7 @@ bool VulkanEngine::createSwapchain()
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
@@ -757,7 +756,31 @@ bool VulkanEngine::createFramebuffers()
     return true;
 }
 
-bool VulkanEngine::createCommandPool()
+bool VulkanEngine::createFrameData()
+{
+    m_frameData.resize(m_MAX_FRAMES_IN_FLIGHT);
+
+    for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (!(createCommandPool(m_frameData[i].commandPool)
+            && createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void VulkanEngine::cleanupFrameData()
+{
+    for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vkDestroyCommandPool(m_device, m_frameData[i].commandPool, nullptr);
+    }
+}
+
+bool VulkanEngine::createCommandPool(VkCommandPool& commandPool)
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
@@ -766,7 +789,7 @@ bool VulkanEngine::createCommandPool()
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
         LOG("Failed to create command pool");
         return false;
@@ -775,19 +798,17 @@ bool VulkanEngine::createCommandPool()
     return true;
 }
 
-bool VulkanEngine::createCommandBuffers()
+bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
 {
-    m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
-
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_commandPool;
+    allocInfo.commandPool = commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
+    allocInfo.commandBufferCount = 1;
 
-    if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
     {
-        LOG("Failed to allocate command buffers");
+        LOG("Failed to allocate command buffer");
         return false;
     }
 
@@ -905,8 +926,9 @@ bool VulkanEngine::drawFrame()
 
     vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
-    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
-    recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
+    VkCommandBuffer commandBuffer = m_frameData[m_currentFrame].commandBuffer;
+    vkResetCommandBuffer(commandBuffer, 0);
+    recordCommandBuffer(commandBuffer, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -915,7 +937,7 @@ bool VulkanEngine::drawFrame()
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
+    submitInfo.pCommandBuffers = &commandBuffer;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 

@@ -23,6 +23,7 @@ include_directories(. ./src ./lib ./lib/enet-1.3.18/include ./lib/glfw-3.4/inclu
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
+    lib/stb_image/stb_image.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
@@ -35,7 +36,6 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/meshBuilder.cpp
     src/client/graphics/renderer.cpp
     src/client/graphics/shader.cpp
-    src/client/graphics/stb_image.cpp
     src/client/graphics/texture.cpp
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp

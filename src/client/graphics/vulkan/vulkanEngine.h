@@ -18,12 +18,32 @@
 
 #pragma once
 
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
 #include "core/pch.h"
 
 namespace lonelycube::client {
+
+struct QueueFamilyIndices
+{
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+};
+
+struct SwapchainSupportDetails
+{
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct FrameData
+{
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
+};
 
 class VulkanEngine
 {
@@ -33,35 +53,7 @@ public:
     void cleanup();
     bool drawFrame();
 
-    inline VkDevice getDevice()
-    {
-        return m_device;
-    }
-
-    inline GLFWwindow* getWindow()
-    {
-        return m_window;
-    }
-
-    inline void singalFramebufferResize()
-    {
-        m_framebufferResized = true;
-    }
-
 private:
-    struct QueueFamilyIndices
-    {
-        std::optional<uint32_t> graphicsFamily;
-        std::optional<uint32_t> presentFamily;
-    };
-
-    struct SwapChainSupportDetails
-    {
-        VkSurfaceCapabilitiesKHR capabilities;
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
-    };
-
     const uint32_t m_WIDTH = 800;
     const uint32_t m_HEIGHT = 600;
     const int m_MAX_FRAMES_IN_FLIGHT = 2;
@@ -90,8 +82,7 @@ private:
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
-    VkCommandPool m_commandPool;
-    std::vector<VkCommandBuffer> m_commandBuffers;
+    std::vector<FrameData> m_frameData;
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
@@ -109,7 +100,7 @@ private:
     bool createLogicalDevice();
     bool createSurface();
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats
     );
@@ -123,10 +114,28 @@ private:
     bool createGraphicsPipeline();
     bool createRenderPass();
     bool createFramebuffers();
-    bool createCommandPool();
-    bool createCommandBuffers();
+    bool createFrameData();
+    void cleanupFrameData();
+    bool createCommandPool(VkCommandPool& commandPool);
+    bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createSyncObjects();
+
+public:
+    inline VkDevice getDevice()
+    {
+        return m_device;
+    }
+
+    inline GLFWwindow* getWindow()
+    {
+        return m_window;
+    }
+
+    inline void singalFramebufferResize()
+    {
+        m_framebufferResized = true;
+    }
 };
 
 }  // namespace lonelycube::client
