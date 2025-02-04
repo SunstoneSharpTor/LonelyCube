@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "src/client/graphics/vulkan/helloTriangle.h"
+#include "client/graphics/vulkan/helloTriangle.h"
 
 #include "GLFW/glfw3.h"
 #include "client/graphics/vulkan/shader.h"

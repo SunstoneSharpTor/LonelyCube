@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "src/client/graphics/vulkan/vulkanEngine.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
 
 #include "client/graphics/vulkan/shader.h"
 #include "client/graphics/vulkan/vulkanImage.h"

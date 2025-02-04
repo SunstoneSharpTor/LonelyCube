@@ -17,7 +17,7 @@
 */
 
 #include <glad/glad.h>
-#include "lib/stb_image/stb_image.h"
+#include "stb_image.h"
 
 #include "client/graphics/texture.h"
 

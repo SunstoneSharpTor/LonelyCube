@@ -20,7 +20,7 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "lib/stb_image/stb_image.h"
+#include "stb_image.h"
 
 namespace lonelycube::client {
 
