@@ -1,10 +1,39 @@
 cmake_minimum_required(VERSION 3.25.1)
 project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 
+set (CMAKE_CXX_STANDARD 20)
+
 enable_testing()
 
-add_subdirectory(lib/enet-1.3.18)
-add_subdirectory(lib/glfw-3.4)
+include(FetchContent)
+
+FetchContent_Declare(
+  glfw
+  GIT_REPOSITORY https://github.com/glfw/glfw.git
+  GIT_TAG        7b6aead9fb88b3623e3b3725ebb42670cbe4c579  # Version 3.4
+)
+
+FetchContent_Declare(
+  enet
+  GIT_REPOSITORY https://github.com/lsalzman/enet.git
+  GIT_TAG        2662c0de09e36f2a2030ccc2c528a3e4c9e8138a  # Version 3.1.8
+)
+
+FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm.git
+  GIT_TAG        0af55ccecd98d4e5a8d1fad7de25ba429d60e863  # Version 1.0.1
+)
+
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
+)
+
+FetchContent_MakeAvailable(glfw enet glm stb)
+
+add_subdirectory(tests)
 
 set(OSBitness 64)
 set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
@@ -14,10 +43,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     add_compile_definitions(RELEASE)
 endif()
-
-set (CMAKE_CXX_STANDARD 20)
-
-include_directories(. ./src ./lib ./lib/enet-1.3.18/include ./lib/glfw-3.4/include)
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
@@ -60,9 +85,17 @@ set(CLIENT_SOURCE_FILES
     src/core/utils/iVec3.cpp)
 
 add_executable(client ${CLIENT_SOURCE_FILES})
-target_link_libraries(client enet glfw)
+target_include_directories(client PRIVATE
+    ./src
+    ./lib
+    ${enet_SOURCE_DIR}/include
+    ${glfw_SOURCE_DIR}/include
+    ${glm_SOURCE_DIR}
+    ${stb_SOURCE_DIR}
+)
+target_link_libraries(client PRIVATE glfw enet glm::glm)
 target_precompile_headers(client PRIVATE
-$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
+    $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
@@ -86,7 +119,13 @@ set(SERVER_SOURCE_FILES
     src/server/serverNetworking.cpp)
 
 add_executable(server ${SERVER_SOURCE_FILES})
-target_link_libraries(server enet)
+target_include_directories(server PRIVATE
+    ./src
+    ./lib
+    ${enet_SOURCE_DIR}/include
+    ${glm_SOURCE_DIR}
+)
+target_link_libraries(server PRIVATE enet glm::glm)
 target_precompile_headers(server REUSE_FROM client)
 
 if (MINGW)
@@ -115,5 +154,3 @@ add_custom_command(TARGET client POST_BUILD
             ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
             ${CMAKE_SOURCE_DIR}/build/compile_commands.json
 )
-
-add_subdirectory(tests)
