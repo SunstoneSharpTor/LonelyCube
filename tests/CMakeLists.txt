@@ -15,6 +15,10 @@ set(SOURCE_FILES
     ../src/core/utils/iVec3.cpp)
 
 add_executable(tests ${SOURCE_FILES})
+target_include_directories(tests PRIVATE
+    ../src
+    ../lib
+)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

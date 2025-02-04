@@ -30,6 +30,7 @@ namespace lonelycube::server {
 bool ServerNetworking::initServer(ENetAddress& address) {
     std::lock_guard<std::mutex> lock(m_hostMtx);
     if (enet_initialize () != 0) {
+        LOG("Failed to initialize");
         return false;
     }
 
@@ -49,6 +50,7 @@ bool ServerNetworking::initServer(ENetAddress& address) {
                     0); // assume any amount of outgoing bandwidth
 
     if (m_host == NULL) {
+        LOG("Failed to create host");
         return false;
     }
 
