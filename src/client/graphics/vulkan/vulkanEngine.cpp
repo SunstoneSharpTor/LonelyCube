@@ -986,18 +986,32 @@ bool VulkanEngine::drawFrame()
     vkResetCommandBuffer(commandBuffer, 0);
     recordCommandBuffer(commandBuffer, swapchainImageIndex);
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &currentFrameData.imageAvailableSemaphore;
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &currentFrameData.renderFinishedSemaphore;
+    VkCommandBufferSubmitInfo commandSubmitInfo{};
+    commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+    commandSubmitInfo.commandBuffer = commandBuffer;
 
-    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, currentFrameData.inFlightFence)
+    VkSemaphoreSubmitInfo waitInfo{};
+    waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    waitInfo.semaphore = currentFrameData.imageAvailableSemaphore;
+    waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    waitInfo.value = 1;
+
+    VkSemaphoreSubmitInfo signalInfo{};
+    signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    signalInfo.semaphore = currentFrameData.renderFinishedSemaphore;
+    signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+    signalInfo.value = 1;
+
+    VkSubmitInfo2 submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submitInfo.waitSemaphoreInfoCount = 1;
+    submitInfo.pWaitSemaphoreInfos = &waitInfo;
+    submitInfo.signalSemaphoreInfoCount = 1;
+    submitInfo.pSignalSemaphoreInfos = &signalInfo;
+    submitInfo.commandBufferInfoCount = 1;
+    submitInfo.pCommandBufferInfos = &commandSubmitInfo;
+
+    if (vkQueueSubmit2(m_graphicsQueue, 1, &submitInfo, currentFrameData.inFlightFence)
         != VK_SUCCESS)
     {
         LOG("Failed to submit draw command buffer");
