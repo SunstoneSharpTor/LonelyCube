@@ -20,31 +20,26 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG        7b6aead9fb88b3623e3b3725ebb42670cbe4c579  # Version 3.4
 )
-
 FetchContent_Declare(
     enet
     GIT_REPOSITORY https://github.com/lsalzman/enet.git
     GIT_TAG        2662c0de09e36f2a2030ccc2c528a3e4c9e8138a  # Version 3.1.8
 )
-
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG        0af55ccecd98d4e5a8d1fad7de25ba429d60e863  # Version 1.0.1
 )
-
 FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
     GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
 )
-
 FetchContent_Declare(
     VulkanMemoryAllocator
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
     GIT_TAG        3bab6924988e5f19bf36586a496156cf72f70d9f  # Version 3.2.0
 )
-
 FetchContent_MakeAvailable(glfw enet glm stb VulkanMemoryAllocator)
 
 add_subdirectory(tests)
@@ -70,7 +65,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vulkan/helloTriangle.cpp
     src/client/graphics/vulkan/shader.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
-    src/client/graphics/vulkan/vulkanImage.cpp
+    src/client/graphics/vulkan/vulkanImages.cpp
     src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp

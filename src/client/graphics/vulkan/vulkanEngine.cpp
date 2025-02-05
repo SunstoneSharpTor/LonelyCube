@@ -19,7 +19,7 @@
 #include "client/graphics/vulkan/vulkanEngine.h"
 
 #include "client/graphics/vulkan/shader.h"
-#include "client/graphics/vulkan/vulkanImage.h"
+#include "client/graphics/vulkan/vulkanImages.h"
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
 
@@ -886,25 +886,8 @@ bool VulkanEngine::createSyncObjects(int frameNum)
     return true;
 }
 
-bool VulkanEngine::recordCommandBuffer(
-    VkCommandBuffer commandBuffer, uint32_t swapchainImageIndex
-) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
-
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-    {
-        LOG("Failed to begin recording command buffer");
-        return false;
-    }
-
-    transitionImage(
-        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_GENERAL
-    );
-
+void VulkanEngine::drawBackgroud(VkCommandBuffer command)
+{
     VkClearColorValue clearValue;
     float flash = std::abs(std::sin(m_currentFrame / 120.0f));
     clearValue = {{ 0.0f, 0.0f, flash, 1.0f }};
@@ -917,47 +900,46 @@ bool VulkanEngine::recordCommandBuffer(
     clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
     vkCmdClearColorImage(
-        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL,
-        &clearValue, 1, &clearRange
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange
     );
+}
+
+bool VulkanEngine::recordCommandBuffer(
+    VkCommandBuffer command, uint32_t swapchainImageIndex
+) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(command, &beginInfo) != VK_SUCCESS)
+    {
+        LOG("Failed to begin recording command buffer");
+        return false;
+    }
+
+    transitionImage(command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    drawBackgroud(command);
 
     transitionImage(
-        commandBuffer, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    );
+    transitionImage(
+        command, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    blitImageToImage(
+        command, m_drawImage.image, m_swapchainImages[swapchainImageIndex], m_swapchainExtent,
+        m_swapchainExtent, VK_FILTER_NEAREST
+    );
+    transitionImage(
+        command, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     );
 
-    // VkRenderPassBeginInfo renderPassBeginInfo{};
-    // renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    // renderPassBeginInfo.renderPass = m_renderPass;
-    // renderPassBeginInfo.framebuffer = m_swapchainFramebuffers[swapchainImageIndex];
-    // renderPassBeginInfo.renderArea.offset = { 0, 0 };
-    // renderPassBeginInfo.renderArea.extent = m_swapchainExtent;
-    //
-    // VkClearValue clearColour = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
-    // renderPassBeginInfo.clearValueCount = 1;
-    // renderPassBeginInfo.pClearValues = &clearColour;
-    //
-    // vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-    //
-    // VkViewport viewport{};
-    // viewport.x = 0.0f;
-    // viewport.y = 0.0f;
-    // viewport.width = static_cast<float>(m_swapchainExtent.width);
-    // viewport.height = static_cast<float>(m_swapchainExtent.height);
-    // viewport.minDepth = 0.0f;
-    // viewport.maxDepth = 1.0f;
-    // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    //
-    // VkRect2D scissor{};
-    // scissor.offset = { 0, 0 };
-    // scissor.extent = m_swapchainExtent;
-    // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-    //
-    // vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-    // vkCmdEndRenderPass(commandBuffer);
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+    if (vkEndCommandBuffer(command) != VK_SUCCESS)
     {
         LOG("Failed to record command buffer");
         return false;
