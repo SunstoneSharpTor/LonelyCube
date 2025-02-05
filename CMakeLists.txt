@@ -3,6 +3,12 @@ project(LonelyCube VERSION 0.0.0 LANGUAGES C CXX)
 
 set (CMAKE_CXX_STANDARD 20)
 
+set(OSBitness 64)
+set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 enable_testing()
 
 find_package(Vulkan REQUIRED)
@@ -10,41 +16,38 @@ find_package(Vulkan REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(
-  glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG        7b6aead9fb88b3623e3b3725ebb42670cbe4c579  # Version 3.4
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG        7b6aead9fb88b3623e3b3725ebb42670cbe4c579  # Version 3.4
 )
 
 FetchContent_Declare(
-  enet
-  GIT_REPOSITORY https://github.com/lsalzman/enet.git
-  GIT_TAG        2662c0de09e36f2a2030ccc2c528a3e4c9e8138a  # Version 3.1.8
+    enet
+    GIT_REPOSITORY https://github.com/lsalzman/enet.git
+    GIT_TAG        2662c0de09e36f2a2030ccc2c528a3e4c9e8138a  # Version 3.1.8
 )
 
 FetchContent_Declare(
-  glm
-  GIT_REPOSITORY https://github.com/g-truc/glm.git
-  GIT_TAG        0af55ccecd98d4e5a8d1fad7de25ba429d60e863  # Version 1.0.1
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG        0af55ccecd98d4e5a8d1fad7de25ba429d60e863  # Version 1.0.1
 )
 
 FetchContent_Declare(
-  stb
-  GIT_REPOSITORY https://github.com/nothings/stb.git
-  GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
 )
 
-FetchContent_MakeAvailable(glfw enet glm stb)
+FetchContent_Declare(
+    VulkanMemoryAllocator
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+    GIT_TAG        3bab6924988e5f19bf36586a496156cf72f70d9f  # Version 3.2.0
+)
+
+FetchContent_MakeAvailable(glfw enet glm stb VulkanMemoryAllocator)
 
 add_subdirectory(tests)
-
-set(OSBitness 64)
-set(FullOutputDir "${CMAKE_SOURCE_DIR}/bin/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if (CMAKE_BUILD_TYPE MATCHES Release)
-    add_compile_definitions(RELEASE)
-endif()
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
@@ -95,11 +98,18 @@ target_include_directories(client PRIVATE
     ./src
     ./lib
     ${enet_SOURCE_DIR}/include
-    ${glfw_SOURCE_DIR}/include
-    ${glm_SOURCE_DIR}
     ${stb_SOURCE_DIR}
 )
-target_link_libraries(client PRIVATE Vulkan::Vulkan glfw enet glm::glm)
+target_link_libraries(client PRIVATE
+    Vulkan::Vulkan
+    glfw
+    enet
+    glm::glm
+    GPUOpen::VulkanMemoryAllocator
+)
+if (CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_definitions(client PRIVATE RELEASE)
+endif()
 
 target_precompile_headers(client PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
@@ -130,9 +140,12 @@ target_include_directories(server PRIVATE
     ./src
     ./lib
     ${enet_SOURCE_DIR}/include
-    ${glm_SOURCE_DIR}
 )
 target_link_libraries(server PRIVATE enet glm::glm)
+if (CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_definitions(server PRIVATE RELEASE)
+endif()
+
 target_precompile_headers(server REUSE_FROM client)
 
 if (MINGW)

@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+#include "vk_mem_alloc.h"
 
 #include "core/pch.h"
 
@@ -86,6 +86,7 @@ private:
     VkPipeline m_graphicsPipeline;
     std::vector<FrameData> m_frameData;
     bool m_framebufferResized = false;
+    VmaAllocator m_allocator;
 
     void initWindow();
     bool initVulkan();
@@ -120,6 +121,7 @@ private:
     bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createSyncObjects(int frameNum);
+    bool createAllocator();
 
 public:
     inline VkDevice getDevice()

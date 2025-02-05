@@ -23,6 +23,9 @@
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
 
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 namespace lonelycube::client {
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -69,6 +72,7 @@ bool VulkanEngine::initVulkan()
         && createGraphicsPipeline()
         && createFramebuffers()
         && createFrameData()
+        && createAllocator()
     ) {
         return true;
     }
@@ -1060,6 +1064,22 @@ bool VulkanEngine::recreateSwapchain()
     }
 
     return false;
+}
+
+bool VulkanEngine::createAllocator()
+{
+    VmaAllocatorCreateInfo allocatorInfo{};
+    allocatorInfo.physicalDevice = m_physicalDevice;
+    allocatorInfo.device = m_device;
+    allocatorInfo.instance = m_instance;
+    allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    if (vmaCreateAllocator(&allocatorInfo, &m_allocator) != VK_SUCCESS)
+    {
+        LOG("Failed to create VMAallocator");
+        return false;
+    }
+
+    return true;
 }
 
 }  // namespace lonelycube::client
