@@ -98,7 +98,6 @@ private:
     bool m_framebufferResized = false;
     VmaAllocator m_allocator;
     AllocatedImage m_drawImage;
-    VkExtent2D m_drawExtent;
 
     void initWindow();
     bool initVulkan();
@@ -135,6 +134,8 @@ private:
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createSyncObjects(int frameNum);
     bool createAllocator();
+
+    void drawBackgroud(VkCommandBuffer command);
 
 public:
     inline VkDevice getDevice()
