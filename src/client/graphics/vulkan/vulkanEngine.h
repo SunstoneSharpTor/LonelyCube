@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
@@ -45,6 +46,15 @@ struct FrameData
     VkCommandBuffer commandBuffer;
     VkSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
     VkFence inFlightFence;
+};
+
+struct AllocatedImage
+{
+    VkImage image;
+    VkImageView imageView;
+    VmaAllocation allocation;
+    VkExtent3D imageExtent;
+    VkFormat imageFormat;
 };
 
 class VulkanEngine
@@ -87,6 +97,8 @@ private:
     std::vector<FrameData> m_frameData;
     bool m_framebufferResized = false;
     VmaAllocator m_allocator;
+    AllocatedImage m_drawImage;
+    VkExtent2D m_drawExtent;
 
     void initWindow();
     bool initVulkan();
@@ -110,8 +122,9 @@ private:
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     bool createSwapchain();
+    bool createDrawImage();
     bool recreateSwapchain();
-    bool createImageViews();
+    bool createSwapchainImageViews();
     bool createGraphicsPipeline();
     bool createRenderPass();
     bool createFramebuffers();

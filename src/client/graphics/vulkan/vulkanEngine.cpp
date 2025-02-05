@@ -66,13 +66,14 @@ bool VulkanEngine::initVulkan()
         && createSurface()
         && pickPhysicalDevice()
         && createLogicalDevice()
+        && createAllocator()
         && createSwapchain()
-        && createImageViews()
+        && createSwapchainImageViews()
         && createRenderPass()
         && createGraphicsPipeline()
         && createFramebuffers()
+        && createDrawImage()
         && createFrameData()
-        && createAllocator()
     ) {
         return true;
     }
@@ -82,6 +83,9 @@ bool VulkanEngine::initVulkan()
 
 void VulkanEngine::cleanupSwapchain()
 {
+    vkDestroyImageView(m_device, m_drawImage.imageView, nullptr);
+    vmaDestroyImage(m_allocator, m_drawImage.image, m_drawImage.allocation);
+
     for (auto framebuffer : m_swapchainFramebuffers)
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
 
@@ -103,6 +107,8 @@ void VulkanEngine::cleanup()
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
     cleanupFrameData();
+
+    vmaDestroyAllocator(m_allocator);
 
     vkDestroyDevice(m_device, nullptr);
 
@@ -472,7 +478,7 @@ VkExtent2D VulkanEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabi
             actualExtent.width,
             capabilities.minImageExtent.width, capabilities.maxImageExtent.width
         );
-        actualExtent.height= std::clamp(
+        actualExtent.height = std::clamp(
             actualExtent.height,
             capabilities.minImageExtent.height, capabilities.maxImageExtent.height
         );
@@ -546,7 +552,7 @@ bool VulkanEngine::createSwapchain()
     return true;
 }
 
-bool VulkanEngine::createImageViews()
+bool VulkanEngine::createSwapchainImageViews()
 {
     m_swapchainImageViews.resize(m_swapchainImages.size());
     for (size_t i = 0; i < m_swapchainImages.size(); i++)
@@ -1057,8 +1063,9 @@ bool VulkanEngine::recreateSwapchain()
     cleanupSwapchain();
 
     if(createSwapchain()
-        && createImageViews()
-        && createFramebuffers())
+        && createSwapchainImageViews()
+        && createFramebuffers()
+        && createDrawImage())
     {
         return true;
     }
@@ -1076,6 +1083,67 @@ bool VulkanEngine::createAllocator()
     if (vmaCreateAllocator(&allocatorInfo, &m_allocator) != VK_SUCCESS)
     {
         LOG("Failed to create VMAallocator");
+        return false;
+    }
+
+    return true;
+}
+
+bool VulkanEngine::createDrawImage()
+{
+    VkExtent3D drawImageExtent = {
+        m_swapchainExtent.width,
+        m_swapchainExtent.height,
+        1
+    };
+
+    m_drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    m_drawImage.imageExtent = drawImageExtent;
+
+    VkImageUsageFlags drawImageUsages{};
+    drawImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+        | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+        | VK_IMAGE_USAGE_STORAGE_BIT
+        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    VkImageCreateInfo imageCreateInfo{};
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.format = m_drawImage.imageFormat;
+    imageCreateInfo.extent = m_drawImage.imageExtent;
+    imageCreateInfo.mipLevels = 1;
+    imageCreateInfo.arrayLayers = 1;
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.usage = drawImageUsages;
+
+    VmaAllocationCreateInfo imageAllocInfo{};
+    imageAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    imageAllocInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    if (vmaCreateImage(
+        m_allocator, &imageCreateInfo, &imageAllocInfo, &m_drawImage.image, &m_drawImage.allocation,
+        nullptr) != VK_SUCCESS)
+    {
+        LOG("Failed to create draw image");
+        return false;
+    }
+
+    VkImageViewCreateInfo imageViewCreateInfo{};
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewCreateInfo.image = m_drawImage.image;
+    imageViewCreateInfo.format = m_drawImage.imageFormat;
+    imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    imageViewCreateInfo.subresourceRange.levelCount = 1;
+    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_drawImage.imageView)
+        != VK_SUCCESS)
+    {
+        LOG("Failed to create image view for draw image");
         return false;
     }
 
