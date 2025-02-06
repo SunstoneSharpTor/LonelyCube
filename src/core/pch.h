@@ -35,10 +35,11 @@
 
 // Data structures
 #include <array>
+#include <optional>
 #include <queue>
 #include <set>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <optional>

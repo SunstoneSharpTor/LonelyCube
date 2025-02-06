@@ -62,6 +62,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/texture.cpp
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp
+    src/client/graphics/vulkan/descriptors.cpp
     src/client/graphics/vulkan/helloTriangle.cpp
     src/client/graphics/vulkan/shader.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
