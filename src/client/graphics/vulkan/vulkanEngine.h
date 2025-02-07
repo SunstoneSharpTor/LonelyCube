@@ -18,12 +18,13 @@
 
 #pragma once
 
-#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
 
 #include "core/pch.h"
+
+#include "client/graphics/vulkan/descriptors.h"
 
 namespace lonelycube::client {
 
@@ -60,14 +61,15 @@ struct AllocatedImage
 class VulkanEngine
 {
 public:
+    DescriptorAllocator globalDescriptorAllocator;
+
     VulkanEngine();
     bool init();
     void cleanup();
     bool drawFrame();
 
 private:
-    const uint32_t m_WIDTH = 800;
-    const uint32_t m_HEIGHT = 600;
+    // Engine constants
     const int m_MAX_FRAMES_IN_FLIGHT = 2;
     const std::vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -77,7 +79,7 @@ private:
     };
     const bool m_enableValidationLayers;
 
-    uint32_t m_currentFrame = 0;
+    // Vulkan core objects
     GLFWwindow* m_window;
     VkInstance m_instance;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -85,24 +87,34 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
     VkSurfaceKHR m_surface;
+    VmaAllocator m_allocator;
+
+    // Swapchain
     VkSwapchainKHR m_swapchain;
     std::vector<VkImage> m_swapchainImages;
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
     std::vector<VkImageView> m_swapchainImageViews;
     std::vector<VkFramebuffer> m_swapchainFramebuffers;
+
+    // Descriptors
+    VkDescriptorSet m_drawImageDescriptors;
+    VkDescriptorSetLayout m_drawImageDescriptorLayout;
+
+    // Rendering
+    uint32_t m_currentFrame = 0;
+    std::vector<FrameData> m_frameData;
+    bool m_framebufferResized = false;
+    AllocatedImage m_drawImage;
+
+    // Temporary
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
-    std::vector<FrameData> m_frameData;
-    bool m_framebufferResized = false;
-    VmaAllocator m_allocator;
-    AllocatedImage m_drawImage;
 
+    // Initialisation
     void initWindow();
     bool initVulkan();
-
-    void cleanupSwapchain();
     bool createInstance();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
@@ -122,19 +134,24 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     bool createSwapchain();
     bool createDrawImage();
-    bool recreateSwapchain();
     bool createSwapchainImageViews();
     bool createGraphicsPipeline();
     bool createRenderPass();
     bool createFramebuffers();
     bool createFrameData();
-    void cleanupFrameData();
     bool createCommandPool(VkCommandPool& commandPool);
     bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-    bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createSyncObjects(int frameNum);
     bool createAllocator();
+    bool initDescriptors();
 
+    // Cleanup
+    void cleanupSwapchain();
+    void cleanupFrameData();
+
+    bool recreateSwapchain();
+
+    bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawBackgroud(VkCommandBuffer command);
 
 public:

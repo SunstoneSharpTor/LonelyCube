@@ -105,6 +105,19 @@ void DescriptorAllocator::destroyPool(VkDevice device)
     vkDestroyDescriptorPool(device, pool, nullptr);
 }
 
-VkDescriptorSet allocate(VkDevice device, VkDescriptorSetLayout layout);
+VkDescriptorSet DescriptorAllocator::allocate(VkDevice device, VkDescriptorSetLayout layout)
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = pool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &layout;
+
+    VkDescriptorSet descriptorSet;
+    if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet) != VK_SUCCESS)
+        LOG("Failed to allocated descriptor set");
+
+    return descriptorSet;
+}
 
 }  // namespace lonelycube::client

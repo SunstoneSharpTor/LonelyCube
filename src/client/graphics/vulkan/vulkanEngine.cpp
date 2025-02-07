@@ -18,7 +18,7 @@
 
 #include "client/graphics/vulkan/vulkanEngine.h"
 
-#include "client/graphics/vulkan/shader.h"
+#include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/vulkanImages.h"
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
@@ -55,7 +55,7 @@ void VulkanEngine::initWindow()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    m_window = glfwCreateWindow(m_WIDTH, m_HEIGHT, "Vulkan", nullptr, nullptr);
+    m_window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }
@@ -74,6 +74,7 @@ bool VulkanEngine::initVulkan()
         && createFramebuffers()
         && createDrawImage()
         && createFrameData()
+        && initDescriptors()
     ) {
         return true;
     }
@@ -98,6 +99,9 @@ void VulkanEngine::cleanupSwapchain()
 void VulkanEngine::cleanup()
 {
     vkDeviceWaitIdle(m_device);
+
+    vkDestroyDescriptorSetLayout(m_device, m_drawImageDescriptorLayout, nullptr);
+    globalDescriptorAllocator.destroyPool(m_device);
 
     cleanupSwapchain();
 
@@ -1128,6 +1132,43 @@ bool VulkanEngine::createDrawImage()
         LOG("Failed to create image view for draw image");
         return false;
     }
+
+    return true;
+}
+
+bool VulkanEngine::initDescriptors()
+{
+    std::vector<DescriptorAllocator::PoolSizeRatio> sizes =
+    {
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
+    };
+
+    if (!globalDescriptorAllocator.initPool(m_device, 10, sizes))
+        return false;
+
+    {
+        DescriptorLayoutBuilder builder;
+        builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        m_drawImageDescriptorLayout = builder.build(m_device, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+
+    m_drawImageDescriptors = globalDescriptorAllocator.allocate(
+        m_device, m_drawImageDescriptorLayout
+    );
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    imageInfo.imageView = m_drawImage.imageView;
+
+    VkWriteDescriptorSet drawImageWrite{};
+    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    drawImageWrite.dstBinding = 0;
+    drawImageWrite.dstSet = m_drawImageDescriptors;
+    drawImageWrite.descriptorCount = 1;
+    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    drawImageWrite.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(m_device, 1, &drawImageWrite, 0, nullptr);
 
     return true;
 }
