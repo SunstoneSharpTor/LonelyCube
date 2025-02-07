@@ -18,6 +18,9 @@
 
 #include "client/graphics/vulkan/vulkanEngine.h"
 
+#include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
+
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/vulkanImages.h"
 #include "core/log.h"
@@ -683,6 +686,15 @@ void VulkanEngine::drawBackgroud(VkCommandBuffer command)
         0, 1, &m_drawImageDescriptors,
         0, nullptr
     );
+    double x, y;
+    glfwGetCursorPos(m_window, &x, &y);
+    x /= m_swapchainExtent.width;
+    y /= m_swapchainExtent.height;
+    glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
+    vkCmdPushConstants(
+        command, m_gradientPipelinelayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4),
+        colours
+    );
     vkCmdDispatch(
         command, (m_swapchainExtent.width + 15) / 16, (m_swapchainExtent.height + 15) / 16, 1
     );
@@ -965,6 +977,14 @@ bool VulkanEngine::initBackgroundPipelines()
     computePipelineLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     computePipelineLayout.setLayoutCount = 1;
     computePipelineLayout.pSetLayouts = &m_drawImageDescriptorLayout;
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = 2 * sizeof(glm::vec4);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    computePipelineLayout.pushConstantRangeCount = 1;
+    computePipelineLayout.pPushConstantRanges = &pushConstant;
 
     if (vkCreatePipelineLayout(m_device, &computePipelineLayout, nullptr, &m_gradientPipelinelayout)
         != VK_SUCCESS)
