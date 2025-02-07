@@ -19,7 +19,7 @@
 #include "client/graphics/vulkan/helloTriangle.h"
 
 #include "GLFW/glfw3.h"
-#include "client/graphics/vulkan/shader.h"
+#include "client/graphics/vulkan/shaders.h"
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
 
