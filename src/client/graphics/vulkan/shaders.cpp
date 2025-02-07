@@ -22,14 +22,15 @@
 
 namespace lonelycube::client {
 
-std::vector<char> readBinaryFile(const std::string& filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+bool createShaderModule(
+    VkDevice device, const std::string& srcFileName, VkShaderModule& shaderModule
+) {
+    std::ifstream file(srcFileName , std::ios::ate | std::ios::binary);
 
     if (!file.is_open())
     {
-        LOG("Failed to open file: " + filename);
-        return std::vector<char>();
+        LOG("Failed to open file: " + srcFileName);
+        return false;
     }
 
     size_t fileSize = (size_t)file.tellg();
@@ -40,21 +41,18 @@ std::vector<char> readBinaryFile(const std::string& filename)
 
     file.close();
 
-    return buffer;
-}
-
-VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code)
-{
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+    createInfo.codeSize = buffer.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
-    VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
         LOG("Failed to create shader module");
+        return false;
+    }
 
-    return shaderModule;
+    return true;
 }
 
 }  // namespace lonelycube::client
