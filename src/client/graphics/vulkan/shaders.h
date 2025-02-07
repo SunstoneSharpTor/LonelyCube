@@ -24,8 +24,8 @@
 
 namespace lonelycube::client {
 
-std::vector<char> readBinaryFile(const std::string& filename);
-
-VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code);
+bool createShaderModule(
+    VkDevice device, const std::string& srcFileName, VkShaderModule& shaderModule
+);
 
 }  // namespace lonelycube::client

@@ -95,7 +95,6 @@ private:
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
     std::vector<VkImageView> m_swapchainImageViews;
-    std::vector<VkFramebuffer> m_swapchainFramebuffers;
 
     // Descriptors
     VkDescriptorSet m_drawImageDescriptors;
@@ -104,13 +103,12 @@ private:
     // Rendering
     uint32_t m_currentFrame = 0;
     std::vector<FrameData> m_frameData;
-    bool m_framebufferResized = false;
+    bool m_windowResized = false;
     AllocatedImage m_drawImage;
 
     // Temporary
-    VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_graphicsPipeline;
+    VkPipelineLayout m_gradientPipelinelayout;
+    VkPipeline m_gradientPipeline;
 
     // Initialisation
     void initWindow();
@@ -135,9 +133,6 @@ private:
     bool createSwapchain();
     bool createDrawImage();
     bool createSwapchainImageViews();
-    bool createGraphicsPipeline();
-    bool createRenderPass();
-    bool createFramebuffers();
     bool createFrameData();
     bool createCommandPool(VkCommandPool& commandPool);
     bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
@@ -148,11 +143,17 @@ private:
     // Cleanup
     void cleanupSwapchain();
     void cleanupFrameData();
+    void cleanupBackgroundPipelines();
+    void cleanupPipelines();
 
     bool recreateSwapchain();
+    void updateDrawImageDescriptor();
 
+    // Temporary
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawBackgroud(VkCommandBuffer command);
+    bool initPipelines();
+    bool initBackgroundPipelines();
 
 public:
     inline VkDevice getDevice()
@@ -165,9 +166,9 @@ public:
         return m_window;
     }
 
-    inline void singalFramebufferResize()
+    inline void singalWindowResize()
     {
-        m_framebufferResized = true;
+        m_windowResized = true;
     }
 };
 
