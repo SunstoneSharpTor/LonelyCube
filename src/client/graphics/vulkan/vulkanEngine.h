@@ -21,6 +21,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
+#include "glm/glm.hpp"
 
 #include "core/pch.h"
 
@@ -30,7 +31,8 @@ namespace lonelycube::client {
 
 struct QueueFamilyIndices
 {
-    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> graphicsAndComputeFamily;
+    std::optional<uint32_t> computeFamily;
     std::optional<uint32_t> presentFamily;
 };
 
@@ -56,6 +58,20 @@ struct AllocatedImage
     VmaAllocation allocation;
     VkExtent3D imageExtent;
     VkFormat imageFormat;
+};
+
+struct AllocatedBuffer
+{
+    VkBuffer buffer;
+    VmaAllocation allocation;
+    VmaAllocationInfo info;
+};
+
+struct GPUMeshBuffers
+{
+    AllocatedBuffer vertexBuffer;
+    AllocatedBuffer indexBuffer;
+    VkDeviceAddress vertexBufferAddress;
 };
 
 class VulkanEngine
@@ -84,7 +100,7 @@ private:
     VkInstance m_instance;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device;
-    VkQueue m_graphicsQueue;
+    VkQueue m_graphicsAndComputeQueue;
     VkQueue m_presentQueue;
     VkSurfaceKHR m_surface;
     VmaAllocator m_allocator;
@@ -105,6 +121,11 @@ private:
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
     AllocatedImage m_drawImage;
+
+    // Immediate Submit
+    VkFence m_immediateSubmitFence;
+    VkCommandBuffer m_immediateSubmitCommandBuffer;
+    VkCommandPool m_immediateSubmitCommandPool;
 
     // Temporary
     VkPipelineLayout m_gradientPipelineLayout;
@@ -141,13 +162,23 @@ private:
     bool createSyncObjects(int frameNum);
     bool createAllocator();
     bool initDescriptors();
+    bool initImmediateSubmit();
 
     // Cleanup
     void cleanupSwapchain();
     void cleanupFrameData();
 
+    // Resizing
     bool recreateSwapchain();
     void updateDrawImageDescriptor();
+
+    // Buffers
+    AllocatedBuffer createBuffer(size_t allocationSize, VkBufferUsageFlags usage);
+    inline void destroyBuffer(const AllocatedBuffer& buffer)
+    {
+        vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
+    }
+    void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
 
     // Temporary
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -159,6 +190,7 @@ private:
     void cleanupBackgroundPipelines();
     bool initTrianglePipeline();
     void cleanupTrianglePipeline();
+    GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
 
 public:
     inline VkDevice getDevice()
