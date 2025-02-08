@@ -148,8 +148,8 @@ if (MINGW)
     if (NOT ${CMAKE_BUILD_TYPE} MATCHES Release)
         target_link_options(client PRIVATE -mconsole)
     endif()
-    target_link_libraries(client winmm ws2_32)
-    target_link_libraries(server winmm ws2_32)
+    target_link_libraries(client PRIVATE winmm ws2_32)
+    target_link_libraries(server PRIVATE winmm ws2_32)
 endif (MINGW)
 
 # TODO: Change this to check for opengl/gles3 support when raspberry pi cmake version gets updated
