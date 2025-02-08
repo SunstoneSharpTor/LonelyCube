@@ -63,9 +63,10 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vertexArray.cpp
     src/client/graphics/vertexBuffer.cpp
     src/client/graphics/vulkan/descriptors.cpp
+    src/client/graphics/vulkan/pipelines.cpp
     src/client/graphics/vulkan/shaders.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
-    src/client/graphics/vulkan/vulkanImages.cpp
+    src/client/graphics/vulkan/images.cpp
     src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp

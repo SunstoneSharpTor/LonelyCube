@@ -21,8 +21,9 @@
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 
+#include "client/graphics/vulkan/images.h"
+#include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
-#include "client/graphics/vulkan/vulkanImages.h"
 #include "core/log.h"
 #include <vulkan/vulkan_core.h>
 
@@ -250,8 +251,8 @@ int VulkanEngine::ratePhysicalDeviceSuitability(VkPhysicalDevice device)
     if (!checkDeviceFeaturesSupport(device))
         return 0;
 
-    SwapchainSupportDetails swapChainSupport = querySwapchainSupport(device);
-    if (swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty())
+    SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device);
+    if (swapchainSupport.formats.empty() || swapchainSupport.presentModes.empty())
         return 0;
 
     int score = 1;
@@ -682,7 +683,7 @@ void VulkanEngine::drawBackgroud(VkCommandBuffer command)
 {
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_gradientPipeline);
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_gradientPipelinelayout,
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_gradientPipelineLayout,
         0, 1, &m_drawImageDescriptors,
         0, nullptr
     );
@@ -692,12 +693,48 @@ void VulkanEngine::drawBackgroud(VkCommandBuffer command)
     y /= m_swapchainExtent.height;
     glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
     vkCmdPushConstants(
-        command, m_gradientPipelinelayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4),
+        command, m_gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4),
         colours
     );
     vkCmdDispatch(
         command, (m_swapchainExtent.width + 15) / 16, (m_swapchainExtent.height + 15) / 16, 1
     );
+}
+
+void VulkanEngine::drawGeometry(VkCommandBuffer command)
+{
+    VkRenderingAttachmentInfo colourAttachment{};
+    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colourAttachment.imageView = m_drawImage.imageView;
+    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea = { { 0, 0 }, m_swapchainExtent };
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colourAttachment;
+    renderingInfo.pDepthAttachment = nullptr;
+
+    vkCmdBeginRendering(command, &renderingInfo);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_trianglePipeline);
+
+    VkViewport viewport{};
+    viewport.width = m_swapchainExtent.width;
+    viewport.height = m_swapchainExtent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent.width = m_swapchainExtent.width;
+    scissor.extent.height = m_swapchainExtent.height;
+
+    vkCmdSetViewport(command, 0, 1, &viewport);
+    vkCmdSetScissor(command, 0, 1, &scissor);
+    vkCmdDraw(command, 3, 1, 0, 0);
+    vkCmdEndRendering(command);
 }
 
 bool VulkanEngine::recordCommandBuffer(
@@ -717,9 +754,15 @@ bool VulkanEngine::recordCommandBuffer(
     transitionImage(command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     drawBackgroud(command);
+    transitionImage(
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    );
+    drawGeometry(command);
 
     transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
     );
     transitionImage(
         command, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
@@ -986,7 +1029,7 @@ bool VulkanEngine::initBackgroundPipelines()
     computePipelineLayout.pushConstantRangeCount = 1;
     computePipelineLayout.pPushConstantRanges = &pushConstant;
 
-    if (vkCreatePipelineLayout(m_device, &computePipelineLayout, nullptr, &m_gradientPipelinelayout)
+    if (vkCreatePipelineLayout(m_device, &computePipelineLayout, nullptr, &m_gradientPipelineLayout)
         != VK_SUCCESS)
     {
         LOG("Failed to create draw image blit pipeline layout");
@@ -1005,7 +1048,7 @@ bool VulkanEngine::initBackgroundPipelines()
 
     VkComputePipelineCreateInfo computePipelineCreateInfo{};
     computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    computePipelineCreateInfo.layout = m_gradientPipelinelayout;
+    computePipelineCreateInfo.layout = m_gradientPipelineLayout;
     computePipelineCreateInfo.stage = stageInfo;
 
     if (vkCreateComputePipelines(
@@ -1024,17 +1067,67 @@ bool VulkanEngine::initBackgroundPipelines()
 void VulkanEngine::cleanupBackgroundPipelines()
 {
     vkDestroyPipeline(m_device, m_gradientPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_gradientPipelinelayout, nullptr);
+    vkDestroyPipelineLayout(m_device, m_gradientPipelineLayout, nullptr);
+}
+
+bool VulkanEngine::initTrianglePipeline()
+{
+    VkShaderModule triangleVertexShader;
+    if (!createShaderModule(m_device, "res/shaders/test.vert.spv", triangleVertexShader))
+        return false;
+
+    VkShaderModule triangleFragmentShader;
+    if (!createShaderModule(m_device, "res/shaders/test.frag.spv", triangleFragmentShader))
+        return false;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_trianglePipelineLayout)
+        != VK_SUCCESS)
+    {
+        LOG("Failed to create graphics pipeline layout");
+        return false;
+    }
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_trianglePipelineLayout;
+    pipelineBuilder.setShaders(triangleVertexShader, triangleFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+
+    m_trianglePipeline = pipelineBuilder.buildPipeline(m_device);
+
+    if (m_trianglePipeline == VK_NULL_HANDLE)
+        return false;
+
+    vkDestroyShaderModule(m_device, triangleVertexShader, nullptr);
+    vkDestroyShaderModule(m_device, triangleFragmentShader, nullptr);
+
+    return true;
+}
+
+void VulkanEngine::cleanupTrianglePipeline()
+{
+    vkDestroyPipelineLayout(m_device, m_trianglePipelineLayout, nullptr);
+    vkDestroyPipeline(m_device, m_trianglePipeline, nullptr);
 }
 
 bool VulkanEngine::initPipelines()
 {
-    return initBackgroundPipelines();
+    return initBackgroundPipelines() && initTrianglePipeline();
 }
 
 void VulkanEngine::cleanupPipelines()
 {
     cleanupBackgroundPipelines();
+    cleanupTrianglePipeline();
 }
 
 }  // namespace lonelycube::client

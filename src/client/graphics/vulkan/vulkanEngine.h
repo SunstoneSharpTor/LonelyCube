@@ -107,8 +107,10 @@ private:
     AllocatedImage m_drawImage;
 
     // Temporary
-    VkPipelineLayout m_gradientPipelinelayout;
+    VkPipelineLayout m_gradientPipelineLayout;
     VkPipeline m_gradientPipeline;
+    VkPipelineLayout m_trianglePipelineLayout;
+    VkPipeline m_trianglePipeline;
 
     // Initialisation
     void initWindow();
@@ -143,8 +145,6 @@ private:
     // Cleanup
     void cleanupSwapchain();
     void cleanupFrameData();
-    void cleanupBackgroundPipelines();
-    void cleanupPipelines();
 
     bool recreateSwapchain();
     void updateDrawImageDescriptor();
@@ -152,8 +152,13 @@ private:
     // Temporary
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawBackgroud(VkCommandBuffer command);
+    void drawGeometry(VkCommandBuffer command);
     bool initPipelines();
+    void cleanupPipelines();
     bool initBackgroundPipelines();
+    void cleanupBackgroundPipelines();
+    bool initTrianglePipeline();
+    void cleanupTrianglePipeline();
 
 public:
     inline VkDevice getDevice()
