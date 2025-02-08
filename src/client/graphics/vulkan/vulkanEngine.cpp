@@ -18,9 +18,6 @@
 
 #include "client/graphics/vulkan/vulkanEngine.h"
 
-#include "GLFW/glfw3.h"
-#include "glm/glm.hpp"
-
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
@@ -242,7 +239,7 @@ int VulkanEngine::ratePhysicalDeviceSuitability(VkPhysicalDevice device)
 
     QueueFamilyIndices indices = findQueueFamilies(device);
 
-    if (!(indices.graphicsFamily.has_value() && indices.presentFamily.has_value()))
+    if (!(indices.graphicsAndComputeFamily.has_value() && indices.presentFamily.has_value()))
         return 0;
 
     if (!checkDeviceExtensionSupport(device))
@@ -330,9 +327,8 @@ SwapchainSupportDetails VulkanEngine::querySwapchainSupport(
     return details;
 }
 
-QueueFamilyIndices VulkanEngine::findQueueFamilies(
-    VkPhysicalDevice device
-) {
+QueueFamilyIndices VulkanEngine::findQueueFamilies(VkPhysicalDevice device)
+{
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -342,15 +338,29 @@ QueueFamilyIndices VulkanEngine::findQueueFamilies(
     int i = 0;
     for (int i = 0; i < queueFamilies.size(); i++)
     {
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        // Make the graphicsAndComputeFamily favour the first family that also supports presentation
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT
+            && queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT
+            && indices.graphicsAndComputeFamily.value_or(i)
+                != indices.presentFamily.value_or(i + 1))
         {
-            indices.graphicsFamily = i;
+            indices.graphicsAndComputeFamily = i;
         }
 
+        // Make the compute family favour a family other than the graphicsAndComputeFamily
+        if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT
+            && (!indices.computeFamily.has_value()
+                || indices.graphicsAndComputeFamily.value_or(i + 1) != i))
+        {
+            indices.computeFamily = i;
+        }
+
+        // Try to make the present family the same as the graphicsAndComputeFamily
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentSupport);
         if (presentSupport
-            && (!indices.presentFamily.has_value() || indices.graphicsFamily.value_or(i + 1) == i))
+            && (!indices.presentFamily.has_value()
+                || indices.graphicsAndComputeFamily.value_or(i + 1) == i))
         {
             indices.presentFamily = i;
         }
@@ -365,7 +375,7 @@ bool VulkanEngine::createLogicalDevice()
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
-        indices.graphicsFamily.value(), indices.presentFamily.value()
+        indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()
     };
 
     float queuePriority = 1.0f;
@@ -418,7 +428,9 @@ bool VulkanEngine::createLogicalDevice()
         return false;
     }
 
-    vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
+    vkGetDeviceQueue(
+        m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsAndComputeQueue
+    );
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 
     return true;
@@ -514,10 +526,10 @@ bool VulkanEngine::createSwapchain()
 
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
     uint32_t queueFamilyIndices[] = {
-        indices.graphicsFamily.value(), indices.presentFamily.value()
+        indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()
     };
 
-    if (indices.graphicsFamily != indices.presentFamily)
+    if (indices.graphicsAndComputeFamily != indices.presentFamily)
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
@@ -615,6 +627,13 @@ void VulkanEngine::cleanupFrameData()
     }
 }
 
+bool VulkanEngine::initImmediateSubmit()
+{
+    // if (
+
+    return true;
+}
+
 bool VulkanEngine::createCommandPool(VkCommandPool& commandPool)
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
@@ -622,7 +641,7 @@ bool VulkanEngine::createCommandPool(VkCommandPool& commandPool)
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
 
     if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
@@ -842,7 +861,7 @@ bool VulkanEngine::drawFrame()
     submitInfo.commandBufferInfoCount = 1;
     submitInfo.pCommandBufferInfos = &commandSubmitInfo;
 
-    if (vkQueueSubmit2(m_graphicsQueue, 1, &submitInfo, currentFrameData.inFlightFence)
+    if (vkQueueSubmit2(m_graphicsAndComputeQueue, 1, &submitInfo, currentFrameData.inFlightFence)
         != VK_SUCCESS)
     {
         LOG("Failed to submit draw command buffer");
@@ -1130,4 +1149,65 @@ void VulkanEngine::cleanupPipelines()
     cleanupTrianglePipeline();
 }
 
-}  // namespace lonelycube::client
+AllocatedBuffer VulkanEngine::createBuffer(size_t allocationSize, VkBufferUsageFlags usage) {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = allocationSize;
+    bufferInfo.usage = usage;
+
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    AllocatedBuffer newBuffer;
+    if (vmaCreateBuffer(
+        m_allocator, &bufferInfo, &vmaAllocInfo, &newBuffer.buffer, &newBuffer.allocation,
+        &newBuffer.info) != VK_SUCCESS)
+    {
+        LOG("Failed to allocate buffer");
+    }
+
+    return newBuffer;
+}
+
+// GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uint32_t> indices)
+// {
+//     const size_t vertexBufferSize = vertices.size() * sizeof(float);
+//     const size_t indexBufferSize = indices.size() * sizeof(uint32_t);
+//
+//     GPUMeshBuffers newMesh;
+//     newMesh.vertexBuffer = createBuffer(
+//         vertexBufferSize,
+//         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+//         | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+//     );
+//
+//     VkBufferDeviceAddressInfo deviceAddressInfo{};
+//     deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+//     deviceAddressInfo.buffer = newMesh.vertexBuffer.buffer;
+//
+//     newMesh.vertexBufferAddress = vkGetBufferDeviceAddress(m_device, &deviceAddressInfo);
+//
+//     newMesh.indexBuffer = createBuffer(
+//         indexBufferSize,
+//         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+//     );
+//
+//     AllocatedBuffer staging = createBuffer(
+//         vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+//     );
+//
+//     void* data = staging.allocation->GetMappedData();
+//
+//     memcpy(data, vertices.data(), vertexBufferSize);
+//     memcpy(reinterpret_cast<char*>(data) + vertexBufferSize, indices.data(), indexBufferSize);
+//
+//     immediateSubmit([&](VkCommandBuffer command) {
+//         VkBufferCopy vertexCopy{};
+//         vertexCopy.size = vertexBufferSize;
+//
+//         vkCmdCopyBuffer(command, staging.buffer, newMesh.vertexBuffer.buffer, 1, &vertexCopy);
+//     });
+// }
+
+}  // namespace lonelycube::lient
