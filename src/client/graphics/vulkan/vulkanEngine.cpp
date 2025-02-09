@@ -22,6 +22,7 @@
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "core/log.h"
+#include <string>
 #include <vulkan/vulkan_core.h>
 
 #define VMA_IMPLEMENTATION
@@ -72,6 +73,7 @@ bool VulkanEngine::initVulkan()
         && createSwapchainImageViews()
         && createDrawImage()
         && createFrameData()
+        && initImmediateSubmit()
         && initDescriptors()
         && initPipelines()
     ) {
@@ -102,6 +104,8 @@ void VulkanEngine::cleanup()
     globalDescriptorAllocator.destroyPool(m_device);
 
     cleanupSwapchain();
+
+    cleanupImmediateSubmit();
 
     cleanupFrameData();
 
@@ -368,10 +372,19 @@ QueueFamilyIndices VulkanEngine::findQueueFamilies(VkPhysicalDevice device)
         // Make the transfer queue family favour a family that is transfer only
         if (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT
             && (!indices.transferFamily.has_value()
-                || (queueFamilies[i].queueFlags ^ VK_QUEUE_TRANSFER_BIT) == 0))
+                || !(queueFamilies[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT
+                    | VK_QUEUE_VIDEO_DECODE_BIT_KHR))))
         {
             indices.transferFamily = i;
         }
+
+        // LOG(std::to_string(i) + ": "
+        //     + (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT ? "graphics " : "")
+        //     + (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT ? "compute " : "")
+        //     + (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT ? "transfer " : "")
+        //     + (queueFamilies[i].queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR ? "decode " : "")
+        //     + (presentSupport ? "present" : "")
+        // );
     }
 
     return indices;
@@ -443,6 +456,12 @@ bool VulkanEngine::createLogicalDevice()
     );
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
     vkGetDeviceQueue(m_device, indices.transferFamily.value(), 0, &m_transferQueue);
+
+    // LOG("Graphics and Compute: " + std::to_string(indices.graphicsAndComputeFamily.value_or(-1))
+    //     + ", Compute: " + std::to_string(indices.computeFamily.value_or(-1))
+    //     + ", Transfer: " + std::to_string(indices.transferFamily.value_or(-1))
+    //     + ", Present: " + std::to_string(indices.presentFamily.value_or(-1))
+    // );
 
     return true;
 }
@@ -609,14 +628,43 @@ bool VulkanEngine::createSwapchainImageViews()
     return true;
 }
 
+bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+    {
+        LOG("Failed to allocate command buffer");
+        return false;
+    }
+
+    return true;
+}
+
 bool VulkanEngine::createFrameData()
 {
     m_frameData.resize(m_MAX_FRAMES_IN_FLIGHT);
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
     for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
     {
-        if (!(createCommandPool(m_frameData[i].commandPool)
-            && createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
+
+        if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_frameData[i].commandPool)
+            != VK_SUCCESS)
+        {
+            LOG("Failed to create command pool");
+            return false;
+        }
+
+        if (!(createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)
             && createSyncObjects(i)))
         {
             return false;
@@ -640,42 +688,83 @@ void VulkanEngine::cleanupFrameData()
 
 bool VulkanEngine::initImmediateSubmit()
 {
-    // if (
-
-    return true;
-}
-
-bool VulkanEngine::createCommandPool(VkCommandPool& commandPool)
-{
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
+    poolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
 
-    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_immediateSubmitCommandPool)
+        != VK_SUCCESS)
     {
         LOG("Failed to create command pool");
+        return false;
+    }
+
+    createCommandBuffer(m_immediateSubmitCommandPool, m_immediateSubmitCommandBuffer);
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_immediateSubmitFence) != VK_SUCCESS)
+    {
+        LOG("Failed to create fence");
         return false;
     }
 
     return true;
 }
 
-bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
+void VulkanEngine::cleanupImmediateSubmit()
 {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    vkDestroyCommandPool(m_device, m_immediateSubmitCommandPool, nullptr);
+    vkDestroyFence(m_device, m_immediateSubmitFence, nullptr);
+}
 
-    if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+bool VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&& function)
+{
+    vkResetFences(m_device, 1, &m_immediateSubmitFence);
+    vkResetCommandBuffer(m_immediateSubmitCommandBuffer, 0);
+
+    VkCommandBuffer command = m_immediateSubmitCommandBuffer;
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(command, &beginInfo) != VK_SUCCESS)
     {
-        LOG("Failed to allocate command buffer");
+        LOG("Failed to begin recording command buffer");
         return false;
     }
+
+    function(command);
+
+    if (vkEndCommandBuffer(command) != VK_SUCCESS)
+    {
+        LOG("Failed to record command buffer");
+        return false;
+    }
+
+    VkCommandBufferSubmitInfo commandSubmitInfo{};
+    commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+    commandSubmitInfo.commandBuffer = command;
+
+    VkSubmitInfo2 submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submitInfo.commandBufferInfoCount = 1;
+    submitInfo.pCommandBufferInfos = &commandSubmitInfo;
+
+    if (vkQueueSubmit2(m_transferQueue, 1, &submitInfo, m_immediateSubmitFence) != VK_SUCCESS)
+    {
+        LOG("Failed to submit immediateSubmit command buffer");
+        return false;
+    }
+
+    vkWaitForFences(m_device, 1, &m_immediateSubmitFence, true, UINT64_MAX);
 
     return true;
 }

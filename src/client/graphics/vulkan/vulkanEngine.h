@@ -159,7 +159,6 @@ private:
     bool createDrawImage();
     bool createSwapchainImageViews();
     bool createFrameData();
-    bool createCommandPool(VkCommandPool& commandPool);
     bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     bool createSyncObjects(int frameNum);
     bool createAllocator();
@@ -169,6 +168,7 @@ private:
     // Cleanup
     void cleanupSwapchain();
     void cleanupFrameData();
+    void cleanupImmediateSubmit();
 
     // Resizing
     bool recreateSwapchain();
@@ -180,7 +180,7 @@ private:
     {
         vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
     }
-    void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
+    bool immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
 
     // Temporary
     bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
