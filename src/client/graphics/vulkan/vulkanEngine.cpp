@@ -364,6 +364,14 @@ QueueFamilyIndices VulkanEngine::findQueueFamilies(VkPhysicalDevice device)
         {
             indices.presentFamily = i;
         }
+
+        // Make the transfer queue family favour a family that is transfer only
+        if (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT
+            && (!indices.transferFamily.has_value()
+                || (queueFamilies[i].queueFlags ^ VK_QUEUE_TRANSFER_BIT) == 0))
+        {
+            indices.transferFamily = i;
+        }
     }
 
     return indices;
@@ -375,7 +383,9 @@ bool VulkanEngine::createLogicalDevice()
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
-        indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()
+        indices.graphicsAndComputeFamily.value(),
+        indices.presentFamily.value(),
+        indices.transferFamily.value()
     };
 
     float queuePriority = 1.0f;
@@ -432,6 +442,7 @@ bool VulkanEngine::createLogicalDevice()
         m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsAndComputeQueue
     );
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
+    vkGetDeviceQueue(m_device, indices.transferFamily.value(), 0, &m_transferQueue);
 
     return true;
 }
