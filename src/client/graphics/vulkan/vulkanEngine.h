@@ -132,8 +132,9 @@ private:
     // Temporary
     VkPipelineLayout m_gradientPipelineLayout;
     VkPipeline m_gradientPipeline;
-    VkPipelineLayout m_trianglePipelineLayout;
-    VkPipeline m_trianglePipeline;
+    VkPipelineLayout m_meshPipelineLayout;
+    VkPipeline m_meshPipeline;
+    GPUMeshBuffers m_rectangleMesh;
 
     // Initialisation
     void initWindow();
@@ -175,7 +176,9 @@ private:
     void updateDrawImageDescriptor();
 
     // Buffers
-    AllocatedBuffer createBuffer(size_t allocationSize, VkBufferUsageFlags usage);
+    AllocatedBuffer createBuffer(
+        size_t allocationSize, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags
+    );
     inline void destroyBuffer(const AllocatedBuffer& buffer)
     {
         vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
@@ -190,9 +193,10 @@ private:
     void cleanupPipelines();
     bool initBackgroundPipelines();
     void cleanupBackgroundPipelines();
-    bool initTrianglePipeline();
-    void cleanupTrianglePipeline();
+    bool initMeshPipeline();
+    void cleanupMeshPipeline();
     GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
+    void uploadTestMesh();
 
 public:
     inline VkDevice getDevice()

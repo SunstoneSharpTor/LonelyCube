@@ -17,22 +17,35 @@
 */
 
 #version 450
+#extension GL_EXT_buffer_reference : require
 
-layout(location = 0) out vec3 fragColour;
+layout (location = 0) out vec4 outColour;
+layout (location = 1) out vec2 outUV;
 
-vec2 positions[3] = vec2[](
-    vec2(0.5, 0.5),
-    vec2(0.0, -0.5),
-    vec2(-0.5, 0.5)
-);
+struct Vertex
+{
+    vec3 position;
+    float uv_x;
+    vec4 colour;
+    float uv_y;
+};
 
-vec3 colours[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
+layout (buffer_reference, std430) readonly buffer VertexBuffer
+{
+    Vertex vertices[];
+};
+
+layout (push_constant) uniform constants
+{
+    mat4 mvp;
+    VertexBuffer vertexBuffer;
+} PushConstants;
 
 void main() {
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    fragColour = colours[gl_VertexIndex];
+    Vertex vertex = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
+
+    gl_Position = PushConstants.mvp * vec4(vertex.position, 1.0f);
+    outColour = vertex.colour;
+    outUV.x = vertex.uv_x;
+    outUV.y = vertex.uv_y;
 }
