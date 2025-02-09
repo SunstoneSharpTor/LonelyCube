@@ -34,6 +34,7 @@ struct QueueFamilyIndices
     std::optional<uint32_t> graphicsAndComputeFamily;
     std::optional<uint32_t> computeFamily;
     std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> transferFamily;
 };
 
 struct SwapchainSupportDetails
@@ -102,6 +103,7 @@ private:
     VkDevice m_device;
     VkQueue m_graphicsAndComputeQueue;
     VkQueue m_presentQueue;
+    VkQueue m_transferQueue;
     VkSurfaceKHR m_surface;
     VmaAllocator m_allocator;
 
