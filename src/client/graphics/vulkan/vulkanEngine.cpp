@@ -69,9 +69,9 @@ bool VulkanEngine::initVulkan()
         && pickPhysicalDevice()
         && createLogicalDevice()
         && createAllocator()
+        && createDrawImage()
         && createSwapchain()
         && createSwapchainImageViews()
-        && createDrawImage()
         && createFrameData()
         && initImmediateSubmit()
         && initDescriptors()
@@ -87,9 +87,6 @@ bool VulkanEngine::initVulkan()
 
 void VulkanEngine::cleanupSwapchain()
 {
-    vkDestroyImageView(m_device, m_drawImage.imageView, nullptr);
-    vmaDestroyImage(m_allocator, m_drawImage.image, m_drawImage.allocation);
-
     for (auto& imageView : m_swapchainImageViews)
         vkDestroyImageView(m_device, imageView, nullptr);
 
@@ -107,6 +104,9 @@ void VulkanEngine::cleanup()
 
     vkDestroyDescriptorSetLayout(m_device, m_drawImageDescriptorLayout, nullptr);
     globalDescriptorAllocator.destroyPool(m_device);
+
+    vkDestroyImageView(m_device, m_drawImage.imageView, nullptr);
+    vmaDestroyImage(m_allocator, m_drawImage.image, m_drawImage.allocation);
 
     cleanupSwapchain();
 
@@ -595,6 +595,8 @@ bool VulkanEngine::createSwapchain()
 
     m_swapchainImageFormat = surfaceFormat.format;
     m_swapchainExtent = extent;
+    m_renderExtent.width = std::min(m_swapchainExtent.width, m_drawImageExtent.width);
+    m_renderExtent.height = std::min(m_swapchainExtent.height, m_drawImageExtent.height);
 
     return true;
 }
@@ -812,15 +814,15 @@ void VulkanEngine::drawBackgroud(VkCommandBuffer command)
     );
     double x, y;
     glfwGetCursorPos(m_window, &x, &y);
-    x /= m_swapchainExtent.width;
-    y /= m_swapchainExtent.height;
+    x /= m_renderExtent.width;
+    y /= m_renderExtent.height;
     glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
     vkCmdPushConstants(
         command, m_gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4),
         colours
     );
     vkCmdDispatch(
-        command, (m_swapchainExtent.width + 15) / 16, (m_swapchainExtent.height + 15) / 16, 1
+        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
     );
 }
 
@@ -835,7 +837,7 @@ void VulkanEngine::drawGeometry(VkCommandBuffer command)
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { { 0, 0 }, m_swapchainExtent };
+    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colourAttachment;
@@ -844,18 +846,18 @@ void VulkanEngine::drawGeometry(VkCommandBuffer command)
     vkCmdBeginRendering(command, &renderingInfo);
 
     VkViewport viewport{};
-    viewport.width = m_swapchainExtent.width;
-    viewport.height = m_swapchainExtent.height;
+    viewport.width = m_renderExtent.width;
+    viewport.height = m_renderExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
-    scissor.extent.width = m_swapchainExtent.width;
-    scissor.extent.height = m_swapchainExtent.height;
+    scissor.extent.width = m_renderExtent.width;
+    scissor.extent.height = m_renderExtent.height;
 
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_meshPipeline);
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_meshPipeline);
 
     struct {
         glm::mat4 mvp;
@@ -904,8 +906,8 @@ bool VulkanEngine::recordCommandBuffer(
     );
 
     blitImageToImage(
-        command, m_drawImage.image, m_swapchainImages[swapchainImageIndex], m_swapchainExtent,
-        m_swapchainExtent, VK_FILTER_NEAREST
+        command, m_drawImage.image, m_swapchainImages[swapchainImageIndex], m_renderExtent,
+        m_renderExtent, VK_FILTER_NEAREST
     );
     transitionImage(
         command, m_swapchainImages[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -1017,14 +1019,8 @@ bool VulkanEngine::recreateSwapchain()
 
     cleanupSwapchain();
 
-    if(createSwapchain()
-        && createSwapchainImageViews()
-        && createDrawImage())
-    {
-        updateDrawImageDescriptor();
-
+    if(createSwapchain() && createSwapchainImageViews())
         return true;
-    }
 
     return false;
 }
@@ -1047,11 +1043,21 @@ bool VulkanEngine::createAllocator()
 
 bool VulkanEngine::createDrawImage()
 {
-    VkExtent3D drawImageExtent = {
-        m_swapchainExtent.width,
-        m_swapchainExtent.height,
-        1
-    };
+    int numVideoModes;
+    const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
+
+    m_drawImageExtent = { 0, 0 };
+    for (int i = 0; i < numVideoModes; i++)
+    {
+        m_drawImageExtent.width = std::max(
+            m_drawImageExtent.width, static_cast<uint32_t>(displayModes[i].width)
+        );
+        m_drawImageExtent.height = std::max(
+            m_drawImageExtent.height, static_cast<uint32_t>(displayModes[i].height)
+        );
+    }
+
+    VkExtent3D drawImageExtent{ m_drawImageExtent.width, m_drawImageExtent.height, 1 };
 
     m_drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
     m_drawImage.imageExtent = drawImageExtent;
@@ -1107,23 +1113,6 @@ bool VulkanEngine::createDrawImage()
     return true;
 }
 
-void VulkanEngine::updateDrawImageDescriptor()
-{
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    imageInfo.imageView = m_drawImage.imageView;
-
-    VkWriteDescriptorSet drawImageWrite{};
-    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    drawImageWrite.dstBinding = 0;
-    drawImageWrite.dstSet = m_drawImageDescriptors;
-    drawImageWrite.descriptorCount = 1;
-    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    drawImageWrite.pImageInfo = &imageInfo;
-
-    vkUpdateDescriptorSets(m_device, 1, &drawImageWrite, 0, nullptr);
-}
-
 bool VulkanEngine::initDescriptors()
 {
     std::vector<DescriptorAllocator::PoolSizeRatio> sizes =
@@ -1144,7 +1133,19 @@ bool VulkanEngine::initDescriptors()
         m_device, m_drawImageDescriptorLayout
     );
 
-    updateDrawImageDescriptor();
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    imageInfo.imageView = m_drawImage.imageView;
+
+    VkWriteDescriptorSet drawImageWrite{};
+    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    drawImageWrite.dstBinding = 0;
+    drawImageWrite.dstSet = m_drawImageDescriptors;
+    drawImageWrite.descriptorCount = 1;
+    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    drawImageWrite.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(m_device, 1, &drawImageWrite, 0, nullptr);
 
     return true;
 }
