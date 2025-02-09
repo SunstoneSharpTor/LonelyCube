@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
@@ -123,6 +124,8 @@ private:
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
     AllocatedImage m_drawImage;
+    VkExtent2D m_drawImageExtent;
+    VkExtent2D m_renderExtent;
 
     // Immediate Submit
     VkFence m_immediateSubmitFence;
@@ -173,7 +176,6 @@ private:
 
     // Resizing
     bool recreateSwapchain();
-    void updateDrawImageDescriptor();
 
     // Buffers
     AllocatedBuffer createBuffer(
