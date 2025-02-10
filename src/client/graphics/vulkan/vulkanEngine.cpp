@@ -21,6 +21,7 @@
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 #include <string>
 #include <vulkan/vulkan_core.h>
@@ -44,11 +45,11 @@ VulkanEngine::VulkanEngine() :
 #endif
 {}
 
-bool VulkanEngine::init()
+void VulkanEngine::init()
 {
     initWindow();
 
-    return initVulkan();
+    initVulkan();
 }
 
 void VulkanEngine::initWindow()
@@ -62,28 +63,23 @@ void VulkanEngine::initWindow()
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }
 
-bool VulkanEngine::initVulkan()
+void VulkanEngine::initVulkan()
 {
-    if (createInstance()
-        && createSurface()
-        && pickPhysicalDevice()
-        && createLogicalDevice()
-        && createAllocator()
-        && createDrawImage()
-        && createSwapchain()
-        && createSwapchainImageViews()
-        && createFrameData()
-        && initImmediateSubmit()
-        && initDescriptors()
-        && initPipelines()
-    ) {
-        uploadTestMesh();
-
-        return true;
-    }
-
-    return false;
+    createInstance();
+    glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createAllocator();
+    createDrawImage();
+    createSwapchain();
+    createSwapchainImageViews();
+    createFrameData();
+    initImmediateSubmit();
+    initDescriptors();
+    initPipelines();
+    uploadTestMesh();
 }
+
 
 void VulkanEngine::cleanupSwapchain()
 {
@@ -163,11 +159,7 @@ bool VulkanEngine::createInstance()
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
-    {
-        LOG("Failed to create instance");
-        return false;
-    }
+    VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_instance));
 
     return true;
 }
@@ -395,7 +387,7 @@ QueueFamilyIndices VulkanEngine::findQueueFamilies(VkPhysicalDevice device)
     return indices;
 }
 
-bool VulkanEngine::createLogicalDevice()
+void VulkanEngine::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
 
@@ -450,11 +442,7 @@ bool VulkanEngine::createLogicalDevice()
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
-    {
-        LOG("Failed to create logical device");
-        return false;
-    }
+    VK_CHECK(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device));
 
     vkGetDeviceQueue(
         m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsAndComputeQueue
@@ -467,19 +455,6 @@ bool VulkanEngine::createLogicalDevice()
     //     + ", Transfer: " + std::to_string(indices.transferFamily.value_or(-1))
     //     + ", Present: " + std::to_string(indices.presentFamily.value_or(-1))
     // );
-
-    return true;
-}
-
-bool VulkanEngine::createSurface()
-{
-    if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
-    {
-        LOG("Failed to create window surface");
-        return false;
-    }
-
-    return true;
 }
 
 VkSurfaceFormatKHR VulkanEngine::chooseSwapSurfaceFormat(
