@@ -53,4 +53,31 @@ struct DescriptorAllocator
     VkDescriptorSet allocate(VkDevice device, VkDescriptorSetLayout layout);
 };
 
+class DescriptorAllocatorGrowable
+{
+public:
+    struct PoolSizeRatio
+    {
+        VkDescriptorType type;
+        float ratio;
+    };
+
+    void init(VkDevice device, uint32_t initialSets, std::span<PoolSizeRatio> poolRatios);
+    void clearPools(VkDevice device);
+    void destroyPools(VkDevice device);
+
+    VkDescriptorSet allocate(VkDevice device, VkDescriptorSetLayout layout, void* pNext = nullptr);
+
+private:
+    std::vector<PoolSizeRatio> ratios;
+    std::vector<VkDescriptorPool> fullPools;
+    std::vector<VkDescriptorPool> readyPools;
+    uint32_t setsPerPool;
+
+    VkDescriptorPool getPool(VkDevice device);
+    VkDescriptorPool createPool(
+        VkDevice device, uint32_t setCount, std::span<PoolSizeRatio> poolRatios
+    );
+};
+
 }  // namespace lonelycube::client
