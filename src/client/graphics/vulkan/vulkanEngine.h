@@ -82,7 +82,7 @@ public:
     DescriptorAllocator globalDescriptorAllocator;
 
     VulkanEngine();
-    bool init();
+    void init();
     void cleanup();
     bool drawFrame();
 
@@ -141,7 +141,7 @@ private:
 
     // Initialisation
     void initWindow();
-    bool initVulkan();
+    void initVulkan();
     bool createInstance();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
@@ -149,8 +149,7 @@ private:
     bool checkDeviceFeaturesSupport(VkPhysicalDevice device);
     int ratePhysicalDeviceSuitability(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    bool createLogicalDevice();
-    bool createSurface();
+    void createLogicalDevice();
     SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats

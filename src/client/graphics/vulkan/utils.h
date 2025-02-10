@@ -18,30 +18,10 @@
 
 #pragma once
 
-#include <algorithm>
-#include <cassert>
-#include <chrono>
-#include <cmath>
-#include <cstring>
-#include <condition_variable>
-#include <cstdint>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <memory>
-#include <mutex>
-#include <sstream>
-#include <thread>
+#include "core/pch.h"
 
-// Data structures
-#include <array>
-#include <optional>
-#include <queue>
-#include <set>
-#include <span>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#ifndef NDEBUG
+#define VK_CHECK(x) assert(x == VK_SUCCESS)
+#else
+#define VK_CHECK(x) x
+#endif
