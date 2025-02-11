@@ -80,4 +80,23 @@ private:
     );
 };
 
+class DescriptorWriter
+{
+public:
+    void writeImage(
+        int binding, VkImageView image, VkSampler sampler, VkImageLayout layout,
+        VkDescriptorType type
+    );
+    void writeBuffer(
+        int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type
+    );
+    void clear();
+    void updateSet(VkDevice device, VkDescriptorSet set);
+
+private:
+    std::deque<VkDescriptorImageInfo> m_imageInfos;
+    std::deque<VkDescriptorBufferInfo> m_bufferInfos;
+    std::vector<VkWriteDescriptorSet> m_writes;
+};
+
 }  // namespace lonelycube::client

@@ -164,7 +164,7 @@ private:
     void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     void createSyncObjects(int frameNum);
     void createAllocator();
-    bool initDescriptors();
+    void initDescriptors();
     void initImmediateSubmit();
 
     // Cleanup

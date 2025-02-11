@@ -20,6 +20,7 @@
 
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -210,6 +211,61 @@ VkDescriptorSet DescriptorAllocatorGrowable::allocate(
     m_readyPools.push_back(poolToUse);
 
     return descriptorSet;
+}
+
+void DescriptorWriter::writeBuffer(
+    int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type
+) {
+    VkDescriptorBufferInfo& info = m_bufferInfos.emplace_back(VkDescriptorBufferInfo{
+        .buffer = buffer,
+        .offset = offset,
+        .range = size
+    });
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = binding;
+    write.descriptorCount = 1;
+    write.descriptorType = type;
+    write.pBufferInfo = &info;
+
+    m_writes.push_back(write);
+}
+
+void DescriptorWriter::writeImage(
+    int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type
+) {
+    VkDescriptorImageInfo& info = m_imageInfos.emplace_back(VkDescriptorImageInfo{
+        .sampler = sampler,
+        .imageView = image,
+        .imageLayout = layout
+    });
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = binding;
+    write.descriptorCount = 1;
+    write.descriptorType = type;
+    write.pImageInfo = &info;
+
+    m_writes.push_back(write);
+}
+
+void DescriptorWriter::clear()
+{
+    m_imageInfos.clear();
+    m_bufferInfos.clear();
+    m_writes.clear();
+}
+
+void DescriptorWriter::updateSet(VkDevice device , VkDescriptorSet set)
+{
+    for (VkWriteDescriptorSet& write : m_writes)
+        write.dstSet = set;
+
+    vkUpdateDescriptorSets(
+        device, static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0, nullptr
+    );
 }
 
 }  // namespace lonelycube::client
