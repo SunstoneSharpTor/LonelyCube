@@ -578,15 +578,8 @@ void VulkanEngine::createSwapchainImageViews()
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         createInfo.image = m_swapchainImages[i];
-
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         createInfo.format = m_swapchainImageFormat;
-
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
         createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         createInfo.subresourceRange.baseMipLevel = 0;
         createInfo.subresourceRange.levelCount = 1;
@@ -969,7 +962,6 @@ void VulkanEngine::createDrawImage()
     VmaAllocationCreateInfo imageAllocInfo{};
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     imageAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-    imageAllocInfo.priority = 1.0f;
 
     VK_CHECK(vmaCreateImage(
         m_allocator, &imageCreateInfo, &imageAllocInfo, &m_drawImage.image, &m_drawImage.allocation,
@@ -1212,6 +1204,103 @@ void VulkanEngine::uploadTestMesh()
     };
 
     m_rectangleMesh = uploadMesh(rectVertices, rectIndices);
+}
+
+AllocatedImage VulkanEngine::createImage(
+    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped
+) {
+    AllocatedImage newImage;
+    newImage.imageFormat = format;
+    newImage.imageExtent = size;
+
+    VkImageCreateInfo imageCreateInfo{};
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.format = format;
+    imageCreateInfo.extent = size;
+    imageCreateInfo.mipLevels =
+        static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
+    imageCreateInfo.arrayLayers = 1;
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.usage = usage;
+
+    VmaAllocationCreateInfo imageAllocInfo{};
+    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    imageAllocInfo.flags = 0;
+
+    VK_CHECK(vmaCreateImage(
+        m_allocator, &imageCreateInfo, &imageAllocInfo, &newImage.image, &newImage.allocation,
+        nullptr
+    ));
+
+    VkImageAspectFlags aspectFlag = format == VK_FORMAT_D32_SFLOAT ?
+        VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    VkImageViewCreateInfo imageViewCreateInfo{};
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewCreateInfo.image = newImage.image;
+    imageViewCreateInfo.format = newImage.imageFormat;
+    imageViewCreateInfo.subresourceRange.aspectMask = aspectFlag;
+    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    imageViewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
+    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+    VK_CHECK(vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &newImage.imageView));
+
+    return newImage;
+}
+
+AllocatedImage VulkanEngine::createImage(
+    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped
+) {
+    size_t dataSize = size.depth * size.width * size.height * 4;
+    AllocatedBuffer staging = createBuffer(
+        dataSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT 
+    );
+
+    memcpy(staging.info.pMappedData, data, dataSize);
+    AllocatedImage newImage = createImage(
+        size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        mipmapped
+    );
+
+    immediateSubmit([&](VkCommandBuffer command) {
+        transitionImage(
+            command, newImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+        );
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageExtent = size;
+
+        vkCmdCopyBufferToImage(
+            command, staging.buffer, newImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+            &copyRegion
+        );
+
+        transitionImage(
+            command, newImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+    });
+
+    destroyBuffer(staging);
+
+    return newImage;
+}
+
+void VulkanEngine::destroyImage(const AllocatedImage& image)
+{
+    vkDestroyImageView(m_device, image.imageView, nullptr);
+    vmaDestroyImage(m_allocator, image.image, image.allocation);
 }
 
 }  // namespace lonelycube::lient
