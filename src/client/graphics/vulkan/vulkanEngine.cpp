@@ -81,7 +81,6 @@ void VulkanEngine::initVulkan()
     uploadTestMesh();
 }
 
-
 void VulkanEngine::cleanupSwapchain()
 {
     for (auto& imageView : m_swapchainImageViews)
@@ -990,7 +989,7 @@ void VulkanEngine::createDrawImage()
     VK_CHECK(vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_drawImage.imageView));
 }
 
-bool VulkanEngine::initDescriptors()
+void VulkanEngine::initDescriptors()
 {
     std::vector<DescriptorAllocator::PoolSizeRatio> sizes =
     {
@@ -1009,21 +1008,12 @@ bool VulkanEngine::initDescriptors()
         m_device, m_drawImageDescriptorLayout
     );
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    imageInfo.imageView = m_drawImage.imageView;
-
-    VkWriteDescriptorSet drawImageWrite{};
-    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    drawImageWrite.dstBinding = 0;
-    drawImageWrite.dstSet = m_drawImageDescriptors;
-    drawImageWrite.descriptorCount = 1;
-    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    drawImageWrite.pImageInfo = &imageInfo;
-
-    vkUpdateDescriptorSets(m_device, 1, &drawImageWrite, 0, nullptr);
-
-    return true;
+    DescriptorWriter writer;
+    writer.writeImage(
+        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_device, m_drawImageDescriptors);
 }
 
 void VulkanEngine::initBackgroundPipelines()
