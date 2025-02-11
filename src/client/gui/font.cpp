@@ -109,7 +109,7 @@ void Font::queue(const std::string& text, glm::ivec2 position, int size,
     }
 }
 
-void Font::draw(const Renderer& renderer)
+void Font::draw(const GlRenderer& renderer)
 {
     if (m_vertices.empty())
         return;

@@ -17,7 +17,7 @@
 */
 
 #include "client/graphics/vertexArray.h"
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 
 namespace lonelycube::client {
 

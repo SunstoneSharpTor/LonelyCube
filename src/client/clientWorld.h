@@ -20,7 +20,7 @@
 
 #include "core/pch.h"
 
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/vertexArray.h"
@@ -135,7 +135,7 @@ private:
 public:
     ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
                 ENetPeer* peer, std::mutex& networkingMutex);
-    void renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
+    void renderWorld(GlRenderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
         viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
         float skyLightIntensity, double DT);
     void loadChunksAroundPlayerSingleplayer(int8_t threadNum);

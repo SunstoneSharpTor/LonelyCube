@@ -22,7 +22,7 @@
 
 #include "glm/glm.hpp"
 
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 
@@ -49,7 +49,7 @@ public:
 
     void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
 
-    void draw(const Renderer& renderer);
+    void draw(const GlRenderer& renderer);
 
     void resize(const uint32_t* windowDimensions);
 };

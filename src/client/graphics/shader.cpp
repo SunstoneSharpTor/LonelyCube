@@ -20,7 +20,7 @@
 
 #include "core/pch.h"
 
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 #include "core/log.h"
 
 namespace lonelycube::client {

@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 #ifndef GLES3
 
 #include "client/graphics/luminance.h"
