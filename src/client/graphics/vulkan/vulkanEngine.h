@@ -22,7 +22,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
-#include "glm/glm.hpp"
 
 #include "core/pch.h"
 
@@ -84,7 +83,7 @@ public:
     VulkanEngine();
     void init();
     void cleanup();
-    bool drawFrame();
+    void drawFrame();
 
 private:
     // Engine constants
@@ -158,15 +157,15 @@ private:
         const std::vector<VkPresentModeKHR>& availablePresentModes
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    bool createSwapchain();
-    bool createDrawImage();
-    bool createSwapchainImageViews();
-    bool createFrameData();
-    bool createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-    bool createSyncObjects(int frameNum);
-    bool createAllocator();
+    void createSwapchain();
+    void createDrawImage();
+    void createSwapchainImageViews();
+    void createFrameData();
+    void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
+    void createSyncObjects(int frameNum);
+    void createAllocator();
     bool initDescriptors();
-    bool initImmediateSubmit();
+    void initImmediateSubmit();
 
     // Cleanup
     void cleanupSwapchain();
@@ -174,7 +173,7 @@ private:
     void cleanupImmediateSubmit();
 
     // Resizing
-    bool recreateSwapchain();
+    void recreateSwapchain();
 
     // Buffers
     AllocatedBuffer createBuffer(
@@ -184,17 +183,17 @@ private:
     {
         vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
     }
-    bool immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
+    void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
 
     // Temporary
-    bool recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawBackgroud(VkCommandBuffer command);
     void drawGeometry(VkCommandBuffer command);
-    bool initPipelines();
+    void initPipelines();
     void cleanupPipelines();
-    bool initBackgroundPipelines();
+    void initBackgroundPipelines();
     void cleanupBackgroundPipelines();
-    bool initMeshPipeline();
+    void initMeshPipeline();
     void cleanupMeshPipeline();
     GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
     void uploadTestMesh();
