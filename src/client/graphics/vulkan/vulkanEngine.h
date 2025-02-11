@@ -215,15 +215,17 @@ public:
     {
         return m_device;
     }
-
     inline GLFWwindow* getWindow()
     {
         return m_window;
     }
-
     inline void singalWindowResize()
     {
         m_windowResized = true;
+    }
+    inline VkDescriptorSetLayout& getDrawImageDescriptorSetLayout()
+    {
+        return m_drawImageDescriptorLayout;
     }
 };
 

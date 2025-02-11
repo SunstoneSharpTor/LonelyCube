@@ -34,10 +34,12 @@
 #include "client/graphics/computeShader.h"
 #include "client/graphics/frameBuffer.h"
 #include "client/graphics/luminance.h"
+#include "client/graphics/glRenderer.h"
 #include "client/graphics/renderer.h"
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/vertexArray.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
@@ -118,6 +120,15 @@ void renderThread() {
     std::thread logicWorker(&LogicThread::go, logicThread, std::ref(running));
 
     {
+        {
+        Renderer renderer;
+
+        while (renderer.windowOpen()) {
+            glfwPollEvents();
+            renderer.drawFrame();
+        }
+        }
+
         const int defaultWindowDimensions[2] = { 853, 480 };
         uint32_t windowDimensions[2] = { (uint32_t)defaultWindowDimensions[0],
             (uint32_t)defaultWindowDimensions[1] };
@@ -218,7 +229,7 @@ void renderThread() {
 
         Texture worldTextures("res/resourcePack/textures.png");
 
-        Renderer mainRenderer;
+        GlRenderer mainRenderer;
 
         mainRenderer.setOpenGlOptions();
 

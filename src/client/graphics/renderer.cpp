@@ -18,49 +18,87 @@
 
 #include "client/graphics/renderer.h"
 
+#include "glm/glm.hpp"
+
+#include "client/graphics/vulkan/shaders.h"
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 
 namespace lonelycube::client {
 
-void GLClearError() {
-    while (glGetError() != GL_NO_ERROR);
+Renderer::Renderer()
+{
+    m_vulkanEngine.init();
 }
 
-void GLPrintErrors() {
-    while (GLenum error = glGetError()) {
-        LOG("OpenGL error: " + std::to_string(error));
+Renderer::~Renderer()
+{
+    m_vulkanEngine.cleanup();
+}
+
+void Renderer::drawFrame()
+{
+    m_vulkanEngine.drawFrame();
+}
+
+void Renderer::initSkyPipelines()
+{
+    VkPipelineLayoutCreateInfo computePipelineLayout{};
+    computePipelineLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    computePipelineLayout.setLayoutCount = 1;
+    computePipelineLayout.pSetLayouts = &m_vulkanEngine.getDrawImageDescriptorSetLayout();
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = 2 * sizeof(glm::vec4);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    computePipelineLayout.pushConstantRangeCount = 1;
+    computePipelineLayout.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &computePipelineLayout, nullptr, &m_skyPipelineLayout
+    ));
+
+    VkShaderModule computeDrawShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/gradient.comp.spv", computeDrawShader))
+    {
+        LOG("Failed to find shader \"res/shaders/gradient.comp.spv\"");
     }
+
+    VkPipelineShaderStageCreateInfo stageInfo{};
+    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfo.module = computeDrawShader;
+    stageInfo.pName = "main";
+
+    VkComputePipelineCreateInfo computePipelineCreateInfo{};
+    computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    computePipelineCreateInfo.layout = m_gradientPipelineLayout;
+    computePipelineCreateInfo.stage = stageInfo;
+
+    VK_CHECK(vkCreateComputePipelines(
+        m_device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &m_gradientPipeline
+    ));
+
+    vkDestroyShaderModule(m_device, computeDrawShader, nullptr);
 }
 
-void Renderer::draw(const VertexArray& va, uint32_t count, const Shader& s) const {
-    s.bind();
-    va.bind();
-    glDrawArrays(GL_TRIANGLES, 0, count);
+void Renderer::cleanupSkyPipelines()
+{
+    vkDestroyPipeline(m_device, m_gradientPipeline, nullptr);
+    vkDestroyPipelineLayout(m_device, m_gradientPipelineLayout, nullptr);
 }
 
-void Renderer::draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const {
-    s.bind();
-    va.bind();
-    ib.bind();
-    glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
+void Renderer::initPipelines()
+{
+    initSkyPipelines();
 }
 
-void Renderer::drawWireframe(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const {
-    s.bind();
-    va.bind();
-    ib.bind();
-    glDrawElements(GL_LINE_STRIP, ib.getCount(), GL_UNSIGNED_INT, nullptr);
-}
-
-void Renderer::clear() const {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void Renderer::setOpenGlOptions() const {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+void Renderer::cleanupPipelines()
+{
+    cleanupSkyPipelines();
 }
 
 }  // namespace lonelycube::client

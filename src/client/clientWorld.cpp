@@ -21,7 +21,7 @@
 #include "core/pch.h"
 
 #include "client/graphics/camera.h"
-#include "client/graphics/renderer.h"
+#include "client/graphics/glRenderer.h"
 #include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
 #include "core/lighting.h"
@@ -104,7 +104,7 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     }
 }
 
-void ClientWorld::renderWorld(Renderer mainRenderer, Shader& blockShader, Shader& waterShader,
+void ClientWorld::renderWorld(GlRenderer mainRenderer, Shader& blockShader, Shader& waterShader,
     glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float
     fov, float skyLightIntensity, double DT) {
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);

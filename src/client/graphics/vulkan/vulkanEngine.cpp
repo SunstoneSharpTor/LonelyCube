@@ -27,6 +27,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "glm/glm.hpp"
+#include "stb_image.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -59,7 +60,24 @@ void VulkanEngine::initWindow()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    m_window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+    const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    int windowDimensions[2] = { displayMode->width / 2, displayMode->height / 2 };
+    m_window = glfwCreateWindow(
+        windowDimensions[0], windowDimensions[1], "Lonely Cube", nullptr, nullptr
+    );
+
+    glfwSetWindowPos(
+        m_window,
+        displayMode->width / 2 - windowDimensions[0] / 2,
+        displayMode->height / 2 - windowDimensions[1] / 2
+    );
+
+    GLFWimage images[1];
+    images[0].pixels = stbi_load(
+        "res/resourcePack/logo.png", &images[0].width, &images[0].height, 0, 4
+    );
+    glfwSetWindowIcon(m_window, 1, images);
+
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }

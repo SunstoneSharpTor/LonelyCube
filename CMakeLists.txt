@@ -57,6 +57,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/indexBuffer.cpp
     src/client/graphics/luminance.cpp
     src/client/graphics/meshBuilder.cpp
+    src/client/graphics/glRenderer.cpp
     src/client/graphics/renderer.cpp
     src/client/graphics/shader.cpp
     src/client/graphics/texture.cpp

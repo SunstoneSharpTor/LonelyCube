@@ -18,29 +18,32 @@
 
 #pragma once
 
-#include <glad/glad.h>
-
-#include "client/graphics/vertexArray.h"
-#include "client/graphics/indexBuffer.h"
-#include "client/graphics/shader.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
-void GLClearError();
-
-void GLPrintErrors();
-
-class Renderer {
+class Renderer
+{
 public:
-    void clear() const;
+    Renderer();
+    ~Renderer();
+    void drawFrame();
 
-    void draw(const VertexArray& va, uint32_t count, const Shader& s) const;
+    inline bool windowOpen()
+    {
+        return !glfwWindowShouldClose(m_vulkanEngine.getWindow());
+    }
 
-    void draw(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
+private:
+    VulkanEngine m_vulkanEngine;
 
-    void drawWireframe(const VertexArray& va, const IndexBuffer& ib, const Shader& s) const;
+    VkPipelineLayout m_skyPipelineLayout;
 
-    void setOpenGlOptions() const;
+    void initPipelines();
+    void cleanupPipelines();
+    void initSkyPipelines();
+    void cleanupSkyPipelines();
 };
 
 }  // namespace lonelycube::client
