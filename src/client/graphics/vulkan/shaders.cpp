@@ -18,6 +18,7 @@
 
 #include "client/graphics/vulkan/shaders.h"
 
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 
 namespace lonelycube::client {
@@ -46,11 +47,7 @@ bool createShaderModule(
     createInfo.codeSize = buffer.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        LOG("Failed to create shader module");
-        return false;
-    }
+    VK_CHECK(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
 
     return true;
 }

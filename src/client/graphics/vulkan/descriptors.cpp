@@ -18,8 +18,8 @@
 
 #include "client/graphics/vulkan/descriptors.h"
 
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -54,13 +54,12 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::build(
     createInfo.flags = flags;
 
     VkDescriptorSetLayout layout;
-    if (vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &layout) != VK_SUCCESS)
-        LOG("Failed to create descriptor set layout");
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &layout));
 
     return layout;
 }
 
-bool DescriptorAllocator::initPool(
+void DescriptorAllocator::initPool(
     VkDevice device, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios
 ) {
     std::vector<VkDescriptorPoolSize> poolSizes;
@@ -80,24 +79,12 @@ bool DescriptorAllocator::initPool(
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
 
-    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &pool) != VK_SUCCESS)
-    {
-        LOG("Failed to create descriptor pool");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &pool));
 }
 
-bool DescriptorAllocator::clearDescriptors(VkDevice device)
+void DescriptorAllocator::clearDescriptors(VkDevice device)
 {
-    if (vkResetDescriptorPool(device, pool, 0) != VK_SUCCESS)
-    {
-        LOG("Failed to reset descriptor pool");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkResetDescriptorPool(device, pool, 0));
 }
 
 void DescriptorAllocator::destroyPool(VkDevice device)
@@ -114,8 +101,7 @@ VkDescriptorSet DescriptorAllocator::allocate(VkDevice device, VkDescriptorSetLa
     allocInfo.pSetLayouts = &layout;
 
     VkDescriptorSet descriptorSet;
-    if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet) != VK_SUCCESS)
-        LOG("Failed to allocated descriptor set");
+    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
     return descriptorSet;
 }
@@ -218,11 +204,7 @@ VkDescriptorSet DescriptorAllocatorGrowable::allocate(
         poolToUse = getPool(device);
         allocInfo.descriptorPool = poolToUse;
 
-        if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet) != VK_SUCCESS)
-        {
-            LOG("Failed to allocate descriptor set");
-            return VK_NULL_HANDLE;
-        }
+        VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
     }
 
     m_readyPools.push_back(poolToUse);

@@ -18,7 +18,7 @@
 
 #include "client/graphics/vulkan/pipelines.h"
 
-#include <vulkan/vulkan_core.h>
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 
 namespace lonelycube::client {
@@ -155,12 +155,9 @@ VkPipeline PipelineBuilder::buildPipeline(VkDevice device)
     pipelineInfo.pDynamicState = &dynamicInfo;
 
     VkPipeline newPipeline;
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create graphics pipeline");
-        return VK_NULL_HANDLE;
-    }
+    VK_CHECK(
+        vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline)
+    );
 
     return newPipeline;
 }

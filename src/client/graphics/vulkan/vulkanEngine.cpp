@@ -26,6 +26,7 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
+#include "glm/glm.hpp"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -509,7 +510,7 @@ VkExtent2D VulkanEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabi
     }
 }
 
-bool VulkanEngine::createSwapchain()
+void VulkanEngine::createSwapchain()
 {
     SwapchainSupportDetails swapchainSupport = querySwapchainSupport(m_physicalDevice);
 
@@ -558,11 +559,7 @@ bool VulkanEngine::createSwapchain()
 
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
-    {
-        LOG("Failed to create swap chain");
-        return false;
-    }
+    VK_CHECK(vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain));
 
     vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, nullptr);
     m_swapchainImages.resize(imageCount);
@@ -572,11 +569,9 @@ bool VulkanEngine::createSwapchain()
     m_swapchainExtent = extent;
     m_renderExtent.width = std::min(m_swapchainExtent.width, m_drawImageExtent.width);
     m_renderExtent.height = std::min(m_swapchainExtent.height, m_drawImageExtent.height);
-
-    return true;
 }
 
-bool VulkanEngine::createSwapchainImageViews()
+void VulkanEngine::createSwapchainImageViews()
 {
     m_swapchainImageViews.resize(m_swapchainImages.size());
     for (size_t i = 0; i < m_swapchainImages.size(); i++)
@@ -599,18 +594,11 @@ bool VulkanEngine::createSwapchainImageViews()
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i])
-            != VK_SUCCESS)
-        {
-            LOG("Failed to create image view for swap chain image");
-            return false;
-        }
+        VK_CHECK(vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]));
     }
-
-    return true;
 }
 
-bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
+void VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -618,16 +606,10 @@ bool VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffe
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
 
-    if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
-    {
-        LOG("Failed to allocate command buffer");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer));
 }
 
-bool VulkanEngine::createFrameData()
+void VulkanEngine::createFrameData()
 {
     m_frameData.resize(m_MAX_FRAMES_IN_FLIGHT);
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
@@ -639,21 +621,11 @@ bool VulkanEngine::createFrameData()
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
 
-        if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_frameData[i].commandPool)
-            != VK_SUCCESS)
-        {
-            LOG("Failed to create command pool");
-            return false;
-        }
+        VK_CHECK(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_frameData[i].commandPool));
 
-        if (!(createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer)
-            && createSyncObjects(i)))
-        {
-            return false;
-        }
+        createCommandBuffer(m_frameData[i].commandPool, m_frameData[i].commandBuffer);
+        createSyncObjects(i);
     }
-
-    return true;
 }
 
 void VulkanEngine::cleanupFrameData()
@@ -668,7 +640,7 @@ void VulkanEngine::cleanupFrameData()
     }
 }
 
-bool VulkanEngine::initImmediateSubmit()
+void VulkanEngine::initImmediateSubmit()
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
@@ -677,25 +649,14 @@ bool VulkanEngine::initImmediateSubmit()
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
 
-    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_immediateSubmitCommandPool)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create command pool");
-        return false;
-    }
+    VK_CHECK(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_immediateSubmitCommandPool));
 
     createCommandBuffer(m_immediateSubmitCommandPool, m_immediateSubmitCommandBuffer);
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_immediateSubmitFence) != VK_SUCCESS)
-    {
-        LOG("Failed to create fence");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_immediateSubmitFence));
 }
 
 void VulkanEngine::cleanupImmediateSubmit()
@@ -704,10 +665,10 @@ void VulkanEngine::cleanupImmediateSubmit()
     vkDestroyFence(m_device, m_immediateSubmitFence, nullptr);
 }
 
-bool VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&& function)
+void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&& function)
 {
-    vkResetFences(m_device, 1, &m_immediateSubmitFence);
-    vkResetCommandBuffer(m_immediateSubmitCommandBuffer, 0);
+    VK_CHECK(vkResetFences(m_device, 1, &m_immediateSubmitFence));
+    VK_CHECK(vkResetCommandBuffer(m_immediateSubmitCommandBuffer, 0));
 
     VkCommandBuffer command = m_immediateSubmitCommandBuffer;
 
@@ -716,19 +677,11 @@ bool VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     beginInfo.pInheritanceInfo = nullptr;
 
-    if (vkBeginCommandBuffer(command, &beginInfo) != VK_SUCCESS)
-    {
-        LOG("Failed to begin recording command buffer");
-        return false;
-    }
+    VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
 
     function(command);
 
-    if (vkEndCommandBuffer(command) != VK_SUCCESS)
-    {
-        LOG("Failed to record command buffer");
-        return false;
-    }
+    VK_CHECK(vkEndCommandBuffer(command));
 
     VkCommandBufferSubmitInfo commandSubmitInfo{};
     commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -739,44 +692,28 @@ bool VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&
     submitInfo.commandBufferInfoCount = 1;
     submitInfo.pCommandBufferInfos = &commandSubmitInfo;
 
-    if (vkQueueSubmit2(m_transferQueue, 1, &submitInfo, m_immediateSubmitFence) != VK_SUCCESS)
-    {
-        LOG("Failed to submit immediateSubmit command buffer");
-        return false;
-    }
+    VK_CHECK(vkQueueSubmit2(m_transferQueue, 1, &submitInfo, m_immediateSubmitFence));
 
-    vkWaitForFences(m_device, 1, &m_immediateSubmitFence, true, UINT64_MAX);
-
-    return true;
+    VK_CHECK(vkWaitForFences(m_device, 1, &m_immediateSubmitFence, true, UINT64_MAX));
 }
 
-bool VulkanEngine::createSyncObjects(int frameNum)
+void VulkanEngine::createSyncObjects(int frameNum)
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if (vkCreateSemaphore(
+    VK_CHECK(vkCreateSemaphore(
         m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].imageAvailableSemaphore)
-        != VK_SUCCESS || vkCreateSemaphore(
+    );
+    VK_CHECK(vkCreateSemaphore(
         m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].renderFinishedSemaphore)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create semaphores");
-        return false;
-    }
+    );
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    if (vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameNum].inFlightFence)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create fence");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameNum].inFlightFence));
 }
 
 void VulkanEngine::drawBackgroud(VkCommandBuffer command)
@@ -848,7 +785,7 @@ void VulkanEngine::drawGeometry(VkCommandBuffer command)
     vkCmdEndRendering(command);
 }
 
-bool VulkanEngine::recordCommandBuffer(
+void VulkanEngine::recordCommandBuffer(
     VkCommandBuffer command, uint32_t swapchainImageIndex
 ) {
     VkCommandBufferBeginInfo beginInfo{};
@@ -856,11 +793,7 @@ bool VulkanEngine::recordCommandBuffer(
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     beginInfo.pInheritanceInfo = nullptr;
 
-    if (vkBeginCommandBuffer(command, &beginInfo) != VK_SUCCESS)
-    {
-        LOG("Failed to begin recording command buffer");
-        return false;
-    }
+    VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
 
     transitionImage(command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
@@ -889,20 +822,14 @@ bool VulkanEngine::recordCommandBuffer(
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     );
 
-    if (vkEndCommandBuffer(command) != VK_SUCCESS)
-    {
-        LOG("Failed to record command buffer");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkEndCommandBuffer(command));
 }
 
-bool VulkanEngine::drawFrame()
+void VulkanEngine::drawFrame()
 {
     FrameData currentFrameData = m_frameData[m_currentFrame % 2];
 
-    vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX);
+    VK_CHECK(vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX));
 
     uint32_t swapchainImageIndex;
     VkResult result = vkAcquireNextImageKHR(
@@ -914,18 +841,17 @@ bool VulkanEngine::drawFrame()
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         recreateSwapchain();
-        return true;
+        return;
     }
-    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    else if (result != VK_SUBOPTIMAL_KHR)
     {
-        LOG("Failed to acquire swap chain image");
-        return false;
+        assert(result == VK_SUCCESS);
     }
 
-    vkResetFences(m_device, 1, &currentFrameData.inFlightFence);
+    VK_CHECK(vkResetFences(m_device, 1, &currentFrameData.inFlightFence));
 
     VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
-    vkResetCommandBuffer(commandBuffer, 0);
+    VK_CHECK(vkResetCommandBuffer(commandBuffer, 0));
     recordCommandBuffer(commandBuffer, swapchainImageIndex);
 
     VkCommandBufferSubmitInfo commandSubmitInfo{};
@@ -953,12 +879,9 @@ bool VulkanEngine::drawFrame()
     submitInfo.commandBufferInfoCount = 1;
     submitInfo.pCommandBufferInfos = &commandSubmitInfo;
 
-    if (vkQueueSubmit2(m_graphicsAndComputeQueue, 1, &submitInfo, currentFrameData.inFlightFence)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to submit draw command buffer");
-        return false;
-    }
+    VK_CHECK(
+        vkQueueSubmit2(m_graphicsAndComputeQueue, 1, &submitInfo, currentFrameData.inFlightFence)
+    );
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -977,46 +900,36 @@ bool VulkanEngine::drawFrame()
         m_windowResized = false;
         recreateSwapchain();
     }
-    else if (result != VK_SUCCESS)
+    else
     {
-        LOG("Failed to present swap chain image");
-        return false;
+        assert(result == VK_SUCCESS);
     }
 
     m_currentFrame++;
-
-    return true;
 }
 
-bool VulkanEngine::recreateSwapchain()
+void VulkanEngine::recreateSwapchain()
 {
     vkDeviceWaitIdle(m_device);
 
     cleanupSwapchain();
 
-    if(createSwapchain() && createSwapchainImageViews())
-        return true;
-
-    return false;
+    createSwapchain();
+    createSwapchainImageViews();
 }
 
-bool VulkanEngine::createAllocator()
+void VulkanEngine::createAllocator()
 {
     VmaAllocatorCreateInfo allocatorInfo{};
     allocatorInfo.physicalDevice = m_physicalDevice;
     allocatorInfo.device = m_device;
     allocatorInfo.instance = m_instance;
     allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-    if (vmaCreateAllocator(&allocatorInfo, &m_allocator) != VK_SUCCESS)
-    {
-        LOG("Failed to create VMAallocator");
-        return false;
-    }
 
-    return true;
+    VK_CHECK(vmaCreateAllocator(&allocatorInfo, &m_allocator));
 }
 
-bool VulkanEngine::createDrawImage()
+void VulkanEngine::createDrawImage()
 {
     int numVideoModes;
     const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
@@ -1059,13 +972,9 @@ bool VulkanEngine::createDrawImage()
     imageAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     imageAllocInfo.priority = 1.0f;
 
-    if (vmaCreateImage(
+    VK_CHECK(vmaCreateImage(
         m_allocator, &imageCreateInfo, &imageAllocInfo, &m_drawImage.image, &m_drawImage.allocation,
-        nullptr) != VK_SUCCESS)
-    {
-        LOG("Failed to create draw image");
-        return false;
-    }
+        nullptr));
 
     VkImageViewCreateInfo imageViewCreateInfo{};
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1078,14 +987,7 @@ bool VulkanEngine::createDrawImage()
     imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
     imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_drawImage.imageView)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create image view for draw image");
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_drawImage.imageView));
 }
 
 bool VulkanEngine::initDescriptors()
@@ -1095,8 +997,7 @@ bool VulkanEngine::initDescriptors()
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
     };
 
-    if (!globalDescriptorAllocator.initPool(m_device, 10, sizes))
-        return false;
+    globalDescriptorAllocator.initPool(m_device, 10, sizes);
 
     {
         DescriptorLayoutBuilder builder;
@@ -1125,7 +1026,7 @@ bool VulkanEngine::initDescriptors()
     return true;
 }
 
-bool VulkanEngine::initBackgroundPipelines()
+void VulkanEngine::initBackgroundPipelines()
 {
     VkPipelineLayoutCreateInfo computePipelineLayout{};
     computePipelineLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -1140,16 +1041,13 @@ bool VulkanEngine::initBackgroundPipelines()
     computePipelineLayout.pushConstantRangeCount = 1;
     computePipelineLayout.pPushConstantRanges = &pushConstant;
 
-    if (vkCreatePipelineLayout(m_device, &computePipelineLayout, nullptr, &m_gradientPipelineLayout)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create draw image blit pipeline layout");
-        return false;
-    }
+    VK_CHECK(
+        vkCreatePipelineLayout(m_device, &computePipelineLayout, nullptr, &m_gradientPipelineLayout)
+    );
 
     VkShaderModule computeDrawShader;
     if (!createShaderModule(m_device, "res/shaders/gradient.comp.spv", computeDrawShader))
-        return false;
+        LOG("Failed to find shader \"res/shaders/gradient.comp.spv\"");
 
     VkPipelineShaderStageCreateInfo stageInfo{};
     stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1162,17 +1060,11 @@ bool VulkanEngine::initBackgroundPipelines()
     computePipelineCreateInfo.layout = m_gradientPipelineLayout;
     computePipelineCreateInfo.stage = stageInfo;
 
-    if (vkCreateComputePipelines(
-        m_device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &m_gradientPipeline)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create gradient compute pipeline");
-        return false;
-    }
+    VK_CHECK(vkCreateComputePipelines(
+        m_device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &m_gradientPipeline
+    ));
 
     vkDestroyShaderModule(m_device, computeDrawShader, nullptr);
-
-    return true;
 }
 
 void VulkanEngine::cleanupBackgroundPipelines()
@@ -1181,15 +1073,15 @@ void VulkanEngine::cleanupBackgroundPipelines()
     vkDestroyPipelineLayout(m_device, m_gradientPipelineLayout, nullptr);
 }
 
-bool VulkanEngine::initMeshPipeline()
+void VulkanEngine::initMeshPipeline()
 {
     VkShaderModule meshVertexShader;
     if (!createShaderModule(m_device, "res/shaders/test.vert.spv", meshVertexShader))
-        return false;
+        LOG("Failed to find shader \"res/shaders/test.vert.spv\"");
 
     VkShaderModule meshFragmentShader;
     if (!createShaderModule(m_device, "res/shaders/test.frag.spv", meshFragmentShader))
-        return false;
+        LOG("Failed to find shader \"res/shaders/test.frag.spv\"");
 
     VkPushConstantRange bufferRange{};
     bufferRange.size = sizeof(glm::mat4) + sizeof(VkDeviceAddress);
@@ -1200,12 +1092,9 @@ bool VulkanEngine::initMeshPipeline()
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
 
-    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_meshPipelineLayout)
-        != VK_SUCCESS)
-    {
-        LOG("Failed to create graphics pipeline layout");
-        return false;
-    }
+    VK_CHECK(
+        vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_meshPipelineLayout)
+    );
 
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_meshPipelineLayout;
@@ -1221,13 +1110,8 @@ bool VulkanEngine::initMeshPipeline()
 
     m_meshPipeline = pipelineBuilder.buildPipeline(m_device);
 
-    if (m_meshPipeline == VK_NULL_HANDLE)
-        return false;
-
     vkDestroyShaderModule(m_device, meshVertexShader, nullptr);
     vkDestroyShaderModule(m_device, meshFragmentShader, nullptr);
-
-    return true;
 }
 
 void VulkanEngine::cleanupMeshPipeline()
@@ -1236,9 +1120,10 @@ void VulkanEngine::cleanupMeshPipeline()
     vkDestroyPipeline(m_device, m_meshPipeline, nullptr);
 }
 
-bool VulkanEngine::initPipelines()
+void VulkanEngine::initPipelines()
 {
-    return initBackgroundPipelines() && initMeshPipeline();
+    initBackgroundPipelines();
+    initMeshPipeline();
 }
 
 void VulkanEngine::cleanupPipelines()
@@ -1260,12 +1145,10 @@ AllocatedBuffer VulkanEngine::createBuffer(
     vmaAllocInfo.flags = flags;
 
     AllocatedBuffer newBuffer;
-    if (vmaCreateBuffer(
+    VK_CHECK(vmaCreateBuffer(
         m_allocator, &bufferInfo, &vmaAllocInfo, &newBuffer.buffer, &newBuffer.allocation,
-        &newBuffer.info) != VK_SUCCESS)
-    {
-        LOG("Failed to allocate buffer");
-    }
+        &newBuffer.info
+    ));
 
     return newBuffer;
 }
