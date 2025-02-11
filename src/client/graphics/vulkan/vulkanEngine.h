@@ -83,6 +83,31 @@ public:
     VulkanEngine();
     void init();
     void cleanup();
+
+    // Resizing
+    void recreateSwapchain();
+
+    // Buffers
+    AllocatedBuffer createBuffer(
+        size_t allocationSize, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags
+    );
+    inline void destroyBuffer(const AllocatedBuffer& buffer)
+    {
+        vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
+    }
+    void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
+
+    // Images
+    AllocatedImage createImage(
+        VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false
+    );
+    AllocatedImage createImage(
+        void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+        bool mipmapped = false
+    );
+    void destroyImage(const AllocatedImage& image);
+
+    // Temporary
     void drawFrame();
 
 private:
@@ -171,19 +196,6 @@ private:
     void cleanupSwapchain();
     void cleanupFrameData();
     void cleanupImmediateSubmit();
-
-    // Resizing
-    void recreateSwapchain();
-
-    // Buffers
-    AllocatedBuffer createBuffer(
-        size_t allocationSize, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags
-    );
-    inline void destroyBuffer(const AllocatedBuffer& buffer)
-    {
-        vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
-    }
-    void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
 
     // Temporary
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
