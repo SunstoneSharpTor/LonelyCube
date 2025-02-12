@@ -50,8 +50,7 @@ void main() {
     ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
-    vec4 target = inverseProjection * vec4(pos.x, pos.y, 1, 1);
-    vec3 rayDir = vec3(inverseView * vec4(normalize(vec3(target) / target.w), 0));
+    vec3 rayDir = normalize((inverseView * inverseProjection * vec4(pos.x, pos.y, 1, 1)).xyz);
 
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
     vec3 value = SKY_TOP_COLOUR * (1.0f - rayDistanceThroughAtmosphere / 90.0);

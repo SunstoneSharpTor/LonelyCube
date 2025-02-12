@@ -88,7 +88,7 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& 
     m_time = 0.0;
 }
 
-void ClientPlayer::processUserInput(GLFWwindow* window, unsigned  int* windowDimensions, bool*
+void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, bool*
     windowLastFocus, bool* running, double currentTime, ClientNetworking& networking) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);

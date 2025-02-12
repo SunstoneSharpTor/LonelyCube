@@ -22,16 +22,15 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 layout (rgba16f, set = 0, binding = 0) uniform image2D skyImage;
 
-layout (push_constant) uniform constants
+layout (push_constant, std430) uniform constants
 {
-    uniform vec3 sunDir;
-    uniform mat4 inverseViewProjection;
-    uniform float brightness;
-    uniform vec3 sunGlowColour;
-    uniform float sunGlowAmount;
-} PushConstants;
+    vec3 sunDir;
+    float brightness;
+    mat4 inverseViewProjection;
+    vec3 sunGlowColour;
+    float sunGlowAmount;
+};
 
-const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
 const float ATMOSPHERE_RADIUS = 120.0;
 const vec3 SKY_TOP_COLOUR = vec3(0.15, 0.25, 0.94);
@@ -54,7 +53,7 @@ void main() {
     ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     vec2 pos = (vec2(texelCoords) * 2 - textureSize) / textureSize;  // Transforms to [-1.0, 1.0]
-    vec3 rayDir = normalize((inverseView * inverseProjection * vec4(pos.x, pos.y, 1, 1)).xyz);
+    vec3 rayDir = normalize((inverseViewProjection * vec4(pos.x, pos.y, 1, 1)).xyz);
 
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
     vec3 value = SKY_TOP_COLOUR * (1.0f - rayDistanceThroughAtmosphere / 90.0);

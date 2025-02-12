@@ -77,9 +77,7 @@ public:
 
     ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
 
-    void setWorldMouseData(GLFWwindow* window, uint32_t* windowDimensions);
-
-    void processUserInput(GLFWwindow* window, uint32_t* windowDimensions, bool*
+    void processUserInput(GLFWwindow* window, int* windowDimensions, bool*
       windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
 };
 
