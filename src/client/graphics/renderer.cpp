@@ -18,8 +18,6 @@
 
 #include "client/graphics/renderer.h"
 
-#include "glm/glm.hpp"
-
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
@@ -53,7 +51,7 @@ void Renderer::initSkyPipelines()
 
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
-    pushConstant.size = 2 * sizeof(glm::vec4);
+    pushConstant.size = sizeof(skyPushConstants);
     pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     computePipelineLayout.pushConstantRangeCount = 1;
@@ -65,9 +63,9 @@ void Renderer::initSkyPipelines()
 
     VkShaderModule computeDrawShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/gradient.comp.spv", computeDrawShader))
+        m_vulkanEngine.getDevice(), "res/shaders/sky.comp.spv", computeDrawShader))
     {
-        LOG("Failed to find shader \"res/shaders/gradient.comp.spv\"");
+        LOG("Failed to find shader \"res/shaders/sky.comp.spv\"");
     }
 
     VkPipelineShaderStageCreateInfo stageInfo{};
@@ -113,14 +111,17 @@ void Renderer::drawSky(VkCommandBuffer command)
         0, 1, &m_vulkanEngine.getDrawImageDescriptors(),
         0, nullptr
     );
+
     double x, y;
     glfwGetCursorPos(m_vulkanEngine.getWindow(), &x, &y);
     x /= m_vulkanEngine.getRenderExtent().width;
     y /= m_vulkanEngine.getRenderExtent().height;
     glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
+
     vkCmdPushConstants(
         command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4), colours
     );
+
     vkCmdDispatch(
         command, (m_vulkanEngine.getRenderExtent().width + 15) / 16,
         (m_vulkanEngine.getRenderExtent().height + 15) / 16, 1

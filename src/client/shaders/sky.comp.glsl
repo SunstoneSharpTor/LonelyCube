@@ -16,16 +16,20 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+#version 460
 
-layout (rgba16f, binding = 0) uniform image2D skyImage;
+layout (local_size_x = 16, local_size_y = 16) in;
 
-uniform vec3 sunDir;
-uniform mat4 inverseProjection;
-uniform mat4 inverseView;
-uniform float brightness;
-uniform vec3 sunGlowColour;
-uniform float sunGlowAmount;
+layout (rgba16f, set = 0, binding = 0) uniform image2D skyImage;
+
+layout (push_constant) uniform constants
+{
+    uniform vec3 sunDir;
+    uniform mat4 inverseViewProjection;
+    uniform float brightness;
+    uniform vec3 sunGlowColour;
+    uniform float sunGlowAmount;
+} PushConstants;
 
 const int NUM_IN_SCATTERING_POINTS = 10;
 const float PLANET_RADIUS = 100.0;
@@ -62,6 +66,6 @@ void main() {
     float sunDistance = dotProd * 0.000003 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
     value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
-	
+
     imageStore(skyImage, texelCoords, vec4(value * brightness, 1.0));
 }

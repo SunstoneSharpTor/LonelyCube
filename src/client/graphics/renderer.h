@@ -18,10 +18,21 @@
 
 #pragma once
 
+#include "glm/fwd.hpp"
+#include "glm/glm.hpp"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
+
+struct skyPushConstants
+{
+    glm::vec3 sunDir;
+    glm::mat4 inverseViewProjection;
+    float brightness;
+    glm::vec3 sunGlowColour;
+    float sunGlowAmount;
+};
 
 class Renderer
 {
