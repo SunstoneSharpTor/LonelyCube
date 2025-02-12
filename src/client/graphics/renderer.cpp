@@ -22,6 +22,7 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include "glm/fwd.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
@@ -51,7 +52,7 @@ void Renderer::initSkyPipelines()
 
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
-    pushConstant.size = sizeof(skyPushConstants);
+    pushConstant.size = sizeof(SkyPushConstants);
     pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     computePipelineLayout.pushConstantRangeCount = 1;
@@ -112,14 +113,9 @@ void Renderer::drawSky(VkCommandBuffer command)
         0, nullptr
     );
 
-    double x, y;
-    glfwGetCursorPos(m_vulkanEngine.getWindow(), &x, &y);
-    x /= m_vulkanEngine.getRenderExtent().width;
-    y /= m_vulkanEngine.getRenderExtent().height;
-    glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
-
     vkCmdPushConstants(
-        command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4), colours
+        command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
+        &skyRenderInfo
     );
 
     vkCmdDispatch(

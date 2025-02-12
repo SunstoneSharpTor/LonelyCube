@@ -230,6 +230,7 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
             readyToRelable |= !m_threadWaiting[threadNum];
         }
         readyToRelable = !readyToRelable;
+        LOG(std::to_string(readyToRelable));
     }
 
     integratedServer.updatePlayerPos(0, playerBlockCoords, playerSubBlockCoords, m_unmeshNeeded);
@@ -264,7 +265,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
             m_unmeshedChunksMtx.unlock();
         }
     }
-    buildMeshesForNewChunksWithNeighbours(threadNum);
+    // buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
 void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {

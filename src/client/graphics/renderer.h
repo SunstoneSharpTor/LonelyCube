@@ -25,11 +25,11 @@
 
 namespace lonelycube::client {
 
-struct skyPushConstants
+struct SkyPushConstants
 {
     glm::vec3 sunDir;
-    glm::mat4 inverseViewProjection;
     float brightness;
+    glm::mat4 inverseViewProjection;
     glm::vec3 sunGlowColour;
     float sunGlowAmount;
 };
@@ -37,13 +37,15 @@ struct skyPushConstants
 class Renderer
 {
 public:
+    SkyPushConstants skyRenderInfo;
+
     Renderer();
     ~Renderer();
     void drawFrame();
 
-    inline bool windowOpen()
+    inline VulkanEngine& getVulkanEngine()
     {
-        return !glfwWindowShouldClose(m_vulkanEngine.getWindow());
+        return m_vulkanEngine;
     }
 
 private:

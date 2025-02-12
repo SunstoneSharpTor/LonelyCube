@@ -25,6 +25,7 @@
 
 #include "core/pch.h"
 
+#include <limits>
 #include <string>
 #include <time.h>
 
@@ -106,13 +107,18 @@ void renderThread() {
         multiplayer ? networking.getPeer() : nullptr, networking.getMutex()
     );
     LOG("World Seed: " + std::to_string(worldSeed));
-    ClientPlayer mainPlayer(playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack());
+    ClientPlayer mainPlayer(
+        playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack()
+    );
 
     bool running = true;
     GLFWwindow* window;
 
     bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
-    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(), true);
+    std::fill(
+        chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(),
+        true
+    );
 
     LogicThread logicThread(
         mainWorld, chunkLoaderThreadsRunning, mainPlayer, networking, settings, multiplayer
@@ -123,15 +129,302 @@ void renderThread() {
         {
         Renderer renderer;
 
-        while (renderer.windowOpen()) {
+        bool windowLastFocus = false;
+        bool windowFullScreen = false;
+        bool lastWindowFullScreen = false;
+        bool lastLastWindowFullScreen = false;
+        int windowRestoredSize[2];
+        int windowRestoredPos[2];
+        bool lastF11 = false;
+        int windowDimensions[2];
+        int smallScreenWindowDimensions[2];
+        int smallScreenWindowPos[2];
+        glfwGetWindowSize(
+            renderer.getVulkanEngine().getWindow(), &windowDimensions[0], &windowDimensions[1]
+        );
+        const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+        mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
+
+        double time;
+        mainPlayer.processUserInput(
+            renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, &running,
+            time, networking
+        );
+        mainWorld.doRenderThreadJobs();
+
+        //set up game loop
+        float exposure = 0.0;
+        float exposureTimeByDTs = 0.0;
+        int FPS_CAP = std::numeric_limits<int>::max();
+        double DT = 1.0 / FPS_CAP;
+        uint64_t frames = 0;
+        uint64_t lastFrameRateFrames = 0;
+        auto start = std::chrono::steady_clock::now();
+        auto end = start;
+        time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
+        double frameStart = time - DT;
+        float lastFrameRateTime = frameStart + DT;
+        bool run = running;
+        while (run) {
             glfwPollEvents();
-            renderer.drawFrame();
+            //toggle fullscreen if F11 pressed
+            if (glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
+                if (windowFullScreen) {
+                    glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
+                        smallScreenWindowPos[0], smallScreenWindowPos[1],
+                        smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
+                        displayMode->refreshRate );
+                }
+                else {
+                    smallScreenWindowDimensions[0] = windowDimensions[0];
+                    smallScreenWindowDimensions[1] = windowDimensions[1];
+                    glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
+                    glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
+                        0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
+                }
+
+                windowFullScreen = !windowFullScreen;
+            }
+            lastF11 = glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS;
+            if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
+                running = false;
+            int windowSize[2];
+            glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize[0], &windowSize[1]);
+            if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
+                windowDimensions[0] = windowSize[0];
+                windowDimensions[1] = windowSize[1];
+                // worldFrameBuffer.resize(reinterpret_cast<uint32_t*>(windowDimensions));
+                // glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
+                // font.resize(reinterpret_cast<uint32_t*>(windowDimensions));
+                // #ifndef GLES3
+                // glBindTexture(GL_TEXTURE_2D, skyTexture);
+                // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
+                // bloom.resize(reinterpret_cast<uint32_t*>(windowDimensions));
+                // luminance.resize(reinterpret_cast<uint32_t*>(windowDimensions));
+                // #else
+                // skyFrameBuffer.resize(windowDimensions);
+                // #endif
+                // crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
+                // crosshairShader.bind();
+                // crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
+            }
+            lastLastWindowFullScreen = lastWindowFullScreen;
+            lastWindowFullScreen = windowFullScreen;
+
+            //render if a frame is needed
+            // GLPrintErrors();
+            end = std::chrono::steady_clock::now();
+            double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
+            if (currentTime > frameStart + DT) {
+                double actualDT = currentTime - frameStart;
+                if (currentTime - lastFrameRateTime > 1) {
+                    LOG(std::to_string(frames - lastFrameRateFrames) + " FPS");
+                    LOG(std::to_string(mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]) + ", "
+                        + std::to_string(mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]) + ", "
+                        + std::to_string(mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]));
+                    lastFrameRateTime += 1;
+                    lastFrameRateFrames = frames;
+                }
+                //update frame rate limiter
+                if ((currentTime - DT) < (frameStart + DT)) {
+                    frameStart += DT;
+                }
+                else {
+                    frameStart = currentTime;
+                }
+
+                mainPlayer.processUserInput(renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, &running, currentTime, networking);
+                mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
+
+                //create model view projection matrix for the world
+                float fov = 70.0;
+                fov = fov - fov * (2.0 / 3.0) * mainPlayer.zoom;
+                glm::mat4 projection = glm::perspective(glm::radians(fov), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE));
+                glm::mat4 inverseProjection = glm::inverse(projection);
+                glm::mat4 view;
+                mainPlayer.viewCamera.getViewMatrix(&view);
+                glm::mat4 inverseView = glm::inverse(view);
+                glm::mat4 model = (glm::mat4(1.0f));
+                glm::mat4 mvp = projection * view * model;
+                // //update the MVP uniform
+                // blockShader.bind();
+                // blockShader.setUniformMat4f("u_modelView", view * model);
+                // blockShader.setUniformMat4f("u_proj", projection);
+                //
+                // // Set up block outline
+                // int breakBlockCoords[3];
+                // int placeBlockCoords[3];
+                // uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
+                //     mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
+                //     breakBlockCoords, placeBlockCoords);
+                // if (lookingAtBlock) {
+                //     //create the model view projection matrix for the outline
+                //     glm::vec3 outlinePosition;
+                //     for (uint8_t i = 0; i < 3; i++) {
+                //         outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
+                //     }
+                //     model = glm::translate(model, outlinePosition);
+                //     glm::mat4 mvp = projection * view * model;
+                //     blockOutlineShader.bind();
+                //     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
+                // }
+
+                uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+                // Calculate ground luminance
+                float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
+                // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
+
+                glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
+                    constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
+                    constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
+                renderer.skyRenderInfo.sunDir = sunDirection;
+                renderer.skyRenderInfo.inverseViewProjection = inverseView * inverseProjection;
+                renderer.skyRenderInfo.brightness = groundLuminance;
+                renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
+                renderer.skyRenderInfo.sunGlowAmount = std::pow(
+                    std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
+                );
+                renderer.drawFrame();
+
+                // // Render the world to a texture
+                // worldFrameBuffer.bind();
+                // mainRenderer.clear();
+                // #ifndef GLES3
+                // // Draw the sky
+                // glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+                // skyBlitShader.bind();
+                // glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
+                //   (uint32_t)((windowDimensions[1] + 7) / 8), 1);
+                // // Make sure writing to image has finished before read
+                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                //
+                // // Draw the sun
+                // glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+                // sunShader.bind();
+                // sunShader.setUniformVec3("sunDir", sunDirection);
+                // sunShader.setUniformMat4f("inverseProjection", inverseProjection);
+                // sunShader.setUniformMat4f("inverseView", inverseView);
+                // sunShader.setUniform1f("brightness", groundLuminance * 1000);
+                // glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
+                //     (uint32_t)((windowDimensions[1] + 7) / 8), 1);
+                // // Make sure writing to image has finished before read
+                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                // #endif
+                //
+                // // Render the world geometry
+                // glEnable(GL_DEPTH_TEST);
+                // worldTextures.bind();
+                // glActiveTexture(GL_TEXTURE1);
+                // #ifndef GLES3
+                // glBindTexture(GL_TEXTURE_2D, skyTexture);
+                // #else
+                // glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
+                // #endif
+                // //auto tp1 = std::chrono::high_resolution_clock::now();
+                // mainWorld.renderWorld(mainRenderer, blockShader, waterShader, view, projection,
+                //     mainPlayer.cameraBlockPosition, (float)windowDimensions[0] /
+                //     (float)windowDimensions[1], fov, groundLuminance, actualDT);
+                // //auto tp2 = std::chrono::high_resolution_clock::now();
+                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+                //
+                // //auto tp1 = std::chrono::high_resolution_clock::now();
+                // #ifndef GLES3
+                // bloom.render(0.005f, 0.005f);
+                // #endif
+                // //auto tp2 = std::chrono::high_resolution_clock::now();
+                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+                //
+                // // Draw the block outline
+                // if (lookingAtBlock) {
+                //     VertexArray blockOutlineVA;
+                //     VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
+                //         lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
+                //     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
+                //     mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
+                // }
+                // worldFrameBuffer.unbind();
+
+                // // Update auto exposure
+                // #ifndef GLES3
+                // float luminanceVal = luminance.calculate();
+                // #else
+                const float minDarknessAmbientLight = 0.00002f;
+                float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
+                float skyLightLevel = (float)mainWorld.integratedServer.chunkManager.getSkyLight(
+                    mainPlayer.cameraBlockPosition) / constants::skyLightMaxValue;
+                float factor = skyLightLevel * skyLightLevel * skyLightLevel;
+                float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
+                    * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
+                    45.0f) * (1.0f - factor);
+                float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
+                // #endif
+                float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.005f));
+                exposureTimeByDTs += actualDT;
+                while (exposureTimeByDTs > (1.0/(double)constants::visualTPS)) {
+                    float fac = 0.008;
+                    exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
+                        std::abs(targetExposure - exposure),
+                        (targetExposure - exposure) * (targetExposure - exposure) * fac
+                    );
+                    exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
+                }
+                // screenShader.bind();
+                // screenShader.setUniform1f("exposure", exposure);
+
+                // // Draw the world texture
+                // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                // glClear(GL_COLOR_BUFFER_BIT);
+                // glDisable(GL_DEPTH_TEST);
+                // worldFrameBuffer.draw(screenShader);
+                //
+                // // Draw the crosshair
+                // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+                // glActiveTexture(GL_TEXTURE0);
+                // mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
+                // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                //
+                // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
+                // font.draw(mainRenderer);
+                //
+                // glfwSwapBuffers(window);
+                //
+                // frames++;
+            }
+            mainWorld.updateMeshes();
+            mainWorld.doRenderThreadJobs();
+
+            run = running;
+            for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
+                run |= chunkLoaderThreadsRunning[i];
+            }
         }
+    }
+
+    logicWorker.join();
+
+    delete[] chunkLoaderThreadsRunning;
+
+    if (multiplayer) {
+        std::lock_guard<std::mutex> lock(networking.getMutex());
+        enet_peer_disconnect(networking.getPeer(), 0);
+        ENetEvent event;
+        while (enet_host_service(networking.getHost(), &event, 3000) > 0) {
+            switch (event.type) {
+                case ENET_EVENT_TYPE_RECEIVE:
+                enet_packet_destroy(event.packet);
+                break;
+                case ENET_EVENT_TYPE_DISCONNECT:
+                LOG("Disconnection succeeded!");
+                break;
+            }
         }
 
+        enet_deinitialize();
+    }
+
         const int defaultWindowDimensions[2] = { 853, 480 };
-        uint32_t windowDimensions[2] = { (uint32_t)defaultWindowDimensions[0],
-            (uint32_t)defaultWindowDimensions[1] };
+        int windowDimensions[2] = { defaultWindowDimensions[0], defaultWindowDimensions[1] };
         uint32_t smallScreenWindowDimensions[2];
         int smallScreenWindowPos[2];
 
@@ -177,9 +470,6 @@ void renderThread() {
         bool lastLastWindowFullScreen = false;
         int windowRestoredSize[2];
         int windowRestoredPos[2];
-        // SDL_GetWindowSize(sdl_window, &windowRestoredSize[0], &windowRestoredSize[1]);
-        // SDL_GetWindowPosition(sdl_window, &windowRestoredPos[0], &windowRestoredPos[1]);
-        // const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
         bool lastF11 = false;
 
         #ifdef GLES3
@@ -268,13 +558,19 @@ void renderThread() {
         blockOutlineVBL.push<float>(3);
         IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
 
-        FrameBuffer<true> worldFrameBuffer(windowDimensions);
+        FrameBuffer<true> worldFrameBuffer(reinterpret_cast<uint32_t*>(windowDimensions));
         worldFrameBuffer.unbind();
         #ifndef GLES3
-        Bloom bloom(worldFrameBuffer.getTextureColourBuffer(), windowDimensions, bloomDownsampleShader,
-            bloomUpsampleShader, bloomBlitShader);
-        Luminance luminance(worldFrameBuffer.getTextureColourBuffer(), windowDimensions,
-            logLuminanceDownsampleShader, simpleDownsampleShader);
+        Bloom bloom(
+            worldFrameBuffer.getTextureColourBuffer(),
+            reinterpret_cast<uint32_t*>(windowDimensions), bloomDownsampleShader,
+            bloomUpsampleShader, bloomBlitShader
+        );
+        Luminance luminance(
+            worldFrameBuffer.getTextureColourBuffer(),
+            reinterpret_cast<uint32_t*>(windowDimensions), logLuminanceDownsampleShader,
+            simpleDownsampleShader
+        );
 
         uint32_t skyTexture;
         glGenTextures(1, &skyTexture);
@@ -297,7 +593,7 @@ void renderThread() {
 
         mainWorld.initialiseEntityRenderBuffers();
 
-        Font font("res/resourcePack/gui/font.png", windowDimensions);
+        Font font("res/resourcePack/gui/font.png", reinterpret_cast<uint32_t*>(windowDimensions));
         // glfwSetCharCallback(window, characterCallback);
 
         //set up game loop
@@ -341,14 +637,14 @@ void renderThread() {
             if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
                 windowDimensions[0] = windowSize[0];
                 windowDimensions[1] = windowSize[1];
-                worldFrameBuffer.resize(windowDimensions);
+                worldFrameBuffer.resize(reinterpret_cast<uint32_t*>(windowDimensions));
                 glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
-                font.resize(windowDimensions);
+                font.resize(reinterpret_cast<uint32_t*>(windowDimensions));
                 #ifndef GLES3
                 glBindTexture(GL_TEXTURE_2D, skyTexture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
-                bloom.resize(windowDimensions);
-                luminance.resize(windowDimensions);
+                bloom.resize(reinterpret_cast<uint32_t*>(windowDimensions));
+                luminance.resize(reinterpret_cast<uint32_t*>(windowDimensions));
                 #else
                 skyFrameBuffer.resize(windowDimensions);
                 #endif
