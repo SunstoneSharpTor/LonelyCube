@@ -39,11 +39,14 @@ private:
     VulkanEngine m_vulkanEngine;
 
     VkPipelineLayout m_skyPipelineLayout;
+    VkPipeline m_skyPipeline;
 
     void initPipelines();
     void cleanupPipelines();
     void initSkyPipelines();
     void cleanupSkyPipelines();
+
+    void drawSky(VkCommandBuffer command);
 };
 
 }  // namespace lonelycube::client
