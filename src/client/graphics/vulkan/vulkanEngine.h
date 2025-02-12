@@ -107,6 +107,10 @@ public:
     );
     void destroyImage(const AllocatedImage& image);
 
+    // Rendering
+    void startRenderingFrame();
+    void submitFrame();
+
     // Temporary
     void drawFrame();
 
@@ -138,6 +142,7 @@ private:
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
     std::vector<VkImageView> m_swapchainImageViews;
+    uint32_t m_currentSwapchainIndex;
 
     // Descriptors
     VkDescriptorSet m_drawImageDescriptors;
@@ -226,6 +231,26 @@ public:
     inline VkDescriptorSetLayout& getDrawImageDescriptorSetLayout()
     {
         return m_drawImageDescriptorLayout;
+    }
+    inline VkDescriptorSet& getDrawImageDescriptors()
+    {
+        return m_drawImageDescriptors;
+    }
+    inline FrameData& getCurrentFrameData()
+    {
+        return m_frameData[m_currentFrame % m_MAX_FRAMES_IN_FLIGHT];
+    }
+    inline AllocatedImage& getDrawImage()
+    {
+        return m_drawImage;
+    }
+    inline VkImage getCurrentSwapchainImage()
+    {
+        return m_swapchainImages[m_currentSwapchainIndex];
+    }
+    inline VkExtent2D getRenderExtent()
+    {
+        return m_renderExtent;
     }
 };
 

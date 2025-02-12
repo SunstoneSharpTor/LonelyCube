@@ -835,16 +835,15 @@ void VulkanEngine::recordCommandBuffer(
     VK_CHECK(vkEndCommandBuffer(command));
 }
 
-void VulkanEngine::drawFrame()
+void VulkanEngine::startRenderingFrame()
 {
-    FrameData currentFrameData = m_frameData[m_currentFrame % 2];
+    FrameData& currentFrameData = m_frameData[m_currentFrame % 2];
 
     VK_CHECK(vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX));
 
-    uint32_t swapchainImageIndex;
     VkResult result = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore,
-        VK_NULL_HANDLE, &swapchainImageIndex
+        VK_NULL_HANDLE, &m_currentSwapchainIndex
     );
 
     // Check for resizing
@@ -862,11 +861,15 @@ void VulkanEngine::drawFrame()
 
     VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
     VK_CHECK(vkResetCommandBuffer(commandBuffer, 0));
-    recordCommandBuffer(commandBuffer, swapchainImageIndex);
+}
+
+void VulkanEngine::submitFrame()
+{
+    FrameData& currentFrameData = m_frameData[m_currentFrame % 2];
 
     VkCommandBufferSubmitInfo commandSubmitInfo{};
     commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-    commandSubmitInfo.commandBuffer = commandBuffer;
+    commandSubmitInfo.commandBuffer = currentFrameData.commandBuffer;
 
     VkSemaphoreSubmitInfo waitInfo{};
     waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
@@ -899,10 +902,10 @@ void VulkanEngine::drawFrame()
     presentInfo.pWaitSemaphores = &currentFrameData.renderFinishedSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapchain;
-    presentInfo.pImageIndices = &swapchainImageIndex;
+    presentInfo.pImageIndices = &m_currentSwapchainIndex;
     presentInfo.pResults = nullptr;
 
-    result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+    VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 
     // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_windowResized)
@@ -916,6 +919,13 @@ void VulkanEngine::drawFrame()
     }
 
     m_currentFrame++;
+}
+
+void VulkanEngine::drawFrame()
+{
+    startRenderingFrame();
+    recordCommandBuffer(getCurrentFrameData().commandBuffer, m_currentSwapchainIndex);
+    submitFrame();
 }
 
 void VulkanEngine::recreateSwapchain()

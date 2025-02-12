@@ -20,25 +20,28 @@
 
 #include "glm/glm.hpp"
 
+#include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
 Renderer::Renderer()
 {
     m_vulkanEngine.init();
+
+    initPipelines();
 }
 
 Renderer::~Renderer()
 {
-    m_vulkanEngine.cleanup();
-}
+    vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
-void Renderer::drawFrame()
-{
-    m_vulkanEngine.drawFrame();
+    cleanupPipelines();
+
+    m_vulkanEngine.cleanup();
 }
 
 void Renderer::initSkyPipelines()
@@ -75,20 +78,21 @@ void Renderer::initSkyPipelines()
 
     VkComputePipelineCreateInfo computePipelineCreateInfo{};
     computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    computePipelineCreateInfo.layout = m_gradientPipelineLayout;
+    computePipelineCreateInfo.layout = m_skyPipelineLayout;
     computePipelineCreateInfo.stage = stageInfo;
 
     VK_CHECK(vkCreateComputePipelines(
-        m_device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &m_gradientPipeline
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr,
+        &m_skyPipeline
     ));
 
-    vkDestroyShaderModule(m_device, computeDrawShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
 }
 
 void Renderer::cleanupSkyPipelines()
 {
-    vkDestroyPipeline(m_device, m_gradientPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_gradientPipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_skyPipelineLayout, nullptr);
 }
 
 void Renderer::initPipelines()
@@ -99,6 +103,78 @@ void Renderer::initPipelines()
 void Renderer::cleanupPipelines()
 {
     cleanupSkyPipelines();
+}
+
+void Renderer::drawSky(VkCommandBuffer command)
+{
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipelineLayout,
+        0, 1, &m_vulkanEngine.getDrawImageDescriptors(),
+        0, nullptr
+    );
+    double x, y;
+    glfwGetCursorPos(m_vulkanEngine.getWindow(), &x, &y);
+    x /= m_vulkanEngine.getRenderExtent().width;
+    y /= m_vulkanEngine.getRenderExtent().height;
+    glm::vec4 colours[2] = { { x, 1 - x, y, 1 }, { 1 - y, y, 1 - x, 1 } };
+    vkCmdPushConstants(
+        command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 2 * sizeof(glm::vec4), colours
+    );
+    vkCmdDispatch(
+        command, (m_vulkanEngine.getRenderExtent().width + 15) / 16,
+        (m_vulkanEngine.getRenderExtent().height + 15) / 16, 1
+    );
+}
+
+void Renderer::drawFrame()
+{
+    m_vulkanEngine.startRenderingFrame();
+
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
+
+    transitionImage(command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    drawSky(command);
+
+    transitionImage(
+        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    );
+
+    // drawGeometry(command);
+
+    transitionImage(
+        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    );
+
+    transitionImage(
+        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    blitImageToImage(
+        command, m_vulkanEngine.getDrawImage().image, m_vulkanEngine.getCurrentSwapchainImage(),
+        m_vulkanEngine.getRenderExtent(), m_vulkanEngine.getRenderExtent(), VK_FILTER_NEAREST
+    );
+
+    transitionImage(
+        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    );
+
+    VK_CHECK(vkEndCommandBuffer(command));
+
+    m_vulkanEngine.submitFrame();
 }
 
 }  // namespace lonelycube::client
