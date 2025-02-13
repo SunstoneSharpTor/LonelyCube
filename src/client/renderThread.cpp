@@ -21,6 +21,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
+#include "glm/matrix.hpp"
 #include "stb_image.h"
 
 #include "core/pch.h"
@@ -215,14 +216,21 @@ void renderThread() {
             //render if a frame is needed
             // GLPrintErrors();
             end = std::chrono::steady_clock::now();
-            double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
+            double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>
+                (end - start).count() / 1000000;
             if (currentTime > frameStart + DT) {
                 double actualDT = currentTime - frameStart;
                 if (currentTime - lastFrameRateTime > 1) {
                     LOG(std::to_string(frames - lastFrameRateFrames) + " FPS");
-                    LOG(std::to_string(mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]) + ", "
-                        + std::to_string(mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]) + ", "
-                        + std::to_string(mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]));
+                    LOG(
+                        std::to_string(
+                            mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]
+                        ) + ", " + std::to_string(
+                            mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]
+                        ) + ", " + std::to_string(
+                            mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]
+                        )
+                    );
                     lastFrameRateTime += 1;
                     lastFrameRateFrames = frames;
                 }
@@ -234,17 +242,27 @@ void renderThread() {
                     frameStart = currentTime;
                 }
 
-                mainPlayer.processUserInput(renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, &running, currentTime, networking);
-                mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
+                mainPlayer.processUserInput(
+                    renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
+                    &running, currentTime, networking
+                );
+                mainWorld.updatePlayerPos(
+                    mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
+                );
 
                 //create model view projection matrix for the world
-                float fov = 70.0;
-                fov = fov - fov * (2.0 / 3.0) * mainPlayer.zoom;
-                glm::mat4 projection = glm::perspective(glm::radians(fov), ((float)windowDimensions[0] / (float)windowDimensions[1]), 0.12f, (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE));
-                glm::mat4 inverseProjection = glm::inverse(projection);
+                float fov = 70.0f;
+                fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
+                glm::mat4 projection = glm::perspective(
+                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.12f,
+                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
+                );
+                glm::mat4 projectionReversedDepth = glm::perspective(
+                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
+                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.12f
+                );
                 glm::mat4 view;
                 mainPlayer.viewCamera.getViewMatrix(&view);
-                glm::mat4 inverseView = glm::inverse(view);
                 glm::mat4 model = (glm::mat4(1.0f));
                 glm::mat4 mvp = projection * view * model;
                 // //update the MVP uniform
@@ -279,7 +297,7 @@ void renderThread() {
                     constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
                     constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
                 renderer.skyRenderInfo.sunDir = sunDirection;
-                renderer.skyRenderInfo.inverseViewProjection = inverseView * inverseProjection;
+                renderer.skyRenderInfo.inverseViewProjection = glm::inverse(projection * view);
                 renderer.skyRenderInfo.brightness = groundLuminance;
                 renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
                 renderer.skyRenderInfo.sunGlowAmount = std::pow(
