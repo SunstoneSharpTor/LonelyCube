@@ -550,7 +550,7 @@ void VulkanEngine::createSwapchain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
     uint32_t queueFamilyIndices[] = {
@@ -967,46 +967,13 @@ void VulkanEngine::createDrawImage()
 
     VkExtent3D drawImageExtent{ m_drawImageExtent.width, m_drawImageExtent.height, 1 };
 
-    m_drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-    m_drawImage.imageExtent = drawImageExtent;
-
-    VkImageUsageFlags drawImageUsages{};
-    drawImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-        | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-        | VK_IMAGE_USAGE_STORAGE_BIT
+    VkImageUsageFlags drawImageUsages =
+    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VkImageCreateInfo imageCreateInfo{};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = m_drawImage.imageFormat;
-    imageCreateInfo.extent = m_drawImage.imageExtent;
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageCreateInfo.usage = drawImageUsages;
-
-    VmaAllocationCreateInfo imageAllocInfo{};
-    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    imageAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-
-    VK_CHECK(vmaCreateImage(
-        m_allocator, &imageCreateInfo, &imageAllocInfo, &m_drawImage.image, &m_drawImage.allocation,
-        nullptr));
-
-    VkImageViewCreateInfo imageViewCreateInfo{};
-    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.image = m_drawImage.image;
-    imageViewCreateInfo.format = m_drawImage.imageFormat;
-    imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    imageViewCreateInfo.subresourceRange.levelCount = 1;
-    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-    VK_CHECK(vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_drawImage.imageView));
+    m_drawImage = createImage(
+        drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, false
+    );
 }
 
 void VulkanEngine::initDescriptors()
@@ -1246,8 +1213,15 @@ AllocatedImage VulkanEngine::createImage(
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imageCreateInfo.format = format;
     imageCreateInfo.extent = size;
-    imageCreateInfo.mipLevels =
-        static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
+    if (mipmapped)
+    {
+        imageCreateInfo.mipLevels =
+            static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
+    }
+    else
+    {
+        imageCreateInfo.mipLevels = 1;
+    }
     imageCreateInfo.arrayLayers = 1;
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -1263,7 +1237,7 @@ AllocatedImage VulkanEngine::createImage(
     ));
 
     VkImageAspectFlags aspectFlag = format == VK_FORMAT_D32_SFLOAT ?
-        VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+        VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
     VkImageViewCreateInfo imageViewCreateInfo{};
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

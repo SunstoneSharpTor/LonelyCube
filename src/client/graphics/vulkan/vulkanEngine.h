@@ -220,6 +220,10 @@ public:
     {
         return m_device;
     }
+    inline VmaAllocator getAllocator()
+    {
+        return m_allocator;
+    }
     inline GLFWwindow* getWindow()
     {
         return m_window;
@@ -235,6 +239,10 @@ public:
     inline VkDescriptorSet& getDrawImageDescriptors()
     {
         return m_drawImageDescriptors;
+    }
+    inline VkExtent2D getDrawImageExtent()
+    {
+        return m_drawImageExtent;
     }
     inline FrameData& getCurrentFrameData()
     {
