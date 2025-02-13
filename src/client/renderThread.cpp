@@ -303,9 +303,10 @@ void renderThread() {
                 renderer.skyRenderInfo.sunGlowAmount = std::pow(
                     std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
                 );
+
                 renderer.drawFrame();
 
-                // // Render the world to a texture
+                // Render the world to a texture
                 // worldFrameBuffer.bind();
                 // mainRenderer.clear();
                 // #ifndef GLES3
