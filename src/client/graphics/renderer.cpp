@@ -31,6 +31,8 @@ Renderer::Renderer()
 {
     m_vulkanEngine.init();
 
+    createSkyImage();
+    initDescriptors();
     initPipelines();
 }
 
@@ -39,6 +41,11 @@ Renderer::~Renderer()
     vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
     cleanupPipelines();
+
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
+
+    vkDestroyImageView(m_vulkanEngine.getDevice(), m_skyImage.imageView, nullptr);
+    vmaDestroyImage(m_vulkanEngine.getAllocator(), m_skyImage.image, m_skyImage.allocation);
 
     m_vulkanEngine.cleanup();
 }
@@ -49,46 +56,13 @@ void Renderer::createSkyImage()
         m_vulkanEngine.getDrawImageExtent().width, m_vulkanEngine.getDrawImageExtent().height, 1
     };
 
-    m_skyImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-    m_skyImage.imageExtent = skyImageExtent;
+    VkImageUsageFlags skyImageUsages =
+    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+        | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
-    VkImageUsageFlags skyImageUsages{};
-    skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-        | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-        | VK_IMAGE_USAGE_STORAGE_BIT
-        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    VkImageCreateInfo imageCreateInfo{};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = m_skyImage.imageFormat;
-    imageCreateInfo.extent = m_skyImage.imageExtent;
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageCreateInfo.usage = skyImageUsages;
-
-    VmaAllocationCreateInfo imageAllocInfo{};
-    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    imageAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-
-    VK_CHECK(vmaCreateImage(
-        m_vulkanEngine.getAllocator(), &imageCreateInfo, &imageAllocInfo, &m_skyImage.image, &m_skyImage.allocation,
-        nullptr));
-
-    VkImageViewCreateInfo imageViewCreateInfo{};
-    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.image = m_skyImage.image;
-    imageViewCreateInfo.format = m_skyImage.imageFormat;
-    imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    imageViewCreateInfo.subresourceRange.levelCount = 1;
-    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-    VK_CHECK(vkCreateImageView(m_vulkanEngine.getDevice(), &imageViewCreateInfo, nullptr, &m_skyImage.imageView));
+    m_skyImage = m_vulkanEngine.createImage(
+        skyImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages, false
+    );
 }
 
 void Renderer::initSkyPipelines()
@@ -152,12 +126,36 @@ void Renderer::cleanupPipelines()
     cleanupSkyPipelines();
 }
 
+void Renderer::initDescriptors()
+{
+    {
+        DescriptorLayoutBuilder builder;
+        builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        m_skyImageDescriptorLayout = builder.build(
+            m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+        );
+    }
+
+    m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
+    );
+
+    DescriptorWriter writer;
+    writer.writeImage(
+        0, m_skyImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
+}
+
 void Renderer::drawSky(VkCommandBuffer command)
 {
+    transitionImage(command, m_skyImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipeline);
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipelineLayout,
-        0, 1, &m_vulkanEngine.getDrawImageDescriptors(),
+        0, 1, &m_skyImageDescriptors,
         0, nullptr
     );
 
@@ -169,6 +167,28 @@ void Renderer::drawSky(VkCommandBuffer command)
     vkCmdDispatch(
         command, (m_vulkanEngine.getRenderExtent().width + 15) / 16,
         (m_vulkanEngine.getRenderExtent().height + 15) / 16, 1
+    );
+
+    transitionImage(
+        command, m_skyImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    );
+    transitionImage(
+        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    blitImageToImage(
+        command, m_skyImage.image, m_vulkanEngine.getDrawImage().image,
+        m_vulkanEngine.getRenderExtent(), m_vulkanEngine.getRenderExtent(), VK_FILTER_NEAREST
+    );
+
+    transitionImage(
+        command, m_skyImage.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    transitionImage(
+        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     );
 }
 
@@ -186,14 +206,7 @@ void Renderer::drawFrame()
 
     VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
 
-    transitionImage(command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
     drawSky(command);
-
-    transitionImage(
-        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    );
 
     // drawGeometry(command);
 
