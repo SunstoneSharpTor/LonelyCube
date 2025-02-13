@@ -41,7 +41,9 @@ public:
 
     Renderer();
     ~Renderer();
-    void drawFrame();
+    void beginRenderingFrame();
+    void drawSky();
+    void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
     {
@@ -57,15 +59,21 @@ private:
     VkDescriptorSet m_skyImageDescriptors;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
 
-    void initPipelines();
+    VkPipelineLayout m_blockPipelineLayout;
+    VkPipeline m_blockPipeline;
+
+    void createPipelines();
     void cleanupPipelines();
     void initDescriptors();
 
     void createSkyImage();
-    void initSkyPipelines();
-    void cleanupSkyPipelines();
+    void createSkyPipeline();
+    void cleanupSkyPipeline();
 
-    void drawSky(VkCommandBuffer command);
+    void createBlockPipeline();
+    void cleanupBlockPipeline();
+
+    void drawBlocks(const GPUMeshBuffers& mesh);
 };
 
 }  // namespace lonelycube::client

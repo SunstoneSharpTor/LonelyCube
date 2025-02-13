@@ -19,6 +19,7 @@
 #include "client/graphics/renderer.h"
 
 #include "client/graphics/vulkan/images.h"
+#include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
@@ -33,7 +34,7 @@ Renderer::Renderer()
 
     createSkyImage();
     initDescriptors();
-    initPipelines();
+    createPipelines();
 }
 
 Renderer::~Renderer()
@@ -65,7 +66,7 @@ void Renderer::createSkyImage()
     );
 }
 
-void Renderer::initSkyPipelines()
+void Renderer::createSkyPipeline()
 {
     VkPipelineLayoutCreateInfo computePipelineLayout{};
     computePipelineLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -110,20 +111,22 @@ void Renderer::initSkyPipelines()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
 }
 
-void Renderer::cleanupSkyPipelines()
+void Renderer::cleanupSkyPipeline()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyPipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_skyPipelineLayout, nullptr);
 }
 
-void Renderer::initPipelines()
+void Renderer::createPipelines()
 {
-    initSkyPipelines();
+    createSkyPipeline();
+    createBlockPipeline();
 }
 
 void Renderer::cleanupPipelines()
 {
-    cleanupSkyPipelines();
+    cleanupSkyPipeline();
+    cleanupBlockPipeline();
 }
 
 void Renderer::initDescriptors()
@@ -148,8 +151,11 @@ void Renderer::initDescriptors()
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
 }
 
-void Renderer::drawSky(VkCommandBuffer command)
+void Renderer::drawSky()
 {
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
     transitionImage(command, m_skyImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipeline);
@@ -192,7 +198,104 @@ void Renderer::drawSky(VkCommandBuffer command)
     );
 }
 
-void Renderer::drawFrame()
+void Renderer::createBlockPipeline()
+{
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(glm::mat4) + sizeof(VkDeviceAddress);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+
+    VK_CHECK(
+        vkCreatePipelineLayout(m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockPipelineLayout)
+    );
+
+    VkShaderModule meshVertexShader;
+    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.vert.spv", meshVertexShader))
+        LOG("Failed to find shader \"res/shaders/test.vert.spv\"");
+
+    VkShaderModule meshFragmentShader;
+    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.frag.spv", meshFragmentShader))
+        LOG("Failed to find shader \"res/shaders/test.frag.spv\"");
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_blockPipelineLayout;
+    pipelineBuilder.setShaders(meshVertexShader, meshFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getDrawImage().imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+
+    m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), meshVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), meshFragmentShader, nullptr);
+}
+
+void Renderer::cleanupBlockPipeline()
+{
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockPipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockPipeline, nullptr);
+}
+
+void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    VkRenderingAttachmentInfo colourAttachment{};
+    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colourAttachment.imageView = m_vulkanEngine.getDrawImage().imageView;
+    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea = { { 0, 0 }, m_vulkanEngine.getRenderExtent() };
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colourAttachment;
+    renderingInfo.pDepthAttachment = nullptr;
+
+    vkCmdBeginRendering(command, &renderingInfo);
+
+    VkViewport viewport{};
+    viewport.width = m_vulkanEngine.getRenderExtent().width;
+    viewport.height = m_vulkanEngine.getRenderExtent().height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent.width = m_vulkanEngine.getRenderExtent().width;
+    scissor.extent.height = m_vulkanEngine.getRenderExtent().height;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipeline);
+    vkCmdSetViewport(command, 0, 1, &viewport);
+    vkCmdSetScissor(command, 0, 1, &scissor);
+
+    struct {
+        glm::mat4 mvp;
+        VkDeviceAddress vertexBuffer;
+    } pushConstants{ 1.0f, mesh.vertexBufferAddress };
+
+    vkCmdPushConstants(
+        command, m_blockPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants),
+        &pushConstants
+    );
+    vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(command, 6, 1, 0, 0, 0);
+    vkCmdEndRendering(command);
+}
+
+void Renderer::beginRenderingFrame()
 {
     m_vulkanEngine.startRenderingFrame();
 
@@ -205,12 +308,14 @@ void Renderer::drawFrame()
     beginInfo.pInheritanceInfo = nullptr;
 
     VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
+}
 
-    drawSky(command);
-
-    // drawGeometry(command);
-
+void Renderer::submitFrame()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
     transitionImage(
+
         command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
     );
