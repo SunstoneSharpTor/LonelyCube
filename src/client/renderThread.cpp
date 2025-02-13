@@ -304,7 +304,8 @@ void renderThread() {
                     std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
                 );
 
-                renderer.drawFrame();
+                renderer.beginRenderingFrame();
+                renderer.drawSky();
 
                 // Render the world to a texture
                 // worldFrameBuffer.bind();
@@ -409,6 +410,8 @@ void renderThread() {
                 // glfwSwapBuffers(window);
                 //
                 // frames++;
+
+                renderer.submitFrame();
             }
             mainWorld.updateMeshes();
             mainWorld.doRenderThreadJobs();
