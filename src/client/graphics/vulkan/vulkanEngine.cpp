@@ -117,7 +117,7 @@ void VulkanEngine::cleanup()
     cleanupPipelines();
 
     vkDestroyDescriptorSetLayout(m_device, m_drawImageDescriptorLayout, nullptr);
-    globalDescriptorAllocator.destroyPool(m_device);
+    m_globalDescriptorAllocator.destroyPools(m_device);
 
     vkDestroyImageView(m_device, m_drawImage.imageView, nullptr);
     vmaDestroyImage(m_allocator, m_drawImage.image, m_drawImage.allocation);
@@ -978,12 +978,12 @@ void VulkanEngine::createDrawImage()
 
 void VulkanEngine::initDescriptors()
 {
-    std::vector<DescriptorAllocator::PoolSizeRatio> sizes =
+    std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
     {
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
     };
 
-    globalDescriptorAllocator.initPool(m_device, 10, sizes);
+    m_globalDescriptorAllocator.init(m_device, 10, sizes);
 
     {
         DescriptorLayoutBuilder builder;
@@ -991,7 +991,7 @@ void VulkanEngine::initDescriptors()
         m_drawImageDescriptorLayout = builder.build(m_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
-    m_drawImageDescriptors = globalDescriptorAllocator.allocate(
+    m_drawImageDescriptors = m_globalDescriptorAllocator.allocate(
         m_device, m_drawImageDescriptorLayout
     );
 

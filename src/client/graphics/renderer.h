@@ -54,9 +54,12 @@ private:
     VkPipelineLayout m_skyPipelineLayout;
     VkPipeline m_skyPipeline;
     AllocatedImage m_skyImage;
+    VkDescriptorSet m_skyImageDescriptors;
+    VkDescriptorSetLayout m_skyImageDescriptorLayout;
 
     void initPipelines();
     void cleanupPipelines();
+    void initDescriptors();
 
     void createSkyImage();
     void initSkyPipelines();

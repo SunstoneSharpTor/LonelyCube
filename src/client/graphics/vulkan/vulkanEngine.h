@@ -78,8 +78,6 @@ struct GPUMeshBuffers
 class VulkanEngine
 {
 public:
-    DescriptorAllocator globalDescriptorAllocator;
-
     VulkanEngine();
     void init();
     void cleanup();
@@ -145,6 +143,7 @@ private:
     uint32_t m_currentSwapchainIndex;
 
     // Descriptors
+    DescriptorAllocatorGrowable m_globalDescriptorAllocator;
     VkDescriptorSet m_drawImageDescriptors;
     VkDescriptorSetLayout m_drawImageDescriptorLayout;
 
@@ -259,6 +258,10 @@ public:
     inline VkExtent2D getRenderExtent()
     {
         return m_renderExtent;
+    }
+    inline DescriptorAllocatorGrowable& getGlobalDescriptorAllocator()
+    {
+        return m_globalDescriptorAllocator;
     }
 };
 
