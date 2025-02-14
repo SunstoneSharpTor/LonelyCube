@@ -94,6 +94,7 @@ public:
         vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
     }
     void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
+    GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
 
     // Images
     AllocatedImage createImage(
@@ -108,9 +109,6 @@ public:
     // Rendering
     void startRenderingFrame();
     void submitFrame();
-
-    // Temporary
-    void drawFrame();
 
 private:
     // Engine constants
@@ -211,8 +209,8 @@ private:
     void cleanupBackgroundPipelines();
     void initMeshPipeline();
     void cleanupMeshPipeline();
-    GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
     void uploadTestMesh();
+    void drawFrame();
 
 public:
     inline VkDevice getDevice()

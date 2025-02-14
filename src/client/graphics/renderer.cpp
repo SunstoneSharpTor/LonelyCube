@@ -18,12 +18,13 @@
 
 #include "client/graphics/renderer.h"
 
+#include "stb_image.h"
+
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include "glm/fwd.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
@@ -35,6 +36,7 @@ Renderer::Renderer()
     createSkyImage();
     initDescriptors();
     createPipelines();
+    loadTextures();
 }
 
 Renderer::~Renderer()
@@ -50,6 +52,18 @@ Renderer::~Renderer()
 
     m_vulkanEngine.cleanup();
 }
+
+void Renderer::loadTextures()
+{
+    int size[2];
+    int chanels;
+    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &chanels, 4);
+    VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    AllocatedImage worldTextures = m_vulkanEngine.createImage(
+        buffer, extent, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
+    );
+}
+
 
 void Renderer::createSkyImage()
 {

@@ -18,6 +18,7 @@
 
 #include "client/clientWorld.h"
 
+#include "client/graphics/renderer.h"
 #include "core/pch.h"
 
 #include "client/graphics/camera.h"
@@ -28,6 +29,7 @@
 #include "core/log.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
+#include <string>
 #include <system_error>
 
 namespace lonelycube::client {
@@ -37,10 +39,11 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
     false, false, false, false, false, false, false, false, false, false, false };
 static bool unmeshCompleted = true;
 
-ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer,
-    const IVec3& playerPos, ENetPeer* peer, std::mutex& networkingMutex)
-    : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_peer(peer),
-    m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
+ClientWorld::ClientWorld(
+    uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
+    ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
+) : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_renderer(renderer),
+    m_peer(peer), m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
     m_meshManager(integratedServer, 1680000, 360000)
 {
     m_renderDistance = renderDistance + 1;
@@ -104,81 +107,82 @@ ClientWorld::ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplay
     }
 }
 
-void ClientWorld::renderWorld(GlRenderer mainRenderer, Shader& blockShader, Shader& waterShader,
-    glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float
-    fov, float skyLightIntensity, double DT) {
+void ClientWorld::renderWorld(
+    glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio,
+    float fov, float skyLightIntensity, double DT
+) {
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
 
-    blockShader.bind();
-    blockShader.setUniformMat4f("u_proj", projMatrix);
-    blockShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
-    m_timeByDTs += DT;
-    while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
-        double fac = 0.006;
-        double targetDistance = sqrt(m_meshedChunksDistance) - 1.2;
-        m_fogDistance = m_fogDistance * (1.0 - fac) + targetDistance * fac * constants::CHUNK_SIZE;
-        m_timeByDTs -= (1.0/(double)constants::visualTPS);
-    }
-    blockShader.setUniform1f("u_renderDistance", m_fogDistance);
-    if (m_meshUpdates.size() > 0) {
-        // auto tp1 = std::chrono::high_resolution_clock::now();
-        while (m_meshUpdates.size() > 0) {
-            doRenderThreadJobs();
-        }
-        // auto tp2 = std::chrono::high_resolution_clock::now();
-        // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
-    }
-    for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (mesh.indexBuffer->getCount() > 0) {
-            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
-            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
-            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
-            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-            if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-                //update the MVP uniform
-                blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
-            }
-            doRenderThreadJobs();
-        }
-    }
-
-    // Render entities
-    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
-    m_meshManager.createBatch(playerBlockPosition);
-    m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
-    blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
-
-    // Render water
-    waterShader.bind();
-    waterShader.setUniformMat4f("u_proj", projMatrix);
-    waterShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
-    waterShader.setUniform1f("u_renderDistance", m_fogDistance);
-    glDisable(GL_CULL_FACE);
-    for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (mesh.waterIndexBuffer->getCount() > 0) {
-            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
-            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
-            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
-            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-            if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-                //update the MVP uniform
-                waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-                mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
-            }
-            doRenderThreadJobs();
-        }
-    }
-    m_renderingFrame = false;
-    glEnable(GL_CULL_FACE);
+    // blockShader.bind();
+    // blockShader.setUniformMat4f("u_proj", projMatrix);
+    // blockShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
+    // m_timeByDTs += DT;
+    // while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
+    //     double fac = 0.006;
+    //     double targetDistance = sqrt(m_meshedChunksDistance) - 1.2;
+    //     m_fogDistance = m_fogDistance * (1.0 - fac) + targetDistance * fac * constants::CHUNK_SIZE;
+    //     m_timeByDTs -= (1.0/(double)constants::visualTPS);
+    // }
+    // blockShader.setUniform1f("u_renderDistance", m_fogDistance);
+    // if (m_meshUpdates.size() > 0) {
+    //     // auto tp1 = std::chrono::high_resolution_clock::now();
+    //     while (m_meshUpdates.size() > 0) {
+    //         doRenderThreadJobs();
+    //     }
+    //     // auto tp2 = std::chrono::high_resolution_clock::now();
+    //     // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
+    // }
+    // for (const auto& [chunkPosition, mesh] : m_meshes) {
+    //     if (mesh.indexBuffer->getCount() > 0) {
+    //         chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
+    //         chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
+    //         chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
+    //         AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
+    //         if (aabb.isOnFrustum(viewFrustum)) {
+    //             glm::mat4 modelMatrix = glm::mat4(1.0f);
+    //             modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
+    //             //update the MVP uniform
+    //             blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
+    //             mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
+    //         }
+    //         doRenderThreadJobs();
+    //     }
+    // }
+    //
+    // // Render entities
+    // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    // m_meshManager.createBatch(playerBlockPosition);
+    // m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
+    // m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
+    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
+    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
+    //
+    // // Render water
+    // waterShader.bind();
+    // waterShader.setUniformMat4f("u_proj", projMatrix);
+    // waterShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
+    // waterShader.setUniform1f("u_renderDistance", m_fogDistance);
+    // glDisable(GL_CULL_FACE);
+    // for (const auto& [chunkPosition, mesh] : m_meshes) {
+    //     if (mesh.waterIndexBuffer->getCount() > 0) {
+    //         chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
+    //         chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
+    //         chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
+    //         AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
+    //         if (aabb.isOnFrustum(viewFrustum)) {
+    //             glm::mat4 modelMatrix = glm::mat4(1.0f);
+    //             modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
+    //             //update the MVP uniform
+    //             waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
+    //             mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
+    //         }
+    //         doRenderThreadJobs();
+    //     }
+    // }
+    // m_renderingFrame = false;
+    // glEnable(GL_CULL_FACE);
 }
 
 void ClientWorld::doRenderThreadJobs() {
@@ -230,7 +234,6 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
             readyToRelable |= !m_threadWaiting[threadNum];
         }
         readyToRelable = !readyToRelable;
-        LOG(std::to_string(readyToRelable));
     }
 
     integratedServer.updatePlayerPos(0, playerBlockCoords, playerSubBlockCoords, m_unmeshNeeded);
@@ -265,7 +268,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
             m_unmeshedChunksMtx.unlock();
         }
     }
-    // buildMeshesForNewChunksWithNeighbours(threadNum);
+    buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
 void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
@@ -360,27 +363,30 @@ void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IV
     }
 }
 
-void ClientWorld::unloadMesh(const IVec3& chunkPosition) {
+void ClientWorld::unloadMesh(const IVec3& chunkPosition)
+{
     auto it = m_meshes.find(chunkPosition);
-    if (it == m_meshes.end()) {
+    if (it == m_meshes.end())
+    {
         m_unmeshedChunks.insert(chunkPosition);
         return;
     }
     MeshData& mesh = it->second;
-    if (mesh.indexBuffer->getCount() > 0) {
-        delete mesh.vertexArray;
-        delete mesh.vertexBuffer;
-        delete mesh.indexBuffer;
+
+    if (mesh.blockMesh.indexBuffer.info.size > 0)
+    {
+        m_renderer.getVulkanEngine().destroyBuffer(mesh.blockMesh.vertexBuffer);
+        m_renderer.getVulkanEngine().destroyBuffer(mesh.blockMesh.indexBuffer);
     }
 
-    if (mesh.waterIndexBuffer->getCount() > 0) {
-        delete mesh.waterVertexArray;
-        delete mesh.waterVertexBuffer;
-        delete mesh.waterIndexBuffer;
+    if (mesh.waterMesh.indexBuffer.info.size > 0)
+    {
+        m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.vertexBuffer);
+        m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.indexBuffer);
     }
 
-    m_meshes.erase(chunkPosition);
     m_unmeshedChunks.insert(chunkPosition);
+    m_meshes.erase(it);
 }
 
 void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
@@ -400,7 +406,7 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
         &m_numChunkWaterIndices[threadNum]
     ).buildMesh();
 
-    //if the chunk is empty fill the data with empty values to save interrupting the render thread
+    //if the mesh is empty dont upload it to save interrupting the render thread
     if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
@@ -429,40 +435,30 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
 }
 
 void ClientWorld::uploadChunkMesh(int8_t threadNum) {
-    //TODO: precalculate this VBL object
-    //create vertex buffer layout
-    VertexBufferLayout layout;
-    layout.push<float>(3);
-    layout.push<float>(2);
-    layout.push<float>(1);
-    layout.push<float>(1);
+    MeshData newMesh;
 
-    VertexArray *va, *waterVa;
-    VertexBuffer *vb, *waterVb;
-    IndexBuffer *ib, *waterIb;
-
-    if (m_numChunkIndices[threadNum] > 0) {
-        va = new VertexArray;
-        vb = new VertexBuffer(m_chunkVertices[threadNum], m_numChunkVertices[threadNum] * sizeof(float));
-        va->addBuffer(*vb, layout);
-        ib = new IndexBuffer(m_chunkIndices[threadNum], m_numChunkIndices[threadNum]);
+    if (m_numChunkIndices[threadNum] > 0)
+    {
+        newMesh.blockMesh = m_renderer.getVulkanEngine().uploadMesh(
+            std::span{ m_chunkVertices[threadNum], m_numChunkVertices[threadNum] },
+            std::span{ m_chunkIndices[threadNum], m_numChunkIndices[threadNum] }
+        );
     }
-    else {
-        va = m_emptyVertexArray;
-        vb = m_emptyVertexBuffer;
-        ib = m_emptyIndexBuffer;
+    else
+    {
+        newMesh.blockMesh.indexBuffer.info.size = 0;
     }
 
-    if (m_numChunkWaterIndices[threadNum] > 0) {
-        waterVa = new VertexArray;
-        waterVb = new VertexBuffer(m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] * sizeof(float));
-        waterVa->addBuffer(*waterVb, layout);
-        waterIb = new IndexBuffer(m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum]);
+    if (m_numChunkWaterVertices[threadNum] > 0)
+    {
+        newMesh.waterMesh = m_renderer.getVulkanEngine().uploadMesh(
+            std::span{ m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] },
+            std::span{ m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum] }
+        );
     }
-    else {
-        waterVa = m_emptyVertexArray;
-        waterVb = m_emptyVertexBuffer;
-        waterIb = m_emptyIndexBuffer;
+    else
+    {
+        newMesh.waterMesh.indexBuffer.info.size = 0;
     }
 
     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
@@ -470,7 +466,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     m_accessingArrIndicesVectorsMtx.lock();
     m_renderThreadWaitingForArrIndicesVectors = false;
     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
-    m_meshes[m_chunkPosition[threadNum]] = { va, vb, ib, waterVa, waterVb, waterIb };
+    m_meshes[m_chunkPosition[threadNum]] = newMesh;
     auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
     if (it != m_meshUpdates.end()) {
         m_meshUpdates.erase(it);
@@ -652,6 +648,14 @@ void ClientWorld::requestMoreChunks()
         enet_peer_send(m_peer, 0, packet);
         m_networkingMtx.unlock();
         m_chunkRequestScheduled = false;
+    }
+}
+
+void ClientWorld::unloadAllMeshes()
+{
+    while (!m_meshes.empty())
+    {
+        unloadMesh(m_meshes.begin()->first);
     }
 }
 

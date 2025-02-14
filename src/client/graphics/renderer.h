@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include "glm/fwd.hpp"
 #include "glm/glm.hpp"
+#include "stb_image.h"
+
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include <vulkan/vulkan_core.h>
 
@@ -43,6 +44,7 @@ public:
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
+    void drawBlocks(const GPUMeshBuffers& mesh);
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
@@ -65,6 +67,7 @@ private:
     void createPipelines();
     void cleanupPipelines();
     void initDescriptors();
+    void loadTextures();
 
     void createSkyImage();
     void createSkyPipeline();
@@ -72,8 +75,6 @@ private:
 
     void createBlockPipeline();
     void cleanupBlockPipeline();
-
-    void drawBlocks(const GPUMeshBuffers& mesh);
 };
 
 }  // namespace lonelycube::client

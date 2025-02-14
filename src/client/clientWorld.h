@@ -20,10 +20,16 @@
 
 #include "core/pch.h"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "enet/enet.h"
+
 #include "client/graphics/glRenderer.h"
 #include "client/graphics/vertexBuffer.h"
 #include "client/graphics/indexBuffer.h"
 #include "client/graphics/vertexArray.h"
+#include "client/graphics/renderer.h"
 #include "client/graphics/shader.h"
 #include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
@@ -33,20 +39,11 @@
 #include "core/utils/iVec3.h"
 #include "core/serverWorld.h"
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "enet/enet.h"
-
 namespace lonelycube::client {
 
 struct MeshData {
-    VertexArray* vertexArray;
-    VertexBuffer* vertexBuffer;
-    IndexBuffer* indexBuffer;
-    VertexArray* waterVertexArray;
-    VertexBuffer* waterVertexBuffer;
-    IndexBuffer* waterIndexBuffer;
+    GPUMeshBuffers blockMesh;
+    GPUMeshBuffers waterMesh;
 };
 
 class ClientWorld {
@@ -76,6 +73,7 @@ private:
     float m_fogDistance;
     double m_timeByDTs;
     Camera m_viewCamera;
+    Renderer& m_renderer;
 
     std::unordered_map<IVec3, MeshData> m_meshes;
     VertexBuffer* m_emptyVertexBuffer;
@@ -133,11 +131,14 @@ private:
     void unmeshChunks();
 
 public:
-    ClientWorld(uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
-                ENetPeer* peer, std::mutex& networkingMutex);
-    void renderWorld(GlRenderer mainRenderer, Shader& blockShader, Shader& waterShader, glm::mat4
-        viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio, float fov,
-        float skyLightIntensity, double DT);
+    ClientWorld(
+        uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
+        ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
+    );
+    void renderWorld(
+        glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio,
+        float fov, float skyLightIntensity, double DT
+    );
     void loadChunksAroundPlayerSingleplayer(int8_t threadNum);
     void loadChunksAroundPlayerMultiplayer(int8_t threadNum);
     void buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
@@ -154,6 +155,7 @@ public:
     void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
     void initialiseEntityRenderBuffers();
     void deinitialiseEntityRenderBuffers();
+    void unloadAllMeshes();
     inline void setClientID(int ID) {
         m_clientID = ID;
     }
