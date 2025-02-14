@@ -39,12 +39,12 @@ layout (push_constant) uniform constants
 {
     mat4 mvp;
     VertexBuffer vertexBuffer;
-} PushConstants;
+};
 
 void main() {
-    Vertex vertex = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
+    Vertex vertex = vertexBuffer.vertices[gl_VertexIndex];
 
-    gl_Position = PushConstants.mvp * vec4(vertex.position, 1.0f);
+    gl_Position = mvp * vec4(vertex.position, 1.0f);
     outColour = vertex.colour;
     outUV.x = vertex.uv_x;
     outUV.y = vertex.uv_y;

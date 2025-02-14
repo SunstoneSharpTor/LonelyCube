@@ -981,7 +981,8 @@ void VulkanEngine::initDescriptors()
     std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
     {
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 }
     };
 
     m_globalDescriptorAllocator.init(m_device, 10, sizes);
