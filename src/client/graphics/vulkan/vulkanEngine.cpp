@@ -95,8 +95,8 @@ void VulkanEngine::initVulkan()
     createFrameData();
     initImmediateSubmit();
     initDescriptors();
-    initPipelines();
-    uploadTestMesh();
+    // initPipelines();
+    // uploadTestMesh();
 }
 
 void VulkanEngine::cleanupSwapchain()
@@ -980,7 +980,8 @@ void VulkanEngine::initDescriptors()
 {
     std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
     {
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
     };
 
     m_globalDescriptorAllocator.init(m_device, 10, sizes);

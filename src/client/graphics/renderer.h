@@ -58,16 +58,22 @@ private:
     VkPipelineLayout m_skyPipelineLayout;
     VkPipeline m_skyPipeline;
     AllocatedImage m_skyImage;
-    VkDescriptorSet m_skyImageDescriptors;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
+    VkDescriptorSet m_skyImageDescriptors;
+    VkDescriptorSetLayout m_singleImageDescriptorLayout;
+    VkDescriptorSet m_worldTexturesDescriptors;
 
     VkPipelineLayout m_blockPipelineLayout;
     VkPipeline m_blockPipeline;
+
+    AllocatedImage m_worldTextures;
+    VkSampler m_worldTexturesSampler;
 
     void createPipelines();
     void cleanupPipelines();
     void initDescriptors();
     void loadTextures();
+    void cleanupTextures();
 
     void createSkyImage();
     void createSkyPipeline();
