@@ -60,7 +60,7 @@ private:
     AllocatedImage m_skyImage;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
     VkDescriptorSet m_skyImageDescriptors;
-    VkDescriptorSetLayout m_singleImageDescriptorLayout;
+    VkDescriptorSetLayout m_worldTexturesDescriptorLayout;
     VkDescriptorSet m_worldTexturesDescriptors;
 
     VkPipelineLayout m_blockPipelineLayout;

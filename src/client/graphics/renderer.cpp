@@ -49,7 +49,7 @@ Renderer::~Renderer()
 
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(
-        m_vulkanEngine.getDevice(), m_singleImageDescriptorLayout, nullptr
+        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
     );
 
     vkDestroyImageView(m_vulkanEngine.getDevice(), m_skyImage.imageView, nullptr);
@@ -70,7 +70,7 @@ void Renderer::initDescriptors()
     );
 
     m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
-        m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
+        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
     );
 
     writer.writeImage(
@@ -82,18 +82,23 @@ void Renderer::initDescriptors()
     // World textures
     builder.clear();
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    m_singleImageDescriptorLayout = builder.build(
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
+    m_worldTexturesDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
 
     m_worldTexturesDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
-        m_vulkanEngine.getDevice(), m_singleImageDescriptorLayout
+        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
     );
 
     writer.clear();
     writer.writeImage(
         0, m_worldTextures.imageView, m_worldTexturesSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.writeImage(
+        1, m_skyImage.imageView, nullptr,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
 }
@@ -204,23 +209,23 @@ void Renderer::createBlockPipeline()
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_singleImageDescriptorLayout;
+    pipelineLayoutInfo.pSetLayouts = &m_worldTexturesDescriptorLayout;
 
     VK_CHECK(
         vkCreatePipelineLayout(m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockPipelineLayout)
     );
 
-    VkShaderModule meshVertexShader;
-    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.vert.spv", meshVertexShader))
+    VkShaderModule blockVertexShader;
+    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.vert.spv", blockVertexShader))
         LOG("Failed to find shader \"res/shaders/test.vert.spv\"");
 
-    VkShaderModule meshFragmentShader;
-    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.frag.spv", meshFragmentShader))
+    VkShaderModule blockFragmentShader;
+    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/test.frag.spv", blockFragmentShader))
         LOG("Failed to find shader \"res/shaders/test.frag.spv\"");
 
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_blockPipelineLayout;
-    pipelineBuilder.setShaders(meshVertexShader, meshFragmentShader);
+    pipelineBuilder.setShaders(blockVertexShader, blockFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
@@ -232,8 +237,8 @@ void Renderer::createBlockPipeline()
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), meshVertexShader, nullptr);
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), meshFragmentShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockFragmentShader, nullptr);
 }
 
 void Renderer::cleanupBlockPipeline()
