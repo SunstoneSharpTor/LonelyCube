@@ -27,25 +27,14 @@
 
 #include "core/pch.h"
 
-#include <limits>
-#include <string>
-#include <time.h>
 #include <vulkan/vulkan_core.h>
 
 #include "client/logicThread.h"
 #include "client/clientNetworking.h"
 #include "client/graphics/bloom.h"
-#include "client/graphics/computeShader.h"
-#include "client/graphics/frameBuffer.h"
 #include "client/graphics/luminance.h"
-#include "client/graphics/glRenderer.h"
 #include "client/graphics/renderer.h"
-#include "client/graphics/vertexBuffer.h"
-#include "client/graphics/indexBuffer.h"
-#include "client/graphics/vertexArray.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
-#include "client/graphics/shader.h"
-#include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
 #include "client/gui/font.h"
 #include "client/clientWorld.h"
@@ -55,7 +44,6 @@
 #include "core/log.h"
 
 #include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 
 namespace lonelycube::client {
 
@@ -258,20 +246,22 @@ void renderThread() {
                     glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.12f,
                     (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
                 );
+                projection[1][1] *= -1;
                 glm::mat4 projectionReversedDepth = glm::perspective(
                     glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
                     (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.12f
                 );
+                projectionReversedDepth[1][1] *= -1;
                 glm::mat4 view;
                 mainPlayer.viewCamera.getViewMatrix(&view);
-                glm::mat4 model = (glm::mat4(1.0f));
-                glm::mat4 mvp = projection * view * model;
+                // // Set up block outline
+                // glm::mat4 model = (glm::mat4(1.0f));
+                // glm::mat4 mvp = projection * view * model;
                 // //update the MVP uniform
                 // blockShader.bind();
                 // blockShader.setUniformMat4f("u_modelView", view * model);
                 // blockShader.setUniformMat4f("u_proj", projection);
                 //
-                // // Set up block outline
                 // int breakBlockCoords[3];
                 // int placeBlockCoords[3];
                 // uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
@@ -290,7 +280,7 @@ void renderThread() {
                 // }
 
                 // uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
-                uint32_t timeOfDay = 9000;
+                uint32_t timeOfDay = 6200;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
                 // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
@@ -309,18 +299,6 @@ void renderThread() {
                 renderer.beginRenderingFrame();
                 renderer.drawSky();
 
-                // Render the world to a texture
-                // worldFrameBuffer.bind();
-                // mainRenderer.clear();
-                // #ifndef GLES3
-                // // Draw the sky
-                // glBindImageTexture(1, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-                // skyBlitShader.bind();
-                // glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
-                //   (uint32_t)((windowDimensions[1] + 7) / 8), 1);
-                // // Make sure writing to image has finished before read
-                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-                //
                 // // Draw the sun
                 // glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
                 // sunShader.bind();
@@ -333,36 +311,25 @@ void renderThread() {
                 // // Make sure writing to image has finished before read
                 // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
                 // #endif
-                //
+
                 // // Render the world geometry
                 // glEnable(GL_DEPTH_TEST);
-                // worldTextures.bind();
-                // glActiveTexture(GL_TEXTURE1);
-                // #ifndef GLES3
-                // glBindTexture(GL_TEXTURE_2D, skyTexture);
-                // #else
-                // glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
-                // #endif
                 // //auto tp1 = std::chrono::high_resolution_clock::now();
                 mainWorld.renderWorld(
                     projection * view, mainPlayer.cameraBlockPosition,
                     (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
                     actualDT
                 );
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                renderer.blockRenderInfo.cameraOffset = glm::vec3(0, 0, 2);
-                modelMatrix = glm::translate(modelMatrix, renderer.blockRenderInfo.cameraOffset);
-                renderer.blockRenderInfo.mvp = projection * view * modelMatrix;
                 // //auto tp2 = std::chrono::high_resolution_clock::now();
                 // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-                //
+
                 // //auto tp1 = std::chrono::high_resolution_clock::now();
                 // #ifndef GLES3
                 // bloom.render(0.005f, 0.005f);
                 // #endif
                 // //auto tp2 = std::chrono::high_resolution_clock::now();
                 // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-                //
+
                 // // Draw the block outline
                 // if (lookingAtBlock) {
                 //     VertexArray blockOutlineVA;
@@ -405,19 +372,15 @@ void renderThread() {
                 // glClear(GL_COLOR_BUFFER_BIT);
                 // glDisable(GL_DEPTH_TEST);
                 // worldFrameBuffer.draw(screenShader);
-                //
+
                 // // Draw the crosshair
                 // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
                 // glActiveTexture(GL_TEXTURE0);
                 // mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
                 // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                //
+
                 // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
                 // font.draw(mainRenderer);
-                //
-                // glfwSwapBuffers(window);
-                //
-                // frames++;
 
                 renderer.submitFrame();
             }

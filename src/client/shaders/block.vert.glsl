@@ -68,7 +68,6 @@ void main() {
     float maxDarknessAmbientLight = min(0.001f, skyLightIntensity);
 
     gl_Position = mvp * position;
-    gl_Position.y *= -1;
     outTexCoord = texCoord;
     float factor = skyLightLevel * skyLightLevel * skyLightLevel;
     //factor *= factor;
