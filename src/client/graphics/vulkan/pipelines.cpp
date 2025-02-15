@@ -19,7 +19,6 @@
 #include "client/graphics/vulkan/pipelines.h"
 
 #include "client/graphics/vulkan/utils.h"
-#include "core/log.h"
 
 namespace lonelycube::client {
 
@@ -106,6 +105,19 @@ void PipelineBuilder::disableDepthTest()
     depthStencil.depthTestEnable = VK_FALSE;
     depthStencil.depthWriteEnable = VK_FALSE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_NEVER;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {};
+    depthStencil.back = {};
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
+}
+
+void PipelineBuilder::enableDepthTest(bool depthWriteEnable, VkCompareOp compareOp)
+{
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = depthWriteEnable;
+    depthStencil.depthCompareOp = compareOp;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
     depthStencil.front = {};

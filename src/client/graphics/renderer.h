@@ -54,7 +54,10 @@ public:
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
+    void beginDrawingGeometry();
+    void beginDrawingBlocks();
     void drawBlocks(const GPUMeshBuffers& mesh);
+    void finishDrawingGeometry();
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
@@ -64,6 +67,8 @@ public:
 
 private:
     VulkanEngine m_vulkanEngine;
+
+    AllocatedImage m_depthImage;
 
     AllocatedImage m_skyImage;
     VkSampler m_skyImageSampler;
@@ -87,6 +92,8 @@ private:
     void loadTextures();
     void cleanupTextures();
 
+    void createDepthImage();
+    void cleanupDepthImage();
     void createSkyImage();
     void cleanupSkyImage();
     void createSkyPipeline();
