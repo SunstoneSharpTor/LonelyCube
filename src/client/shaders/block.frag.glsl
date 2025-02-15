@@ -25,12 +25,12 @@ layout (location = 3) in float inVisibility;
 layout (location = 0) out vec4 outColour;
 
 layout (set = 0, binding = 0) uniform sampler2D blockTextures;
-layout (rgba16f, set = 0, binding = 1) uniform image2D skyImage;
+layout (set = 0, binding = 1) uniform sampler2D skyTexture;
 
 const vec4 BLOCK_LIGHT_COLOUR = vec4(1.0, 0.839, 0.631, 1.0);
 
 void main() {
-    vec4 skyColour = imageLoad(skyImage, ivec2(gl_FragCoord.xy));
+    vec4 skyColour = texture(skyTexture, ivec2(gl_FragCoord.xy) / vec2(textureSize(skyTexture, 0)));
 
     vec4 texColour = texture(blockTextures, inTexCoord);
     // if(texColour.a <= 252.4f/255.0f) {
@@ -40,4 +40,5 @@ void main() {
     texColourWithLight += texColour * inBlockBrightness * BLOCK_LIGHT_COLOUR;
     texColourWithLight[3] = 1.0;
     outColour = mix(skyColour, texColourWithLight, inVisibility);
+    outColour = texColour;
 }

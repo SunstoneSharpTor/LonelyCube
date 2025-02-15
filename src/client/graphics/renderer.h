@@ -35,10 +35,21 @@ struct SkyPushConstants
     float sunGlowAmount;
 };
 
+struct BlockPushConstants
+{
+    glm::mat4 mvp;
+    glm::vec3 cameraOffset;
+    float renderDistance;
+    VkDeviceAddress vertexBuffer;
+    VkDeviceAddress padding;
+    float skyLightIntensity;
+};
+
 class Renderer
 {
 public:
     SkyPushConstants skyRenderInfo;
+    BlockPushConstants blockRenderInfo;
 
     Renderer();
     ~Renderer();
@@ -55,14 +66,15 @@ public:
 private:
     VulkanEngine m_vulkanEngine;
 
-    VkPipelineLayout m_skyPipelineLayout;
-    VkPipeline m_skyPipeline;
     AllocatedImage m_skyImage;
+    VkSampler m_skyImageSampler;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
     VkDescriptorSet m_skyImageDescriptors;
+    VkPipelineLayout m_skyPipelineLayout;
+    VkPipeline m_skyPipeline;
+
     VkDescriptorSetLayout m_worldTexturesDescriptorLayout;
     VkDescriptorSet m_worldTexturesDescriptors;
-
     VkPipelineLayout m_blockPipelineLayout;
     VkPipeline m_blockPipeline;
 
@@ -71,11 +83,13 @@ private:
 
     void createPipelines();
     void cleanupPipelines();
-    void initDescriptors();
+    void createDescriptors();
+    void cleanupDescriptors();
     void loadTextures();
     void cleanupTextures();
 
     void createSkyImage();
+    void cleanupSkyImage();
     void createSkyPipeline();
     void cleanupSkyPipeline();
 

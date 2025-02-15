@@ -108,49 +108,47 @@ ClientWorld::ClientWorld(
 }
 
 void ClientWorld::renderWorld(
-    glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio,
-    float fov, float skyLightIntensity, double DT
+    glm::mat4 viewProj, int* playerBlockPosition, float aspectRatio, float fov,
+    float skyLightIntensity, double DT
 ) {
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
 
-    // blockShader.bind();
-    // blockShader.setUniformMat4f("u_proj", projMatrix);
-    // blockShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
-    // m_timeByDTs += DT;
-    // while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
-    //     double fac = 0.006;
-    //     double targetDistance = sqrt(m_meshedChunksDistance) - 1.2;
-    //     m_fogDistance = m_fogDistance * (1.0 - fac) + targetDistance * fac * constants::CHUNK_SIZE;
-    //     m_timeByDTs -= (1.0/(double)constants::visualTPS);
-    // }
-    // blockShader.setUniform1f("u_renderDistance", m_fogDistance);
-    // if (m_meshUpdates.size() > 0) {
-    //     // auto tp1 = std::chrono::high_resolution_clock::now();
-    //     while (m_meshUpdates.size() > 0) {
-    //         doRenderThreadJobs();
-    //     }
-    //     // auto tp2 = std::chrono::high_resolution_clock::now();
-    //     // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
-    // }
-    // for (const auto& [chunkPosition, mesh] : m_meshes) {
-    //     if (mesh.indexBuffer->getCount() > 0) {
-    //         chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
-    //         chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
-    //         chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
-    //         AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-    //         if (aabb.isOnFrustum(viewFrustum)) {
-    //             glm::mat4 modelMatrix = glm::mat4(1.0f);
-    //             modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-    //             //update the MVP uniform
-    //             blockShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-    //             mainRenderer.draw(*(mesh.vertexArray), *(mesh.indexBuffer), blockShader);
-    //         }
-    //         doRenderThreadJobs();
-    //     }
-    // }
-    //
+    m_renderer.blockRenderInfo.skyLightIntensity = skyLightIntensity;
+    m_timeByDTs += DT;
+    while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
+        double fac = 0.006;
+        double targetDistance = sqrt(m_meshedChunksDistance) - 1.2;
+        m_fogDistance = m_fogDistance * (1.0 - fac) + targetDistance * fac * constants::CHUNK_SIZE;
+        m_timeByDTs -= (1.0/(double)constants::visualTPS);
+    }
+    m_renderer.blockRenderInfo.renderDistance = m_fogDistance;
+    if (m_meshUpdates.size() > 0) {
+        // auto tp1 = std::chrono::high_resolution_clock::now();
+        while (m_meshUpdates.size() > 0) {
+            doRenderThreadJobs();
+        }
+        // auto tp2 = std::chrono::high_resolution_clock::now();
+        // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
+    }
+    for (const auto& [chunkPosition, mesh] : m_meshes) {
+        if (mesh.blockMesh.indexBuffer.info.size > 0) {
+            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
+            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
+            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
+            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
+            if (aabb.isOnFrustum(viewFrustum)) {
+                glm::mat4 modelMatrix = glm::mat4(1.0f);
+                m_renderer.blockRenderInfo.cameraOffset = glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]);
+                modelMatrix = glm::translate(modelMatrix, m_renderer.blockRenderInfo.cameraOffset);
+                m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
+                m_renderer.drawBlocks(mesh.blockMesh);
+            }
+            doRenderThreadJobs();
+        }
+    }
+
     // // Render entities
     // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
     // m_meshManager.createBatch(playerBlockPosition);
@@ -181,7 +179,7 @@ void ClientWorld::renderWorld(
     //         doRenderThreadJobs();
     //     }
     // }
-    // m_renderingFrame = false;
+    m_renderingFrame = false;
     // glEnable(GL_CULL_FACE);
 }
 

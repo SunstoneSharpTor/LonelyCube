@@ -136,8 +136,8 @@ public:
         ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
     );
     void renderWorld(
-        glm::mat4 viewMatrix, glm::mat4 projMatrix, int* playerBlockPosition, float aspectRatio,
-        float fov, float skyLightIntensity, double DT
+        glm::mat4 viewProj, int* playerBlockPosition, float aspectRatio, float fov,
+        float skyLightIntensity, double DT
     );
     void loadChunksAroundPlayerSingleplayer(int8_t threadNum);
     void loadChunksAroundPlayerMultiplayer(int8_t threadNum);

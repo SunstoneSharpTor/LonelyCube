@@ -18,6 +18,7 @@
 
 #include "client/renderThread.h"
 
+#include <complex>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
@@ -146,20 +147,6 @@ void renderThread() {
         const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
         mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
-
-        std::array<float, 48> rectVertices
-        {
-            0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-            -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-            -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f
-        };
-        std::array<uint32_t, 6> rectIndices
-        {
-            0, 1, 2, 2, 3, 0
-        };
-
-        GPUMeshBuffers rectangleMesh = renderer.getVulkanEngine().uploadMesh(rectVertices, rectIndices);
 
         double time;
         mainPlayer.processUserInput(
@@ -302,7 +289,8 @@ void renderThread() {
                 //     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
                 // }
 
-                uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+                // uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+                uint32_t timeOfDay = 9000;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
                 // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
@@ -320,7 +308,6 @@ void renderThread() {
 
                 renderer.beginRenderingFrame();
                 renderer.drawSky();
-                renderer.drawBlocks(rectangleMesh);
 
                 // Render the world to a texture
                 // worldFrameBuffer.bind();
@@ -357,9 +344,15 @@ void renderThread() {
                 // glBindTexture(GL_TEXTURE_2D, skyFrameBuffer.getTextureColourBuffer());
                 // #endif
                 // //auto tp1 = std::chrono::high_resolution_clock::now();
-                // mainWorld.renderWorld(mainRenderer, blockShader, waterShader, view, projection,
-                //     mainPlayer.cameraBlockPosition, (float)windowDimensions[0] /
-                //     (float)windowDimensions[1], fov, groundLuminance, actualDT);
+                mainWorld.renderWorld(
+                    projection * view, mainPlayer.cameraBlockPosition,
+                    (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
+                    actualDT
+                );
+                glm::mat4 modelMatrix = glm::mat4(1.0f);
+                renderer.blockRenderInfo.cameraOffset = glm::vec3(0, 0, 2);
+                modelMatrix = glm::translate(modelMatrix, renderer.blockRenderInfo.cameraOffset);
+                renderer.blockRenderInfo.mvp = projection * view * modelMatrix;
                 // //auto tp2 = std::chrono::high_resolution_clock::now();
                 // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
                 //
@@ -439,8 +432,6 @@ void renderThread() {
 
         vkDeviceWaitIdle(renderer.getVulkanEngine().getDevice());
         mainWorld.unloadAllMeshes();
-        renderer.getVulkanEngine().destroyBuffer(rectangleMesh.vertexBuffer);
-        renderer.getVulkanEngine().destroyBuffer(rectangleMesh.indexBuffer);
     }
 
     logicWorker.join();
