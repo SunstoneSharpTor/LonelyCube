@@ -297,6 +297,8 @@ void renderThread() {
 
                 renderer.beginRenderingFrame();
                 renderer.drawSky();
+                renderer.beginDrawingGeometry();
+                renderer.beginDrawingBlocks();
 
                 // // Draw the sun
                 // glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -381,6 +383,7 @@ void renderThread() {
                 // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
                 // font.draw(mainRenderer);
 
+                renderer.finishDrawingGeometry();
                 renderer.submitFrame();
             }
             mainWorld.updateMeshes();

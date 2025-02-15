@@ -50,6 +50,7 @@ public:
     void setColourAttachmentFormat(VkFormat format);
     void setDepthAttachmentFormat(VkFormat format);
     void disableDepthTest();
+    void enableDepthTest(bool depthWriteEnable, VkCompareOp compareOp);
 };
 
 }  // namespace lonelycube::client

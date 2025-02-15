@@ -33,6 +33,7 @@ Renderer::Renderer()
 {
     m_vulkanEngine.init();
 
+    createDepthImage();
     createSkyImage();
     loadTextures();
     createDescriptors();
@@ -47,7 +48,27 @@ Renderer::~Renderer()
     cleanupPipelines();
     cleanupDescriptors();
     cleanupSkyImage();
+    cleanupDepthImage();
     m_vulkanEngine.cleanup();
+}
+
+void Renderer::createDepthImage()
+{
+    VkExtent3D depthImageExtent{
+        m_vulkanEngine.getDrawImageExtent().width, m_vulkanEngine.getDrawImageExtent().height, 1
+    };
+
+    VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    m_depthImage = m_vulkanEngine.createImage(
+        depthImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
+    );
+}
+
+void Renderer::cleanupDepthImage()
+{
+    vkDestroyImageView(m_vulkanEngine.getDevice(), m_depthImage.imageView, nullptr);
+    vmaDestroyImage(m_vulkanEngine.getAllocator(), m_depthImage.image, m_depthImage.allocation);
 }
 
 void Renderer::createDescriptors()
@@ -240,12 +261,12 @@ void Renderer::createBlockPipeline()
     pipelineBuilder.setShaders(blockVertexShader, blockFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineBuilder.setMultisamplingNone();
     pipelineBuilder.disableBlending();
-    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getDrawImage().imageFormat);
-    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
@@ -269,6 +290,21 @@ void Renderer::cleanupPipelines()
 {
     cleanupSkyPipeline();
     cleanupBlockPipeline();
+}
+
+void Renderer::beginRenderingFrame()
+{
+    m_vulkanEngine.startRenderingFrame();
+
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
 }
 
 void Renderer::drawSky()
@@ -318,10 +354,15 @@ void Renderer::drawSky()
     );
 }
 
-void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
+void Renderer::beginDrawingGeometry()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    transitionImage(
+        command, m_depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+    );
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -330,15 +371,30 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+    VkRenderingAttachmentInfo depthAttachment{};
+    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    depthAttachment.imageView = m_depthImage.imageView;
+    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.clearValue.depthStencil.depth = 0.0f;
+
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     renderingInfo.renderArea = { { 0, 0 }, m_vulkanEngine.getRenderExtent() };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colourAttachment;
-    renderingInfo.pDepthAttachment = nullptr;
+    renderingInfo.pDepthAttachment = &depthAttachment;
 
     vkCmdBeginRendering(command, &renderingInfo);
+}
+
+void Renderer::beginDrawingBlocks()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipeline);
 
     VkViewport viewport{};
@@ -359,6 +415,12 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
         0, 1, &m_worldTexturesDescriptors,
         0, nullptr
     );
+}
+
+void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
 
     blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
 
@@ -368,22 +430,14 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     );
     vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
-    vkCmdEndRendering(command);
 }
 
-void Renderer::beginRenderingFrame()
+void Renderer::finishDrawingGeometry()
 {
-    m_vulkanEngine.startRenderingFrame();
-
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
-
-    VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
+    vkCmdEndRendering(command);
 }
 
 void Renderer::submitFrame()
