@@ -104,6 +104,7 @@ target_link_libraries(client PRIVATE
     glm::glm
     GPUOpen::VulkanMemoryAllocator
 )
+target_compile_definitions(client PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(client PRIVATE RELEASE)
 endif()
@@ -139,6 +140,7 @@ target_include_directories(server PRIVATE
     ${enet_SOURCE_DIR}/include
 )
 target_link_libraries(server PRIVATE enet glm::glm)
+target_compile_definitions(client PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(server PRIVATE RELEASE)
 endif()

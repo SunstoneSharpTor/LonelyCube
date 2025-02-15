@@ -37,7 +37,7 @@ void Camera::updateRotationVectors(float yaw, float pitch) {
 }
 
 void Camera::getViewMatrix(glm::mat4* viewMatrix) {
-    *viewMatrix = glm::lookAt(position, position + front, up);
+    *viewMatrix = glm::lookAt(position, position + front, -up);
 }
 
 void Camera::getPosition(float* floatPosition) {
