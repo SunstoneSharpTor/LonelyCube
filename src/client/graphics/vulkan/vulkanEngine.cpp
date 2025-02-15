@@ -111,10 +111,10 @@ void VulkanEngine::cleanup()
 {
     vkDeviceWaitIdle(m_device);
 
-    destroyBuffer(m_rectangleMesh.vertexBuffer);
-    destroyBuffer(m_rectangleMesh.indexBuffer);
+    // destroyBuffer(m_rectangleMesh.vertexBuffer);
+    // destroyBuffer(m_rectangleMesh.indexBuffer);
 
-    cleanupPipelines();
+    // cleanupPipelines();
 
     vkDestroyDescriptorSetLayout(m_device, m_drawImageDescriptorLayout, nullptr);
     m_globalDescriptorAllocator.destroyPools(m_device);
@@ -982,7 +982,6 @@ void VulkanEngine::initDescriptors()
     {
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 }
     };
 
     m_globalDescriptorAllocator.init(m_device, 10, sizes);
@@ -1182,6 +1181,8 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
     });
 
     destroyBuffer(staging);
+
+    newMesh.indexCount = indices.size();
 
     return newMesh;
 }

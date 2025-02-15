@@ -73,6 +73,7 @@ struct GPUMeshBuffers
     AllocatedBuffer vertexBuffer;
     AllocatedBuffer indexBuffer;
     VkDeviceAddress vertexBufferAddress;
+    uint32_t indexCount;
 };
 
 class VulkanEngine

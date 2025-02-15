@@ -37,12 +37,12 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
     float vertices[];
 };
 
-layout (push_constant) uniform constants
+layout (push_constant, std430) uniform constants
 {
     mat4 mvp;
-    VertexBuffer vertexBuffer;
     vec3 cameraOffset;
     float renderDistance;
+    VertexBuffer vertexBuffer;
     float skyLightIntensity;
 };
 
@@ -68,6 +68,7 @@ void main() {
     float maxDarknessAmbientLight = min(0.001f, skyLightIntensity);
 
     gl_Position = mvp * position;
+    gl_Position.y *= -1;
     outTexCoord = texCoord;
     float factor = skyLightLevel * skyLightLevel * skyLightLevel;
     //factor *= factor;
