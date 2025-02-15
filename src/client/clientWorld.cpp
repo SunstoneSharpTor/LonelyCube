@@ -133,7 +133,7 @@ void ClientWorld::renderWorld(
         // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
     }
     for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (mesh.blockMesh.indexBuffer.info.size > 0) {
+        if (mesh.blockMesh.indexCount > 0) {
             chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
             chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
             chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
@@ -371,13 +371,13 @@ void ClientWorld::unloadMesh(const IVec3& chunkPosition)
     }
     MeshData& mesh = it->second;
 
-    if (mesh.blockMesh.indexBuffer.info.size > 0)
+    if (mesh.blockMesh.indexCount > 0)
     {
         m_renderer.getVulkanEngine().destroyBuffer(mesh.blockMesh.vertexBuffer);
         m_renderer.getVulkanEngine().destroyBuffer(mesh.blockMesh.indexBuffer);
     }
 
-    if (mesh.waterMesh.indexBuffer.info.size > 0)
+    if (mesh.waterMesh.indexCount > 0)
     {
         m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.vertexBuffer);
         m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.indexBuffer);
@@ -444,7 +444,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     }
     else
     {
-        newMesh.blockMesh.indexBuffer.info.size = 0;
+        newMesh.blockMesh.indexCount = 0;
     }
 
     if (m_numChunkWaterVertices[threadNum] > 0)
@@ -456,7 +456,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     }
     else
     {
-        newMesh.waterMesh.indexBuffer.info.size = 0;
+        newMesh.waterMesh.indexCount = 0;
     }
 
     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();

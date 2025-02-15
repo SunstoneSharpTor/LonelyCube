@@ -39,15 +39,4 @@ void main() {
     vec3 texColourWithLight = texColour.rgb * inSkyBrightness;
     texColourWithLight += texColour.rgb * inBlockBrightness * BLOCK_LIGHT_COLOUR;
     outColour = vec4(mix(skyColour.rgb, texColourWithLight, inVisibility), 1.0);
-    // outColour = vec4(texColour.rgb, 1.0);
-
-    // const float gamma = 2.2;
-    //
-    // // exposure tone mapping
-    // vec3 mapped = vec3(1.0) - exp(-outColour.rgb * 4.0);
-    //
-    // // gamma correction 
-    // mapped = pow(mapped, vec3(1.0 / gamma));
-    //
-    // outColour = vec4(mapped, 1.0);
 }

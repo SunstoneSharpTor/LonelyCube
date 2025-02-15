@@ -22,6 +22,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
+#include "glm/fwd.hpp"
 #include "glm/matrix.hpp"
 #include "stb_image.h"
 
@@ -243,15 +244,13 @@ void renderThread() {
                 float fov = 70.0f;
                 fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
                 glm::mat4 projection = glm::perspective(
-                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.12f,
+                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.1f,
                     (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
                 );
-                projection[1][1] *= -1;
                 glm::mat4 projectionReversedDepth = glm::perspective(
                     glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
-                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.12f
+                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.1f
                 );
-                projectionReversedDepth[1][1] *= -1;
                 glm::mat4 view;
                 mainPlayer.viewCamera.getViewMatrix(&view);
                 // // Set up block outline
@@ -316,7 +315,7 @@ void renderThread() {
                 // glEnable(GL_DEPTH_TEST);
                 // //auto tp1 = std::chrono::high_resolution_clock::now();
                 mainWorld.renderWorld(
-                    projection * view, mainPlayer.cameraBlockPosition,
+                    projectionReversedDepth * view, mainPlayer.cameraBlockPosition,
                     (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
                     actualDT
                 );
