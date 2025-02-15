@@ -213,7 +213,7 @@ void Renderer::cleanupSkyPipeline()
 void Renderer::createBlockPipeline()
 {
     VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(glm::mat4) + 16 + 16 + 16;
+    bufferRange.size = sizeof(BlockPushConstants);
     bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

@@ -27,18 +27,27 @@ layout (location = 0) out vec4 outColour;
 layout (set = 0, binding = 0) uniform sampler2D blockTextures;
 layout (set = 0, binding = 1) uniform sampler2D skyTexture;
 
-const vec4 BLOCK_LIGHT_COLOUR = vec4(1.0, 0.839, 0.631, 1.0);
+const vec3 BLOCK_LIGHT_COLOUR = vec3(1.0, 0.839, 0.631);
 
 void main() {
     vec4 skyColour = texture(skyTexture, ivec2(gl_FragCoord.xy) / vec2(textureSize(skyTexture, 0)));
 
     vec4 texColour = texture(blockTextures, inTexCoord);
-    // if(texColour.a <= 252.4f/255.0f) {
-    //     discard;
-    // }
-    vec4 texColourWithLight = texColour * inSkyBrightness;
-    texColourWithLight += texColour * inBlockBrightness * BLOCK_LIGHT_COLOUR;
-    texColourWithLight[3] = 1.0;
-    outColour = mix(skyColour, texColourWithLight, inVisibility);
-    outColour = texColour;
+    if(texColour.a <= 252.4f/255.0f) {
+        discard;
+    }
+    vec3 texColourWithLight = texColour.rgb * inSkyBrightness;
+    texColourWithLight += texColour.rgb * inBlockBrightness * BLOCK_LIGHT_COLOUR;
+    outColour = vec4(mix(skyColour.rgb, texColourWithLight, inVisibility), 1.0);
+    // outColour = vec4(texColour.rgb, 1.0);
+
+    // const float gamma = 2.2;
+    //
+    // // exposure tone mapping
+    // vec3 mapped = vec3(1.0) - exp(-outColour.rgb * 4.0);
+    //
+    // // gamma correction 
+    // mapped = pow(mapped, vec3(1.0 / gamma));
+    //
+    // outColour = vec4(mapped, 1.0);
 }

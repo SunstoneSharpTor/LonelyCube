@@ -41,7 +41,6 @@ struct BlockPushConstants
     glm::vec3 cameraOffset;
     float renderDistance;
     VkDeviceAddress vertexBuffer;
-    VkDeviceAddress padding;
     float skyLightIntensity;
 };
 

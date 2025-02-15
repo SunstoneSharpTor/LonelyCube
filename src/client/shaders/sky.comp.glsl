@@ -54,7 +54,7 @@ void main() {
 
     vec2 pos;
     pos.x = (texelCoords.x * 2 - textureSize.x) / textureSize.x;  // Transforms to [-1.0, 1.0]
-    pos.y = (texelCoords.y * -2 + textureSize.y) / textureSize.y;  // Transforms to [-1.0, 1.0]
+    pos.y = (texelCoords.y * 2 - textureSize.y) / textureSize.y;  // Transforms to [-1.0, 1.0]
     vec3 rayDir = normalize((inverseViewProjection * vec4(pos.x, pos.y, 1, 1)).xyz);
 
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);
