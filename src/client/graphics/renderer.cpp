@@ -231,7 +231,7 @@ void Renderer::cleanupSkyPipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_skyPipelineLayout, nullptr);
 }
 
-void Renderer::createBlockPipeline()
+void Renderer::createWorldPipelines()
 {
     VkPushConstantRange bufferRange{};
     bufferRange.size = sizeof(BlockPushConstants);
@@ -245,7 +245,7 @@ void Renderer::createBlockPipeline()
     pipelineLayoutInfo.pSetLayouts = &m_worldTexturesDescriptorLayout;
 
     VK_CHECK(
-        vkCreatePipelineLayout(m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockPipelineLayout)
+        vkCreatePipelineLayout(m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_worldPipelineLayout)
     );
 
     VkShaderModule blockVertexShader;
@@ -256,8 +256,12 @@ void Renderer::createBlockPipeline()
     if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/block.frag.spv", blockFragmentShader))
         LOG("Failed to find shader \"res/shaders/block.frag.spv\"");
 
+    VkShaderModule waterFragmentShader;
+    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/water.frag.spv", waterFragmentShader))
+        LOG("Failed to find shader \"res/shaders/water.frag.spv\"");
+
     PipelineBuilder pipelineBuilder;
-    pipelineBuilder.pipelineLayout = m_blockPipelineLayout;
+    pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
     pipelineBuilder.setShaders(blockVertexShader, blockFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
@@ -270,26 +274,34 @@ void Renderer::createBlockPipeline()
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
+    pipelineBuilder.setShaders(blockVertexShader, waterFragmentShader);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.enableAlphaBlending();
+
+    m_waterPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockFragmentShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), waterFragmentShader, nullptr);
 }
 
-void Renderer::cleanupBlockPipeline()
+void Renderer::cleanupWorldPipelines()
 {
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockPipelineLayout, nullptr);
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockPipeline, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_waterPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_worldPipelineLayout, nullptr);
 }
 
 void Renderer::createPipelines()
 {
     createSkyPipeline();
-    createBlockPipeline();
+    createWorldPipelines();
 }
 
 void Renderer::cleanupPipelines()
 {
     cleanupSkyPipeline();
-    cleanupBlockPipeline();
+    cleanupWorldPipelines();
 }
 
 void Renderer::beginRenderingFrame()
@@ -411,10 +423,18 @@ void Renderer::beginDrawingBlocks()
     vkCmdSetScissor(command, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipelineLayout,
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_worldPipelineLayout,
         0, 1, &m_worldTexturesDescriptors,
         0, nullptr
     );
+}
+
+void Renderer::beginDrawingWater()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_waterPipeline);
 }
 
 void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
@@ -425,7 +445,7 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
 
     vkCmdPushConstants(
-        command, m_blockPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
+        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
         &blockRenderInfo
     );
     vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);

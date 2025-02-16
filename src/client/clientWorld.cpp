@@ -113,7 +113,6 @@ void ClientWorld::renderWorld(
 
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
-    float chunkCoordinates[3];
 
     m_renderer.blockRenderInfo.skyLightIntensity = skyLightIntensity;
     m_timeByDTs += DT;
@@ -132,55 +131,52 @@ void ClientWorld::renderWorld(
         // auto tp2 = std::chrono::high_resolution_clock::now();
         // LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for chunks to remesh");
     }
+
+    // Render Blocks
+    m_renderer.beginDrawingBlocks();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.blockMesh.indexCount > 0) {
-            chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
-            chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
-            chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
-            AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
+            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPosition;
+            glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
+            AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
-                m_renderer.blockRenderInfo.cameraOffset = glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]);
-                modelMatrix = glm::translate(modelMatrix, m_renderer.blockRenderInfo.cameraOffset);
+                modelMatrix = glm::translate(modelMatrix, coordinatesVec);
                 m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
+                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec;
                 m_renderer.drawBlocks(mesh.blockMesh);
             }
             doRenderThreadJobs();
         }
     }
 
-    // // Render entities
+    // Render entities
     // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
     // m_meshManager.createBatch(playerBlockPosition);
     // m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
     // m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
     // blockShader.setUniformMat4f("u_modelView", viewMatrix);
     // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
-    //
-    // // Render water
-    // waterShader.bind();
-    // waterShader.setUniformMat4f("u_proj", projMatrix);
-    // waterShader.setUniform1f("u_skyLightIntensity", skyLightIntensity);
-    // waterShader.setUniform1f("u_renderDistance", m_fogDistance);
-    // glDisable(GL_CULL_FACE);
-    // for (const auto& [chunkPosition, mesh] : m_meshes) {
-    //     if (mesh.waterIndexBuffer->getCount() > 0) {
-    //         chunkCoordinates[0] = chunkPosition.x * constants::CHUNK_SIZE - playerBlockPosition[0];
-    //         chunkCoordinates[1] = chunkPosition.y * constants::CHUNK_SIZE - playerBlockPosition[1];
-    //         chunkCoordinates[2] = chunkPosition.z * constants::CHUNK_SIZE - playerBlockPosition[2];
-    //         AABB aabb(glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]), glm::vec3(chunkCoordinates[0] + constants::CHUNK_SIZE, chunkCoordinates[1] + constants::CHUNK_SIZE, chunkCoordinates[2] + constants::CHUNK_SIZE));
-    //         if (aabb.isOnFrustum(viewFrustum)) {
-    //             glm::mat4 modelMatrix = glm::mat4(1.0f);
-    //             modelMatrix = glm::translate(modelMatrix, glm::vec3(chunkCoordinates[0], chunkCoordinates[1], chunkCoordinates[2]));
-    //             //update the MVP uniform
-    //             waterShader.setUniformMat4f("u_modelView", viewMatrix * modelMatrix);
-    //             mainRenderer.draw(*(mesh.waterVertexArray), *(mesh.waterIndexBuffer), waterShader);
-    //         }
-    //         doRenderThreadJobs();
-    //     }
-    // }
+
+    // Render water
+    m_renderer.beginDrawingWater();
+    for (const auto& [chunkPosition, mesh] : m_meshes) {
+        if (mesh.waterMesh.indexCount > 0) {
+            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPosition;
+            glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
+            AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
+            if (aabb.isOnFrustum(viewFrustum)) {
+                glm::mat4 modelMatrix = glm::mat4(1.0f);
+                modelMatrix = glm::translate(modelMatrix, coordinatesVec);
+                m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
+                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec;
+                m_renderer.drawBlocks(mesh.waterMesh);
+            }
+            doRenderThreadJobs();
+        }
+    }
+
     m_renderingFrame = false;
-    // glEnable(GL_CULL_FACE);
 }
 
 void ClientWorld::doRenderThreadJobs() {
