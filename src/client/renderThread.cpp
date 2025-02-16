@@ -298,7 +298,6 @@ void renderThread() {
                 renderer.beginRenderingFrame();
                 renderer.drawSky();
                 renderer.beginDrawingGeometry();
-                renderer.beginDrawingBlocks();
 
                 // // Draw the sun
                 // glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);

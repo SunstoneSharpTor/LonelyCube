@@ -56,6 +56,7 @@ public:
     void drawSky();
     void beginDrawingGeometry();
     void beginDrawingBlocks();
+    void beginDrawingWater();
     void drawBlocks(const GPUMeshBuffers& mesh);
     void finishDrawingGeometry();
     void submitFrame();
@@ -79,8 +80,9 @@ private:
 
     VkDescriptorSetLayout m_worldTexturesDescriptorLayout;
     VkDescriptorSet m_worldTexturesDescriptors;
-    VkPipelineLayout m_blockPipelineLayout;
+    VkPipelineLayout m_worldPipelineLayout;
     VkPipeline m_blockPipeline;
+    VkPipeline m_waterPipeline;
 
     AllocatedImage m_worldTextures;
     VkSampler m_worldTexturesSampler;
@@ -99,8 +101,8 @@ private:
     void createSkyPipeline();
     void cleanupSkyPipeline();
 
-    void createBlockPipeline();
-    void cleanupBlockPipeline();
+    void createWorldPipelines();
+    void cleanupWorldPipelines();
 };
 
 }  // namespace lonelycube::client
