@@ -83,6 +83,7 @@ private:
     std::unordered_set<IVec3> m_beingMeshesdChunks;
     std::unordered_set<IVec3> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
     std::unordered_set<IVec3> m_meshesToUpdate;
+    std::array<std::vector<MeshData>, VulkanEngine::MAX_FRAMES_IN_FLIGHT> m_meshesToUnload;
     std::queue<IVec3> m_recentChunksBuilt;
     //mesh building data - this is stored at class-level because it allows it to be
     //accessed from multiple threads
@@ -121,7 +122,7 @@ private:
     VertexBuffer* m_entityVertexBuffer;
     IndexBuffer* m_entityIndexBuffer;
 
-    void unloadMesh(const IVec3& chunkPosition);
+    void unloadMesh(MeshData& mesh);
     bool chunkHasNeighbours(const IVec3& chunkPosition);
     // Adds chunks to the vector if the modified block is in or bordering the chunk
     void addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IVec3& modifiedBlockPos,
@@ -129,6 +130,7 @@ private:
     void addChunkMesh(const IVec3& chunkPosition, int8_t threadNum);
     void uploadChunkMesh(int8_t threadNum);
     void unmeshChunks();
+    void unloadMeshes();
 
 public:
     ClientWorld(

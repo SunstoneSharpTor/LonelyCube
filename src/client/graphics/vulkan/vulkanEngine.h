@@ -79,6 +79,8 @@ struct GPUMeshBuffers
 class VulkanEngine
 {
 public:
+    static const int MAX_FRAMES_IN_FLIGHT = 2;
+
     VulkanEngine();
     void init();
     void cleanup();
@@ -112,8 +114,6 @@ public:
     void submitFrame();
 
 private:
-    // Engine constants
-    const int m_MAX_FRAMES_IN_FLIGHT = 2;
     const std::vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
@@ -148,6 +148,7 @@ private:
 
     // Rendering
     uint32_t m_currentFrame = 0;
+    uint32_t m_frameDataIndex = 0;
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
     AllocatedImage m_drawImage;
@@ -242,9 +243,13 @@ public:
     {
         return m_drawImageExtent;
     }
+    inline uint32_t getFrameDataIndex()
+    {
+        return m_frameDataIndex;
+    }
     inline FrameData& getCurrentFrameData()
     {
-        return m_frameData[m_currentFrame % m_MAX_FRAMES_IN_FLIGHT];
+        return m_frameData[m_currentFrame % MAX_FRAMES_IN_FLIGHT];
     }
     inline AllocatedImage& getDrawImage()
     {
