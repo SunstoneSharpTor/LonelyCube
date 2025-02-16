@@ -106,8 +106,8 @@ ClientWorld::ClientWorld(
 }
 
 void ClientWorld::renderWorld(
-    glm::mat4 viewProj, int* playerBlockPosition, float aspectRatio, float fov,
-    float skyLightIntensity, double DT
+    const glm::mat4& viewProj, const int* playerBlockPos, const glm::vec3& playerSubBlockPos,
+    float aspectRatio, float fov, float skyLightIntensity, double DT
 ) {
     unloadMeshes();
 
@@ -136,14 +136,14 @@ void ClientWorld::renderWorld(
     m_renderer.beginDrawingBlocks();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.blockMesh.indexCount > 0) {
-            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPosition;
+            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, coordinatesVec);
                 m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
-                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec;
+                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec - playerSubBlockPos;
                 m_renderer.drawBlocks(mesh.blockMesh);
             }
             doRenderThreadJobs();
@@ -162,7 +162,7 @@ void ClientWorld::renderWorld(
     m_renderer.beginDrawingWater();
     for (const auto& [chunkPosition, mesh] : m_meshes) {
         if (mesh.waterMesh.indexCount > 0) {
-            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPosition;
+            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {

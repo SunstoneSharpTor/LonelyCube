@@ -318,8 +318,11 @@ void renderThread() {
                 // // Render the world geometry
                 // glEnable(GL_DEPTH_TEST);
                 // //auto tp1 = std::chrono::high_resolution_clock::now();
+                float cameraSubBlockPos[3];
+                mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
                 mainWorld.renderWorld(
                     projectionReversedDepth * view, mainPlayer.cameraBlockPosition,
+                    glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
                     (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
                     actualDT
                 );
