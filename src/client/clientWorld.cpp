@@ -194,10 +194,15 @@ void ClientWorld::doRenderThreadJobs() {
 }
 
 void ClientWorld::updateMeshes() {
-    m_unmeshedChunksMtx.lock();
+    std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
         auto meshIt = m_meshes.find(*it);
+        if (meshIt == m_meshes.end())
+        {
+            ++it;
+            continue;
+        }
         m_meshesToUnload[
             (m_renderer.getVulkanEngine().getFrameDataIndex()
             + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
@@ -208,7 +213,6 @@ void ClientWorld::updateMeshes() {
         m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
     }
-    m_unmeshedChunksMtx.unlock();
 }
 
 void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords) {

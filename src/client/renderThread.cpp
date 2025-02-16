@@ -149,7 +149,6 @@ void renderThread() {
         float exposureTimeByDTs = 0.0;
         int FPS_CAP = std::numeric_limits<int>::max();
         double DT = 1.0 / FPS_CAP;
-        uint64_t frames = 0;
         uint64_t lastFrameRateFrames = 0;
         auto start = std::chrono::steady_clock::now();
         auto end = start;
@@ -211,7 +210,11 @@ void renderThread() {
             if (currentTime > frameStart + DT) {
                 double actualDT = currentTime - frameStart;
                 if (currentTime - lastFrameRateTime > 1) {
-                    LOG(std::to_string(frames - lastFrameRateFrames) + " FPS");
+                    LOG(
+                        std::to_string(
+                            renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
+                        ) + " FPS"
+                    );
                     LOG(
                         std::to_string(
                             mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]
@@ -222,7 +225,7 @@ void renderThread() {
                         )
                     );
                     lastFrameRateTime += 1;
-                    lastFrameRateFrames = frames;
+                    lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
                 }
                 //update frame rate limiter
                 if ((currentTime - DT) < (frameStart + DT)) {

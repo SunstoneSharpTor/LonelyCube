@@ -147,7 +147,7 @@ private:
     VkDescriptorSetLayout m_drawImageDescriptorLayout;
 
     // Rendering
-    uint32_t m_currentFrame = 0;
+    uint64_t m_currentFrame = 0;
     uint32_t m_frameDataIndex = 0;
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
@@ -242,6 +242,10 @@ public:
     inline VkExtent2D getDrawImageExtent()
     {
         return m_drawImageExtent;
+    }
+    inline uint64_t getCurrentFrame()
+    {
+        return m_currentFrame;
     }
     inline uint32_t getFrameDataIndex()
     {
