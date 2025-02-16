@@ -35,8 +35,10 @@ private:
     double m_time;
 
     double m_lastMousePos[2];
+    glm::ivec2 m_lastWindowSize;
     bool m_playing;
     bool m_lastPlaying;
+    int m_pauseMouseState;
 
     float m_timeSinceBlockPlace;
     float m_timeSinceBlockBreak;

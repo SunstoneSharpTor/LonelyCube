@@ -18,6 +18,7 @@
 
 #include "client/graphics/renderer.h"
 
+#include "glm/fwd.hpp"
 #include "stb_image.h"
 
 #include "client/graphics/vulkan/images.h"
@@ -333,6 +334,9 @@ void Renderer::drawSky()
         0, nullptr
     );
 
+    skyRenderInfo.renderSize = glm::vec2(
+        m_vulkanEngine.getRenderExtent().width, m_vulkanEngine.getRenderExtent().height
+    );
     vkCmdPushConstants(
         command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
         &skyRenderInfo
