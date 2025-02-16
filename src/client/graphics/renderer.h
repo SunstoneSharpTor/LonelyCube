@@ -33,6 +33,7 @@ struct SkyPushConstants
     glm::mat4 inverseViewProjection;
     glm::vec3 sunGlowColour;
     float sunGlowAmount;
+    glm::vec2 renderSize;
 };
 
 struct BlockPushConstants

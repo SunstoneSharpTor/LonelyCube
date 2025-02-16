@@ -29,6 +29,7 @@ layout (push_constant, std430) uniform constants
     mat4 inverseViewProjection;
     vec3 sunGlowColour;
     float sunGlowAmount;
+    vec2 renderSize;
 };
 
 const float PLANET_RADIUS = 100.0;
@@ -49,12 +50,11 @@ float distanceThroughAtmosphere(vec3 rayDir) {
 }
 
 void main() {
-    vec2 textureSize = vec2(imageSize(skyImage));
     ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     vec2 pos;
-    pos.x = (texelCoords.x * 2 - textureSize.x) / textureSize.x;  // Transforms to [-1.0, 1.0]
-    pos.y = (texelCoords.y * 2 - textureSize.y) / textureSize.y;  // Transforms to [-1.0, 1.0]
+    pos.x = (texelCoords.x * 2 - renderSize.x) / renderSize.x;  // Transforms to [-1.0, 1.0]
+    pos.y = (texelCoords.y * 2 - renderSize.y) / renderSize.y;  // Transforms to [-1.0, 1.0]
     vec3 rayDir = normalize((inverseViewProjection * vec4(pos.x, pos.y, 1, 1)).xyz);
 
     float rayDistanceThroughAtmosphere = min(distanceThroughAtmosphere(rayDir), ATMOSPHERE_RADIUS);

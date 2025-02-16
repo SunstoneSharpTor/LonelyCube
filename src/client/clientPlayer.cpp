@@ -16,6 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "GLFW/glfw3.h"
 #include "core/pch.h"
 
 #include "client/clientPlayer.h"
@@ -102,10 +103,12 @@ void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, b
     glfwPollEvents();
     double localCursorPosition[2];
     glfwGetCursorPos(window, &localCursorPosition[0], &localCursorPosition[1]);
+    glm::ivec2 windowSize;
+    glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
 
     // Update camera view
     if (m_playing) {
-        if (m_lastPlaying) {
+        if (m_lastPlaying && windowSize == m_lastWindowSize) {
             m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
             m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
             if (m_pitch <= -90.0f) {
@@ -119,14 +122,15 @@ void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, b
         }
         m_lastMousePos[0] = localCursorPosition[0];
         m_lastMousePos[1] = localCursorPosition[1];
+        m_lastWindowSize = windowSize;
     }
     m_mainWorld->updateViewCamera(viewCamera);
 
     //break / place blocks
     if (m_lastPlaying) {
-        // m_pausedMouseState &= mouseState;
-        // mouseState &= ~m_pausedMouseState;
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        m_pauseMouseState &= 1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+        m_pauseMouseState &= 2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !(m_pauseMouseState & 1)) {
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -154,7 +158,7 @@ void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, b
         else {
             m_timeSinceBlockBreak = 0.2f;
         }
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !(m_pauseMouseState & 2)) {
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -331,9 +335,16 @@ void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, b
 
     bool tempLastPlaying = m_lastPlaying;
     m_lastPlaying = m_playing;
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !m_playing) {
+    if (
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !m_playing
+        || glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !m_playing
+    ) {
         m_playing = true;
-        // m_pausedMouseState = mouseState;
+        m_pauseMouseState = 0;
+        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            m_pauseMouseState = 1;
+        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+            m_pauseMouseState |= 2;
     }
 
     if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
