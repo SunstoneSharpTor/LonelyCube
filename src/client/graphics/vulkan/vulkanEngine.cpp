@@ -621,10 +621,10 @@ void VulkanEngine::createCommandBuffer(VkCommandPool commandPool, VkCommandBuffe
 
 void VulkanEngine::createFrameData()
 {
-    m_frameData.resize(m_MAX_FRAMES_IN_FLIGHT);
+    m_frameData.resize(MAX_FRAMES_IN_FLIGHT);
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
-    for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -640,7 +640,7 @@ void VulkanEngine::createFrameData()
 
 void VulkanEngine::cleanupFrameData()
 {
-    for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(m_device, m_frameData[i].imageAvailableSemaphore, nullptr);
         vkDestroySemaphore(m_device, m_frameData[i].renderFinishedSemaphore, nullptr);
@@ -837,7 +837,7 @@ void VulkanEngine::recordCommandBuffer(
 
 void VulkanEngine::startRenderingFrame()
 {
-    FrameData& currentFrameData = m_frameData[m_currentFrame % 2];
+    FrameData& currentFrameData = m_frameData[m_frameDataIndex];
 
     VK_CHECK(vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX));
 
@@ -865,7 +865,7 @@ void VulkanEngine::startRenderingFrame()
 
 void VulkanEngine::submitFrame()
 {
-    FrameData& currentFrameData = m_frameData[m_currentFrame % 2];
+    FrameData& currentFrameData = m_frameData[m_frameDataIndex];
 
     VkCommandBufferSubmitInfo commandSubmitInfo{};
     commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -919,6 +919,7 @@ void VulkanEngine::submitFrame()
     }
 
     m_currentFrame++;
+    m_frameDataIndex = m_currentFrame % MAX_FRAMES_IN_FLIGHT;
 }
 
 void VulkanEngine::drawFrame()

@@ -19,6 +19,7 @@
 #include "client/clientWorld.h"
 
 #include "client/graphics/renderer.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
 #include "core/pch.h"
 
 #include "client/graphics/camera.h"
@@ -29,6 +30,7 @@
 #include "core/log.h"
 #include "core/random.h"
 #include "core/serverWorld.h"
+#include "core/utils/iVec3.h"
 #include <string>
 #include <system_error>
 
@@ -60,10 +62,6 @@ ClientWorld::ClientWorld(
     m_playerChunkPosition[2] = playerChunkPosition.z;
 
     float minUnloadedChunkDistance = ((m_renderDistance + 1) * (m_renderDistance + 1));
-
-    m_emptyIndexBuffer = new IndexBuffer();
-    m_emptyVertexBuffer = new VertexBuffer();
-    m_emptyVertexArray = new VertexArray(true);
 
     m_numChunkLoadingThreads = integratedServer.getNumChunkLoaderThreads() - 1;
 
@@ -111,6 +109,8 @@ void ClientWorld::renderWorld(
     glm::mat4 viewProj, int* playerBlockPosition, float aspectRatio, float fov,
     float skyLightIntensity, double DT
 ) {
+    unloadMeshes();
+
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
     float chunkCoordinates[3];
@@ -201,7 +201,13 @@ void ClientWorld::updateMeshes() {
     m_unmeshedChunksMtx.lock();
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
-        unloadMesh(*it);
+        auto meshIt = m_meshes.find(*it);
+        m_meshesToUnload[
+            (m_renderer.getVulkanEngine().getFrameDataIndex()
+            + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
+        ].push_back(meshIt->second);
+        m_unmeshedChunks.insert(*it);
+        m_meshes.erase(meshIt);
         m_meshUpdates.insert(*it);
         m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
@@ -296,21 +302,26 @@ void ClientWorld::unmeshChunks() {
     m_updatingPlayerChunkPosition[1] = m_newPlayerChunkPosition[1];
     m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
     //unload any meshes and chunks that are out of render distance
-    float distance = 0;
-    IVec3 lastChunkPosition;
     m_unmeshedChunksMtx.lock();
-    for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
-            unloadMesh(lastChunkPosition);
+    for (auto it = m_meshes.begin(); it != m_meshes.end();) {
+        const IVec3 chunkPosition = it->first;
+        float distance = (chunkPosition.x - m_updatingPlayerChunkPosition[0])
+            * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
+        distance += (chunkPosition.y - m_updatingPlayerChunkPosition[1])
+            * (chunkPosition.y - m_updatingPlayerChunkPosition[1]);
+        distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2])
+            * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
+        if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f)))
+        {
+            m_meshesToUnload[
+                (m_renderer.getVulkanEngine().getFrameDataIndex()
+                + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
+            ].push_back(it->second);
+            m_unmeshedChunks.insert(it->first);
+            it = m_meshes.erase(it);
         }
-        distance = 0;
-        distance += (chunkPosition.x - m_updatingPlayerChunkPosition[0]) * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
-        distance += (chunkPosition.y - m_updatingPlayerChunkPosition[1]) * (chunkPosition.y - m_updatingPlayerChunkPosition[1]);
-        distance += (chunkPosition.z - m_updatingPlayerChunkPosition[2]) * (chunkPosition.z - m_updatingPlayerChunkPosition[2]);
-        lastChunkPosition = chunkPosition;
-    }
-    if (distance > ((m_renderDistance + 0.999f) * (m_renderDistance + 0.999f))) {
-        unloadMesh(lastChunkPosition);
+        else
+            ++it;
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded
     for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
@@ -361,16 +372,8 @@ void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IV
     }
 }
 
-void ClientWorld::unloadMesh(const IVec3& chunkPosition)
+void ClientWorld::unloadMesh(MeshData& mesh)
 {
-    auto it = m_meshes.find(chunkPosition);
-    if (it == m_meshes.end())
-    {
-        m_unmeshedChunks.insert(chunkPosition);
-        return;
-    }
-    MeshData& mesh = it->second;
-
     if (mesh.blockMesh.indexCount > 0)
     {
         m_renderer.getVulkanEngine().destroyBuffer(mesh.blockMesh.vertexBuffer);
@@ -382,9 +385,6 @@ void ClientWorld::unloadMesh(const IVec3& chunkPosition)
         m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.vertexBuffer);
         m_renderer.getVulkanEngine().destroyBuffer(mesh.waterMesh.indexBuffer);
     }
-
-    m_unmeshedChunks.insert(chunkPosition);
-    m_meshes.erase(it);
 }
 
 void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
@@ -613,22 +613,22 @@ void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
 
 void ClientWorld::initialiseEntityRenderBuffers()
 {
-    VertexBufferLayout entityLayout;
-    entityLayout.push<float>(3);
-    entityLayout.push<float>(2);
-    entityLayout.push<float>(1);
-    entityLayout.push<float>(1);
-    m_entityVertexArray = new VertexArray();
-    m_entityVertexBuffer = new VertexBuffer(m_meshManager.vertexBuffer.get(), 0, true);
-    m_entityIndexBuffer = new IndexBuffer(m_meshManager.indexBuffer.get(), 0, true);
-    m_entityVertexArray->addBuffer(*m_entityVertexBuffer, entityLayout);
+    // VertexBufferLayout entityLayout;
+    // entityLayout.push<float>(3);
+    // entityLayout.push<float>(2);
+    // entityLayout.push<float>(1);
+    // entityLayout.push<float>(1);
+    // m_entityVertexArray = new VertexArray();
+    // m_entityVertexBuffer = new VertexBuffer(m_meshManager.vertexBuffer.get(), 0, true);
+    // m_entityIndexBuffer = new IndexBuffer(m_meshManager.indexBuffer.get(), 0, true);
+    // m_entityVertexArray->addBuffer(*m_entityVertexBuffer, entityLayout);
 }
 
 void ClientWorld::deinitialiseEntityRenderBuffers()
 {
-    delete m_entityVertexArray;
-    delete m_entityVertexBuffer;
-    delete m_entityIndexBuffer;
+    // delete m_entityVertexArray;
+    // delete m_entityVertexBuffer;
+    // delete m_entityIndexBuffer;
 }
 
 void ClientWorld::requestMoreChunks()
@@ -649,11 +649,30 @@ void ClientWorld::requestMoreChunks()
     }
 }
 
+void ClientWorld::unloadMeshes()
+{
+    std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
+    for (auto& mesh : m_meshesToUnload[m_renderer.getVulkanEngine().getFrameDataIndex()])
+        unloadMesh(mesh);
+
+    m_meshesToUnload[m_renderer.getVulkanEngine().getFrameDataIndex()].clear();
+}
+
 void ClientWorld::unloadAllMeshes()
 {
     while (!m_meshes.empty())
     {
-        unloadMesh(m_meshes.begin()->first);
+        unloadMesh(m_meshes.begin()->second);
+        m_unmeshedChunks.insert(m_meshes.begin()->first);
+        m_meshes.erase(m_meshes.begin());
+    }
+
+    for (auto meshesToUnload : m_meshesToUnload)
+    {
+        for (auto& mesh : meshesToUnload)
+            unloadMesh(mesh);
+
+        meshesToUnload.clear();
     }
 }
 
