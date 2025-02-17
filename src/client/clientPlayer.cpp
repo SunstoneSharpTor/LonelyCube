@@ -16,7 +16,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "GLFW/glfw3.h"
 #include "core/pch.h"
 
 #include "client/clientPlayer.h"
@@ -128,8 +127,8 @@ void ClientPlayer::processUserInput(GLFWwindow* window, int* windowDimensions, b
 
     //break / place blocks
     if (m_lastPlaying) {
-        m_pauseMouseState &= 1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
-        m_pauseMouseState &= 2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+        m_pauseMouseState &= 2 | (1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS));
+        m_pauseMouseState &= 1 | (2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS));
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !(m_pauseMouseState & 1)) {
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
