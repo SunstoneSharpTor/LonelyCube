@@ -50,6 +50,7 @@ class Renderer
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
+    float exposure;
 
     Renderer();
     ~Renderer();
@@ -60,6 +61,7 @@ public:
     void beginDrawingWater();
     void drawBlocks(const GPUMeshBuffers& mesh);
     void finishDrawingGeometry();
+    void applyExposure();
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
@@ -70,7 +72,10 @@ public:
 private:
     VulkanEngine m_vulkanEngine;
 
+    AllocatedImage m_drawImage;
     AllocatedImage m_depthImage;
+    VkExtent3D m_drawImageExtent;
+    VkExtent2D m_renderExtent;
 
     AllocatedImage m_skyImage;
     VkSampler m_skyImageSampler;
@@ -85,25 +90,34 @@ private:
     VkPipeline m_blockPipeline;
     VkPipeline m_waterPipeline;
 
+    VkDescriptorSetLayout m_exposureDescriptorLayout;
+    VkDescriptorSet m_exposureDescriptors;
+    VkPipelineLayout m_exposurePipelineLayout;
+    VkPipeline m_exposurePipeline;
+
     AllocatedImage m_worldTextures;
     VkSampler m_worldTexturesSampler;
 
+    void createSkyPipeline();
+    void cleanupSkyPipeline();
+    void createWorldPipelines();
+    void cleanupWorldPipelines();
+    void createExposurePipeline();
+    void cleanupExposurePipeline();
     void createPipelines();
     void cleanupPipelines();
+
     void createDescriptors();
     void cleanupDescriptors();
+
     void loadTextures();
     void cleanupTextures();
 
+    void createDrawImage();
     void createDepthImage();
     void cleanupDepthImage();
     void createSkyImage();
     void cleanupSkyImage();
-    void createSkyPipeline();
-    void cleanupSkyPipeline();
-
-    void createWorldPipelines();
-    void cleanupWorldPipelines();
 };
 
 }  // namespace lonelycube::client

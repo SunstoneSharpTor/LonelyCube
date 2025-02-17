@@ -110,7 +110,7 @@ public:
     void destroyImage(const AllocatedImage& image);
 
     // Rendering
-    void startRenderingFrame();
+    void startRenderingFrame(VkExtent2D& swapchainExtent);
     void submitFrame();
 
 private:
@@ -143,29 +143,17 @@ private:
 
     // Descriptors
     DescriptorAllocatorGrowable m_globalDescriptorAllocator;
-    VkDescriptorSet m_drawImageDescriptors;
-    VkDescriptorSetLayout m_drawImageDescriptorLayout;
 
     // Rendering
     uint64_t m_currentFrame = 0;
     uint32_t m_frameDataIndex = 0;
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
-    AllocatedImage m_drawImage;
-    VkExtent2D m_drawImageExtent;
-    VkExtent2D m_renderExtent;
 
     // Immediate Submit
     VkFence m_immediateSubmitFence;
     VkCommandBuffer m_immediateSubmitCommandBuffer;
     VkCommandPool m_immediateSubmitCommandPool;
-
-    // Temporary
-    VkPipelineLayout m_gradientPipelineLayout;
-    VkPipeline m_gradientPipeline;
-    VkPipelineLayout m_meshPipelineLayout;
-    VkPipeline m_meshPipeline;
-    GPUMeshBuffers m_rectangleMesh;
 
     // Initialisation
     void initWindow();
@@ -187,7 +175,6 @@ private:
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapchain();
-    void createDrawImage();
     void createSwapchainImageViews();
     void createFrameData();
     void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
@@ -200,19 +187,6 @@ private:
     void cleanupSwapchain();
     void cleanupFrameData();
     void cleanupImmediateSubmit();
-
-    // Temporary
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    void drawBackgroud(VkCommandBuffer command);
-    void drawGeometry(VkCommandBuffer command);
-    void initPipelines();
-    void cleanupPipelines();
-    void initBackgroundPipelines();
-    void cleanupBackgroundPipelines();
-    void initMeshPipeline();
-    void cleanupMeshPipeline();
-    void uploadTestMesh();
-    void drawFrame();
 
 public:
     inline VkDevice getDevice()
@@ -231,18 +205,6 @@ public:
     {
         m_windowResized = true;
     }
-    inline VkDescriptorSetLayout& getDrawImageDescriptorSetLayout()
-    {
-        return m_drawImageDescriptorLayout;
-    }
-    inline VkDescriptorSet& getDrawImageDescriptors()
-    {
-        return m_drawImageDescriptors;
-    }
-    inline VkExtent2D getDrawImageExtent()
-    {
-        return m_drawImageExtent;
-    }
     inline uint64_t getCurrentFrame()
     {
         return m_currentFrame;
@@ -255,17 +217,13 @@ public:
     {
         return m_frameData[m_currentFrame % MAX_FRAMES_IN_FLIGHT];
     }
-    inline AllocatedImage& getDrawImage()
-    {
-        return m_drawImage;
-    }
     inline VkImage getCurrentSwapchainImage()
     {
         return m_swapchainImages[m_currentSwapchainIndex];
     }
-    inline VkExtent2D getRenderExtent()
+    inline VkExtent2D getSwapchainExtent()
     {
-        return m_renderExtent;
+        return m_swapchainExtent;
     }
     inline DescriptorAllocatorGrowable& getGlobalDescriptorAllocator()
     {
