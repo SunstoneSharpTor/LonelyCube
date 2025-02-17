@@ -78,7 +78,7 @@ private:
     VkExtent2D m_renderExtent;
 
     AllocatedImage m_skyImage;
-    VkSampler m_skyImageSampler;
+    VkSampler m_fullScreenImageSampler;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
     VkDescriptorSet m_skyImageDescriptors;
     VkPipelineLayout m_skyPipelineLayout;

@@ -221,6 +221,10 @@ public:
     {
         return m_swapchainImages[m_currentSwapchainIndex];
     }
+    inline VkImageView getCurrentSwapchainImageView()
+    {
+        return m_swapchainImageViews[m_currentSwapchainIndex];
+    }
     inline VkExtent2D getSwapchainExtent()
     {
         return m_swapchainExtent;

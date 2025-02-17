@@ -103,7 +103,7 @@ void Renderer::createDescriptors()
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.writeImage(
-        1, m_skyImage.imageView, m_skyImageSampler,
+        1, m_skyImage.imageView, m_fullScreenImageSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
@@ -113,7 +113,8 @@ void Renderer::createDescriptors()
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     m_exposureDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT, nullptr,
+        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
     );
 
     m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
@@ -122,8 +123,8 @@ void Renderer::createDescriptors()
 
     writer.clear();
     writer.writeImage(
-        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        1, m_drawImage.imageView, m_fullScreenImageSampler,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
 }
@@ -190,7 +191,7 @@ void Renderer::createDrawImage()
 
     VkImageUsageFlags drawImageUsages =
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
-        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT| VK_IMAGE_USAGE_SAMPLED_BIT;
 
     m_drawImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, false
@@ -211,13 +212,13 @@ void Renderer::createSkyImage()
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_NEAREST;
 
-    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_skyImageSampler);
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_fullScreenImageSampler);
 }
 
 void Renderer::cleanupSkyImage()
 {
     m_vulkanEngine.destroyImage(m_skyImage);
-    vkDestroySampler(m_vulkanEngine.getDevice(), m_skyImageSampler, nullptr);
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_fullScreenImageSampler, nullptr);
 }
 
 void Renderer::createSkyPipeline()
@@ -353,9 +354,9 @@ void Renderer::createExposurePipeline()
 
     VkShaderModule computeDrawShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/sky.comp.spv", computeDrawShader))
+        m_vulkanEngine.getDevice(), "res/shaders/exposure.comp.spv", computeDrawShader))
     {
-        LOG("Failed to find shader \"res/shaders/sky.comp.spv\"");
+        LOG("Failed to find shader \"res/shaders/exposure.comp.spv\"");
     }
 
     VkPipelineShaderStageCreateInfo stageInfo{};
@@ -558,30 +559,73 @@ void Renderer::finishDrawingGeometry()
     vkCmdEndRendering(command);
 }
 
+void Renderer::applyExposure()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    transitionImage(
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    transitionImage(
+        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL
+    );
+
+    DescriptorWriter writer;
+    writer.writeImage(
+        0, m_vulkanEngine.getCurrentSwapchainImageView(), VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipelineLayout,
+        0, 1, &m_exposureDescriptors,
+        0, nullptr
+    );
+
+    vkCmdPushConstants(
+        command, m_exposurePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float),
+        &exposure
+    );
+
+    vkCmdDispatch(
+        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
+    );
+
+    transitionImage(
+        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    );
+}
+
 void Renderer::submitFrame()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
-    transitionImage(
-
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-    );
-
-    transitionImage(
-        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    );
-
-    blitImageToImage(
-        command, m_drawImage.image, m_vulkanEngine.getCurrentSwapchainImage(),
-        m_renderExtent, m_renderExtent, VK_FILTER_NEAREST
-    );
-
-    transitionImage(
-        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    );
+    // transitionImage(
+    //
+    //     command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    //     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    // );
+    //
+    // transitionImage(
+    //     command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
+    //     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    // );
+    //
+    // blitImageToImage(
+    //     command, m_drawImage.image, m_vulkanEngine.getCurrentSwapchainImage(),
+    //     m_renderExtent, m_renderExtent, VK_FILTER_NEAREST
+    // );
+    //
+    // transitionImage(
+    //     command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    // );
 
     VK_CHECK(vkEndCommandBuffer(command));
 
