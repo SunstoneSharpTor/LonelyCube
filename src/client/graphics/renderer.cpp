@@ -34,6 +34,7 @@ Renderer::Renderer()
 {
     m_vulkanEngine.init();
 
+    createDrawImage();
     createDepthImage();
     createSkyImage();
     loadTextures();
@@ -49,27 +50,18 @@ Renderer::~Renderer()
     cleanupPipelines();
     cleanupDescriptors();
     cleanupSkyImage();
-    cleanupDepthImage();
+    m_vulkanEngine.destroyImage(m_drawImage);
+    m_vulkanEngine.destroyImage(m_depthImage);
     m_vulkanEngine.cleanup();
 }
 
 void Renderer::createDepthImage()
 {
-    VkExtent3D depthImageExtent{
-        m_vulkanEngine.getDrawImageExtent().width, m_vulkanEngine.getDrawImageExtent().height, 1
-    };
-
     VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
     m_depthImage = m_vulkanEngine.createImage(
-        depthImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
     );
-}
-
-void Renderer::cleanupDepthImage()
-{
-    vkDestroyImageView(m_vulkanEngine.getDevice(), m_depthImage.imageView, nullptr);
-    vmaDestroyImage(m_vulkanEngine.getAllocator(), m_depthImage.image, m_depthImage.allocation);
 }
 
 void Renderer::createDescriptors()
@@ -115,6 +107,25 @@ void Renderer::createDescriptors()
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
+
+    // Exposure
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_exposureDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_exposureDescriptorLayout
+    );
+
+    writer.clear();
+    writer.writeImage(
+        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
 }
 
 void Renderer::cleanupDescriptors()
@@ -123,6 +134,7 @@ void Renderer::cleanupDescriptors()
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
     );
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_exposureDescriptorLayout, nullptr);
 }
 
 void Renderer::loadTextures()
@@ -153,17 +165,45 @@ void Renderer::cleanupTextures()
     );
 }
 
+void Renderer::createDrawImage()
+{
+    int numVideoModes;
+    const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
+
+    m_drawImageExtent = { 0, 0, 1 };
+    for (int i = 0; i < numVideoModes; i++)
+    {
+        m_drawImageExtent.width = std::max(
+            m_drawImageExtent.width, static_cast<uint32_t>(displayModes[i].width)
+        );
+        m_drawImageExtent.height = std::max(
+            m_drawImageExtent.height, static_cast<uint32_t>(displayModes[i].height)
+        );
+    }
+
+    m_renderExtent.width = std::min(
+        m_vulkanEngine.getSwapchainExtent().width, m_drawImageExtent.width
+    );
+    m_renderExtent.height = std::min(
+        m_vulkanEngine.getSwapchainExtent().height, m_drawImageExtent.height
+    );
+
+    VkImageUsageFlags drawImageUsages =
+    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    m_drawImage = m_vulkanEngine.createImage(
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, false
+    );
+}
+
 void Renderer::createSkyImage()
 {
-    VkExtent3D skyImageExtent{
-        m_vulkanEngine.getDrawImageExtent().width, m_vulkanEngine.getDrawImageExtent().height, 1
-    };
-
     VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     m_skyImage = m_vulkanEngine.createImage(
-        skyImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages, false
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages, false
     );
 
     VkSamplerCreateInfo samplerInfo{};
@@ -176,9 +216,8 @@ void Renderer::createSkyImage()
 
 void Renderer::cleanupSkyImage()
 {
+    m_vulkanEngine.destroyImage(m_skyImage);
     vkDestroySampler(m_vulkanEngine.getDevice(), m_skyImageSampler, nullptr);
-    vkDestroyImageView(m_vulkanEngine.getDevice(), m_skyImage.imageView, nullptr);
-    vmaDestroyImage(m_vulkanEngine.getAllocator(), m_skyImage.image, m_skyImage.allocation);
 }
 
 void Renderer::createSkyPipeline()
@@ -213,13 +252,13 @@ void Renderer::createSkyPipeline()
     stageInfo.module = computeDrawShader;
     stageInfo.pName = "main";
 
-    VkComputePipelineCreateInfo computePipelineCreateInfo{};
-    computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    computePipelineCreateInfo.layout = m_skyPipelineLayout;
-    computePipelineCreateInfo.stage = stageInfo;
+    VkComputePipelineCreateInfo skyPipelineCreateInfo{};
+    skyPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    skyPipelineCreateInfo.layout = m_skyPipelineLayout;
+    skyPipelineCreateInfo.stage = stageInfo;
 
     VK_CHECK(vkCreateComputePipelines(
-        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr,
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &skyPipelineCreateInfo, nullptr,
         &m_skyPipeline
     ));
 
@@ -270,7 +309,7 @@ void Renderer::createWorldPipelines()
     pipelineBuilder.setMultisamplingNone();
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getDrawImage().imageFormat);
+    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
     pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
@@ -293,21 +332,77 @@ void Renderer::cleanupWorldPipelines()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_worldPipelineLayout, nullptr);
 }
 
+void Renderer::createExposurePipeline()
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_exposureDescriptorLayout;
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(float);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_exposurePipelineLayout
+    ));
+
+    VkShaderModule computeDrawShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/sky.comp.spv", computeDrawShader))
+    {
+        LOG("Failed to find shader \"res/shaders/sky.comp.spv\"");
+    }
+
+    VkPipelineShaderStageCreateInfo stageInfo{};
+    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfo.module = computeDrawShader;
+    stageInfo.pName = "main";
+
+    VkComputePipelineCreateInfo exposurePipelineCreateInfo{};
+    exposurePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    exposurePipelineCreateInfo.layout = m_exposurePipelineLayout;
+    exposurePipelineCreateInfo.stage = stageInfo;
+
+    VK_CHECK(vkCreateComputePipelines(
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &exposurePipelineCreateInfo, nullptr,
+        &m_exposurePipeline
+    ));
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
+}
+
+void Renderer::cleanupExposurePipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_exposurePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_exposurePipelineLayout, nullptr);
+}
+
 void Renderer::createPipelines()
 {
     createSkyPipeline();
     createWorldPipelines();
+    createExposurePipeline();
 }
 
 void Renderer::cleanupPipelines()
 {
     cleanupSkyPipeline();
     cleanupWorldPipelines();
+    cleanupExposurePipeline();
 }
 
 void Renderer::beginRenderingFrame()
 {
-    m_vulkanEngine.startRenderingFrame();
+    VkExtent2D swapchainExtent;
+    m_vulkanEngine.startRenderingFrame(swapchainExtent);
+    m_renderExtent.width = std::min(swapchainExtent.width, m_drawImageExtent.width);
+    m_renderExtent.height = std::min(swapchainExtent.height, m_drawImageExtent.height);
 
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -335,7 +430,7 @@ void Renderer::drawSky()
     );
 
     skyRenderInfo.renderSize = glm::vec2(
-        m_vulkanEngine.getRenderExtent().width, m_vulkanEngine.getRenderExtent().height
+        m_renderExtent.width, m_renderExtent.height
     );
     vkCmdPushConstants(
         command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
@@ -343,21 +438,20 @@ void Renderer::drawSky()
     );
 
     vkCmdDispatch(
-        command, (m_vulkanEngine.getRenderExtent().width + 15) / 16,
-        (m_vulkanEngine.getRenderExtent().height + 15) / 16, 1
+        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
     );
 
     transitionImage(
         command, m_skyImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
     );
     transitionImage(
-        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_UNDEFINED,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     );
 
     blitImageToImage(
-        command, m_skyImage.image, m_vulkanEngine.getDrawImage().image,
-        m_vulkanEngine.getRenderExtent(), m_vulkanEngine.getRenderExtent(), VK_FILTER_NEAREST
+        command, m_skyImage.image, m_drawImage.image, m_renderExtent, m_renderExtent,
+        VK_FILTER_NEAREST
     );
 
     transitionImage(
@@ -365,7 +459,7 @@ void Renderer::drawSky()
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     transitionImage(
-        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     );
 }
@@ -382,7 +476,7 @@ void Renderer::beginDrawingGeometry()
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_vulkanEngine.getDrawImage().imageView;
+    colourAttachment.imageView = m_drawImage.imageView;
     colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -397,7 +491,7 @@ void Renderer::beginDrawingGeometry()
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { { 0, 0 }, m_vulkanEngine.getRenderExtent() };
+    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colourAttachment;
@@ -414,14 +508,14 @@ void Renderer::beginDrawingBlocks()
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipeline);
 
     VkViewport viewport{};
-    viewport.width = m_vulkanEngine.getRenderExtent().width;
-    viewport.height = m_vulkanEngine.getRenderExtent().height;
+    viewport.width = m_renderExtent.width;
+    viewport.height = m_renderExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
-    scissor.extent.width = m_vulkanEngine.getRenderExtent().width;
-    scissor.extent.height = m_vulkanEngine.getRenderExtent().height;
+    scissor.extent.width = m_renderExtent.width;
+    scissor.extent.height = m_renderExtent.height;
 
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
@@ -470,7 +564,7 @@ void Renderer::submitFrame()
     VkCommandBuffer command = currentFrameData.commandBuffer;
     transitionImage(
 
-        command, m_vulkanEngine.getDrawImage().image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
     );
 
@@ -480,8 +574,8 @@ void Renderer::submitFrame()
     );
 
     blitImageToImage(
-        command, m_vulkanEngine.getDrawImage().image, m_vulkanEngine.getCurrentSwapchainImage(),
-        m_vulkanEngine.getRenderExtent(), m_vulkanEngine.getRenderExtent(), VK_FILTER_NEAREST
+        command, m_drawImage.image, m_vulkanEngine.getCurrentSwapchainImage(),
+        m_renderExtent, m_renderExtent, VK_FILTER_NEAREST
     );
 
     transitionImage(
