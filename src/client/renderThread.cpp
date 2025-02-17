@@ -346,6 +346,8 @@ void renderThread() {
                 // }
                 // worldFrameBuffer.unbind();
 
+                renderer.finishDrawingGeometry();
+
                 // // Update auto exposure
                 // #ifndef GLES3
                 // float luminanceVal = luminance.calculate();
@@ -370,14 +372,9 @@ void renderThread() {
                     );
                     exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
                 }
-                // screenShader.bind();
-                // screenShader.setUniform1f("exposure", exposure);
 
-                // // Draw the world texture
-                // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-                // glClear(GL_COLOR_BUFFER_BIT);
-                // glDisable(GL_DEPTH_TEST);
-                // worldFrameBuffer.draw(screenShader);
+                renderer.exposure = exposure;
+                renderer.applyExposure();
 
                 // // Draw the crosshair
                 // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
@@ -388,7 +385,6 @@ void renderThread() {
                 // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
                 // font.draw(mainRenderer);
 
-                renderer.finishDrawingGeometry();
                 renderer.submitFrame();
             }
             mainWorld.updateMeshes();
