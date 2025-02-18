@@ -26,11 +26,13 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include <cmath>
+#include <string>
 #include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
-Renderer::Renderer()
+Renderer::Renderer(float renderScale) : m_renderScale(renderScale)
 {
     m_vulkanEngine.init();
 
@@ -38,6 +40,7 @@ Renderer::Renderer()
     createDepthImage();
     createSkyImage();
     loadTextures();
+    createFullscreenSamplers();
     createDescriptors();
     createPipelines();
 }
@@ -46,12 +49,13 @@ Renderer::~Renderer()
 {
     vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
-    cleanupTextures();
     cleanupPipelines();
     cleanupDescriptors();
-    cleanupSkyImage();
+    m_vulkanEngine.destroyImage(m_skyImage);
     m_vulkanEngine.destroyImage(m_drawImage);
     m_vulkanEngine.destroyImage(m_depthImage);
+    cleanupTextures();
+    cleanupFullscreenSamplers();
     m_vulkanEngine.cleanup();
 }
 
@@ -64,19 +68,14 @@ void Renderer::createDrawImage()
     for (int i = 0; i < numVideoModes; i++)
     {
         m_drawImageExtent.width = std::max(
-            m_drawImageExtent.width, static_cast<uint32_t>(displayModes[i].width)
+            m_drawImageExtent.width,
+            static_cast<uint32_t>(std::ceil(displayModes[i].width * m_renderScale))
         );
         m_drawImageExtent.height = std::max(
-            m_drawImageExtent.height, static_cast<uint32_t>(displayModes[i].height)
+            m_drawImageExtent.height,
+            static_cast<uint32_t>(std::ceil(displayModes[i].height * m_renderScale))
         );
     }
-
-    m_renderExtent.width = std::min(
-        m_vulkanEngine.getSwapchainExtent().width, m_drawImageExtent.width
-    );
-    m_renderExtent.height = std::min(
-        m_vulkanEngine.getSwapchainExtent().height, m_drawImageExtent.height
-    );
 
     VkImageUsageFlags drawImageUsages =
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
@@ -104,19 +103,6 @@ void Renderer::createSkyImage()
     m_skyImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
     );
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-
-    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_fullScreenImageSampler);
-}
-
-void Renderer::cleanupSkyImage()
-{
-    m_vulkanEngine.destroyImage(m_skyImage);
-    vkDestroySampler(m_vulkanEngine.getDevice(), m_fullScreenImageSampler, nullptr);
 }
 
 void Renderer::loadTextures()
@@ -147,15 +133,33 @@ void Renderer::cleanupTextures()
     );
 }
 
+void Renderer::createFullscreenSamplers()
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
+
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
+}
+
+void Renderer::cleanupFullscreenSamplers()
+{
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_nearestFullscreenSampler, nullptr);
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_linearFullscreenSampler, nullptr);
+}
+
 void Renderer::createSkyDescriptors()
 {
     DescriptorLayoutBuilder builder;
     DescriptorWriter writer;
 
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_skyImageDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
-    );
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     m_skyImageDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
@@ -196,7 +200,7 @@ void Renderer::createWorldDescriptors()
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.writeImage(
-        1, m_skyImage.imageView, m_fullScreenImageSampler,
+        1, m_skyImage.imageView, m_nearestFullscreenSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
@@ -217,7 +221,7 @@ void Renderer::createExposureDescriptors()
     );
 
     writer.writeImage(
-        0, m_drawImage.imageView, m_fullScreenImageSampler,
+        0, m_drawImage.imageView, m_linearFullscreenSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
@@ -364,7 +368,7 @@ void Renderer::cleanupWorldPipelines()
 void Renderer::createExposurePipeline()
 {
     VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(float);
+    bufferRange.size = sizeof(ExposurePushConstants);
     bufferRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -433,8 +437,14 @@ void Renderer::beginRenderingFrame()
 {
     VkExtent2D swapchainExtent;
     m_vulkanEngine.startRenderingFrame(swapchainExtent);
-    m_renderExtent.width = std::min(swapchainExtent.width, m_drawImageExtent.width);
-    m_renderExtent.height = std::min(swapchainExtent.height, m_drawImageExtent.height);
+    m_renderExtent.width = std::min(
+        static_cast<uint32_t>(std::ceil(swapchainExtent.width * m_renderScale)),
+        m_drawImageExtent.width
+    );
+    m_renderExtent.height = std::min(
+        static_cast<uint32_t>(std::ceil(swapchainExtent.height * m_renderScale)),
+        m_drawImageExtent.height
+    );
 
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -462,9 +472,7 @@ void Renderer::drawSky()
         0, nullptr
     );
 
-    skyRenderInfo.renderSize = glm::vec2(
-        m_renderExtent.width, m_renderExtent.height
-    );
+    skyRenderInfo.renderSize = glm::vec2(m_renderExtent.width, m_renderExtent.height);
     vkCmdPushConstants(
         command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
         &skyRenderInfo
@@ -600,21 +608,40 @@ void Renderer::applyExposure()
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
+    renderingInfo.renderArea = { { 0, 0 }, m_vulkanEngine.getSwapchainExtent() };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colourAttachment;
 
     vkCmdBeginRendering(command, &renderingInfo);
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipeline);
+
+    VkViewport viewport{};
+    viewport.width = m_vulkanEngine.getSwapchainExtent().width;
+    viewport.height = m_vulkanEngine.getSwapchainExtent().height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent.width = m_vulkanEngine.getSwapchainExtent().width;
+    scissor.extent.height = m_vulkanEngine.getSwapchainExtent().height;
+
+    vkCmdSetViewport(command, 0, 1, &viewport);
+    vkCmdSetScissor(command, 0, 1, &scissor);
+
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipelineLayout,
         0, 1, &m_exposureDescriptors,
         0, nullptr
     );
 
+    ExposurePushConstants pushConstants;
+    pushConstants.inverseDrawImageSize.x = m_renderScale / m_drawImageExtent.width;
+    pushConstants.inverseDrawImageSize.y = m_renderScale / m_drawImageExtent.height;
+    pushConstants.exposure = exposure;
     vkCmdPushConstants(
-        command, m_exposurePipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &exposure
+        command, m_exposurePipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+        sizeof(ExposurePushConstants), &pushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
     vkCmdEndRendering(command);
