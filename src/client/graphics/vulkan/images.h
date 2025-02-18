@@ -26,9 +26,4 @@ void transitionImage(
     VkCommandBuffer command, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout
 );
 
-void blitImageToImage(
-    VkCommandBuffer command, VkImage source, VkImage destination, VkExtent2D srcSize,
-    VkExtent2D dstSize, VkFilter filter
-);
-
 }  // namespace lonelycube::client

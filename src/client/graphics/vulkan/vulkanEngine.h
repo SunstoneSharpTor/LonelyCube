@@ -101,12 +101,12 @@ public:
 
     // Images
     AllocatedImage createImage(
-        VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-        VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT, bool mipmapped = false
+        VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false,
+        VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT
     );
     AllocatedImage createImage(
         void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-        VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT, bool mipmapped = false
+        bool mipmapped = false, VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT
     );
     void destroyImage(const AllocatedImage& image);
 
