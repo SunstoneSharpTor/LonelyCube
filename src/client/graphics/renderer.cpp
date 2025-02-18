@@ -82,8 +82,10 @@ void Renderer::createDrawImage()
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT| VK_IMAGE_USAGE_SAMPLED_BIT;
 
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
     m_drawImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, false
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, numSamples, false
     );
 }
 
@@ -91,8 +93,10 @@ void Renderer::createDepthImage()
 {
     VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
     m_depthImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, numSamples, false
     );
 }
 
@@ -102,7 +106,7 @@ void Renderer::createSkyImage()
         | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     m_skyImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages, false
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
     );
 
     VkSamplerCreateInfo samplerInfo{};
@@ -318,13 +322,16 @@ void Renderer::createWorldPipelines()
         LOG("Failed to find shader \"res/shaders/water.frag.spv\"");
     }
 
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
+
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
     pipelineBuilder.setShaders(blockVertexShader, blockFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.setMultisampling(numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
