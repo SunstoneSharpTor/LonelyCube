@@ -45,6 +45,12 @@ struct BlockPushConstants
     float skyLightIntensity;
 };
 
+struct ExposurePushConstants
+{
+    glm::vec2 inverseDrawImageSize;
+    float exposure;
+};
+
 class Renderer
 {
 public:
@@ -52,7 +58,7 @@ public:
     BlockPushConstants blockRenderInfo;
     float exposure;
 
-    Renderer();
+    Renderer(float renderScale);
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
@@ -74,11 +80,11 @@ private:
 
     AllocatedImage m_drawImage;
     AllocatedImage m_depthImage;
+    float m_renderScale;
     VkExtent3D m_drawImageExtent;
     VkExtent2D m_renderExtent;
 
     AllocatedImage m_skyImage;
-    VkSampler m_fullScreenImageSampler;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
     VkDescriptorSet m_skyImageDescriptors;
     VkPipelineLayout m_skyPipelineLayout;
@@ -97,6 +103,9 @@ private:
 
     AllocatedImage m_worldTextures;
     VkSampler m_worldTexturesSampler;
+
+    VkSampler m_linearFullscreenSampler;
+    VkSampler m_nearestFullscreenSampler;
 
     void createSkyPipeline();
     void cleanupSkyPipeline();
@@ -121,6 +130,8 @@ private:
     void cleanupDepthImage();
     void createSkyImage();
     void cleanupSkyImage();
+    void createFullscreenSamplers();
+    void cleanupFullscreenSamplers();
 };
 
 }  // namespace lonelycube::client

@@ -92,7 +92,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer;
+    Renderer renderer(1.6f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
