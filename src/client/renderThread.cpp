@@ -278,8 +278,7 @@ void renderThread() {
                 //     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
                 // }
 
-                // uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
-                uint32_t timeOfDay = 6200;
+                uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
                 float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
                 // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
