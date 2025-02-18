@@ -20,10 +20,8 @@
 #include <enet/enet.h>
 
 #include "client/clientNetworking.h"
-#include "client/renderThread.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
-#include "core/config.h"
 #include "core/constants.h"
 #include "core/packet.h"
 #include "core/threadManager.h"

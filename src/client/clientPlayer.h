@@ -79,8 +79,10 @@ public:
 
     ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
 
-    void processUserInput(GLFWwindow* window, int* windowDimensions, bool*
-      windowLastFocus, bool* running, double currentTime, ClientNetworking& networking);
+    void processUserInput(
+        GLFWwindow* window, int* windowDimensions, bool* windowLastFocus, double currentTime,
+        ClientNetworking& networking
+    );
 };
 
 }  // namespace lonelycube::client
