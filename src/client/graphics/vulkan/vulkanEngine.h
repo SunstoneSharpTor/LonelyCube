@@ -229,6 +229,10 @@ public:
     {
         return m_swapchainExtent;
     }
+    inline VkFormat getSwapchainImageFormat()
+    {
+        return m_swapchainImageFormat;
+    }
     inline DescriptorAllocatorGrowable& getGlobalDescriptorAllocator()
     {
         return m_globalDescriptorAllocator;

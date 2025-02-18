@@ -55,115 +55,6 @@ Renderer::~Renderer()
     m_vulkanEngine.cleanup();
 }
 
-void Renderer::createDepthImage()
-{
-    VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    m_depthImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
-    );
-}
-
-void Renderer::createDescriptors()
-{
-    DescriptorLayoutBuilder builder;
-    DescriptorWriter writer;
-
-    // Sky image
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_skyImageDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
-    );
-
-    m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
-        m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
-    );
-
-    writer.writeImage(
-        0, m_skyImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
-
-    // World textures
-    builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    m_worldTexturesDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
-    );
-
-    m_worldTexturesDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
-        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
-    );
-
-    writer.clear();
-    writer.writeImage(
-        0, m_worldTextures.imageView, m_worldTexturesSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    );
-    writer.writeImage(
-        1, m_skyImage.imageView, m_fullScreenImageSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
-
-    // Exposure
-    builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    m_exposureDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
-    );
-
-    m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
-        m_vulkanEngine.getDevice(), m_exposureDescriptorLayout
-    );
-
-    writer.clear();
-    writer.writeImage(
-        0, m_drawImage.imageView, m_fullScreenImageSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
-}
-
-void Renderer::cleanupDescriptors()
-{
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
-    vkDestroyDescriptorSetLayout(
-        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
-    );
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_exposureDescriptorLayout, nullptr);
-}
-
-void Renderer::loadTextures()
-{
-    int size[2];
-    int chanels;
-    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &chanels, 4);
-    VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
-    m_worldTextures = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
-    );
-    stbi_image_free(buffer);
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-
-    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
-}
-
-void Renderer::cleanupTextures()
-{
-    vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
-    vkDestroyImageView(m_vulkanEngine.getDevice(), m_worldTextures.imageView, nullptr);
-    vmaDestroyImage(
-        m_vulkanEngine.getAllocator(), m_worldTextures.image, m_worldTextures.allocation
-    );
-}
-
 void Renderer::createDrawImage()
 {
     int numVideoModes;
@@ -196,6 +87,15 @@ void Renderer::createDrawImage()
     );
 }
 
+void Renderer::createDepthImage()
+{
+    VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    m_depthImage = m_vulkanEngine.createImage(
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, false
+    );
+}
+
 void Renderer::createSkyImage()
 {
     VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
@@ -217,6 +117,118 @@ void Renderer::cleanupSkyImage()
 {
     m_vulkanEngine.destroyImage(m_skyImage);
     vkDestroySampler(m_vulkanEngine.getDevice(), m_fullScreenImageSampler, nullptr);
+}
+
+void Renderer::loadTextures()
+{
+    int size[2];
+    int chanels;
+    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &chanels, 4);
+    VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    m_worldTextures = m_vulkanEngine.createImage(
+        buffer, extent, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
+    );
+    stbi_image_free(buffer);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
+}
+
+void Renderer::cleanupTextures()
+{
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
+    vkDestroyImageView(m_vulkanEngine.getDevice(), m_worldTextures.imageView, nullptr);
+    vmaDestroyImage(
+        m_vulkanEngine.getAllocator(), m_worldTextures.image, m_worldTextures.allocation
+    );
+}
+
+void Renderer::createSkyDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_skyImageDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
+
+    m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
+    );
+
+    writer.writeImage(
+        0, m_skyImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
+}
+
+void Renderer::createWorldDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_worldTexturesDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_worldTexturesDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
+    );
+
+    writer.writeImage(
+        0, m_worldTextures.imageView, m_worldTexturesSampler,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.writeImage(
+        1, m_skyImage.imageView, m_fullScreenImageSampler,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
+}
+
+void Renderer::createExposureDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_exposureDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_exposureDescriptorLayout
+    );
+
+    writer.writeImage(
+        0, m_drawImage.imageView, m_fullScreenImageSampler,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
+}
+
+void Renderer::createDescriptors()
+{
+    createSkyDescriptors();
+    createWorldDescriptors();
+    createExposureDescriptors();
+}
+
+void Renderer::cleanupDescriptors()
+{
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(
+        m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
+    );
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_exposureDescriptorLayout, nullptr);
 }
 
 void Renderer::createSkyPipeline()
@@ -352,35 +364,35 @@ void Renderer::createExposurePipeline()
     pipelineLayoutInfo.pSetLayouts = &m_exposureDescriptorLayout;
 
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_skyPipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_exposurePipelineLayout
     ));
 
     VkShaderModule fullscreenVertexShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/block.vert.spv", fullscreenVertexShader)
+        m_vulkanEngine.getDevice(), "res/shaders/fullscreen.vert.spv", fullscreenVertexShader)
     ) {
-        LOG("Failed to find shader \"res/shaders/block.vert.spv\"");
+        LOG("Failed to find shader \"res/shaders/fullscreen.vert.spv\"");
     }
     VkShaderModule exposureFragmentShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/block.frag.spv", exposureFragmentShader)
+        m_vulkanEngine.getDevice(), "res/shaders/exposure.frag.spv", exposureFragmentShader)
     ) {
-        LOG("Failed to find shader \"res/shaders/block.frag.spv\"");
+        LOG("Failed to find shader \"res/shaders/exposure.frag.spv\"");
     }
 
     PipelineBuilder pipelineBuilder;
-    pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
+    pipelineBuilder.pipelineLayout = m_exposurePipelineLayout;
     pipelineBuilder.setShaders(fullscreenVertexShader, exposureFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineBuilder.setMultisamplingNone();
     pipelineBuilder.disableBlending();
-    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
-    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
 
-    m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+    m_exposurePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), exposureFragmentShader, nullptr);
@@ -578,34 +590,39 @@ void Renderer::applyExposure()
     );
     transitionImage(
         command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_GENERAL
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     );
 
-    DescriptorWriter writer;
-    writer.writeImage(
-        0, m_vulkanEngine.getCurrentSwapchainImageView(), VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
+    VkRenderingAttachmentInfo colourAttachment{};
+    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainImageView();
+    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipeline);
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colourAttachment;
+
+    vkCmdBeginRendering(command, &renderingInfo);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipeline);
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_exposurePipelineLayout,
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipelineLayout,
         0, 1, &m_exposureDescriptors,
         0, nullptr
     );
 
     vkCmdPushConstants(
-        command, m_exposurePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float),
-        &exposure
+        command, m_exposurePipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &exposure
     );
-
-    vkCmdDispatch(
-        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
-    );
+    vkCmdDraw(command, 3, 1, 0, 0);
+    vkCmdEndRendering(command);
 
     transitionImage(
-        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_GENERAL,
+        command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     );
 }
@@ -614,29 +631,8 @@ void Renderer::submitFrame()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
-    // transitionImage(
-    //
-    //     command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    //     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-    // );
-    //
-    // transitionImage(
-    //     command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
-    //     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    // );
-    //
-    // blitImageToImage(
-    //     command, m_drawImage.image, m_vulkanEngine.getCurrentSwapchainImage(),
-    //     m_renderExtent, m_renderExtent, VK_FILTER_NEAREST
-    // );
-    //
-    // transitionImage(
-    //     command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    // );
 
     VK_CHECK(vkEndCommandBuffer(command));
-
     m_vulkanEngine.submitFrame();
 }
 
