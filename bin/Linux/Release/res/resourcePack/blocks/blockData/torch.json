@@ -1,0 +1,8 @@
+{
+    "transparrent": true,
+    "collidable": false,
+    "castsAmbientOcclusion": false,
+    "blockLight": 12,
+    "model": "torch",
+    "textureIndices": [10,10,10,10,10,10]
+}

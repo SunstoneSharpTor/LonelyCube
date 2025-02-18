@@ -139,8 +139,8 @@ void renderThread() {
 
         double time;
         mainPlayer.processUserInput(
-            renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, &running,
-            time, networking
+            renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, time,
+            networking
         );
         mainWorld.doRenderThreadJobs();
 
@@ -155,8 +155,7 @@ void renderThread() {
         time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
         double frameStart = time - DT;
         float lastFrameRateTime = frameStart + DT;
-        bool run = running;
-        while (run) {
+        while (running) {
             glfwPollEvents();
             //toggle fullscreen if F11 pressed
             if (glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
@@ -177,8 +176,6 @@ void renderThread() {
                 windowFullScreen = !windowFullScreen;
             }
             lastF11 = glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS;
-            if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
-                running = false;
             int windowSize[2];
             glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize[0], &windowSize[1]);
             if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
@@ -237,7 +234,7 @@ void renderThread() {
 
                 mainPlayer.processUserInput(
                     renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
-                    &running, currentTime, networking
+                    currentTime, networking
                 );
                 mainWorld.updatePlayerPos(
                     mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
@@ -390,9 +387,16 @@ void renderThread() {
             mainWorld.updateMeshes();
             mainWorld.doRenderThreadJobs();
 
-            run = running;
-            for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
-                run |= chunkLoaderThreadsRunning[i];
+            if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
+            {
+                do
+                {
+                    running = false;
+                    for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
+                        running |= chunkLoaderThreadsRunning[i];
+                    }
+                    mainWorld.doRenderThreadJobs();
+                } while (running);
             }
         }
 

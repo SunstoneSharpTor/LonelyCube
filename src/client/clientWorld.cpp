@@ -194,7 +194,15 @@ void ClientWorld::doRenderThreadJobs() {
 }
 
 void ClientWorld::updateMeshes() {
+    m_meshUpdatesMtx.lock();
+    while (m_renderThreadWaitingForArrIndicesVectors) {
+        m_meshUpdatesMtx.unlock();
+        m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+        m_meshUpdatesMtx.lock();
+        m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+    }
     std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
+
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
         auto meshIt = m_meshes.find(*it);
@@ -206,6 +214,7 @@ void ClientWorld::updateMeshes() {
             ++it;
             continue;
         }
+
         m_meshesToUnload[
             (m_renderer.getVulkanEngine().getFrameDataIndex()
             + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
@@ -216,6 +225,8 @@ void ClientWorld::updateMeshes() {
         m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
     }
+
+    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords) {
@@ -409,10 +420,18 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
 
     //if the mesh is empty dont upload it to save interrupting the render thread
     if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
+        m_meshUpdatesMtx.lock();
+        while (m_renderThreadWaitingForArrIndicesVectors) {
+            m_meshUpdatesMtx.unlock();
+            m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+            m_meshUpdatesMtx.lock();
+            m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+        }
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
             m_meshUpdates.erase(it);
         }
+        m_meshUpdatesMtx.unlock();
         return;
     }
 
@@ -464,7 +483,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
 
     m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
     m_renderThreadWaitingForArrIndicesVectors = true;
-    m_accessingArrIndicesVectorsMtx.lock();
+    m_meshUpdatesMtx.lock();
     m_renderThreadWaitingForArrIndicesVectors = false;
     m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
     m_meshes[m_chunkPosition[threadNum]] = newMesh;
@@ -472,7 +491,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     if (it != m_meshUpdates.end()) {
         m_meshUpdates.erase(it);
     }
-    m_accessingArrIndicesVectorsMtx.unlock();
+    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
@@ -586,11 +605,11 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     // LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
     // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
-    m_accessingArrIndicesVectorsMtx.lock();
+    m_meshUpdatesMtx.lock();
     while (m_renderThreadWaitingForArrIndicesVectors) {
-        m_accessingArrIndicesVectorsMtx.unlock();
+        m_meshUpdatesMtx.unlock();
         m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-        m_accessingArrIndicesVectorsMtx.lock();
+        m_meshUpdatesMtx.lock();
         m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
     }
 
@@ -599,7 +618,7 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
             m_meshesToUpdate.insert(chunk);
         }
     }
-    m_accessingArrIndicesVectorsMtx.unlock();
+    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
