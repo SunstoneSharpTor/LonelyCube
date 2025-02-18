@@ -110,11 +110,9 @@ void Renderer::createDescriptors()
 
     // Exposure
     builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     m_exposureDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT, nullptr,
-        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
 
     m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
@@ -123,7 +121,7 @@ void Renderer::createDescriptors()
 
     writer.clear();
     writer.writeImage(
-        1, m_drawImage.imageView, m_fullScreenImageSampler,
+        0, m_drawImage.imageView, m_fullScreenImageSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
@@ -285,21 +283,28 @@ void Renderer::createWorldPipelines()
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &m_worldTexturesDescriptorLayout;
 
-    VK_CHECK(
-        vkCreatePipelineLayout(m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_worldPipelineLayout)
-    );
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_worldPipelineLayout
+    ));
 
     VkShaderModule blockVertexShader;
-    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/block.vert.spv", blockVertexShader))
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/block.vert.spv", blockVertexShader)
+    ) {
         LOG("Failed to find shader \"res/shaders/block.vert.spv\"");
-
+    }
     VkShaderModule blockFragmentShader;
-    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/block.frag.spv", blockFragmentShader))
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/block.frag.spv", blockFragmentShader)
+    ) {
         LOG("Failed to find shader \"res/shaders/block.frag.spv\"");
-
+    }
     VkShaderModule waterFragmentShader;
-    if (!createShaderModule(m_vulkanEngine.getDevice(), "res/shaders/water.frag.spv", waterFragmentShader))
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/water.frag.spv", waterFragmentShader)
+    ) {
         LOG("Failed to find shader \"res/shaders/water.frag.spv\"");
+    }
 
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
@@ -335,47 +340,50 @@ void Renderer::cleanupWorldPipelines()
 
 void Renderer::createExposurePipeline()
 {
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(float);
+    bufferRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &m_exposureDescriptorLayout;
 
-    VkPushConstantRange pushConstant{};
-    pushConstant.offset = 0;
-    pushConstant.size = sizeof(float);
-    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
-
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_exposurePipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_skyPipelineLayout
     ));
 
-    VkShaderModule computeDrawShader;
+    VkShaderModule fullscreenVertexShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/exposure.comp.spv", computeDrawShader))
-    {
-        LOG("Failed to find shader \"res/shaders/exposure.comp.spv\"");
+        m_vulkanEngine.getDevice(), "res/shaders/block.vert.spv", fullscreenVertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/block.vert.spv\"");
+    }
+    VkShaderModule exposureFragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/block.frag.spv", exposureFragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/block.frag.spv\"");
     }
 
-    VkPipelineShaderStageCreateInfo stageInfo{};
-    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    stageInfo.module = computeDrawShader;
-    stageInfo.pName = "main";
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
+    pipelineBuilder.setShaders(fullscreenVertexShader, exposureFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
 
-    VkComputePipelineCreateInfo exposurePipelineCreateInfo{};
-    exposurePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    exposurePipelineCreateInfo.layout = m_exposurePipelineLayout;
-    exposurePipelineCreateInfo.stage = stageInfo;
+    m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
-    VK_CHECK(vkCreateComputePipelines(
-        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &exposurePipelineCreateInfo, nullptr,
-        &m_exposurePipeline
-    ));
-
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), exposureFragmentShader, nullptr);
 }
 
 void Renderer::cleanupExposurePipeline()
