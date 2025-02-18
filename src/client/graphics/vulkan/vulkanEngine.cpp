@@ -230,6 +230,17 @@ bool VulkanEngine::pickPhysicalDevice()
     vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
     LOG(deviceProperties.deviceName + std::string(" selected for Vulkan"));
 
+    VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts
+        & deviceProperties.limits.framebufferDepthSampleCounts;
+
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { m_maxSamples = VK_SAMPLE_COUNT_64_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_32_BIT) { m_maxSamples = VK_SAMPLE_COUNT_32_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_16_BIT) { m_maxSamples = VK_SAMPLE_COUNT_16_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_8_BIT) { m_maxSamples = VK_SAMPLE_COUNT_8_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_4_BIT) { m_maxSamples = VK_SAMPLE_COUNT_4_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_2_BIT) { m_maxSamples = VK_SAMPLE_COUNT_2_BIT; }
+    else { m_maxSamples = VK_SAMPLE_COUNT_1_BIT; }
+
     return true;
 }
 
@@ -917,7 +928,8 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
 }
 
 AllocatedImage VulkanEngine::createImage(
-    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped
+    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, VkSampleCountFlagBits numSamples,
+    bool mipmapped
 ) {
     AllocatedImage newImage;
     newImage.imageFormat = format;
@@ -938,7 +950,7 @@ AllocatedImage VulkanEngine::createImage(
         imageCreateInfo.mipLevels = 1;
     }
     imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.samples = numSamples;
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.usage = usage;
 
@@ -971,7 +983,8 @@ AllocatedImage VulkanEngine::createImage(
 }
 
 AllocatedImage VulkanEngine::createImage(
-    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped
+    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+    VkSampleCountFlagBits numSamples, bool mipmapped
 ) {
     size_t dataSize = size.depth * size.width * size.height * 4;
     AllocatedBuffer staging = createBuffer(
@@ -983,7 +996,7 @@ AllocatedImage VulkanEngine::createImage(
     memcpy(staging.info.pMappedData, data, dataSize);
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        mipmapped
+        numSamples, mipmapped
     );
 
     immediateSubmit([&](VkCommandBuffer command) {

@@ -101,11 +101,12 @@ public:
 
     // Images
     AllocatedImage createImage(
-        VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false
+        VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+        VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT, bool mipmapped = false
     );
     AllocatedImage createImage(
         void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-        bool mipmapped = false
+        VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT, bool mipmapped = false
     );
     void destroyImage(const AllocatedImage& image);
 
@@ -154,6 +155,9 @@ private:
     VkFence m_immediateSubmitFence;
     VkCommandBuffer m_immediateSubmitCommandBuffer;
     VkCommandPool m_immediateSubmitCommandPool;
+
+    // Device details
+    VkSampleCountFlagBits m_maxSamples;
 
     // Initialisation
     void initWindow();
@@ -236,6 +240,10 @@ public:
     inline DescriptorAllocatorGrowable& getGlobalDescriptorAllocator()
     {
         return m_globalDescriptorAllocator;
+    }
+    inline VkSampleCountFlagBits getMaxSamples()
+    {
+        return m_maxSamples;
     }
 };
 
