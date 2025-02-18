@@ -30,12 +30,13 @@ layout (set = 0, binding = 1) uniform sampler2D skyTexture;
 const vec3 BLOCK_LIGHT_COLOUR = vec3(1.0, 0.839, 0.631);
 
 void main() {
-    vec4 skyColour = texture(skyTexture, ivec2(gl_FragCoord.xy) / vec2(textureSize(skyTexture, 0)));
-
     vec4 texColour = texture(blockTextures, inTexCoord);
     if(texColour.a <= 252.4f/255.0f) {
         discard;
     }
+
+    vec4 skyColour = texture(skyTexture, ivec2(gl_FragCoord.xy) / vec2(textureSize(skyTexture, 0)));
+
     vec3 texColourWithLight = texColour.rgb * inSkyBrightness;
     texColourWithLight += texColour.rgb * inBlockBrightness * BLOCK_LIGHT_COLOUR;
     outColour = vec4(mix(skyColour.rgb, texColourWithLight, inVisibility), 1.0);

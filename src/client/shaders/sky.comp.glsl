@@ -21,6 +21,7 @@
 layout (local_size_x = 16, local_size_y = 16) in;
 
 layout (rgba16f, set = 0, binding = 0) uniform image2D skyImage;
+layout (rgba16f, set = 0, binding = 1) uniform image2D drawImage;
 
 layout (push_constant, std430) uniform constants
 {
@@ -67,6 +68,8 @@ void main() {
     float sunDistance = dotProd * 0.000003 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
     value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
+    value *= brightness;
 
-    imageStore(skyImage, texelCoords, vec4(value * brightness, 1.0));
+    imageStore(skyImage, texelCoords, vec4(value, 1.0));
+    imageStore(drawImage, texelCoords, vec4(value, 1.0));
 }

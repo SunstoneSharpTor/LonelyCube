@@ -82,10 +82,8 @@ void Renderer::createDrawImage()
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT| VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
     m_drawImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, numSamples, false
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages
     );
 }
 
@@ -93,10 +91,8 @@ void Renderer::createDepthImage()
 {
     VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
     m_depthImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, numSamples, false
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages
     );
 }
 
@@ -160,6 +156,10 @@ void Renderer::createSkyDescriptors()
     m_skyImageDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
     );
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_skyImageDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
 
     m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
         m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
@@ -167,6 +167,10 @@ void Renderer::createSkyDescriptors()
 
     writer.writeImage(
         0, m_skyImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.writeImage(
+        1, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
         VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
@@ -449,6 +453,7 @@ void Renderer::drawSky()
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     transitionImage(command, m_skyImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    transitionImage(command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyPipeline);
     vkCmdBindDescriptorSets(
@@ -470,24 +475,10 @@ void Renderer::drawSky()
     );
 
     transitionImage(
-        command, m_skyImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        command, m_skyImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     transitionImage(
         command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    );
-
-    blitImageToImage(
-        command, m_skyImage.image, m_drawImage.image, m_renderExtent, m_renderExtent,
-        VK_FILTER_NEAREST
-    );
-
-    transitionImage(
-        command, m_skyImage.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
-    transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     );
 }

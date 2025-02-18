@@ -928,8 +928,8 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
 }
 
 AllocatedImage VulkanEngine::createImage(
-    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, VkSampleCountFlagBits numSamples,
-    bool mipmapped
+    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped,
+    VkSampleCountFlagBits numSamples
 ) {
     AllocatedImage newImage;
     newImage.imageFormat = format;
@@ -983,8 +983,8 @@ AllocatedImage VulkanEngine::createImage(
 }
 
 AllocatedImage VulkanEngine::createImage(
-    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-    VkSampleCountFlagBits numSamples, bool mipmapped
+    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped,
+    VkSampleCountFlagBits numSamples
 ) {
     size_t dataSize = size.depth * size.width * size.height * 4;
     AllocatedBuffer staging = createBuffer(
@@ -996,7 +996,7 @@ AllocatedImage VulkanEngine::createImage(
     memcpy(staging.info.pMappedData, data, dataSize);
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        numSamples, mipmapped
+        mipmapped, numSamples
     );
 
     immediateSubmit([&](VkCommandBuffer command) {
