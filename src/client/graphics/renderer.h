@@ -107,6 +107,9 @@ private:
     void createPipelines();
     void cleanupPipelines();
 
+    void createSkyDescriptors();
+    void createWorldDescriptors();
+    void createExposureDescriptors();
     void createDescriptors();
     void cleanupDescriptors();
 

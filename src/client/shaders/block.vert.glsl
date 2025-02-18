@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#version 450
+#version 460
 #extension GL_EXT_buffer_reference : require
 
 layout (location = 0) out vec2 outTexCoord;

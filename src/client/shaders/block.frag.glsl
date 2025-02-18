@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#version 450
+#version 460
 
 layout (location = 0) in vec2 inTexCoord;
 layout (location = 1) in float inSkyBrightness;
