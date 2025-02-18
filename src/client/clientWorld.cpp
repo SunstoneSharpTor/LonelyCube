@@ -200,6 +200,9 @@ void ClientWorld::updateMeshes() {
         auto meshIt = m_meshes.find(*it);
         if (meshIt == m_meshes.end())
         {
+            m_unmeshedChunks.insert(*it);
+            m_meshUpdates.insert(*it);
+            m_recentChunksBuilt.push(*it);
             ++it;
             continue;
         }
@@ -602,9 +605,9 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
 void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
-        // locking 
+        // locking
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        // waiting 
+        // waiting
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
