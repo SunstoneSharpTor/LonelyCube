@@ -226,20 +226,40 @@ bool VulkanEngine::pickPhysicalDevice()
         return false;
     }
 
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
-    LOG(deviceProperties.deviceName + std::string(" selected for Vulkan"));
+    m_physicalDeviceVulkan13Properties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+    m_physicalDeviceVulkan12Properties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+    m_physicalDeviceVulkan12Properties.pNext = &m_physicalDeviceVulkan13Properties;
+    m_physicalDeviceVulkan11Properties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+    m_physicalDeviceVulkan11Properties.pNext = &m_physicalDeviceVulkan12Properties;
+    m_physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    m_physicalDeviceProperties.pNext = &m_physicalDeviceVulkan11Properties;
+    vkGetPhysicalDeviceProperties2(m_physicalDevice, &m_physicalDeviceProperties);
 
-    VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts
-        & deviceProperties.limits.framebufferDepthSampleCounts;
+    LOG(m_physicalDeviceProperties.properties.deviceName + std::string(" selected for Vulkan"));
 
-    if (counts & VK_SAMPLE_COUNT_64_BIT) { m_maxSamples = VK_SAMPLE_COUNT_64_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_32_BIT) { m_maxSamples = VK_SAMPLE_COUNT_32_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_16_BIT) { m_maxSamples = VK_SAMPLE_COUNT_16_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_8_BIT) { m_maxSamples = VK_SAMPLE_COUNT_8_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_4_BIT) { m_maxSamples = VK_SAMPLE_COUNT_4_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_2_BIT) { m_maxSamples = VK_SAMPLE_COUNT_2_BIT; }
-    else { m_maxSamples = VK_SAMPLE_COUNT_1_BIT; }
+    m_physicalDeviceVulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    m_physicalDeviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    m_physicalDeviceVulkan12Features.pNext = &m_physicalDeviceVulkan13Features;
+    m_physicalDeviceVulkan11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    m_physicalDeviceVulkan11Features.pNext = &m_physicalDeviceVulkan12Features;
+    m_physicalDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    m_physicalDeviceFeatures.pNext = &m_physicalDeviceVulkan11Features;
+    vkGetPhysicalDeviceFeatures2(m_physicalDevice, &m_physicalDeviceFeatures);
+
+    VkSampleCountFlags counts =
+        m_physicalDeviceProperties.properties.limits.framebufferColorSampleCounts
+        & m_physicalDeviceProperties.properties.limits.framebufferDepthSampleCounts;
+
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_64_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_32_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_32_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_16_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_16_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_8_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_8_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_4_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_4_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_2_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_2_BIT; }
+    else { m_maxMSAAsamples = VK_SAMPLE_COUNT_1_BIT; }
 
     return true;
 }
@@ -440,6 +460,7 @@ void VulkanEngine::createLogicalDevice()
     VkPhysicalDeviceFeatures2 deviceFeatures{};
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures.pNext = &device12features;
+    deviceFeatures.features.samplerAnisotropy = m_physicalDeviceFeatures.features.samplerAnisotropy;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

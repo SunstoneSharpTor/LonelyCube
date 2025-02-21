@@ -120,6 +120,10 @@ void Renderer::loadTextures()
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.anisotropyEnable =
+        m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy != 0.0f;
+    samplerInfo.maxAnisotropy =
+        m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
 }
