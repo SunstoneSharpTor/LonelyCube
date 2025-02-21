@@ -31,7 +31,7 @@ const vec3 BLOCK_LIGHT_COLOUR = vec3(1.0, 0.839, 0.631);
 
 void main() {
     vec4 texColour = texture(blockTextures, inTexCoord);
-    if(texColour.a <= 252.4f/255.0f) {
+    if(texColour.a <= 0.5f) {
         discard;
     }
 

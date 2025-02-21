@@ -27,7 +27,10 @@
 #include <vulkan/vulkan_core.h>
 
 #include "glm/glm.hpp"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -1005,7 +1008,7 @@ AllocatedImage VulkanEngine::createImage(
 
 AllocatedImage VulkanEngine::createImage(
     void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped,
-    VkSampleCountFlagBits numSamples
+    VkSampleCountFlagBits numMSAAsamples
 ) {
     size_t dataSize = size.depth * size.width * size.height * 4;
     AllocatedBuffer staging = createBuffer(
@@ -1017,7 +1020,7 @@ AllocatedImage VulkanEngine::createImage(
     memcpy(staging.info.pMappedData, data, dataSize);
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        mipmapped, numSamples
+        mipmapped, numMSAAsamples
     );
 
     immediateSubmit([&](VkCommandBuffer command) {

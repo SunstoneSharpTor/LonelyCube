@@ -46,7 +46,6 @@ add_subdirectory(tests)
 
 set(CLIENT_SOURCE_FILES
     lib/glad/glad.c
-    lib/stb_image/stb_image.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
