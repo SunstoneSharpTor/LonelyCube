@@ -106,7 +106,7 @@ public:
     );
     AllocatedImage createImage(
         void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-        bool mipmapped = false, VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT
+        bool mipmapped = false, VkSampleCountFlagBits numMSAAsamples = VK_SAMPLE_COUNT_1_BIT
     );
     void destroyImage(const AllocatedImage& image);
 
