@@ -23,7 +23,6 @@
 #include "core/pch.h"
 
 #include "client/graphics/camera.h"
-#include "client/graphics/glRenderer.h"
 #include "client/graphics/meshBuilder.h"
 #include "core/constants.h"
 #include "core/lighting.h"
@@ -121,9 +120,21 @@ void ClientWorld::renderWorld(
         m_timeByDTs -= (1.0/(double)constants::visualTPS);
     }
     m_renderer.blockRenderInfo.renderDistance = m_fogDistance;
-    if (m_meshUpdates.size() > 0) {
+
+    if (m_meshUpdates.size() > 0)
+    {
         // auto tp1 = std::chrono::high_resolution_clock::now();
-        while (m_meshUpdates.size() > 0) {
+        while (m_meshUpdates.size() > 0)
+        {
+            m_meshUpdatesMtx.lock();
+            for (const auto& chunk : m_meshUpdates)
+            {
+                if (!integratedServer.chunkManager.chunkLoaded(chunk))
+                {
+                    LOG("Updated chunk unloaded");
+                }
+            }
+            m_meshUpdatesMtx.unlock();
             doRenderThreadJobs();
         }
         // auto tp2 = std::chrono::high_resolution_clock::now();
@@ -192,14 +203,12 @@ void ClientWorld::doRenderThreadJobs() {
 }
 
 void ClientWorld::updateMeshes() {
-    m_meshUpdatesMtx.lock();
-    while (m_renderThreadWaitingForMeshUpdates) {
-        m_meshUpdatesMtx.unlock();
-        m_renderThreadWaitingForMeshUpdatesMtx.lock();
-        m_meshUpdatesMtx.lock();
-        m_renderThreadWaitingForMeshUpdatesMtx.unlock();
-    }
-    std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
+    m_renderThreadWaitingForMeshUpdatesMtx.lock();
+    m_renderThreadWaitingForMeshUpdates = true;
+    std::lock_guard<std::mutex> meshUpdatesLock(m_meshUpdatesMtx);
+    m_renderThreadWaitingForMeshUpdates = false;
+    m_renderThreadWaitingForMeshUpdatesMtx.unlock();
+    std::lock_guard<std::mutex> unmeshedChunksLock(m_unmeshedChunksMtx);
 
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
@@ -209,7 +218,7 @@ void ClientWorld::updateMeshes() {
             m_unmeshedChunks.insert(*it);
             m_meshUpdates.insert(*it);
             m_recentChunksBuilt.push(*it);
-            ++it;
+            it = m_meshesToUpdate.erase(it);
             continue;
         }
 
@@ -223,8 +232,6 @@ void ClientWorld::updateMeshes() {
         m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
     }
-
-    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords) {
@@ -481,7 +488,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
 
     m_renderThreadWaitingForMeshUpdatesMtx.lock();
     m_renderThreadWaitingForMeshUpdates = true;
-    m_meshUpdatesMtx.lock();
+    std::lock_guard<std::mutex> lock(m_meshUpdatesMtx);
     m_renderThreadWaitingForMeshUpdates = false;
     m_renderThreadWaitingForMeshUpdatesMtx.unlock();
     m_meshes[m_chunkPosition[threadNum]] = newMesh;
@@ -489,7 +496,6 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     if (it != m_meshUpdates.end()) {
         m_meshUpdates.erase(it);
     }
-    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
@@ -603,20 +609,11 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     // LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
     // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
-    m_meshUpdatesMtx.lock();
-    while (m_renderThreadWaitingForMeshUpdates) {
-        m_meshUpdatesMtx.unlock();
-        m_renderThreadWaitingForMeshUpdatesMtx.lock();
-        m_meshUpdatesMtx.lock();
-        m_renderThreadWaitingForMeshUpdatesMtx.unlock();
-    }
-
-    for (auto& chunk : chunksToRemesh) {
-        if (chunkHasNeighbours(chunk)) {
+    for (auto& chunk : chunksToRemesh)
+    {
+        if (chunkHasNeighbours(chunk))
             m_meshesToUpdate.insert(chunk);
-        }
     }
-    m_meshUpdatesMtx.unlock();
 }
 
 void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {

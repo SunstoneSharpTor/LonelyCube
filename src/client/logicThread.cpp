@@ -37,7 +37,6 @@ static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running,
             mainWorld.setThreadWaiting(threadNum, false);
         }
         mainWorld.loadChunksAroundPlayerSingleplayer(threadNum);
-        LOG(std::to_string(threadNum) + " running");
     }
 }
 
