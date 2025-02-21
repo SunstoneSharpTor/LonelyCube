@@ -1,13 +1,13 @@
 /*
   Lonely Cube, a voxel game
-  Copyright (C) g 2024-2025 Bertie Cartwright
+  Copyright (C) 2024-2025 Bertie Cartwright
 
-  This program is free software: you can redistribute it and/or modify
+  Lonely Cube is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
+  Lonely Cube is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -92,7 +92,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(1.6f);
+    Renderer renderer(1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
