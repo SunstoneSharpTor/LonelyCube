@@ -236,6 +236,7 @@ void renderThread() {
                     renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
                     currentTime, networking
                 );
+                mainWorld.updateMeshes();
                 mainWorld.updatePlayerPos(
                     mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
                 );
@@ -383,7 +384,6 @@ void renderThread() {
 
                 renderer.submitFrame();
             }
-            mainWorld.updateMeshes();
             mainWorld.doRenderThreadJobs();
 
             if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
