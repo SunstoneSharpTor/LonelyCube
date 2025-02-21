@@ -1,13 +1,13 @@
 /*
   Lonely Cube, a voxel game
-  Copyright (C) g 2024-2025 Bertie Cartwright
+  Copyright (C) 2024-2025 Bertie Cartwright
 
-  This program is free software: you can redistribute it and/or modify
+  Lonely Cube is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
+  Lonely Cube is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -52,7 +52,7 @@ ClientWorld::ClientWorld(
     m_fogDistance = 0.0f;
     m_timeByDTs = 0.0;
     m_renderingFrame = false;
-    m_renderThreadWaitingForArrIndicesVectors = false;
+    m_renderThreadWaitingForMeshUpdates = false;
 
     IVec3 playerChunkPosition = Chunk::getChunkCoords(playerPos);
     m_playerChunkPosition[0] = playerChunkPosition.x;
@@ -193,11 +193,11 @@ void ClientWorld::doRenderThreadJobs() {
 
 void ClientWorld::updateMeshes() {
     m_meshUpdatesMtx.lock();
-    while (m_renderThreadWaitingForArrIndicesVectors) {
+    while (m_renderThreadWaitingForMeshUpdates) {
         m_meshUpdatesMtx.unlock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+        m_renderThreadWaitingForMeshUpdatesMtx.lock();
         m_meshUpdatesMtx.lock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+        m_renderThreadWaitingForMeshUpdatesMtx.unlock();
     }
     std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
 
@@ -419,11 +419,11 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     //if the mesh is empty dont upload it to save interrupting the render thread
     if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
         m_meshUpdatesMtx.lock();
-        while (m_renderThreadWaitingForArrIndicesVectors) {
+        while (m_renderThreadWaitingForMeshUpdates) {
             m_meshUpdatesMtx.unlock();
-            m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+            m_renderThreadWaitingForMeshUpdatesMtx.lock();
             m_meshUpdatesMtx.lock();
-            m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+            m_renderThreadWaitingForMeshUpdatesMtx.unlock();
         }
         auto it = m_meshUpdates.find(chunkPosition);
         if (it != m_meshUpdates.end()) {
@@ -479,11 +479,11 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
         newMesh.waterMesh.indexCount = 0;
     }
 
-    m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
-    m_renderThreadWaitingForArrIndicesVectors = true;
+    m_renderThreadWaitingForMeshUpdatesMtx.lock();
+    m_renderThreadWaitingForMeshUpdates = true;
     m_meshUpdatesMtx.lock();
-    m_renderThreadWaitingForArrIndicesVectors = false;
-    m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+    m_renderThreadWaitingForMeshUpdates = false;
+    m_renderThreadWaitingForMeshUpdatesMtx.unlock();
     m_meshes[m_chunkPosition[threadNum]] = newMesh;
     auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
     if (it != m_meshUpdates.end()) {
@@ -604,11 +604,11 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
     m_meshUpdatesMtx.lock();
-    while (m_renderThreadWaitingForArrIndicesVectors) {
+    while (m_renderThreadWaitingForMeshUpdates) {
         m_meshUpdatesMtx.unlock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.lock();
+        m_renderThreadWaitingForMeshUpdatesMtx.lock();
         m_meshUpdatesMtx.lock();
-        m_renderThreadWaitingForArrIndicesVectorsMtx.unlock();
+        m_renderThreadWaitingForMeshUpdatesMtx.unlock();
     }
 
     for (auto& chunk : chunksToRemesh) {
