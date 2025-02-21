@@ -157,7 +157,15 @@ private:
     VkCommandPool m_immediateSubmitCommandPool;
 
     // Device details
-    VkSampleCountFlagBits m_maxSamples;
+    VkPhysicalDeviceProperties2 m_physicalDeviceProperties;
+    VkPhysicalDeviceVulkan11Properties m_physicalDeviceVulkan11Properties;
+    VkPhysicalDeviceVulkan12Properties m_physicalDeviceVulkan12Properties;
+    VkPhysicalDeviceVulkan13Properties m_physicalDeviceVulkan13Properties;
+    VkPhysicalDeviceFeatures2 m_physicalDeviceFeatures;
+    VkPhysicalDeviceVulkan11Features m_physicalDeviceVulkan11Features;
+    VkPhysicalDeviceVulkan12Features m_physicalDeviceVulkan12Features;
+    VkPhysicalDeviceVulkan13Features m_physicalDeviceVulkan13Features;
+    VkSampleCountFlagBits m_maxMSAAsamples;
 
     // Initialisation
     void initWindow();
@@ -196,6 +204,14 @@ public:
     inline VkDevice getDevice()
     {
         return m_device;
+    }
+    inline VkPhysicalDeviceProperties2 getPhysicalDeviceProperties()
+    {
+        return m_physicalDeviceProperties;
+    }
+    inline VkPhysicalDeviceFeatures2 getPhysicalDeviceFeatures()
+    {
+        return m_physicalDeviceFeatures;
     }
     inline VmaAllocator getAllocator()
     {
@@ -243,7 +259,7 @@ public:
     }
     inline VkSampleCountFlagBits getMaxSamples()
     {
-        return m_maxSamples;
+        return m_maxMSAAsamples;
     }
 };
 
