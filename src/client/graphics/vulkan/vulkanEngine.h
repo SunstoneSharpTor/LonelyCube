@@ -257,7 +257,7 @@ public:
     {
         return m_globalDescriptorAllocator;
     }
-    inline VkSampleCountFlagBits getMaxSamples()
+    inline VkSampleCountFlagBits getMaxMSAAsamples()
     {
         return m_maxMSAAsamples;
     }
