@@ -51,6 +51,12 @@ struct ExposurePushConstants
     float exposure;
 };
 
+struct BlockOutlinePushConstants
+{
+    glm::mat4 mvp;
+    VkDeviceAddress vertexBuffer;
+};
+
 class Renderer
 {
 public:
@@ -107,6 +113,9 @@ private:
     VkPipelineLayout m_exposurePipelineLayout;
     VkPipeline m_exposurePipeline;
 
+    VkPipelineLayout m_blockOutlinePipelineLayout;
+    VkPipeline m_blockOutlinePipeline;
+
     AllocatedImage m_worldTextures;
     VkSampler m_worldTexturesSampler;
 
@@ -121,6 +130,8 @@ private:
     void cleanupWorldPipelines();
     void createExposurePipeline();
     void cleanupExposurePipeline();
+    void createBlockOutlinePipeline();
+    void cleanupBlockOutlinePipeline();
     void createPipelines();
     void cleanupPipelines();
 

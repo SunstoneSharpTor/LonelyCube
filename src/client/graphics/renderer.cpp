@@ -18,6 +18,7 @@
 
 #include "client/graphics/renderer.h"
 
+#include "core/serverWorld.h"
 #include "glm/fwd.hpp"
 #include "stb_image.h"
 
@@ -413,8 +414,8 @@ void Renderer::createWorldPipelines()
         LOG("Failed to find shader \"res/shaders/water.frag.spv\"");
     }
 
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxSamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxSamples() : VK_SAMPLE_COUNT_1_BIT;
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
 
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
@@ -502,12 +503,66 @@ void Renderer::cleanupExposurePipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_exposurePipelineLayout, nullptr);
 }
 
+void Renderer::createBlockOutlinePipeline()
+{
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(BlockOutlinePushConstants);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockOutlinePipelineLayout
+    ));
+
+    VkShaderModule vertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.vert.spv", vertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/blockOutline.vert.spv\"");
+    }
+    VkShaderModule fragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.frag.spv", fragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/blockOutline.frag.spv\"");
+    }
+
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_blockOutlinePipelineLayout;
+    pipelineBuilder.setShaders(vertexShader, fragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
+    pipelineBuilder.setMultisampling(numSamples);
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+
+    m_blockOutlinePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), vertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fragmentShader, nullptr);
+}
+
+void Renderer::cleanupBlockOutlinePipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockOutlinePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockOutlinePipelineLayout, nullptr);
+}
+
 void Renderer::createPipelines()
 {
     createSkyPipeline();
     createSunPipeline();
     createWorldPipelines();
     createExposurePipeline();
+    createBlockOutlinePipeline();
 }
 
 void Renderer::cleanupPipelines()
@@ -516,6 +571,7 @@ void Renderer::cleanupPipelines()
     cleanupSunPipeline();
     cleanupWorldPipelines();
     cleanupExposurePipeline();
+    cleanupBlockOutlinePipeline();
 }
 
 void Renderer::beginRenderingFrame()
