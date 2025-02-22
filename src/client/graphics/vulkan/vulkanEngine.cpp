@@ -952,7 +952,7 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
 }
 
 AllocatedImage VulkanEngine::createImage(
-    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped,
+    VkExtent3D size, VkFormat format, VkImageUsageFlags usage, uint32_t mipLevels,
     VkSampleCountFlagBits numSamples
 ) {
     AllocatedImage newImage;
@@ -964,15 +964,7 @@ AllocatedImage VulkanEngine::createImage(
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imageCreateInfo.format = format;
     imageCreateInfo.extent = size;
-    if (mipmapped)
-    {
-        imageCreateInfo.mipLevels =
-            static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
-    }
-    else
-    {
-        imageCreateInfo.mipLevels = 1;
-    }
+    imageCreateInfo.mipLevels = mipLevels;
     imageCreateInfo.arrayLayers = 1;
     imageCreateInfo.samples = numSamples;
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -1007,46 +999,86 @@ AllocatedImage VulkanEngine::createImage(
 }
 
 AllocatedImage VulkanEngine::createImage(
-    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped,
+    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, uint32_t mipLevels,
     VkSampleCountFlagBits numMSAAsamples
 ) {
-    size_t dataSize = size.depth * size.width * size.height * 4;
-    AllocatedBuffer staging = createBuffer(
-        dataSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT 
-    );
-
-    memcpy(staging.info.pMappedData, data, dataSize);
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        mipmapped, numMSAAsamples
+        mipLevels, numMSAAsamples
     );
 
+    std::vector<AllocatedBuffer> stagingBuffers(mipLevels);
+
     immediateSubmit([&](VkCommandBuffer command) {
-        transitionImage(
-            command, newImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-        );
+        for (int mipLevel = 0; mipLevel < mipLevels; mipLevel++)
+        {
+            VkExtent3D halfSize;
+            if (mipLevel > 0)
+                halfSize = VkExtent3D(
+                    size.width > 3 ? size.width / 2 : 1, size.height > 3 ? size.height / 2 : 1,
+                    size.depth
+                );
+            else
+                halfSize = size;
+            LOG(std::to_string(size.width));
 
-        VkBufferImageCopy copyRegion{};
-        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyRegion.imageSubresource.mipLevel = 0;
-        copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount = 1;
-        copyRegion.imageExtent = size;
+            size_t halfDataSize = halfSize.depth * halfSize.width * halfSize.height * 4;
+            stagingBuffers[mipLevel] = createBuffer(
+                halfDataSize,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                    | VMA_ALLOCATION_CREATE_MAPPED_BIT
+            );
 
-        vkCmdCopyBufferToImage(
-            command, staging.buffer, newImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-            &copyRegion
-        );
+            if (mipLevel == 0)
+            {
+                memcpy(stagingBuffers[mipLevel].info.pMappedData, data, halfDataSize);
+                transitionImage(
+                    command, newImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                );
+            }
+            else
+            {
+                // stbir_resize_uint8_srgb(
+                //     static_cast<uint8_t*>(stagingBuffers[mipLevel - 1].info.pMappedData), size.width,
+                //     size.height, 0, static_cast<uint8_t*>(stagingBuffers[mipLevel].info.pMappedData),
+                //     halfSize.width, halfSize.height, 0, stbir_pixel_layout::STBIR_RGBA
+                // );
+                for (int y = 0; y < halfSize.height; y++)
+                {
+                    for (int x = 0; x < halfSize.width; x++)
+                    {
+                        for (int i = 0; i < 4; i++)
+                            ((uint8_t*)stagingBuffers[mipLevel].info.pMappedData)[y * halfSize.width * 4 + x * 4 + i] = ((uint8_t*)stagingBuffers[mipLevel - 1].info.pMappedData)[y * size.width * 8 + x * 8 + i];
+                    }
+                }
+            }
 
-        transitionImage(
-            command, newImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        );
+            VkBufferImageCopy copyRegion{};
+            copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            copyRegion.imageSubresource.mipLevel = mipLevel;
+            copyRegion.imageSubresource.baseArrayLayer = 0;
+            copyRegion.imageSubresource.layerCount = 1;
+            copyRegion.imageExtent = halfSize;
+
+            vkCmdCopyBufferToImage(
+                command, stagingBuffers[mipLevel].buffer, newImage.image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion
+            );
+
+            if (mipLevel == mipLevels - 1)
+                transitionImage(
+                    command, newImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                );
+            else if (mipLevel > 0)
+                size = halfSize;
+        }
     });
 
-    destroyBuffer(staging);
+    for (const auto& buffer : stagingBuffers)
+        destroyBuffer(buffer);
 
     return newImage;
 }

@@ -278,6 +278,14 @@ void ResourcePack::getTextureCoordinates(float* coords, const float* textureBox,
     coords[5] = coords[1] - 0.015625f + (textureBox[1] + 1.0f - textureBox[3]) * 0.015625;
     coords[6] = coords[0];
     coords[7] = coords[5];
+    // coords[0] = 1;
+    // coords[1] = 1;
+    // coords[2] = 0;
+    // coords[3] = 1;
+    // coords[4] = 0;
+    // coords[5] = 0;
+    // coords[6] = 1;
+    // coords[7] = 0;
 }
 
 }  // namespace lonelycube
