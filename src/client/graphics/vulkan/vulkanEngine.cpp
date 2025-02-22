@@ -28,6 +28,7 @@
 
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION
+#define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_BOX
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
@@ -1040,19 +1041,19 @@ AllocatedImage VulkanEngine::createImage(
             }
             else
             {
-                // stbir_resize_uint8_srgb(
-                //     static_cast<uint8_t*>(stagingBuffers[mipLevel - 1].info.pMappedData), size.width,
-                //     size.height, 0, static_cast<uint8_t*>(stagingBuffers[mipLevel].info.pMappedData),
-                //     halfSize.width, halfSize.height, 0, stbir_pixel_layout::STBIR_RGBA
-                // );
-                for (int y = 0; y < halfSize.height; y++)
-                {
-                    for (int x = 0; x < halfSize.width; x++)
-                    {
-                        for (int i = 0; i < 4; i++)
-                            ((uint8_t*)stagingBuffers[mipLevel].info.pMappedData)[y * halfSize.width * 4 + x * 4 + i] = ((uint8_t*)stagingBuffers[mipLevel - 1].info.pMappedData)[y * size.width * 8 + x * 8 + i];
-                    }
-                }
+                stbir_resize_uint8_srgb(
+                    static_cast<uint8_t*>(stagingBuffers[mipLevel - 1].info.pMappedData), size.width,
+                    size.height, 0, static_cast<uint8_t*>(stagingBuffers[mipLevel].info.pMappedData),
+                    halfSize.width, halfSize.height, 0, stbir_pixel_layout::STBIR_RGBA
+                );
+                // for (int y = 0; y < halfSize.height; y++)
+                // {
+                //     for (int x = 0; x < halfSize.width; x++)
+                //     {
+                //         for (int i = 0; i < 4; i++)
+                //             ((uint8_t*)stagingBuffers[mipLevel].info.pMappedData)[y * halfSize.width * 4 + x * 4 + i] = ((uint8_t*)stagingBuffers[mipLevel - 1].info.pMappedData)[y * size.width * 8 + x * 8 + i];
+                //     }
+                // }
             }
 
             VkBufferImageCopy copyRegion{};
