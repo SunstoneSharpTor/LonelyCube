@@ -1021,7 +1021,6 @@ AllocatedImage VulkanEngine::createImage(
                 );
             else
                 halfSize = size;
-            LOG(std::to_string(size.width));
 
             size_t halfDataSize = halfSize.depth * halfSize.width * halfSize.height * 4;
             stagingBuffers[mipLevel] = createBuffer(
@@ -1046,14 +1045,6 @@ AllocatedImage VulkanEngine::createImage(
                     size.height, 0, static_cast<uint8_t*>(stagingBuffers[mipLevel].info.pMappedData),
                     halfSize.width, halfSize.height, 0, stbir_pixel_layout::STBIR_RGBA
                 );
-                // for (int y = 0; y < halfSize.height; y++)
-                // {
-                //     for (int x = 0; x < halfSize.width; x++)
-                //     {
-                //         for (int i = 0; i < 4; i++)
-                //             ((uint8_t*)stagingBuffers[mipLevel].info.pMappedData)[y * halfSize.width * 4 + x * 4 + i] = ((uint8_t*)stagingBuffers[mipLevel - 1].info.pMappedData)[y * size.width * 8 + x * 8 + i];
-                //     }
-                // }
             }
 
             VkBufferImageCopy copyRegion{};

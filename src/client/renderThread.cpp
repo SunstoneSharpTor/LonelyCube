@@ -181,26 +181,11 @@ void renderThread() {
             if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
                 windowDimensions[0] = windowSize[0];
                 windowDimensions[1] = windowSize[1];
-                // worldFrameBuffer.resize(reinterpret_cast<uint32_t*>(windowDimensions));
-                // glViewport(0, 0, windowDimensions[0], windowDimensions[1]);
-                // font.resize(reinterpret_cast<uint32_t*>(windowDimensions));
-                // #ifndef GLES3
-                // glBindTexture(GL_TEXTURE_2D, skyTexture);
-                // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
-                // bloom.resize(reinterpret_cast<uint32_t*>(windowDimensions));
-                // luminance.resize(reinterpret_cast<uint32_t*>(windowDimensions));
-                // #else
-                // skyFrameBuffer.resize(windowDimensions);
-                // #endif
-                // crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
-                // crosshairShader.bind();
-                // crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
             }
             lastLastWindowFullScreen = lastWindowFullScreen;
             lastWindowFullScreen = windowFullScreen;
 
-            //render if a frame is needed
-            // GLPrintErrors();
+            // Render if a frame is needed
             end = std::chrono::steady_clock::now();
             double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>
                 (end - start).count() / 1000000;
@@ -297,24 +282,10 @@ void renderThread() {
 
                 renderer.beginRenderingFrame();
                 renderer.drawSky();
+                renderer.drawSun();
                 renderer.beginDrawingGeometry();
 
-                // // Draw the sun
-                // glBindImageTexture(0, worldFrameBuffer.getTextureColourBuffer(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-                // sunShader.bind();
-                // sunShader.setUniformVec3("sunDir", sunDirection);
-                // sunShader.setUniformMat4f("inverseProjection", inverseProjection);
-                // sunShader.setUniformMat4f("inverseView", inverseView);
-                // sunShader.setUniform1f("brightness", groundLuminance * 1000);
-                // glDispatchCompute((uint32_t)((windowDimensions[0] + 7) / 8),
-                //     (uint32_t)((windowDimensions[1] + 7) / 8), 1);
-                // // Make sure writing to image has finished before read
-                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-                // #endif
-
-                // // Render the world geometry
-                // glEnable(GL_DEPTH_TEST);
-                // //auto tp1 = std::chrono::high_resolution_clock::now();
+                // Render the world geometry
                 float cameraSubBlockPos[3];
                 mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
                 mainWorld.renderWorld(

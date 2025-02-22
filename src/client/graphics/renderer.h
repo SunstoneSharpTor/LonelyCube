@@ -62,6 +62,7 @@ public:
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
+    void drawSun();
     void beginDrawingGeometry();
     void beginDrawingBlocks();
     void beginDrawingWater();
@@ -90,6 +91,11 @@ private:
     VkPipelineLayout m_skyPipelineLayout;
     VkPipeline m_skyPipeline;
 
+    VkDescriptorSetLayout m_drawImageDescriptorLayout;
+    VkDescriptorSet m_drawImageDescriptors;
+    VkPipelineLayout m_sunPipelineLayout;
+    VkPipeline m_sunPipeline;
+
     VkDescriptorSetLayout m_worldTexturesDescriptorLayout;
     VkDescriptorSet m_worldTexturesDescriptors;
     VkPipelineLayout m_worldPipelineLayout;
@@ -109,6 +115,8 @@ private:
 
     void createSkyPipeline();
     void cleanupSkyPipeline();
+    void createSunPipeline();
+    void cleanupSunPipeline();
     void createWorldPipelines();
     void cleanupWorldPipelines();
     void createExposurePipeline();
@@ -116,6 +124,7 @@ private:
     void createPipelines();
     void cleanupPipelines();
 
+    void createDrawImageDescriptors();
     void createSkyDescriptors();
     void createWorldDescriptors();
     void createExposureDescriptors();
