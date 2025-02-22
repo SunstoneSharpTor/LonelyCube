@@ -112,7 +112,7 @@ void Renderer::loadTextures()
     uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &chanels, 4);
     VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
     m_worldTextures = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true
+        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
     );
     stbi_image_free(buffer);
 
@@ -124,6 +124,11 @@ void Renderer::loadTextures()
         m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy != 0.0f;
     samplerInfo.maxAnisotropy =
         m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy;
+
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+    samplerInfo.mipLodBias = 0.0f;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
 }
