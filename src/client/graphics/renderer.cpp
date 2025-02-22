@@ -163,6 +163,27 @@ void Renderer::cleanupFullscreenSamplers()
     vkDestroySampler(m_vulkanEngine.getDevice(), m_linearFullscreenSampler, nullptr);
 }
 
+void Renderer::createDrawImageDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_drawImageDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
+
+    m_drawImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+        m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout
+    );
+
+    writer.writeImage(
+        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_drawImageDescriptors);
+}
+
 void Renderer::createSkyDescriptors()
 {
     DescriptorLayoutBuilder builder;
@@ -238,6 +259,7 @@ void Renderer::createExposureDescriptors()
 
 void Renderer::createDescriptors()
 {
+    createDrawImageDescriptors();
     createSkyDescriptors();
     createWorldDescriptors();
     createExposureDescriptors();
@@ -245,6 +267,7 @@ void Renderer::createDescriptors()
 
 void Renderer::cleanupDescriptors()
 {
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
@@ -301,6 +324,57 @@ void Renderer::cleanupSkyPipeline()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyPipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_skyPipelineLayout, nullptr);
+}
+
+void Renderer::createSunPipeline()
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_drawImageDescriptorLayout;
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(SkyPushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_sunPipelineLayout
+    ));
+
+    VkShaderModule computeDrawShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/sun.comp.spv", computeDrawShader))
+    {
+        LOG("Failed to find shader \"res/shaders/sun.comp.spv\"");
+    }
+
+    VkPipelineShaderStageCreateInfo stageInfo{};
+    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfo.module = computeDrawShader;
+    stageInfo.pName = "main";
+
+    VkComputePipelineCreateInfo sunPipelineCreateInfo{};
+    sunPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    sunPipelineCreateInfo.layout = m_sunPipelineLayout;
+    sunPipelineCreateInfo.stage = stageInfo;
+
+    VK_CHECK(vkCreateComputePipelines(
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &sunPipelineCreateInfo, nullptr,
+        &m_sunPipeline
+    ));
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
+}
+
+void Renderer::cleanupSunPipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_sunPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_sunPipelineLayout, nullptr);
 }
 
 void Renderer::createWorldPipelines()
@@ -431,6 +505,7 @@ void Renderer::cleanupExposurePipeline()
 void Renderer::createPipelines()
 {
     createSkyPipeline();
+    createSunPipeline();
     createWorldPipelines();
     createExposurePipeline();
 }
@@ -438,6 +513,7 @@ void Renderer::createPipelines()
 void Renderer::cleanupPipelines()
 {
     cleanupSkyPipeline();
+    cleanupSunPipeline();
     cleanupWorldPipelines();
     cleanupExposurePipeline();
 }
@@ -494,8 +570,31 @@ void Renderer::drawSky()
     transitionImage(
         command, m_skyImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
+}
+
+void Renderer::drawSun()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_sunPipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_sunPipelineLayout,
+        0, 1, &m_drawImageDescriptors,
+        0, nullptr
+    );
+
+    vkCmdPushConstants(
+        command, m_sunPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
+        &skyRenderInfo
+    );
+
+    vkCmdDispatch(
+        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
+    );
+
     transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     );
 }
