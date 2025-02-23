@@ -71,8 +71,9 @@ public:
     void drawSun();
     void beginDrawingGeometry();
     void beginDrawingBlocks();
-    void beginDrawingWater();
     void drawBlocks(const GPUMeshBuffers& mesh);
+    void beginDrawingWater();
+    void drawBlockOutline(const GPUMeshBuffers& mesh, const glm::mat4& mvp);
     void finishDrawingGeometry();
     void applyExposure();
     void submitFrame();
