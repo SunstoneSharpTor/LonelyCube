@@ -46,13 +46,13 @@ private:
     static const int16_t s_neighbouringBlocksY[7];
     static const int16_t s_neighbouringBlocksZ[7];
 
-    float getAmbientOcclusion(int* blockCoords, float* pointCoords, int8_t direction);
+    float getAmbientOcclusion(int* blockCoords, float* pointCoords, int direction);
 
-    float getSmoothSkyLight(int* blockCoords, float* pointCoords, int8_t direction);
+    float getSmoothSkyLight(int* blockCoords, float* pointCoords, int direction);
 
-    float getSmoothBlockLight(int* blockCoords, float* pointCoords, int8_t direction);
+    float getSmoothBlockLight(int* blockCoords, float* pointCoords, int direction);
 
-    void addFaceToMesh(uint32_t block, uint8_t blockType, uint8_t faceNum);
+    void addFaceToMesh(uint32_t block, int blockType, int faceNum);
 
     inline void findBlockCoordsInChunk(int* blockPos, uint32_t block) {
         blockPos[0] = block % constants::CHUNK_SIZE;

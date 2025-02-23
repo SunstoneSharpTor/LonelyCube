@@ -239,7 +239,7 @@ void renderThread() {
                 );
                 glm::mat4 view;
                 mainPlayer.viewCamera.getViewMatrix(&view);
-                viewProjection = projectionReversedDepth * view;
+                glm::mat4 viewProjection = projectionReversedDepth * view;
 
                 uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
@@ -294,12 +294,12 @@ void renderThread() {
                     for (uint8_t i = 0; i < 3; i++) {
                         outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
                     }
-                    model = glm::translate(glm::mat4(1.0f), outlinePosition);
+                    glm::mat4 model = glm::translate(glm::mat4(1.0f), outlinePosition);
                     glm::mat4 mvp = viewProjection * model;
-                    VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
-                        lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
-                    blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
-                    mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
+                    // VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
+                    //     lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
+                    // blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
+                    // mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
                 }
 
                 renderer.finishDrawingGeometry();

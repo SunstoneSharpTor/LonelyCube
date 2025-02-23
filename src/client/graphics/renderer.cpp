@@ -743,7 +743,7 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
 }
 
-void Renderer::drawBlockOutline(const GPUMeshBuffers& mesh)
+void Renderer::drawBlockOutline(const GPUMeshBuffers& mesh, const glm::mat4& mvp)
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
