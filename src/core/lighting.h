@@ -70,11 +70,10 @@ private:
     {
         int8_t currentSkyLight = chunk.getSkyLight(blockNum);
         int8_t neighbouringSkyLight = neighbouringChunk->getSkyLight(neighbouringBlockNum) - 1;
-        bool newHighestSkyLight = (currentSkyLight < neighbouringSkyLight) *
-            resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
-        if (newHighestSkyLight) {
+        if (currentSkyLight < neighbouringSkyLight) {
             chunk.setSkyLight(blockNum, neighbouringSkyLight);
-            lightQueue.push(blockNum);
+            if (resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent)
+                lightQueue.push(blockNum);
         }
     }
 
@@ -84,11 +83,10 @@ private:
     {
         int8_t currentBlockLight = chunk.getBlockLight(blockNum);
         int8_t neighbouringBlockLight = neighbouringChunk->getBlockLight(neighbouringBlockNum) - 1;
-        bool newHighestBlockLight = (currentBlockLight < neighbouringBlockLight) *
-            resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent;
-        if (newHighestBlockLight) {
+        if (currentBlockLight < neighbouringBlockLight) {
             chunk.setBlockLight(blockNum, neighbouringBlockLight);
-            lightQueue.push(blockNum);
+            if (resourcePack.getBlockData(chunk.getBlock(blockNum)).transparent)
+                lightQueue.push(blockNum);
         }
     }
 
@@ -121,11 +119,10 @@ private:
     {
         uint32_t neighbouringBlockNum = blockNum + chunk.neighbouringBlocks[direction];
         uint8_t neighbouringSkyLight = chunk.getSkyLight(neighbouringBlockNum);
-        bool newHighestSkyLight = (neighbouringSkyLight < skyLight) *
-            resourcePack.getBlockData(chunk.getBlock(neighbouringBlockNum)).transparent;
-        if (newHighestSkyLight) {
+        if (neighbouringSkyLight < skyLight) {
             chunk.setSkyLight(neighbouringBlockNum, skyLight);
-            lightQueue.push(neighbouringBlockNum);
+            if (resourcePack.getBlockData(chunk.getBlock(neighbouringBlockNum)).transparent)
+                lightQueue.push(neighbouringBlockNum);
         }
     }
 
@@ -135,11 +132,10 @@ private:
     {
         uint32_t neighbouringBlockNum = blockNum + chunk.neighbouringBlocks[direction];
         uint8_t neighbouringBlockLight = chunk.getBlockLight(neighbouringBlockNum);
-        bool newHighestBlockLight = (neighbouringBlockLight < blockLight) *
-            resourcePack.getBlockData(chunk.getBlock(neighbouringBlockNum)).transparent;
-        if (newHighestBlockLight) {
+        if (neighbouringBlockLight < blockLight) {
             chunk.setBlockLight(neighbouringBlockNum, blockLight);
-            lightQueue.push(neighbouringBlockNum);
+            if (resourcePack.getBlockData(chunk.getBlock(neighbouringBlockNum)).transparent)
+                lightQueue.push(neighbouringBlockNum);
         }
     }
 
@@ -147,10 +143,7 @@ private:
         neighbouringBlockNum, const uint8_t skyLight, const ResourcePack& resourcePack, bool&
         shouldRelightChunk)
     {
-        bool transparent = resourcePack.getBlockData(neighbouringChunk->getBlock(
-            neighbouringBlockNum)).transparent;
-        bool newHighestSkyLight = neighbouringChunk->getSkyLight(neighbouringBlockNum) < skyLight;
-        if (transparent && newHighestSkyLight) {
+        if (neighbouringChunk->getSkyLight(neighbouringBlockNum) < skyLight) {
             shouldRelightChunk = true;
         }
     }
@@ -159,10 +152,8 @@ private:
         neighbouringBlockNum, const uint8_t blockLight, const ResourcePack& resourcePack, bool&
         shouldRelightChunk)
     {
-        bool transparent = resourcePack.getBlockData(neighbouringChunk->getBlock(
-            neighbouringBlockNum)).transparent;
         bool newHighestBlockLight = neighbouringChunk->getBlockLight(neighbouringBlockNum) < blockLight;
-        if (transparent && newHighestBlockLight) {
+        if (newHighestBlockLight) {
             shouldRelightChunk = true;
         }
     }
