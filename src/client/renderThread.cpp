@@ -239,30 +239,7 @@ void renderThread() {
                 );
                 glm::mat4 view;
                 mainPlayer.viewCamera.getViewMatrix(&view);
-                // // Set up block outline
-                // glm::mat4 model = (glm::mat4(1.0f));
-                // glm::mat4 mvp = projection * view * model;
-                // //update the MVP uniform
-                // blockShader.bind();
-                // blockShader.setUniformMat4f("u_modelView", view * model);
-                // blockShader.setUniformMat4f("u_proj", projection);
-                //
-                // int breakBlockCoords[3];
-                // int placeBlockCoords[3];
-                // uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
-                //     mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
-                //     breakBlockCoords, placeBlockCoords);
-                // if (lookingAtBlock) {
-                //     //create the model view projection matrix for the outline
-                //     glm::vec3 outlinePosition;
-                //     for (uint8_t i = 0; i < 3; i++) {
-                //         outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
-                //     }
-                //     model = glm::translate(model, outlinePosition);
-                //     glm::mat4 mvp = projection * view * model;
-                //     blockOutlineShader.bind();
-                //     blockOutlineShader.setUniformMat4f("u_MVP", mvp);
-                // }
+                viewProjection = projectionReversedDepth * view;
 
                 uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
                 // Calculate ground luminance
@@ -289,11 +266,12 @@ void renderThread() {
                 float cameraSubBlockPos[3];
                 mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
                 mainWorld.renderWorld(
-                    projectionReversedDepth * view, mainPlayer.cameraBlockPosition,
+                    viewProjection, mainPlayer.cameraBlockPosition,
                     glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
                     (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
                     actualDT
                 );
+
                 // //auto tp2 = std::chrono::high_resolution_clock::now();
                 // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
@@ -304,15 +282,25 @@ void renderThread() {
                 // //auto tp2 = std::chrono::high_resolution_clock::now();
                 // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
-                // // Draw the block outline
-                // if (lookingAtBlock) {
-                //     VertexArray blockOutlineVA;
-                //     VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
-                //         lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
-                //     blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
-                //     mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
-                // }
-                // worldFrameBuffer.unbind();
+                // Draw the block outline
+                int breakBlockCoords[3];
+                int placeBlockCoords[3];
+                uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
+                    mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
+                    breakBlockCoords, placeBlockCoords);
+                if (lookingAtBlock) {
+                    //create the model view projection matrix for the outline
+                    glm::vec3 outlinePosition;
+                    for (uint8_t i = 0; i < 3; i++) {
+                        outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
+                    }
+                    model = glm::translate(glm::mat4(1.0f), outlinePosition);
+                    glm::mat4 mvp = viewProjection * model;
+                    VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
+                        lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
+                    blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
+                    mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
+                }
 
                 renderer.finishDrawingGeometry();
 

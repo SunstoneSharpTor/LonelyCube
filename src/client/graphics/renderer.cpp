@@ -415,7 +415,8 @@ void Renderer::createWorldPipelines()
     }
 
     VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
+        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_4_BIT;
+    numSamples = VK_SAMPLE_COUNT_1_BIT;
 
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
@@ -538,6 +539,7 @@ void Renderer::createBlockOutlinePipeline()
     pipelineBuilder.pipelineLayout = m_blockOutlinePipelineLayout;
     pipelineBuilder.setShaders(vertexShader, fragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setMultisampling(numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -736,6 +738,23 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     vkCmdPushConstants(
         command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
         &blockRenderInfo
+    );
+    vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
+}
+
+void Renderer::drawBlockOutline(const GPUMeshBuffers& mesh)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockOutlinePipeline);
+
+    BlockOutlinePushConstants pushConstants{ mvp, mesh.vertexBufferAddress };
+
+    vkCmdPushConstants(
+        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+        sizeof(BlockOutlinePushConstants), &blockRenderInfo
     );
     vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
