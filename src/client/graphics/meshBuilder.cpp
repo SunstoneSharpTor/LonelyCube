@@ -22,6 +22,7 @@
 
 #include "core/chunk.h"
 #include "core/constants.h"
+#include <cmath>
 
 namespace lonelycube::client {
 
@@ -155,7 +156,8 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int d
         int normalDirection = (direction > 2) * 2 - 1;
         testBlockCoords[fixed] = blockCoords[fixed] + normalDirection;
         float brightness = 0;
-        int transparrentBlocks = 0;
+        bool inShadow = false;
+        int numTransparrentBlocks = 0;
         int numEdgesBlocked = 0;
         for (int i = 0; i < 4 && numEdgesBlocked < 2; i++)
         {
@@ -163,16 +165,20 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int d
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
             bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
                 m_serverWorld.chunkManager.getBlock(testBlockCoords)).transparent;
-            int cornerBrightness = m_serverWorld.chunkManager.getSkyLight(testBlockCoords);
+            int cornerBrightness = m_serverWorld.chunkManager.getSkyLight(testBlockCoords)
+                * transparrentBlock;
             testBlockCoords[fixed] += normalDirection;
-            int inShadow = cornerBrightness < constants::skyLightMaxValue
+            inShadow |= transparrentBlock && cornerBrightness < constants::skyLightMaxValue
                 && m_serverWorld.chunkManager.getSkyLight(testBlockCoords) <= cornerBrightness;
             testBlockCoords[fixed] -= normalDirection;
-            brightness += std::max(static_cast<float>(cornerBrightness) - inShadow * 2.0f, 0.0f);
-            transparrentBlocks += transparrentBlock;
+            brightness += cornerBrightness;
+            numTransparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
-        return brightness / transparrentBlocks / constants::skyLightMaxValue;
+        brightness = brightness/ numTransparrentBlocks;
+        brightness = std::max(brightness - inShadow * 0.4f * std::sqrt(brightness), 0.0f);
+
+        return brightness / constants::skyLightMaxValue;
     }
 }
 
@@ -201,9 +207,11 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
         int unfixed2 = 2 - (fixed == 2);
 
         int testBlockCoords[3];
-        testBlockCoords[fixed] = blockCoords[fixed] + (direction > 2) * 2 - 1;
+        int normalDirection = (direction > 2) * 2 - 1;
+        testBlockCoords[fixed] = blockCoords[fixed] + normalDirection;
         float brightness = 0;
-        int transparrentBlocks = 0;
+        bool inShadow = false;
+        int numTransparrentBlocks = 0;
         int numEdgesBlocked = 0;
         for (int i = 0; i < 4 && numEdgesBlocked < 2; i++)
         {
@@ -211,12 +219,20 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
             testBlockCoords[unfixed2] = blockCoords[unfixed2] + mask2[i] * cornerOffset[unfixed2];
             bool transparrentBlock = m_serverWorld.getResourcePack().getBlockData(
                 m_serverWorld.chunkManager.getBlock(testBlockCoords)).transparent;
-            brightness += m_serverWorld.chunkManager.getBlockLight(testBlockCoords) * transparrentBlock;
-            transparrentBlocks += transparrentBlock;
+            int cornerBrightness = m_serverWorld.chunkManager.getBlockLight(testBlockCoords)
+                * transparrentBlock;
+            testBlockCoords[fixed] += normalDirection;
+            inShadow |= transparrentBlock && cornerBrightness < constants::blockLightMaxValue
+                && m_serverWorld.chunkManager.getBlockLight(testBlockCoords) <= cornerBrightness;
+            testBlockCoords[fixed] -= normalDirection;
+            brightness += cornerBrightness;
+            numTransparrentBlocks += transparrentBlock;
             numEdgesBlocked += !transparrentBlock * edges[i];
         }
+        brightness = brightness/ numTransparrentBlocks;
+        brightness = std::max(brightness - inShadow * 0.4f * std::sqrt(brightness), 0.0f);
 
-        return brightness / transparrentBlocks / constants::blockLightMaxValue;
+        return brightness / constants::blockLightMaxValue;
     }
 }
 
