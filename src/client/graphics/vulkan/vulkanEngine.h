@@ -25,8 +25,6 @@
 
 #include "core/pch.h"
 
-#include "client/graphics/vulkan/descriptors.h"
-
 namespace lonelycube::client {
 
 struct QueueFamilyIndices
@@ -142,9 +140,6 @@ private:
     std::vector<VkImageView> m_swapchainImageViews;
     uint32_t m_currentSwapchainIndex;
 
-    // Descriptors
-    DescriptorAllocatorGrowable m_globalDescriptorAllocator;
-
     // Rendering
     uint64_t m_currentFrame = 0;
     uint32_t m_frameDataIndex = 0;
@@ -192,7 +187,6 @@ private:
     void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
     void createSyncObjects(int frameNum);
     void createAllocator();
-    void initDescriptors();
     void initImmediateSubmit();
 
     // Cleanup
@@ -252,10 +246,6 @@ public:
     inline VkFormat getSwapchainImageFormat()
     {
         return m_swapchainImageFormat;
-    }
-    inline DescriptorAllocatorGrowable& getGlobalDescriptorAllocator()
-    {
-        return m_globalDescriptorAllocator;
     }
     inline VkSampleCountFlagBits getMaxMSAAsamples()
     {

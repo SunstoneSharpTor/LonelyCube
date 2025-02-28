@@ -22,7 +22,7 @@
 #include "stb_image.h"
 
 #include "client/graphics/vulkan/vulkanEngine.h"
-#include <vulkan/vulkan_core.h>
+#include "client/graphics/vulkan/descriptors.h"
 
 namespace lonelycube::client {
 
@@ -85,6 +85,7 @@ public:
 
 private:
     VulkanEngine m_vulkanEngine;
+    DescriptorAllocatorGrowable m_globalDescriptorAllocator;
 
     AllocatedImage m_drawImage;
     AllocatedImage m_depthImage;

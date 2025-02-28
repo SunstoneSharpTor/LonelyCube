@@ -97,7 +97,6 @@ void VulkanEngine::initVulkan()
     createSwapchainImageViews();
     createFrameData();
     initImmediateSubmit();
-    initDescriptors();
 }
 
 void VulkanEngine::cleanupSwapchain()
@@ -111,8 +110,6 @@ void VulkanEngine::cleanupSwapchain()
 void VulkanEngine::cleanup()
 {
     vkDeviceWaitIdle(m_device);
-
-    m_globalDescriptorAllocator.destroyPools(m_device);
 
     cleanupSwapchain();
 
@@ -232,6 +229,7 @@ bool VulkanEngine::pickPhysicalDevice()
 
     m_physicalDeviceVulkan13Properties.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+    m_physicalDeviceVulkan13Properties.pNext = nullptr;
     m_physicalDeviceVulkan12Properties.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
     m_physicalDeviceVulkan12Properties.pNext = &m_physicalDeviceVulkan13Properties;
@@ -245,6 +243,7 @@ bool VulkanEngine::pickPhysicalDevice()
     LOG(m_physicalDeviceProperties.properties.deviceName + std::string(" selected for Vulkan"));
 
     m_physicalDeviceVulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    m_physicalDeviceVulkan13Features.pNext = nullptr;
     m_physicalDeviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     m_physicalDeviceVulkan12Features.pNext = &m_physicalDeviceVulkan13Features;
     m_physicalDeviceVulkan11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
@@ -862,17 +861,6 @@ void VulkanEngine::createAllocator()
     allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
     VK_CHECK(vmaCreateAllocator(&allocatorInfo, &m_allocator));
-}
-
-void VulkanEngine::initDescriptors()
-{
-    std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
-    {
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-    };
-
-    m_globalDescriptorAllocator.init(m_device, 10, sizes);
 }
 
 AllocatedBuffer VulkanEngine::createBuffer(
