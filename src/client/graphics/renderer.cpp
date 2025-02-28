@@ -18,7 +18,6 @@
 
 #include "client/graphics/renderer.h"
 
-#include "core/serverWorld.h"
 #include "glm/fwd.hpp"
 #include "stb_image.h"
 
@@ -36,6 +35,14 @@ namespace lonelycube::client {
 Renderer::Renderer(float renderScale) : m_renderScale(renderScale)
 {
     m_vulkanEngine.init();
+
+    std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
+    {
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+    };
+    m_globalDescriptorAllocator.init(m_vulkanEngine.getDevice(), 10, sizes);
 
     createDrawImage();
     createDepthImage();
@@ -57,6 +64,8 @@ Renderer::~Renderer()
     m_vulkanEngine.destroyImage(m_depthImage);
     cleanupTextures();
     cleanupFullscreenSamplers();
+    m_globalDescriptorAllocator.destroyPools(m_vulkanEngine.getDevice());
+
     m_vulkanEngine.cleanup();
 }
 
@@ -174,7 +183,7 @@ void Renderer::createDrawImageDescriptors()
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
     );
 
-    m_drawImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+    m_drawImageDescriptors = m_globalDescriptorAllocator.allocate(
         m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout
     );
 
@@ -196,7 +205,7 @@ void Renderer::createSkyDescriptors()
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
     );
 
-    m_skyImageDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+    m_skyImageDescriptors = m_globalDescriptorAllocator.allocate(
         m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
     );
 
@@ -222,7 +231,7 @@ void Renderer::createWorldDescriptors()
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
 
-    m_worldTexturesDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+    m_worldTexturesDescriptors = m_globalDescriptorAllocator.allocate(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
     );
 
@@ -247,7 +256,7 @@ void Renderer::createExposureDescriptors()
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
 
-    m_exposureDescriptors = m_vulkanEngine.getGlobalDescriptorAllocator().allocate(
+    m_exposureDescriptors = m_globalDescriptorAllocator.allocate(
         m_vulkanEngine.getDevice(), m_exposureDescriptorLayout
     );
 
