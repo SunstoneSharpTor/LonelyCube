@@ -60,6 +60,7 @@ void VulkanEngine::init()
 
 void VulkanEngine::initWindow()
 {
+    glfwInitVulkanLoader(vkGetInstanceProcAddr);
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
