@@ -18,8 +18,6 @@
 
 #include "client/renderThread.h"
 
-#include <complex>
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
 #include "glm/fwd.hpp"
@@ -32,12 +30,9 @@
 
 #include "client/logicThread.h"
 #include "client/clientNetworking.h"
-#include "client/graphics/bloom.h"
-#include "client/graphics/luminance.h"
 #include "client/graphics/renderer.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/camera.h"
-#include "client/gui/font.h"
 #include "client/clientWorld.h"
 #include "client/clientPlayer.h"
 #include "core/config.h"

@@ -22,16 +22,9 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
 #include "enet/enet.h"
 
-#include "client/graphics/glRenderer.h"
-#include "client/graphics/vertexBuffer.h"
-#include "client/graphics/indexBuffer.h"
-#include "client/graphics/vertexArray.h"
 #include "client/graphics/renderer.h"
-#include "client/graphics/shader.h"
-#include "client/graphics/texture.h"
 #include "client/graphics/camera.h"
 #include "core/chunk.h"
 #include "core/entities/entityMeshManager.h"
@@ -76,9 +69,6 @@ private:
     Renderer& m_renderer;
 
     std::unordered_map<IVec3, MeshData> m_meshes;
-    VertexBuffer* m_emptyVertexBuffer;
-    IndexBuffer* m_emptyIndexBuffer;
-    VertexArray* m_emptyVertexArray;
     std::unordered_set<IVec3> m_unmeshedChunks;
     std::unordered_set<IVec3> m_beingMeshesdChunks;
     std::unordered_set<IVec3> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
@@ -118,9 +108,6 @@ private:
     bool m_chunkRequestScheduled;
 
     EntityMeshManager<true> m_meshManager;
-    VertexArray* m_entityVertexArray;
-    VertexBuffer* m_entityVertexBuffer;
-    IndexBuffer* m_entityIndexBuffer;
 
     void unloadMesh(MeshData& mesh);
     bool chunkHasNeighbours(const IVec3& chunkPosition);

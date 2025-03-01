@@ -45,29 +45,21 @@ FetchContent_MakeAvailable(glfw enet glm stb VulkanMemoryAllocator)
 add_subdirectory(tests)
 
 set(CLIENT_SOURCE_FILES
-    lib/glad/glad.c
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
     src/client/clientWorld.cpp
-    src/client/graphics/bloom.cpp
+    # src/client/graphics/bloom.cpp
     src/client/graphics/camera.cpp
-    src/client/graphics/computeShader.cpp
-    src/client/graphics/indexBuffer.cpp
-    src/client/graphics/luminance.cpp
+    # src/client/graphics/luminance.cpp
     src/client/graphics/meshBuilder.cpp
-    src/client/graphics/glRenderer.cpp
     src/client/graphics/renderer.cpp
-    src/client/graphics/shader.cpp
-    src/client/graphics/texture.cpp
-    src/client/graphics/vertexArray.cpp
-    src/client/graphics/vertexBuffer.cpp
     src/client/graphics/vulkan/descriptors.cpp
     src/client/graphics/vulkan/pipelines.cpp
     src/client/graphics/vulkan/shaders.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
     src/client/graphics/vulkan/images.cpp
-    src/client/gui/font.cpp
+    # src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
     src/core/chunk.cpp
@@ -154,11 +146,6 @@ if (MINGW)
     target_link_libraries(client PRIVATE winmm ws2_32)
     target_link_libraries(server PRIVATE winmm ws2_32)
 endif (MINGW)
-
-# TODO: Change this to check for opengl/gles3 support when raspberry pi cmake version gets updated
-if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "aarch64")
-    add_compile_definitions(GLES3)
-endif()
 
 
 add_custom_command(TARGET client POST_BUILD
