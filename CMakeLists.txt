@@ -11,8 +11,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
-find_package(Vulkan REQUIRED)
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -36,11 +34,16 @@ FetchContent_Declare(
     GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
 )
 FetchContent_Declare(
+    volk
+    GIT_REPOSITORY https://github.com/zeux/volk
+    GIT_TAG        0b17a763ba5643e32da1b2152f8140461b3b7345  # Version 1.4.304
+)
+FetchContent_Declare(
     VulkanMemoryAllocator
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
     GIT_TAG        3bab6924988e5f19bf36586a496156cf72f70d9f  # Version 3.2.0
 )
-FetchContent_MakeAvailable(glfw enet glm stb VulkanMemoryAllocator)
+FetchContent_MakeAvailable(glfw enet glm stb volk VulkanMemoryAllocator)
 
 add_subdirectory(tests)
 
@@ -89,10 +92,10 @@ target_include_directories(client PRIVATE
     ${stb_SOURCE_DIR}
 )
 target_link_libraries(client PRIVATE
-    Vulkan::Vulkan
     glfw
     enet
     glm::glm
+    volk
     GPUOpen::VulkanMemoryAllocator
 )
 target_compile_definitions(client PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
@@ -138,7 +141,7 @@ endif()
 
 target_precompile_headers(server REUSE_FROM client)
 
-if (MINGW)
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "-static")
     if (NOT ${CMAKE_BUILD_TYPE} MATCHES Release)
         target_link_options(client PRIVATE -mconsole)

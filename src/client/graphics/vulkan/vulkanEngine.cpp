@@ -131,6 +131,12 @@ void VulkanEngine::cleanup()
 
 bool VulkanEngine::createInstance()
 {
+    if (volkInitialize() != VK_SUCCESS)
+    {
+        LOG("Vulkan loader not installed");
+        return false;
+    }
+
     if (m_enableValidationLayers && !checkValidationLayerSupport())
     {
         LOG("Validation layers requested but not available");
@@ -166,7 +172,13 @@ bool VulkanEngine::createInstance()
         createInfo.enabledLayerCount = 0;
     }
 
-    VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_instance));
+    if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
+    {
+        LOG("Failed to create vulkan instance");
+        return false;
+    }
+
+    volkLoadInstance(m_instance);
 
     return true;
 }
@@ -854,10 +866,15 @@ void VulkanEngine::recreateSwapchain()
 
 void VulkanEngine::createAllocator()
 {
+    VmaVulkanFunctions vmaVulkanFunctions{};
+    vmaVulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    vmaVulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
     VmaAllocatorCreateInfo allocatorInfo{};
     allocatorInfo.physicalDevice = m_physicalDevice;
     allocatorInfo.device = m_device;
     allocatorInfo.instance = m_instance;
+    allocatorInfo.pVulkanFunctions = &vmaVulkanFunctions;
     allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
     VK_CHECK(vmaCreateAllocator(&allocatorInfo, &m_allocator));

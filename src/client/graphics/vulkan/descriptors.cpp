@@ -19,8 +19,7 @@
 #include "client/graphics/vulkan/descriptors.h"
 
 #include "client/graphics/vulkan/utils.h"
-#include "core/log.h"
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace lonelycube::client {
 

@@ -29,7 +29,7 @@
 #include "core/log.h"
 #include <cmath>
 #include <string>
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace lonelycube::client {
 
