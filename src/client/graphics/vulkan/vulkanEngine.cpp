@@ -19,10 +19,9 @@
 #include "client/graphics/vulkan/vulkanEngine.h"
 
 #include "client/graphics/vulkan/images.h"
-#include "client/graphics/vulkan/pipelines.h"
-#include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include <cassert>
 #include <string>
 #include <vulkan/vulkan_core.h>
 
@@ -53,16 +52,27 @@ VulkanEngine::VulkanEngine() :
 
 void VulkanEngine::init()
 {
-    initWindow();
+    int glfwInitialized = glfwInit();
+    assert(glfwInitialized == GLFW_TRUE && "Could not initialise GLFW");
+    assert(glfwVulkanSupported() == GLFW_TRUE && "GLFW: Vulkan not supported");
+    VkResult volkInitialized = volkInitialize();
+    assert(volkInitialized == VK_SUCCESS && "Vulkan loader not installed");
 
-    initVulkan();
+    createWindow();
+    bool instanceCreated = createInstance();
+    assert(instanceCreated);
+    glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createAllocator();
+    createSwapchain();
+    createSwapchainImageViews();
+    createFrameData();
+    initImmediateSubmit();
 }
 
-void VulkanEngine::initWindow()
+void VulkanEngine::createWindow()
 {
-    glfwInitVulkanLoader(vkGetInstanceProcAddr);
-    glfwInit();
-
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
     const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -85,19 +95,6 @@ void VulkanEngine::initWindow()
 
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
-}
-
-void VulkanEngine::initVulkan()
-{
-    createInstance();
-    glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createAllocator();
-    createSwapchain();
-    createSwapchainImageViews();
-    createFrameData();
-    initImmediateSubmit();
 }
 
 void VulkanEngine::cleanupSwapchain()
@@ -132,16 +129,10 @@ void VulkanEngine::cleanup()
 
 bool VulkanEngine::createInstance()
 {
-    if (volkInitialize() != VK_SUCCESS)
-    {
-        LOG("Vulkan loader not installed");
-        return false;
-    }
-
     if (m_enableValidationLayers && !checkValidationLayerSupport())
     {
         LOG("Validation layers requested but not available");
-        return false;
+        m_enableValidationLayers = false;
     }
 
     VkApplicationInfo appInfo{};

@@ -118,7 +118,7 @@ private:
     const std::vector<const char*> m_deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
-    const bool m_enableValidationLayers;
+    bool m_enableValidationLayers;
 
     // Vulkan core objects
     GLFWwindow* m_window;
@@ -162,9 +162,8 @@ private:
     VkSampleCountFlagBits m_maxMSAAsamples;
 
     // Initialisation
-    void initWindow();
-    void initVulkan();
     bool createInstance();
+    void createWindow();
     bool checkValidationLayerSupport();
     bool pickPhysicalDevice();
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
