@@ -18,8 +18,6 @@
 
 #include "client/graphics/vulkan/images.h"
 
-#include <vulkan/vulkan_core.h>
-
 namespace lonelycube::client {
 
 void transitionImage(

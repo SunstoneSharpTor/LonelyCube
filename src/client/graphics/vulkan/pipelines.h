@@ -20,7 +20,7 @@
 
 #include "core/pch.h"
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace lonelycube::client {
 

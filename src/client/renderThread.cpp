@@ -26,8 +26,6 @@
 
 #include "core/pch.h"
 
-#include <vulkan/vulkan_core.h>
-
 #include "client/logicThread.h"
 #include "client/clientNetworking.h"
 #include "client/graphics/renderer.h"

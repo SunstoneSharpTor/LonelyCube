@@ -19,7 +19,6 @@
 #include "client/graphics/vulkan/pipelines.h"
 
 #include "client/graphics/vulkan/utils.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
