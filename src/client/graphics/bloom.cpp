@@ -16,11 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef GLES3
-
 #include "client/graphics/bloom.h"
-
-#include "glad/glad.h"
 
 #include "core/pch.h"
 
@@ -45,108 +41,97 @@ Bloom::~Bloom() {
 }
 
 void Bloom::renderDownsamples() {
-    m_downsampleShader.bind();
-
-    // Bind srcTexture (HDR color buffer) as initial texture input
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_srcTexture.texture);
-
-    // Progressively downsample through the mip chain
-    for (int i = 0; i < m_mipChain.size(); i++) {
-        const BloomMip& mip = m_mipChain[i];
-        glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((uint32_t)((mip.intSize.x + 7) / 8),
-            (uint32_t)((mip.intSize.y + 7) / 8), 1);
-        // Make sure writing to image has finished before read
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-        // Set current mip as texture input for next iteration
-        glBindTexture(GL_TEXTURE_2D, mip.texture);
-    }
+    // m_downsampleShader.bind();
+    //
+    // // Bind srcTexture (HDR color buffer) as initial texture input
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, m_srcTexture.texture);
+    //
+    // // Progressively downsample through the mip chain
+    // for (int i = 0; i < m_mipChain.size(); i++) {
+    //     const BloomMip& mip = m_mipChain[i];
+    //     glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+    //     glDispatchCompute((uint32_t)((mip.intSize.x + 7) / 8),
+    //         (uint32_t)((mip.intSize.y + 7) / 8), 1);
+    //     // Make sure writing to image has finished before read
+    //     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    //
+    //     // Set current mip as texture input for next iteration
+    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
+    // }
 }
 
 void Bloom::renderUpsamples(float filterRadius) {
-    m_upsampleShader.bind();
-    m_upsampleShader.setUniform1f("filterRadius", filterRadius);
-
-    for (int i = m_mipChain.size() - 1; i > 0; i--) {
-        const BloomMip& mip = m_mipChain[i];
-        const BloomMip& nextMip = m_mipChain[i-1];
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mip.texture);
-        glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-        glDispatchCompute((uint32_t)((nextMip.intSize.x + 7) / 8),
-            (uint32_t)((nextMip.intSize.y + 7) / 8), 1);
-        // Make sure writing to image has finished before read
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    }
+    // m_upsampleShader.bind();
+    // m_upsampleShader.setUniform1f("filterRadius", filterRadius);
+    //
+    // for (int i = m_mipChain.size() - 1; i > 0; i--) {
+    //     const BloomMip& mip = m_mipChain[i];
+    //     const BloomMip& nextMip = m_mipChain[i-1];
+    //
+    //     glActiveTexture(GL_TEXTURE0);
+    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
+    //     glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+    //     glDispatchCompute((uint32_t)((nextMip.intSize.x + 7) / 8),
+    //         (uint32_t)((nextMip.intSize.y + 7) / 8), 1);
+    //     // Make sure writing to image has finished before read
+    //     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    // }
 }
 
 void Bloom::render(float filterRadius, float strength) {
-    renderDownsamples();
-    renderUpsamples(filterRadius);
-
-    //glClear(GL_COLOR_BUFFER_BIT);  // Use to test the bloom image before it's composited
-
-    m_blitShader.bind();
-    m_blitShader.setUniform1f("strength", strength);
-
-    const BloomMip& mip = m_mipChain[0];
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mip.texture);
-    glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    glDispatchCompute((uint32_t)((m_srcTexture.intSize.x + 7) / 8),
-        (uint32_t)((m_srcTexture.intSize.y + 7) / 8), 1);
-    // Make sure writing to image has finished before read
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    // renderDownsamples();
+    // renderUpsamples(filterRadius);
+    //
+    // //glClear(GL_COLOR_BUFFER_BIT);  // Use to test the bloom image before it's composited
+    //
+    // m_blitShader.bind();
+    // m_blitShader.setUniform1f("strength", strength);
+    //
+    // const BloomMip& mip = m_mipChain[0];
+    //
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, mip.texture);
+    // glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+    // glDispatchCompute((uint32_t)((m_srcTexture.intSize.x + 7) / 8),
+    //     (uint32_t)((m_srcTexture.intSize.y + 7) / 8), 1);
+    // // Make sure writing to image has finished before read
+    // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 void Bloom::createMips(glm::ivec2 srcTextureSize) {
-    glm::ivec2 mipIntSize = srcTextureSize;
-    glm::vec2 mipSize = srcTextureSize;
-
-    while (mipIntSize.x > 1 && mipIntSize.y > 1) {
-        BloomMip mip;
-
-        mipSize *= 0.5f;
-        mipIntSize /= 2;
-        mip.size = mipSize;
-        mip.intSize = mipIntSize;
-
-        glGenTextures(1, &mip.texture);
-        glBindTexture(GL_TEXTURE_2D, mip.texture);
-        // we are downscaling an HDR color buffer, so we need a float texture format
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, (int)mipSize.x, (int)mipSize.y, 0,
-            GL_RGBA, GL_FLOAT, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
-
-        m_mipChain.emplace_back(mip);
-    }
+    // glm::ivec2 mipIntSize = srcTextureSize;
+    // glm::vec2 mipSize = srcTextureSize;
+    //
+    // while (mipIntSize.x > 1 && mipIntSize.y > 1) {
+    //     BloomMip mip;
+    //
+    //     mipSize *= 0.5f;
+    //     mipIntSize /= 2;
+    //     mip.size = mipSize;
+    //     mip.intSize = mipIntSize;
+    //
+    //     glGenTextures(1, &mip.texture);
+    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
+    //     // we are downscaling an HDR color buffer, so we need a float texture format
+    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, (int)mipSize.x, (int)mipSize.y, 0,
+    //         GL_RGBA, GL_FLOAT, nullptr);
+    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    //     GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
+    //
+    //     m_mipChain.emplace_back(mip);
+    // }
 }
 
 void Bloom::deleteMips() {
-    for (int i = 0; i < m_mipChain.size(); i++) {
-        glDeleteTextures(1, &m_mipChain[i].texture);
-    }
-    m_mipChain.clear();
-}
-
-void Bloom::resize(uint32_t windowSize[2]) {
-    deleteMips();
-    glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
-    glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
-    m_srcTexture.size = mipSize;
-    m_srcTexture.intSize = mipIntSize;
-    createMips(m_srcTexture.intSize);
+    // for (int i = 0; i < m_mipChain.size(); i++) {
+    //     glDeleteTextures(1, &m_mipChain[i].texture);
+    // }
+    // m_mipChain.clear();
 }
 
 }  // namespace lonelycube::client
-
-#endif
