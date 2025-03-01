@@ -148,8 +148,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 float bounds[6];
                 uint8_t i = 0;
                 while (i < 6 && std::getline(line, value, ',')) {
-                    // Slightly scale up the point to prevent z-fighting with the block
-                    bounds[i] = (float)std::stoi(value) / 16 * 1.004f;
+                    bounds[i] = static_cast<float>(std::stoi(value)) / 16;
                     i++;
                 }
                 if (i < 6) {
@@ -232,9 +231,8 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             std::stringstream line(value);
                             uint8_t i = 0;
                             while (i < 12 && std::getline(line, value, ',')) {
-                                // Slightly scale up the point to prevent tiny holes in the mesh
                                 m_blockModels[modelID].faces[faceNum].coords[i] =
-                                    (float)std::stoi(value) / 16 * 1.001f;
+                                    static_cast<float>(std::stoi(value)) / 16;
                                 i++;
                             }
                             if (i < 12) {

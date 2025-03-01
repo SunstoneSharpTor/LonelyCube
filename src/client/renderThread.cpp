@@ -287,19 +287,17 @@ void renderThread() {
                 int placeBlockCoords[3];
                 uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
                     mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
-                    breakBlockCoords, placeBlockCoords);
-                if (lookingAtBlock) {
+                    breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
                     //create the model view projection matrix for the outline
-                    glm::vec3 outlinePosition;
-                    for (uint8_t i = 0; i < 3; i++) {
-                        outlinePosition[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
-                    }
-                    glm::mat4 model = glm::translate(glm::mat4(1.0f), outlinePosition);
-                    glm::mat4 mvp = viewProjection * model;
-                    // VertexBuffer blockOutlineVB((mainWorld).integratedServer.getResourcePack().getBlockData(
-                    //     lookingAtBlock).model->boundingBoxVertices, 24 * sizeof(float));
-                    // blockOutlineVA.addBuffer(blockOutlineVB, blockOutlineVBL);
-                    // mainRenderer.drawWireframe(blockOutlineVA, blockOutlineIB, blockOutlineShader);
+                    glm::vec3 offset;
+                    for (uint8_t i = 0; i < 3; i++)
+                        offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
+                    offset += glm::vec3(0.5f, 0.5f, 0.5f);
+                    renderer.drawBlockOutline(
+                        viewProjection, offset,
+                        mainWorld.integratedServer.getResourcePack().getBlockData(
+                            lookingAtBlock).model->boundingBoxVertices
+                    );
                 }
 
                 renderer.finishDrawingGeometry();

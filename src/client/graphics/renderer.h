@@ -51,12 +51,6 @@ struct ExposurePushConstants
     float exposure;
 };
 
-struct BlockOutlinePushConstants
-{
-    glm::mat4 mvp;
-    VkDeviceAddress vertexBuffer;
-};
-
 class Renderer
 {
 public:
@@ -73,7 +67,7 @@ public:
     void beginDrawingBlocks();
     void drawBlocks(const GPUMeshBuffers& mesh);
     void beginDrawingWater();
-    void drawBlockOutline(const GPUMeshBuffers& mesh, const glm::mat4& mvp);
+    void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
     void applyExposure();
     void submitFrame();
@@ -130,10 +124,10 @@ private:
     void cleanupSunPipeline();
     void createWorldPipelines();
     void cleanupWorldPipelines();
-    void createExposurePipeline();
-    void cleanupExposurePipeline();
     void createBlockOutlinePipeline();
     void cleanupBlockOutlinePipeline();
+    void createExposurePipeline();
+    void cleanupExposurePipeline();
     void createPipelines();
     void cleanupPipelines();
 
