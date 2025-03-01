@@ -144,7 +144,7 @@ float MeshBuilder::getSmoothSkyLight(int* blockCoords, float* pointCoords, int d
         int cornerOffset[3];
         for (int i = 0; i < 3; i++)
         {
-            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+            cornerOffset[i] = ((pointCoords[i] - 0.499f) > 0) * 2 - 1;
         }
 
         int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction]
@@ -198,7 +198,7 @@ float MeshBuilder::getSmoothBlockLight(int* blockCoords, float* pointCoords, int
         int cornerOffset[3];
         for (int i = 0; i < 3; i++)
         {
-            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+            cornerOffset[i] = ((pointCoords[i] - 0.499f) > 0) * 2 - 1;
         }
 
         int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction]
@@ -251,7 +251,7 @@ float MeshBuilder::getAmbientOcclusion(int* blockCoords, float* pointCoords, int
         int cornerOffset[3];
         for (int i = 0; i < 3; i++)
         {
-            cornerOffset[i] = ((pointCoords[i] - 0.5f) > 0) * 2 - 1;
+            cornerOffset[i] = ((pointCoords[i] - 0.499f) > 0) * 2 - 1;
         }
 
         int fixed = (s_neighbouringBlocksY[direction] != 0) + 2 * (s_neighbouringBlocksZ[direction] != 0);

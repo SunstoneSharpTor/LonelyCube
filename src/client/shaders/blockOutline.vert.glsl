@@ -17,30 +17,14 @@
 */
 
 #version 460
-#extension GL_EXT_buffer_reference : require
 
-struct Vertex
-{
-    vec3 position;
-};
-
-layout (buffer_reference, std430) readonly buffer VertexBuffer
-{
-    float vertices[];
-};
+const uint cubeWireframeIB[16] = uint[](0, 1, 2, 3, 0, 7, 6, 1, 6, 5, 2, 5, 4, 3, 4, 7);
 
 layout (push_constant, std430) uniform constants
 {
-    mat4 mvp;
-    VertexBuffer vertexBuffer;
+    vec4 vertices[8];
 };
 
 void main() {
-    vec4 position = vec4(
-        vertexBuffer.vertices[gl_VertexIndex * 3],
-        vertexBuffer.vertices[gl_VertexIndex * 3 + 1],
-        vertexBuffer.vertices[gl_VertexIndex * 3 + 2],
-        1.0
-    );
-    gl_Position = mvp * position;
+    gl_Position = vertices[cubeWireframeIB[gl_VertexIndex]];
 }

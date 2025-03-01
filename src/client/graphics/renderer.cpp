@@ -18,6 +18,7 @@
 
 #include "client/graphics/renderer.h"
 
+#include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
 #include "stb_image.h"
 
@@ -416,6 +417,12 @@ void Renderer::createWorldPipelines()
     ) {
         LOG("Failed to find shader \"res/shaders/block.frag.spv\"");
     }
+    VkShaderModule waterVertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/water.vert.spv", waterVertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/water.vert.spv\"");
+    }
     VkShaderModule waterFragmentShader;
     if (!createShaderModule(
         m_vulkanEngine.getDevice(), "res/shaders/water.frag.spv", waterFragmentShader)
@@ -441,14 +448,16 @@ void Renderer::createWorldPipelines()
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
-    pipelineBuilder.setShaders(blockVertexShader, waterFragmentShader);
+    pipelineBuilder.setShaders(waterVertexShader, waterFragmentShader);
     pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineBuilder.enableAlphaBlending();
+    pipelineBuilder.enableDepthTest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     m_waterPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), blockFragmentShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), waterVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), waterFragmentShader, nullptr);
 }
 
@@ -457,6 +466,60 @@ void Renderer::cleanupWorldPipelines()
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockPipeline, nullptr);
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_waterPipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_worldPipelineLayout, nullptr);
+}
+
+void Renderer::createBlockOutlinePipeline()
+{
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = 8 * sizeof(glm::vec4);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockOutlinePipelineLayout
+    ));
+
+    VkShaderModule vertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.vert.spv", vertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/blockOutline.vert.spv\"");
+    }
+    VkShaderModule fragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.frag.spv", fragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/blockOutline.frag.spv\"");
+    }
+
+    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
+        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_blockOutlinePipelineLayout;
+    pipelineBuilder.setShaders(vertexShader, fragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setMultisampling(numSamples);
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+
+    m_blockOutlinePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), vertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fragmentShader, nullptr);
+}
+
+void Renderer::cleanupBlockOutlinePipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockOutlinePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockOutlinePipelineLayout, nullptr);
 }
 
 void Renderer::createExposurePipeline()
@@ -513,67 +576,13 @@ void Renderer::cleanupExposurePipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_exposurePipelineLayout, nullptr);
 }
 
-void Renderer::createBlockOutlinePipeline()
-{
-    VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(BlockOutlinePushConstants);
-    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
-
-    VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blockOutlinePipelineLayout
-    ));
-
-    VkShaderModule vertexShader;
-    if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.vert.spv", vertexShader)
-    ) {
-        LOG("Failed to find shader \"res/shaders/blockOutline.vert.spv\"");
-    }
-    VkShaderModule fragmentShader;
-    if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/blockOutline.frag.spv", fragmentShader)
-    ) {
-        LOG("Failed to find shader \"res/shaders/blockOutline.frag.spv\"");
-    }
-
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
-
-    PipelineBuilder pipelineBuilder;
-    pipelineBuilder.pipelineLayout = m_blockOutlinePipelineLayout;
-    pipelineBuilder.setShaders(vertexShader, fragmentShader);
-    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
-    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineBuilder.setMultisampling(numSamples);
-    pipelineBuilder.disableBlending();
-    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
-    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
-
-    m_blockOutlinePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
-
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), vertexShader, nullptr);
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fragmentShader, nullptr);
-}
-
-void Renderer::cleanupBlockOutlinePipeline()
-{
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blockOutlinePipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockOutlinePipelineLayout, nullptr);
-}
-
 void Renderer::createPipelines()
 {
     createSkyPipeline();
     createSunPipeline();
     createWorldPipelines();
-    createExposurePipeline();
     createBlockOutlinePipeline();
+    createExposurePipeline();
 }
 
 void Renderer::cleanupPipelines()
@@ -752,21 +761,29 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
 }
 
-void Renderer::drawBlockOutline(const GPUMeshBuffers& mesh, const glm::mat4& mvp)
+void Renderer::drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel)
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockOutlinePipeline);
 
-    BlockOutlinePushConstants pushConstants{ mvp, mesh.vertexBufferAddress };
+    std::array<glm::vec4, 8> outlineVertices;
+    for (int i = 0; i < 8; i++)
+    {
+        glm::vec4 vertexCoords(
+            outlineModel[i * 3], outlineModel[i * 3 + 1], outlineModel[i * 3 + 2], 1.0f
+        );
+        vertexCoords += glm::vec4(offset, 0.0f);
+        outlineVertices[i] = viewProjection * glm::vec4(vertexCoords);
+        outlineVertices[i].z *= 1.004f;  // Increase the depth slightly to prevent z-fighting
+    }
 
     vkCmdPushConstants(
-        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-        sizeof(BlockOutlinePushConstants), &blockRenderInfo
+        command, m_blockOutlinePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 8 * sizeof(glm::vec4),
+        outlineVertices.data()
     );
-    vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
+    vkCmdDraw(command, 16, 1, 0, 0);
 }
 
 void Renderer::finishDrawingGeometry()
