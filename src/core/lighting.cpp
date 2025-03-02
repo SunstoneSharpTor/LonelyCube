@@ -145,7 +145,7 @@ void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& wo
         }
     }
     //propogate the light values to the neighbouring blocks in the chunk
-    for (int8_t i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
         neighbouringChunksToBeRelit[i] = false;
         chunksToRemesh[i] = false;
     }
@@ -322,7 +322,7 @@ void Lighting::propagateBlockLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& 
         }
     }
     //propogate the light values to the neighbouring blocks in the chunk
-    for (int8_t i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
         neighbouringChunksToBeRelit[i] = false;
         chunksToRemesh[i] = false;
     }
@@ -459,7 +459,7 @@ void Lighting::propagateSkyDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk>&
         }
     }
     // Propogate the decreased light values to the neighbouring blocks in the chunk
-    for (int8_t i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
         neighbouringChunksToBeRelit[i] = false;
         chunksToRemesh[i] = false;
     }
@@ -671,7 +671,7 @@ void Lighting::propagateBlockDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk
         }
     }
     // Propogate the decreased light values to the neighbouring blocks in the chunk
-    for (int8_t i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
         neighbouringChunksToBeRelit[i] = false;
         chunksToRemesh[i] = false;
     }
@@ -875,7 +875,7 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
                 IVec3 neighbouringChunkPositions[6];
                 bool neighbouringChunksLoaded = true;
                 // Check that the chunk has its neighbours loaded so that it can be lit
-                for (int8_t ii = 0; ii < 6; ii++) {
+                for (int ii = 0; ii < 6; ii++) {
                     neighbouringChunkPositions[ii] = chunksToBeRelit[0] + s_neighbouringChunkOffsets[ii];
                     if (!worldChunks.contains(neighbouringChunkPositions[ii])) {
                         neighbouringChunksLoaded = false;
@@ -943,7 +943,7 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
                     chunksToRemesh.push_back(chunksToBeRelit[0]);
                 }
                 // Add relevant neighbouring chunks to the chunksToBeRemeshed
-                for (int8_t i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++) {
                     if (neighbouringChunksToRemesh[i]) {
                         IVec3 chunkToBeRemeshed = chunksToBeRelit[0];
                         chunkToBeRemeshed += s_neighbouringChunkOffsets[i];
@@ -955,7 +955,7 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
                 std::vector<IVec3>::iterator it = chunksToBeRelit.begin();
                 chunksToBeRelit.erase(it);
                 //add the neighbouring chunks that were marked as needing recalculating to the queue
-                for (int8_t i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++) {
                     if (!neighbouringChunksToRelight[i]) {
                         continue;
                     }

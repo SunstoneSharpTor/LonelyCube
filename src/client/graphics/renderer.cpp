@@ -18,8 +18,6 @@
 
 #include "client/graphics/renderer.h"
 
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/fwd.hpp"
 #include "stb_image.h"
 
 #include "client/graphics/vulkan/images.h"
