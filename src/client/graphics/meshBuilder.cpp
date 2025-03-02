@@ -23,14 +23,15 @@
 #include "core/chunk.h"
 #include "core/constants.h"
 #include <cmath>
+#include <iomanip>
 
 namespace lonelycube::client {
 
-const int16_t MeshBuilder::s_neighbouringBlocksX[7] = { 0, 0, -1, 1, 0, 0,  0 };
+const int MeshBuilder::s_neighbouringBlocksX[7] = { 0, 0, -1, 1, 0, 0,  0 };
 
-const int16_t MeshBuilder::s_neighbouringBlocksY[7] = { -1, 0, 0, 0, 0, 1,  0 };
+const int MeshBuilder::s_neighbouringBlocksY[7] = { -1, 0, 0, 0, 0, 1,  0 };
 
-const int16_t MeshBuilder::s_neighbouringBlocksZ[7] = { 0, -1, 0, 0, 1, 0,  0 };
+const int MeshBuilder::s_neighbouringBlocksZ[7] = { 0, -1, 0, 0, 1, 0,  0 };
 
 MeshBuilder::MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t* numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
     uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices)
@@ -64,9 +65,9 @@ void MeshBuilder::addFaceToMesh(uint32_t block, int blockType, int faceNum)
         float texCoords[8];
         ResourcePack::getTextureCoordinates(
             texCoords, faceData.UVcoords, blockData.faceTextureIndices[faceNum]);
-        for (int16_t vertex = 0; vertex < 4; vertex++)
+        for (int vertex = 0; vertex < 4; vertex++)
         {
-            for (int16_t element = 0; element < 3; element++)
+            for (int element = 0; element < 3; element++)
             {
                 m_waterVertices[*m_numWaterVertices] = faceData.coords[vertex * 3 + element] +
                     blockCoords[element] + 0.5f;
@@ -97,12 +98,27 @@ void MeshBuilder::addFaceToMesh(uint32_t block, int blockType, int faceNum)
         ResourcePack::getTextureCoordinates(
             texCoords, faceData.UVcoords, blockData.faceTextureIndices[faceNum]
         );
-        for (int16_t vertex = 0; vertex < 4; vertex++)
+        for (int vertex = 0; vertex < 4; vertex++)
         {
-            for (int16_t element = 0; element < 3; element++)
+            for (int element = 0; element < 3; element++)
             {
                 m_vertices[*m_numVertices] = faceData.coords[vertex * 3 + element] +
                     blockCoords[element] + 0.5f;
+                // float sub = m_vertices[*m_numVertices] - (int)m_vertices[*m_numVertices];
+                // if (sub > 0)
+                // {
+                //  std::cout << sub << "\n";
+                // }
+                // for (int i = element; i < *m_numVertices; i += 7)
+                // {
+                //     if (std::abs(m_vertices[i] - m_vertices[*m_numVertices]) < 0.5f && m_vertices[i] != m_vertices[*m_numVertices])
+                //     {
+                //         // std::cout << std::setprecision(100) << m_vertices[i] << "\n";
+                //         // std::cout << std::setprecision(100) << m_vertices[*m_numVertices] << "\n";
+                //         std::cout << blockCoords[element] << "\n";
+                //      // std::cout << element << "\n";
+                //     }
+                // }
                 (*m_numVertices)++;
             }
             m_vertices[*m_numVertices] = texCoords[vertex * 2];
@@ -290,7 +306,7 @@ void MeshBuilder::buildMesh()
     int layerNum = 0;
     for (blockPos[1] = chunkPosition[1] * constants::CHUNK_SIZE; blockPos[1] < (chunkPosition[1] + 1) * constants::CHUNK_SIZE; blockPos[1]++)
     {
-        uint16_t layerBlockType = m_chunk.getLayerBlockType(layerNum);
+        int layerBlockType = m_chunk.getLayerBlockType(layerNum);
         if (layerBlockType < 256 && layerNum > 0 && layerNum < constants::CHUNK_SIZE - 1 &&
             m_chunk.getLayerBlockType(layerNum - 1) == layerBlockType &&
             m_chunk.getLayerBlockType(layerNum + 1) == layerBlockType)

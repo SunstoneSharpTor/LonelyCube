@@ -42,9 +42,9 @@ private:
     int m_chunkPosition[3];
     int m_chunkWorldCoords[3];
 
-    static const int16_t s_neighbouringBlocksX[7];
-    static const int16_t s_neighbouringBlocksY[7];
-    static const int16_t s_neighbouringBlocksZ[7];
+    static const int s_neighbouringBlocksX[7];
+    static const int s_neighbouringBlocksY[7];
+    static const int s_neighbouringBlocksZ[7];
 
     float getAmbientOcclusion(int* blockCoords, float* pointCoords, int direction);
 

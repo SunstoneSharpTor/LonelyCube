@@ -25,10 +25,10 @@ namespace lonelycube {
 bool ResourcePack::isTrue(std::basic_istream<char>& stream) const {
     std::string value;
     std::getline(stream, value, '\n');
-    value.erase(std::remove_if(value.begin(), value.end(), [](int8_t c) { return !isalpha(c); }),
+    value.erase(std::remove_if(value.begin(), value.end(), [](char c) { return !isalpha(c); }),
         value.end());
     std::transform(value.begin(), value.end(), value.begin(),
-        [](uint8_t c){ return std::tolower(c); });
+        [](char c){ return std::tolower(c); });
     if (value == "true") {
         return true;
     }
@@ -53,7 +53,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     stream.close();
 
     // Parse block data
-    for (uint8_t blockID = 0; blockID < 255; blockID++) {
+    for (int blockID = 0; blockID < 255; blockID++) {
         if (m_blockData[blockID].name.size() == 0) {
             continue;
         }
@@ -93,7 +93,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                 std::getline(stream, value, '"');
                 // Find the index of the block model
-                uint8_t modelID = 0;
+                int modelID = 0;
                 while (modelID < 255 && m_blockModels[modelID].name != value) {
                     if (m_blockModels[modelID].name.length() == 0) {
                         m_blockModels[modelID].name = value;
@@ -107,7 +107,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                 std::getline(stream, value, ']');
                 std::stringstream line(value);
-                uint8_t i = 0;
+                int i = 0;
                 while (i < maxNumFaces && std::getline(line, value, ',')) {
                     m_blockData[blockID].faceTextureIndices[i] = std::stoi(value);
                     i++;
@@ -115,7 +115,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             }
             if (field == "blockLight") {
                 std::getline(stream, value, '\n');
-                value.erase(std::remove_if(value.begin(), value.end(), [](int8_t c) { return !isdigit(c); }),
+                value.erase(std::remove_if(value.begin(), value.end(), [](char c) { return !isdigit(c); }),
                     value.end());
                 m_blockData[blockID].blockLight = std::stoi(value);
             }
@@ -125,7 +125,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     }
 
     // Parse block models
-    for (uint8_t modelID = 0; modelID < 255; modelID++) {
+    for (int modelID = 0; modelID < 255; modelID++) {
         if (m_blockModels[modelID].name.size() == 0) {
             continue;
         }
@@ -146,7 +146,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 std::getline(stream, value, ']');
                 std::stringstream line(value);
                 float bounds[6];
-                uint8_t i = 0;
+                int i = 0;
                 while (i < 6 && std::getline(line, value, ',')) {
                     bounds[i] = static_cast<float>(std::stoi(value)) / 16;
                     i++;
@@ -154,13 +154,13 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 if (i < 6) {
                     continue;
                 }
-                uint8_t boundIndices[24] = {0,1,2,3,1,2,3,1,5,0,1,5,0,4,5,3,4,5,3,4,2,0,4,2};
-                for (uint8_t i = 0; i < 24; i++) {
+                int boundIndices[24] = {0,1,2,3,1,2,3,1,5,0,1,5,0,4,5,3,4,5,3,4,2,0,4,2};
+                for (int i = 0; i < 24; i++) {
                     m_blockModels[modelID].boundingBoxVertices[i] = bounds[boundIndices[i]];
                 }
             }
             if (field == "faces") {
-                uint8_t faceNum = 0;
+                int faceNum = 0;
                 while (true) {  // Runs once per face
                     // Set defaults
                     m_blockModels[modelID].faces[faceNum].lightingBlock = 6;
@@ -229,7 +229,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                             std::getline(faceStream, value, ']');
                             std::stringstream line(value);
-                            uint8_t i = 0;
+                            int i = 0;
                             while (i < 12 && std::getline(line, value, ',')) {
                                 m_blockModels[modelID].faces[faceNum].coords[i] =
                                     static_cast<float>(std::stoi(value)) / 16;
@@ -243,7 +243,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                             std::getline(faceStream, value, ']');
                             std::stringstream line(value);
-                            uint8_t i = 0;
+                            int i = 0;
                             while (i < 4 && std::getline(line, value, ',')) {
                                 m_blockModels[modelID].faces[faceNum].UVcoords[i] = (float)std::stoi(value) / 16;
                                 i++;

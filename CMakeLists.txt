@@ -148,7 +148,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     endif()
     target_link_libraries(client PRIVATE winmm ws2_32)
     target_link_libraries(server PRIVATE winmm ws2_32)
-endif (MINGW)
+endif()
 
 
 add_custom_command(TARGET client POST_BUILD
