@@ -8,3 +8,5 @@ glslangValidator -V src/client/shaders/fullscreen.vert.glsl -o res/shaders/fulls
 glslangValidator -V src/client/shaders/exposure.frag.glsl -o res/shaders/exposure.frag.spv
 glslangValidator -V src/client/shaders/blockOutline.vert.glsl -o res/shaders/blockOutline.vert.spv
 glslangValidator -V src/client/shaders/blockOutline.frag.glsl -o res/shaders/blockOutline.frag.spv
+glslangValidator -V src/client/shaders/crosshair.vert.glsl -o res/shaders/crosshair.vert.spv
+glslangValidator -V src/client/shaders/crosshair.frag.glsl -o res/shaders/crosshair.frag.spv

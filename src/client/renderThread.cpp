@@ -323,6 +323,8 @@ void renderThread() {
                 renderer.exposure = exposure;
                 renderer.applyExposure();
 
+                renderer.drawCrosshair();
+
                 // // Draw the crosshair
                 // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
                 // glActiveTexture(GL_TEXTURE0);
