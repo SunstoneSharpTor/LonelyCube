@@ -70,6 +70,7 @@ public:
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
     void applyExposure();
+    void drawCrosshair();
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
@@ -112,11 +113,18 @@ private:
     VkPipelineLayout m_blockOutlinePipelineLayout;
     VkPipeline m_blockOutlinePipeline;
 
-    AllocatedImage m_worldTextures;
-    VkSampler m_worldTexturesSampler;
+    VkDescriptorSetLayout m_crosshairDescriptorLayout;
+    VkDescriptorSet m_crosshairDescriptors;
+    VkPipelineLayout m_crosshairPipelineLayout;
+    VkPipeline m_crosshairPipeline;
 
+    AllocatedImage m_worldTextures;
+    AllocatedImage m_crosshairTexture;
+
+    VkSampler m_worldTexturesSampler;
     VkSampler m_linearFullscreenSampler;
     VkSampler m_nearestFullscreenSampler;
+    VkSampler m_uiSampler;
 
     void createSkyPipeline();
     void cleanupSkyPipeline();
@@ -128,6 +136,8 @@ private:
     void cleanupBlockOutlinePipeline();
     void createExposurePipeline();
     void cleanupExposurePipeline();
+    void createCrosshairPipeline();
+    void cleanupCrosshairPipeline();
     void createPipelines();
     void cleanupPipelines();
 
@@ -135,6 +145,7 @@ private:
     void createSkyDescriptors();
     void createWorldDescriptors();
     void createExposureDescriptors();
+    void createCrosshairDescriptors();
     void createDescriptors();
     void cleanupDescriptors();
 

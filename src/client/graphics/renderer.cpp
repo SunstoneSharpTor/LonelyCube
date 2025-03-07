@@ -28,6 +28,7 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -117,11 +118,18 @@ void Renderer::createSkyImage()
 void Renderer::loadTextures()
 {
     int size[2];
-    int chanels;
-    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &chanels, 4);
+    int channels;
+    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &channels, 4);
     VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
     m_worldTextures = m_vulkanEngine.createImage(
         buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
+    );
+    stbi_image_free(buffer);
+
+    buffer = stbi_load("res/resourcePack/gui/crosshair.png", &size[0], &size[1], &channels, 1);
+    extent = { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    m_crosshairTexture = m_vulkanEngine.createImage(
+        buffer, extent, VK_FORMAT_R8_SNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
 
@@ -140,15 +148,24 @@ void Renderer::loadTextures()
     samplerInfo.mipLodBias = 0.0f;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
+
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    samplerInfo.mipLodBias = 0.0f;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_uiSampler);
 }
 
 void Renderer::cleanupTextures()
 {
+    m_vulkanEngine.destroyImage(m_worldTextures);
+    m_vulkanEngine.destroyImage(m_crosshairTexture);
+
     vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
-    vkDestroyImageView(m_vulkanEngine.getDevice(), m_worldTextures.imageView, nullptr);
-    vmaDestroyImage(
-        m_vulkanEngine.getAllocator(), m_worldTextures.image, m_worldTextures.allocation
-    );
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_uiSampler, nullptr);
 }
 
 void Renderer::createFullscreenSamplers()
@@ -266,12 +283,34 @@ void Renderer::createExposureDescriptors()
     writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
 }
 
+void Renderer::createCrosshairDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_crosshairDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_crosshairDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_crosshairDescriptorLayout
+    );
+
+    writer.writeImage(
+        0, m_crosshairTexture.imageView, m_uiSampler,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_crosshairDescriptors);
+}
+
 void Renderer::createDescriptors()
 {
     createDrawImageDescriptors();
     createSkyDescriptors();
     createWorldDescriptors();
     createExposureDescriptors();
+    createCrosshairDescriptors();
 }
 
 void Renderer::cleanupDescriptors()
@@ -282,6 +321,7 @@ void Renderer::cleanupDescriptors()
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
     );
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_exposureDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_crosshairDescriptorLayout, nullptr);
 }
 
 void Renderer::createSkyPipeline()
@@ -574,6 +614,54 @@ void Renderer::cleanupExposurePipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_exposurePipelineLayout, nullptr);
 }
 
+void Renderer::createCrosshairPipeline()
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_crosshairDescriptorLayout;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_crosshairPipelineLayout
+    ));
+
+    VkShaderModule crosshairVertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/crosshair.vert.spv", crosshairVertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/crosshair.vert.spv\"");
+    }
+    VkShaderModule crosshairFragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/crosshair.frag.spv", crosshairFragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/crosshair.frag.spv\"");
+    }
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_crosshairPipelineLayout;
+    pipelineBuilder.setShaders(crosshairVertexShader, crosshairFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+
+    m_crosshairPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), crosshairVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), crosshairFragmentShader, nullptr);
+}
+
+void Renderer::cleanupCrosshairPipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_crosshairPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_crosshairPipelineLayout, nullptr);
+}
+
 void Renderer::createPipelines()
 {
     createSkyPipeline();
@@ -581,6 +669,7 @@ void Renderer::createPipelines()
     createWorldPipelines();
     createBlockOutlinePipeline();
     createExposurePipeline();
+    createCrosshairPipeline();
 }
 
 void Renderer::cleanupPipelines()
@@ -588,8 +677,9 @@ void Renderer::cleanupPipelines()
     cleanupSkyPipeline();
     cleanupSunPipeline();
     cleanupWorldPipelines();
-    cleanupExposurePipeline();
     cleanupBlockOutlinePipeline();
+    cleanupExposurePipeline();
+    cleanupCrosshairPipeline();
 }
 
 void Renderer::beginRenderingFrame()
@@ -851,6 +941,36 @@ void Renderer::applyExposure()
         sizeof(ExposurePushConstants), &pushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
+}
+
+void Renderer::drawCrosshair()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    VkRenderingAttachmentInfo colourAttachment{};
+    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainImageView();
+    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea = { { 0, 0 }, m_vulkanEngine.getSwapchainExtent() };
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colourAttachment;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_crosshairPipeline);
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_crosshairPipelineLayout,
+        0, 1, &m_crosshairDescriptors,
+        0, nullptr
+    );
+
+    vkCmdDraw(command, 6, 1, 0, 0);
     vkCmdEndRendering(command);
 
     transitionImage(

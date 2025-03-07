@@ -18,7 +18,7 @@
 
 #version 460
 
-vec2 positions[3] = vec2[](
+const vec2 positions[3] = vec2[](
     vec2(-2.0, 1.0),
     vec2(2.0, 1.0),
     vec2(0.0, -4.0)
