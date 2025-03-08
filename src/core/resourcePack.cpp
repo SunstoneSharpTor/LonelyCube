@@ -265,25 +265,17 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     }
 }
 
-void ResourcePack::getTextureCoordinates(float* coords, const float* textureBox, const int16_t
-    textureNum)
-{
-    coords[0] = 0.0078125f + textureNum % 32 * 0.03125f + textureBox[0] * 0.015625;
-    coords[1] = 1.0 - (0.9765625 - textureNum / 32 * 0.03125f + textureBox[1] * 0.015625);
-    coords[2] = coords[0] + 0.015625f - (textureBox[0] + 1.0f - textureBox[2]) * 0.015625;
+void ResourcePack::getTextureCoordinates(
+    float* coords, const float* textureBox, const int textureNum
+) {
+    coords[0] = 0.0078125f + textureNum % 32 * 0.03125f + textureBox[0] * 0.015625f;
+    coords[1] = 0.023475f + textureNum / 32 * 0.03125f - textureBox[1] * 0.015625f;
+    coords[2] = coords[0] + 0.015625f - (textureBox[0] + 1.0f - textureBox[2]) * 0.015625f;
     coords[3] = coords[1];
     coords[4] = coords[2];
-    coords[5] = coords[1] - 0.015625f + (textureBox[1] + 1.0f - textureBox[3]) * 0.015625;
+    coords[5] = coords[1] - 0.015625f + (textureBox[1] + 1.0f - textureBox[3]) * 0.015625f;
     coords[6] = coords[0];
     coords[7] = coords[5];
-    // coords[0] = 1;
-    // coords[1] = 1;
-    // coords[2] = 0;
-    // coords[3] = 1;
-    // coords[4] = 0;
-    // coords[5] = 0;
-    // coords[6] = 1;
-    // coords[7] = 0;
 }
 
 }  // namespace lonelycube

@@ -19,6 +19,7 @@
 #include "client/graphics/vulkan/pipelines.h"
 
 #include "client/graphics/vulkan/utils.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -117,6 +118,19 @@ void PipelineBuilder::enableAlphaBlending()
     colourBlendAttachment.blendEnable = VK_TRUE;
     colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colourBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+void PipelineBuilder::enableNegativeBlending()
+{
+    colourBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+        | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colourBlendAttachment.blendEnable = VK_TRUE;
+    colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+    colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
     colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
     colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;

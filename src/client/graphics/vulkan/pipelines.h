@@ -50,6 +50,7 @@ public:
     void disableBlending();
     void enableAdditiveBlending();
     void enableAlphaBlending();
+    void enableNegativeBlending();
     void setColourAttachmentFormat(VkFormat format);
     void setDepthAttachmentFormat(VkFormat format);
     void disableDepthTest();
