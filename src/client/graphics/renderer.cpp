@@ -129,7 +129,7 @@ void Renderer::loadTextures()
     buffer = stbi_load("res/resourcePack/gui/crosshair.png", &size[0], &size[1], &channels, 1);
     extent = { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
     m_crosshairTexture = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8_SNORM, VK_IMAGE_USAGE_SAMPLED_BIT
+        buffer, extent, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
 
@@ -616,8 +616,14 @@ void Renderer::cleanupExposurePipeline()
 
 void Renderer::createCrosshairPipeline()
 {
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(glm::vec2);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &m_crosshairDescriptorLayout;
 
@@ -645,7 +651,7 @@ void Renderer::createCrosshairPipeline()
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineBuilder.setMultisamplingNone();
-    pipelineBuilder.disableBlending();
+    pipelineBuilder.enableNegativeBlending();
     pipelineBuilder.disableDepthTest();
     pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
     pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
@@ -970,6 +976,12 @@ void Renderer::drawCrosshair()
         0, nullptr
     );
 
+    glm::vec2 size{ 36.0f / m_vulkanEngine.getSwapchainExtent().width,
+                    36.0f / m_vulkanEngine.getSwapchainExtent().height };
+    vkCmdPushConstants(
+        command, m_crosshairPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec2),
+        &size
+    );
     vkCmdDraw(command, 6, 1, 0, 0);
     vkCmdEndRendering(command);
 

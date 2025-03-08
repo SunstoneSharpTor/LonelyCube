@@ -57,7 +57,7 @@ private:
 
     bool isTrue(std::basic_istream<char>& stream) const;
 public:
-    static void getTextureCoordinates(float* coords, const float* textureBox, const int16_t
+    static void getTextureCoordinates(float* coords, const float* textureBox, const int
         textureNum);
 
     ResourcePack(std::filesystem::path resourcePackPath);
