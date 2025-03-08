@@ -39,7 +39,7 @@ void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& wo
                                                        &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     // Wait for neighbouring chunks to finish being relit
-    Chunk::s_checkingNeighbourSkyRelights.lock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
     bool neighbourBeingRelit = true;
     while (neighbourBeingRelit) {
         neighbourBeingRelit = false;
@@ -47,13 +47,13 @@ void Lighting::propagateSkyLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& wo
             neighbourBeingRelit |= neighbouringChunks[i]->isSkyLightBeingRelit();
         }
         if (neighbourBeingRelit) {
-            Chunk::s_checkingNeighbourSkyRelights.unlock();
+            Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(100));
-            Chunk::s_checkingNeighbourSkyRelights.lock();
+            Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
         }
     }
     chunk.setSkyLightBeingRelit(true);
-    Chunk::s_checkingNeighbourSkyRelights.unlock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
 
     std::queue<uint32_t> lightQueue;
     //add the the updated block to the light queue if it has been provided
@@ -242,7 +242,7 @@ void Lighting::propagateBlockLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& 
                                                        &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     // Wait for neighbouring chunks to finish being relit
-    Chunk::s_checkingNeighbourBlockRelights.lock();
+    Chunk::s_checkingNeighbourBlockRelightsMtx.lock();
     bool neighbourBeingRelit = true;
     while (neighbourBeingRelit) {
         neighbourBeingRelit = false;
@@ -250,13 +250,13 @@ void Lighting::propagateBlockLight(IVec3 pos, std::unordered_map<IVec3, Chunk>& 
             neighbourBeingRelit |= neighbouringChunks[i]->isBlockLightBeingRelit();
         }
         if (neighbourBeingRelit) {
-            Chunk::s_checkingNeighbourBlockRelights.unlock();
+            Chunk::s_checkingNeighbourBlockRelightsMtx.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(100));
-            Chunk::s_checkingNeighbourBlockRelights.lock();
+            Chunk::s_checkingNeighbourBlockRelightsMtx.lock();
         }
     }
     chunk.setBlockLightBeingRelit(true);
-    Chunk::s_checkingNeighbourBlockRelights.unlock();
+    Chunk::s_checkingNeighbourBlockRelightsMtx.unlock();
 
     std::queue<uint32_t> lightQueue;
     //add the the updated block to the light queue if it has been provided
@@ -424,7 +424,7 @@ void Lighting::propagateSkyDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk>&
                                                        &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     // Wait for neighbouring chunks to finish being relit
-    Chunk::s_checkingNeighbourSkyRelights.lock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
     bool neighbourBeingRelit = true;
     while (neighbourBeingRelit) {
         neighbourBeingRelit = false;
@@ -432,13 +432,13 @@ void Lighting::propagateSkyDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk>&
             neighbourBeingRelit |= neighbouringChunks[i]->isSkyLightBeingRelit();
         }
         if (neighbourBeingRelit) {
-            Chunk::s_checkingNeighbourSkyRelights.unlock();
+            Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(100));
-            Chunk::s_checkingNeighbourSkyRelights.lock();
+            Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
         }
     }
     chunk.setSkyLightBeingRelit(true);
-    Chunk::s_checkingNeighbourSkyRelights.unlock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
 
     std::queue<uint32_t> lightQueue;
     // Add the the updated block to the light queue if it has been provided
@@ -651,7 +651,7 @@ void Lighting::propagateBlockDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk
                                                        &worldChunks.at(IVec3(chunkPosition[0], chunkPosition[1] + 1, chunkPosition[2])) };
 
     // Wait for neighbouring chunks to finish being relit
-    Chunk::s_checkingNeighbourBlockRelights.lock();
+    Chunk::s_checkingNeighbourBlockRelightsMtx.lock();
     bool neighbourBeingRelit = true;
     while (neighbourBeingRelit) {
         neighbourBeingRelit = false;
@@ -659,13 +659,13 @@ void Lighting::propagateBlockDarkness(IVec3 pos, std::unordered_map<IVec3, Chunk
             neighbourBeingRelit |= neighbouringChunks[i]->isBlockLightBeingRelit();
         }
         if (neighbourBeingRelit) {
-            Chunk::s_checkingNeighbourBlockRelights.unlock();
+            Chunk::s_checkingNeighbourBlockRelightsMtx.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(100));
-            Chunk::s_checkingNeighbourBlockRelights.lock();
+            Chunk::s_checkingNeighbourBlockRelightsMtx.lock();
         }
     }
     chunk.setBlockLightBeingRelit(true);
-    Chunk::s_checkingNeighbourBlockRelights.unlock();
+    Chunk::s_checkingNeighbourBlockRelightsMtx.unlock();
 
     std::queue<uint32_t> lightQueue;
     // Add the the updated block to the light queue if it has been provided
@@ -1029,8 +1029,14 @@ void Lighting::relightChunksAroundBlock(const IVec3& blockCoords, const IVec3& c
                 }
             }
         }
+        std::lock_guard<std::mutex> skyLock(Chunk::s_checkingNeighbourSkyRelightsMtx);
+        std::lock_guard<std::mutex> blockLock(Chunk::s_checkingNeighbourBlockRelightsMtx);
         for (IVec3 position : relitChunks) {
-            worldChunks.at(position).compressSkyLight();
+            Chunk& chunk = worldChunks.at(position);
+            if (!chunk.isSkyLightBeingRelit())
+                chunk.compressSkyLight();
+            if (!chunk.isBlockLightBeingRelit())
+                chunk.compressBlockLight();
         }
         // LOG(std::to_string(numChunksLightened + numChunksDarkened) + " chunks relit");
     }

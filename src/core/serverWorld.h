@@ -177,12 +177,10 @@ void ServerWorld<integrated>::findChunksToLoad() {
                 if (!integrated) {
                     Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE
                         * constants::CHUNK_SIZE> payload(0, PacketType::ChunkSent, 0);
-                        Compression::compressChunk(payload, it->second);
+                    Compression::compressChunk(payload, it->second);
                     payload.setPeerID(playerID);
-                    m_networkingMtx.lock();
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(player.getPeer(), 0, packet);
-                    m_networkingMtx.unlock();
                 }
             }
             else if (!m_chunksBeingLoaded.contains(IVec3(chunkPosition))) {
@@ -206,9 +204,9 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
-        Chunk::s_checkingNeighbourSkyRelights.lock();
+        Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
         chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
-        Chunk::s_checkingNeighbourSkyRelights.unlock();
+        Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
         Chunk& chunk = chunkManager.getChunk(*chunkPosition);
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
@@ -227,10 +225,8 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                 chunk.incrementPlayerCount();
                 if (!integrated) {
                     payload.setPeerID(playerID);
-                    m_networkingMtx.lock();
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(player.getPeer(), 0, packet);
-                    m_networkingMtx.unlock();
                 }
             }
         }
@@ -248,9 +244,9 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
-    Chunk::s_checkingNeighbourSkyRelights.lock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
     chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
-    Chunk::s_checkingNeighbourSkyRelights.unlock();
+    Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
     Chunk& chunk = chunkManager.getChunk(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
@@ -401,10 +397,8 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
     for (auto& [playerID, player] : m_players) {
         if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
-            m_networkingMtx.lock();
             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
             enet_peer_send(player.getPeer(), 0, packet);
-            m_networkingMtx.unlock();
         }
     }
 }
@@ -420,8 +414,7 @@ template<bool integrated>
 bool ServerWorld<integrated>::updateClientChunkLoadingTarget()
 {
     std::lock_guard<std::mutex> lock(m_chunksMtx);
-    bool changed = m_players.at(0).updateChunkLoadingTarget();
-    return changed;
+    return m_players.at(0).updateChunkLoadingTarget();
 }
 
 }  // namespace lonelycube
