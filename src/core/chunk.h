@@ -37,9 +37,8 @@ private:
     bool m_blockLightUpToDate;
     uint16_t m_playerCount; // The number of players that are rendering this chunk
     IVec3 m_position; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
-    bool m_calculatingSkylight;
-    //std::mutex m_accessingSkylightMtx;
-    //std::condition_variable m_accessingSkylightCV;
+    bool m_skyLightBeingRelit;
+    bool m_blockLightBeingRelit;
 
     static const int16_t m_neighbouringBlocksX[6];
     static const int16_t m_neighbouringBlocksY[6];
@@ -76,7 +75,8 @@ private:
     void getTextureCoordinates(float* coords, int16_t textureNum);
 
 public:
-    static std::mutex s_checkingNeighbouringRelights;
+    static std::mutex s_checkingNeighbourSkyRelights;
+    static std::mutex s_checkingNeighbourBlockRelights;
 
     static const int16_t neighbouringBlocks[6];
 
@@ -172,15 +172,23 @@ public:
     }
 
     inline bool isSkyLightBeingRelit() {
-        return m_calculatingSkylight;
+        return m_skyLightBeingRelit;
     }
 
     inline void setSkyLightBeingRelit(bool val) {
-        m_calculatingSkylight = val;
+        m_skyLightBeingRelit = val;
     }
-    
+
+    inline bool isBlockLightBeingRelit() {
+        return m_blockLightBeingRelit;
+    }
+
+    inline void setBlockLightBeingRelit(bool val) {
+        m_blockLightBeingRelit = val;
+    }
+
     void clearSkyLight();
-    
+
     void clearBlockLight();
 
     void clearBlocksAndLight();

@@ -206,7 +206,9 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.lock();
+        Chunk::s_checkingNeighbourSkyRelights.lock();
         chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
+        Chunk::s_checkingNeighbourSkyRelights.unlock();
         Chunk& chunk = chunkManager.getChunk(*chunkPosition);
         m_chunksMtx.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
@@ -218,6 +220,8 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
         if (!integrated) {
             Compression::compressChunk(payload, chunk);
         }
+        chunk.setSkyLightBeingRelit(false);
+        chunk.setBlockLightBeingRelit(false);
         for (auto& [playerID, player] : m_players) {
             if (player.hasChunkLoaded(*chunkPosition)) {
                 chunk.incrementPlayerCount();
@@ -244,10 +248,14 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
     m_chunksMtx.lock();
+    Chunk::s_checkingNeighbourSkyRelights.lock();
     chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
+    Chunk::s_checkingNeighbourSkyRelights.unlock();
     Chunk& chunk = chunkManager.getChunk(chunkPosition);
     m_chunksMtx.unlock();
     Compression::decompressChunk(payload, chunk);
+    chunk.setSkyLightBeingRelit(false);
+    chunk.setBlockLightBeingRelit(false);
     if (integrated)
         m_players.at(0).setChunkLoaded(chunkPosition);
 }
