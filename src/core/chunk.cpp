@@ -26,14 +26,16 @@
 
 namespace lonelycube {
 
-std::mutex Chunk::s_checkingNeighbouringRelights;
+std::mutex Chunk::s_checkingNeighbourSkyRelights;
+std::mutex Chunk::s_checkingNeighbourBlockRelights;
 
 const int16_t Chunk::neighbouringBlocks[6] = { -(constants::CHUNK_SIZE * constants::CHUNK_SIZE), -constants::CHUNK_SIZE, -1, 1, constants::CHUNK_SIZE, (constants::CHUNK_SIZE * constants::CHUNK_SIZE) };
 
 Chunk::Chunk(IVec3 position) : m_position(position) {
     m_skyLightUpToDate = false;
     m_blockLightUpToDate = true;
-    m_calculatingSkylight = false;
+    m_skyLightBeingRelit = true;
+    m_blockLightBeingRelit = true;
     m_playerCount = 0;
 
     for (uint32_t layerNum = 0; layerNum < constants::CHUNK_SIZE; layerNum++)
@@ -48,7 +50,8 @@ Chunk::Chunk(IVec3 position) : m_position(position) {
 Chunk::Chunk() {
     m_skyLightUpToDate = false;
     m_blockLightUpToDate = true;
-    m_calculatingSkylight = false;
+    m_skyLightBeingRelit = true;
+    m_blockLightBeingRelit = true;
     m_playerCount = 0;
 }
 

@@ -511,7 +511,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                     m_unmeshedChunksMtx.unlock();
                     Chunk& chunk = integratedServer.chunkManager.getChunk(chunkPosition);
                     if (!chunk.isSkyLightUpToDate()) {
-                        Chunk::s_checkingNeighbouringRelights.lock();
+                        Chunk::s_checkingNeighbourSkyRelights.lock();
                         bool neighbourBeingRelit = true;
                         while (neighbourBeingRelit) {
                             neighbourBeingRelit = false;
@@ -519,9 +519,12 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                                 neighbourBeingRelit |= integratedServer.chunkManager.getChunk(chunkPosition + s_neighbouringChunkOffsets[i]).isSkyLightBeingRelit();
                             }
                             if (neighbourBeingRelit) {
+                                Chunk::s_checkingNeighbourSkyRelights.unlock();
                                 std::this_thread::sleep_for(std::chrono::microseconds(100));
+                                Chunk::s_checkingNeighbourSkyRelights.lock();
                             }
                         }
+                        Chunk::s_checkingNeighbourSkyRelights.unlock();
                         chunk.setSkyLightBeingRelit(true);
                         chunk.clearSkyLight();
                         bool neighbouringChunksToRelight[6];
@@ -532,7 +535,6 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                             integratedServer.getResourcePack()
                         );
                         chunk.setSkyLightToBeUpToDate();
-                        chunk.setSkyLightBeingRelit(false);
                     }
                     addChunkMesh(chunkPosition, threadNum);
                     m_unmeshedChunksMtx.lock();
