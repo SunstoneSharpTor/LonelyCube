@@ -75,10 +75,17 @@ private:
     void getTextureCoordinates(float* coords, int16_t textureNum);
 
 public:
-    static std::mutex s_checkingNeighbourSkyRelights;
-    static std::mutex s_checkingNeighbourBlockRelights;
+    static std::mutex s_checkingNeighbourSkyRelightsMtx;
+    static std::mutex s_checkingNeighbourBlockRelightsMtx;
 
-    static const int16_t neighbouringBlocks[6];
+    static constexpr int16_t neighbouringBlocks[6] = {
+        -(constants::CHUNK_SIZE * constants::CHUNK_SIZE),
+        -constants::CHUNK_SIZE,
+        -1,
+        1,
+        constants::CHUNK_SIZE,
+        (constants::CHUNK_SIZE * constants::CHUNK_SIZE)
+    };
 
     inline static uint32_t getBlockNumber(uint32_t* blockCoords) {
         return blockCoords[0] + blockCoords[1] * constants::CHUNK_SIZE * constants::CHUNK_SIZE +

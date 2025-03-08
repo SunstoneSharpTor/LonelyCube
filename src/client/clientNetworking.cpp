@@ -80,6 +80,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     break;
     case PacketType::ChunkSent:
     {
+        LOG("Chunk received");
         Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
             constants::CHUNK_SIZE> payload;
         memcpy(&payload, packet->data, packet->dataLength);

@@ -96,7 +96,7 @@ void LogicThread::go(bool& running)
             }
         }
     }
-    else {
+    else {  // Singleplayer
         auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
         while (running) {
             m_mainWorld.loadChunksAroundPlayerSingleplayer(0);
