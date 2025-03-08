@@ -34,6 +34,7 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
+#include <chrono>
 
 namespace lonelycube {
 
@@ -62,9 +63,7 @@ private:
     std::mutex m_playersMtx;
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
-    std::mutex m_threadsWaitMtx;
     std::mutex& m_networkingMtx;
-    std::condition_variable m_threadsWaitCV;
     bool m_threadsWait;
     bool* m_threadWaiting;
 
@@ -329,15 +328,11 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
 template<bool integrated>
 void ServerWorld<integrated>::waitIfRequired(uint8_t threadNum) {
     while (m_threadsWait) {
-        m_threadWaiting[threadNum] = true;
-    m_threadsWaitCV.notify_all();
-        // locking
-        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
-        // waiting
         while (m_threadsWait) {
-            m_threadsWaitCV.wait(lock);
+            m_threadWaiting[threadNum] = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            m_threadWaiting[threadNum] = false;
         }
-        m_threadWaiting[threadNum] = false;
     }
 }
 
@@ -347,8 +342,7 @@ void ServerWorld<integrated>::pauseChunkLoaderThreads() {
     m_threadsWait = true;
     bool allThreadsWaiting = false;
     while (!allThreadsWaiting) {
-        std::unique_lock<std::mutex> lock(m_threadsWaitMtx);
-        m_threadsWaitCV.wait(lock);
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
             allThreadsWaiting |= !m_threadWaiting[threadNum];
         }
@@ -358,12 +352,7 @@ void ServerWorld<integrated>::pauseChunkLoaderThreads() {
 
 template<bool integrated>
 void ServerWorld<integrated>::releaseChunkLoaderThreads() {
-    // Allow chunk loaded threads to continue work
     m_threadsWait = false;
-    // lock release
-    std::lock_guard<std::mutex> lock(m_threadsWaitMtx);
-    // notify consumer when done
-    m_threadsWaitCV.notify_all();
 }
 
 template<bool integrated>
