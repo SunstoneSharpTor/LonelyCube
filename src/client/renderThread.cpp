@@ -85,7 +85,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(1.0f);
+    Renderer renderer(2.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -220,7 +220,7 @@ void renderThread() {
                 );
 
                 //create model view projection matrix for the world
-                float fov = 70.0f;
+                float fov = 60.0f;
                 fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
                 glm::mat4 projection = glm::perspective(
                     glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.1f,
@@ -309,7 +309,7 @@ void renderThread() {
                     45.0f) * (1.0f - factor);
                 float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
                 // #endif
-                float targetExposure = std::max(1.0f / 10.0f, std::min(0.2f / luminanceVal, 1.0f / 0.005f));
+                float targetExposure = std::max(1.0f / 10.0f, std::min(0.15f / luminanceVal, 1.0f / 0.005f));
                 exposureTimeByDTs += actualDT;
                 while (exposureTimeByDTs > (1.0 / (double)constants::visualTPS)) {
                     float fac = 0.008f;
