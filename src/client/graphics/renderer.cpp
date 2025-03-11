@@ -73,18 +73,19 @@ void Renderer::createDrawImage()
     int numVideoModes;
     const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
 
-    m_drawImageExtent = { 0, 0, 1 };
+    m_maxWindowExtent = { 0, 0 };
     for (int i = 0; i < numVideoModes; i++)
     {
-        m_drawImageExtent.width = std::max(
-            m_drawImageExtent.width,
-            static_cast<uint32_t>(std::ceil(displayModes[i].width * m_renderScale))
+        m_maxWindowExtent.width = std::max(
+            m_maxWindowExtent.width, static_cast<uint32_t>(displayModes[i].width)
         );
-        m_drawImageExtent.height = std::max(
-            m_drawImageExtent.height,
-            static_cast<uint32_t>(std::ceil(displayModes[i].height * m_renderScale))
+        m_maxWindowExtent.height = std::max(
+            m_maxWindowExtent.height, static_cast<uint32_t>(displayModes[i].height)
         );
     }
+    m_drawImageExtent.width = std::ceil(m_maxWindowExtent.width * m_renderScale);
+    m_drawImageExtent.height = std::ceil(m_maxWindowExtent.height * m_renderScale);
+    m_drawImageExtent.depth = 1;
 
     VkImageUsageFlags drawImageUsages =
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
@@ -173,6 +174,9 @@ void Renderer::createFullscreenSamplers()
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
 
@@ -938,8 +942,8 @@ void Renderer::applyExposure()
     );
 
     ExposurePushConstants pushConstants;
-    pushConstants.inverseDrawImageSize.x = m_renderScale / m_drawImageExtent.width;
-    pushConstants.inverseDrawImageSize.y = m_renderScale / m_drawImageExtent.height;
+    pushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
+    pushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
     pushConstants.exposure = exposure;
     vkCmdPushConstants(
         command, m_exposurePipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,

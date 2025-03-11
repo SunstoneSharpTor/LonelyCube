@@ -80,7 +80,8 @@ void main() {
         * factor + maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) *
         45.0) * (1.0 - factor);
 
-    float distance = length(cameraOffset + position.xyz);
+    vec3 toCameraVector = cameraOffset + position.xyz;
+    float distance = length(toCameraVector);
     float normalisedDistance = clamp(distance - renderDistance * fogStart, 0.0f, renderDistance
       * (1.0f - fogStart)) / (renderDistance * (1.0f - fogStart));
     outVisibility = normalisedDistance * fogDensity;
