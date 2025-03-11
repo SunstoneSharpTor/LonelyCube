@@ -29,7 +29,7 @@ layout (push_constant, std430) uniform constants
 };
 
 void main() {
-    vec3 hdrColour = texture(drawImage, gl_FragCoord.xy * inverseDrawImageSize).rgb;
+    vec3 hdrColour = texture(drawImage, vec2(gl_FragCoord.xy) * inverseDrawImageSize).rgb;
 
     // Exposure tone mapping
     vec3 mapped = vec3(1.0) - exp(-hdrColour * exposure);

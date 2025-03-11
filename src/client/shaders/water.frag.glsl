@@ -34,6 +34,6 @@ void main() {
     vec4 skyColour = texture(skyTexture, ivec2(gl_FragCoord.xy) / vec2(textureSize(skyTexture, 0)));
 
     vec4 texColourWithLight = vec4(texColour.rgb * inSkyBrightness, texColour.a);
-    texColourWithLight += vec4(texColour.rgb * inBlockBrightness * BLOCK_LIGHT_COLOUR, 0.0f);
+    texColourWithLight += vec4(texColour.rgb * inBlockBrightness * BLOCK_LIGHT_COLOUR, 0.0);
     outColour = mix(skyColour, texColourWithLight, inVisibility);
 }

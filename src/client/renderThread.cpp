@@ -85,7 +85,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(2.0f);
+    Renderer renderer(1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -243,7 +243,10 @@ void renderThread() {
                     constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
                     constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
                 renderer.skyRenderInfo.sunDir = sunDirection;
-                renderer.skyRenderInfo.inverseViewProjection = glm::inverse(projection * view);
+                renderer.skyRenderInfo.inverseViewProjection = glm::inverse(
+                    projection * glm::lookAt(
+                        glm::vec3(0.0f), mainPlayer.viewCamera.front, -mainPlayer.viewCamera.up
+                ));
                 renderer.skyRenderInfo.brightness = groundLuminance;
                 renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
                 renderer.skyRenderInfo.sunGlowAmount = std::pow(

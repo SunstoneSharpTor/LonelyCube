@@ -85,6 +85,7 @@ private:
     AllocatedImage m_drawImage;
     AllocatedImage m_depthImage;
     float m_renderScale;
+    VkExtent2D m_maxWindowExtent;
     VkExtent3D m_drawImageExtent;
     VkExtent2D m_renderExtent;
 
