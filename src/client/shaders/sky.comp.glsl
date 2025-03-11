@@ -34,8 +34,8 @@ layout (push_constant, std430) uniform constants
 };
 
 const float PLANET_RADIUS = 100.0;
-const float ATMOSPHERE_RADIUS = 120.0;
-const vec3 SKY_TOP_COLOUR = vec3(0.15, 0.25, 0.94);
+const float ATMOSPHERE_RADIUS = 107.0;
+const vec3 SKY_TOP_COLOUR = vec3(0.14, 0.28, 1.0);
 const vec3 HORIZON_COLOUR = vec3(0.35, 0.4, 0.75);
 
 float distanceThroughAtmosphere(vec3 rayDir) {
