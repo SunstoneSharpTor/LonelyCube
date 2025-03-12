@@ -91,7 +91,6 @@ public:
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     bool getNextLoadedChunkPosition(IVec3* chunkPosition);
     float getTimeSinceLastTick();
-    void requestMoreChunks(int clientID);
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
     }
@@ -124,7 +123,9 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded) {
+void ServerWorld<integrated>::updatePlayerPos(
+    int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded
+) {
     m_playersMtx.lock();
     ServerPlayer& player = m_players.at(playerID);
     player.updatePlayerPos(blockPosition, subBlockPosition);
@@ -136,18 +137,15 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPo
         // render distance from the set of loaded chunks
         IVec3 chunkPosition;
         bool chunkOutOfRange;
+        player.beginUnloadingChunks();
         while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
             if (chunkOutOfRange) {
                 auto it = chunkManager.getWorldChunks().find(chunkPosition);
-                if (it != chunkManager.getWorldChunks().end()) {
-                    it->second.decrementPlayerCount();
-                    if (it->second.hasNoPlayers()) {
-                        it->second.unload();
-                        chunkManager.getWorldChunks().erase(it);
-                    }
+                it->second.decrementPlayerCount();
+                if (it->second.hasNoPlayers()) {
+                    it->second.unload();
+                    chunkManager.getWorldChunks().erase(it);
                 }
-                else
-                    LOG("error");
             }
         }
         while (!m_chunksToBeLoaded.empty()) {
@@ -163,9 +161,9 @@ void ServerWorld<integrated>::updatePlayerPos(int playerID, const IVec3& blockPo
 
 template<bool integrated>
 void ServerWorld<integrated>::findChunksToLoad() {
-    m_playersMtx.lock();
-    m_chunksBeingLoadedMtx.lock();
-    m_chunksMtx.lock();
+    std::lock_guard<std::mutex> lock1(m_playersMtx);
+    std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
+    std::lock_guard<std::mutex> lock3(m_chunksMtx);
     for (auto& [playerID, player] : m_players) {
         if (!player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
             int chunkPosition[3];
@@ -188,9 +186,6 @@ void ServerWorld<integrated>::findChunksToLoad() {
             }
         }
     }
-    m_chunksMtx.unlock();
-    m_chunksBeingLoadedMtx.unlock();
-    m_playersMtx.unlock();
 }
 
 template<bool integrated>
@@ -281,11 +276,10 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     LOG(std::to_string(chunkManager.getWorldChunks().size()));
     pauseChunkLoaderThreads();
 
-    // Remove the player from all chunks that it had loaded
-    m_playersMtx.lock();
-    m_chunksMtx.lock();
-    m_chunksToBeLoadedMtx.lock();
-    m_chunksBeingLoadedMtx.lock();
+    std::lock_guard<std::mutex> lock1(m_playersMtx);
+    std::lock_guard<std::mutex> lock2(m_chunksMtx);
+    std::lock_guard<std::mutex> lock3(m_chunksToBeLoadedMtx);
+    std::lock_guard<std::mutex> lock4(m_chunksBeingLoadedMtx);
     ServerPlayer& player = m_players.at(playerID);
 
     int blockPosition[3];
@@ -297,6 +291,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     IVec3 chunkPosition;
     bool chunkOutOfRange;
     int i = 0;
+    player.beginUnloadingChunks();
     while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
         if (chunkManager.chunkLoaded(chunkPosition)) {
             auto it = chunkManager.getWorldChunks().find(chunkPosition);
@@ -315,10 +310,6 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
         m_chunksToBeLoaded.pop();
     }
     m_chunksBeingLoaded.clear();
-    m_chunksBeingLoadedMtx.unlock();
-    m_chunksToBeLoadedMtx.unlock();
-    m_chunksMtx.unlock();
-    m_playersMtx.unlock();
 
     releaseChunkLoaderThreads();
     LOG(std::to_string(playerID) + " disconnected");

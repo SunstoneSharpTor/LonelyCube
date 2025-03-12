@@ -655,9 +655,10 @@ void ClientWorld::requestMoreChunks()
     if (integratedServer.updateClientChunkLoadingTarget() || m_chunkRequestScheduled)
     {
         ServerPlayer& player = integratedServer.getPlayer(0);
-        Packet<int64_t, 2> payload(m_clientID, PacketType::ChunkRequest, 2);
+        Packet<int64_t, 3> payload(m_clientID, PacketType::ChunkRequest, 3);
         payload[0] = player.incrementNumChunkRequests();
         payload[1] = player.getChunkLoadingTarget();
+        payload[2] = player.getTargetBufferSize();
         m_networkingMtx.lock();
         ENetPacket* packet = enet_packet_create(
             (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE

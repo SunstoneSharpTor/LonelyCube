@@ -83,6 +83,7 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
             constants::CHUNK_SIZE> payload;
         memcpy(&payload, packet->data, packet->dataLength);
+        LOG("Chunk recieved");
         mainWorld.loadChunkFromPacket(payload);
     }
     break;

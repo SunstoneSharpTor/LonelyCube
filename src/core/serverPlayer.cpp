@@ -81,7 +81,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     ENetPeer* peer, uint32_t gameTick
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(0), m_targetNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID),
+    m_targetBufferSize(0), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID),
     m_peer(peer), m_lastPacketTick(gameTick)
 {
     m_blockPosition[0] = blockPosition[0];
@@ -103,7 +103,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(1), m_targetNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
+    m_targetBufferSize(1), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -130,18 +130,21 @@ void ServerPlayer::updatePlayerPos(const IVec3& blockPosition, const Vec3& subBl
     m_playerChunkPosition[0] = playerChunkCoords[0];
     m_playerChunkPosition[1] = playerChunkCoords[1];
     m_playerChunkPosition[2] = playerChunkCoords[2];
-    m_processedChunk = m_loadedChunks.begin();
 }
 
-bool ServerPlayer::updateNextUnloadedChunk() {
-    while ((m_nextUnloadedChunk < m_maxNumChunks)
-        && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition))) {
+bool ServerPlayer::updateNextUnloadedChunk()
+{
+    while (
+        (m_nextUnloadedChunk < m_maxNumChunks)
+        && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition)))
+    {
         m_nextUnloadedChunk++;
     }
     return m_nextUnloadedChunk == m_maxNumChunks;
 }
 
-void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
+void ServerPlayer::getNextChunkCoords(int* chunkCoords)
+{
     chunkCoords[0] = m_unloadedChunks[m_nextUnloadedChunk].x + m_playerChunkPosition[0];
     chunkCoords[1] = m_unloadedChunks[m_nextUnloadedChunk].y + m_playerChunkPosition[1];
     chunkCoords[2] = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkPosition[2];
@@ -149,35 +152,41 @@ void ServerPlayer::getNextChunkCoords(int* chunkCoords) {
     m_nextUnloadedChunk++;
 }
 
-bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange) {
+void ServerPlayer::beginUnloadingChunks()
+{
+    m_processedChunk = m_loadedChunks.begin();
+}
+
+bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange)
+{
     if (m_processedChunk == m_loadedChunks.end()) {
         m_nextUnloadedChunk = 0;
-        m_targetNumLoadedChunks = 0;
+        m_currentNumLoadedChunks = 0;
         *chunkOutOfRange = false;
         return false;
     }
-    else {
-        int a = m_processedChunk->x - m_playerChunkPosition[0];
-        int b = m_processedChunk->y - m_playerChunkPosition[1];
-        int c = m_processedChunk->z - m_playerChunkPosition[2];
-        *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
-        if (*chunkOutOfRange) {
-            *chunkPosition = *m_processedChunk;
-            m_processedChunk = m_loadedChunks.erase(m_processedChunk);
-        }
-        else {
-            m_processedChunk++;
-        }
-        return true;
+
+    int a = m_processedChunk->x - m_playerChunkPosition[0];
+    int b = m_processedChunk->y - m_playerChunkPosition[1];
+    int c = m_processedChunk->z - m_playerChunkPosition[2];
+    *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
+    if (*chunkOutOfRange) {
+        *chunkPosition = *m_processedChunk;
+        m_processedChunk = m_loadedChunks.erase(m_processedChunk);
     }
+    else {
+        m_processedChunk++;
+    }
+
+    return true;
 }
 
 bool ServerPlayer::updateChunkLoadingTarget()
 {
     updateNextUnloadedChunk();
-    int oldTarget = m_targetNumLoadedChunks;
-    m_targetNumLoadedChunks = m_nextUnloadedChunk + m_targetBufferSize;
-    return m_targetNumLoadedChunks != oldTarget;
+    int oldTarget = m_currentNumLoadedChunks;
+    m_currentNumLoadedChunks = m_nextUnloadedChunk;
+    return m_currentNumLoadedChunks != oldTarget;
 }
 
 }  // namespace lonelycube

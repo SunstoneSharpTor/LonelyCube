@@ -39,7 +39,7 @@ private:
     int m_playerChunkPosition[3];
     int m_nextUnloadedChunk;
     int m_targetBufferSize;
-    int m_targetNumLoadedChunks;
+    int m_currentNumLoadedChunks;
     int64_t m_numChunkRequests;
     int m_playerID;
     ENetPeer* m_peer;
@@ -56,6 +56,7 @@ public:
     void updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition);
     bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords);
+    void beginUnloadingChunks();
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
     bool updateChunkLoadingTarget();
 
@@ -106,15 +107,23 @@ public:
     }
     inline void setChunkLoadingTarget(int target)
     {
-        m_targetNumLoadedChunks = target;
+        m_currentNumLoadedChunks = target;
     }
     inline int getChunkLoadingTarget() const
     {
-        return m_targetNumLoadedChunks;
+        return m_currentNumLoadedChunks;
     }
     inline bool wantsMoreChunks()
     {
-        return m_nextUnloadedChunk < m_targetNumLoadedChunks;
+        return m_nextUnloadedChunk < m_currentNumLoadedChunks + m_targetBufferSize;
+    }
+    inline int getTargetBufferSize() const
+    {
+        return m_targetBufferSize;
+    }
+    inline void setTargetBufferSize(const int bufferSize)
+    {
+        m_targetBufferSize = bufferSize;
     }
     inline int64_t getNumChunkRequests()
     {
