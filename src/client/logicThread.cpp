@@ -42,7 +42,6 @@ static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running,
 
 static void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool&
     running, int8_t threadNum, int& numThreadsBeingUsed) {
-    int numNCalls = 0;
     while (running) {
         while (threadNum >= numThreadsBeingUsed && running) {
             mainWorld.setThreadWaiting(threadNum, true);
@@ -82,15 +81,18 @@ void LogicThread::go(bool& running)
                     threadManager.throttleThreads();
 
                 // Send the server the player's position
-                Packet<int, 3> payload(m_mainWorld.getClientID(), PacketType::ClientPosition, 3);
+                Packet<int64_t, 6> payload(m_mainWorld.getClientID(), PacketType::ClientPosition, 6);
                 payload[0] = m_mainPlayer.cameraBlockPosition[0];
                 payload[1] = m_mainPlayer.cameraBlockPosition[1];
                 payload[2] = m_mainPlayer.cameraBlockPosition[2];
-                m_networking.getMutex().lock();
+                // Also send the request for the chunks that the server should send
+                m_mainWorld.integratedServer.updateClientChunkLoadingTarget();
+                ServerPlayer& player = m_mainWorld.integratedServer.getPlayer(0);
+                payload[3] = player.incrementNumChunkRequests();
+                payload[4] = player.getChunkLoadingTarget();
+                payload[5] = player.getTargetBufferSize();
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), 0);
                 enet_peer_send(m_networking.getPeer(), 1, packet);
-                m_networking.getMutex().unlock();
-                m_mainWorld.scheduleChunkRequest();
 
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
             }

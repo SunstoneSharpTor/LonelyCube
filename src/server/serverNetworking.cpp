@@ -19,6 +19,7 @@
 #include "serverNetworking.h"
 
 #include "core/pch.h"
+#include <cstdint>
 #include <cstring>
 
 #include "core/log.h"
@@ -80,7 +81,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     break;
     case PacketType::ClientPosition:
     {
-        Packet<int, 3> payload;
+        Packet<int64_t, 6> payload;
         memcpy(&payload, packet->data, packet->dataLength);
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
@@ -92,8 +93,11 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
             int oldPlayerCoords[3];
             it->second.getBlockPosition(oldPlayerCoords);
             IVec3 oldPlayerChunkCoords = Chunk::getChunkCoords(oldPlayerCoords);
-            int newPlayerPos[3];
-            memcpy(newPlayerPos, payload.getPayloadAddress(), 3 * sizeof(int));
+            int newPlayerPos[3] = {
+                        static_cast<int>(payload[0]),
+                        static_cast<int>(payload[1]),
+                        static_cast<int>(payload[2])
+            };
             IVec3 newPlayerChunkCoords = Chunk::getChunkCoords(newPlayerPos);
             bool unloadNeeded = newPlayerChunkCoords != oldPlayerChunkCoords;
             if (unloadNeeded) {
@@ -102,6 +106,14 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
             float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
             mainWorld.updatePlayerPos(playerID, newPlayerPos, subBlockPosition, unloadNeeded);
+
+            if (payload[3] > mainWorld.getPlayer(playerID).getNumChunkRequests())
+            {
+                ServerPlayer& player = mainWorld.getPlayer(playerID);
+                player.setChunkLoadingTarget(payload[4]);
+                player.setTargetBufferSize(payload[5]);
+                LOG("Chunk request for " + std::to_string(payload[4]));
+            }
 
             if (unloadNeeded) {
                 mainWorld.releaseChunkLoaderThreads();
@@ -123,6 +135,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     {
         Packet<int64_t, 2> payload;
         memcpy(&payload, packet->data, packet->dataLength);
+        LOG("Chunk request for " + std::to_string(payload[1]));
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
         if (it == mainWorld.getPlayers().end()) {
@@ -130,7 +143,12 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
         }
         else {
             if (payload[0] > mainWorld.getPlayer(playerID).getNumChunkRequests())
-                mainWorld.getPlayer(playerID).setChunkLoadingTarget(payload[1]);
+            {
+                ServerPlayer& player = mainWorld.getPlayer(playerID);
+                player.setChunkLoadingTarget(payload[1]);
+                player.setTargetBufferSize(payload[2]);
+                LOG("Chunk request for " + std::to_string(payload[1]));
+            }
         }
     }
     break;
