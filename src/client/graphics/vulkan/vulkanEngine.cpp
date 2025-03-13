@@ -892,6 +892,40 @@ AllocatedBuffer VulkanEngine::createBuffer(
     return newBuffer;
 }
 
+AllocatedHostVisibleAndDeviceLocalBuffer VulkanEngine::createHostVisibleAndDeviceLocalBuffer(
+    size_t allocationSize, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags
+) {
+    AllocatedHostVisibleAndDeviceLocalBuffer newBuffer;
+    VmaAllocationCreateFlags hostVisibleAndDeviceLocalFlags =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
+        VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    newBuffer.deviceLocalBuffer = createBuffer(allocationSize, usage, flags);
+
+    VkMemoryPropertyFlags memPropFlags;
+    vmaGetAllocationMemoryProperties(
+        m_allocator, newBuffer.deviceLocalBuffer.allocation, &memPropFlags
+    );
+    newBuffer.hostVisibleAndDeviceLocal = memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+
+    if (newBuffer.hostVisibleAndDeviceLocal)
+    {
+        newBuffer.mappedData = newBuffer.deviceLocalBuffer.info.pMappedData;
+    }
+    else
+    {
+        newBuffer.stagingBuffer = createBuffer(
+            allocationSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                VMA_ALLOCATION_CREATE_MAPPED_BIT 
+        );
+        newBuffer.mappedData = newBuffer.stagingBuffer.info.pMappedData;
+    }
+
+    return newBuffer;
+}
+
 GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uint32_t> indices)
 {
     const size_t vertexBufferSize = vertices.size() * sizeof(float);
@@ -923,10 +957,11 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT 
     );
 
-    void* data = staging.allocation->GetMappedData();
-
-    memcpy(data, vertices.data(), vertexBufferSize);
-    memcpy(reinterpret_cast<char*>(data) + vertexBufferSize, indices.data(), indexBufferSize);
+    memcpy(staging.info.pMappedData, vertices.data(), vertexBufferSize);
+    memcpy(
+        reinterpret_cast<int8_t*>(staging.info.pMappedData) + vertexBufferSize, indices.data(),
+        indexBufferSize
+    );
 
     immediateSubmit([&](VkCommandBuffer command) {
         VkBufferCopy vertexCopy{};
