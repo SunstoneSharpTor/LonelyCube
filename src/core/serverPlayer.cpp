@@ -21,7 +21,6 @@
 #include "core/pch.h"
 
 #include "core/chunk.h"
-#include "core/constants.h"
 #include "core/utils/iVec3.h"
 
 namespace lonelycube {
@@ -103,7 +102,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(1), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
+    m_targetBufferSize(50), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
@@ -140,15 +139,15 @@ bool ServerPlayer::updateNextUnloadedChunk()
     {
         m_nextUnloadedChunk++;
     }
-    return m_nextUnloadedChunk == m_maxNumChunks;
+    return m_nextUnloadedChunk < m_maxNumChunks;
 }
 
-void ServerPlayer::getNextChunkCoords(int* chunkCoords)
+void ServerPlayer::getNextChunkCoords(int* chunkCoords, uint64_t currentGameTick)
 {
     chunkCoords[0] = m_unloadedChunks[m_nextUnloadedChunk].x + m_playerChunkPosition[0];
     chunkCoords[1] = m_unloadedChunks[m_nextUnloadedChunk].y + m_playerChunkPosition[1];
     chunkCoords[2] = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkPosition[2];
-    m_loadedChunks.emplace(chunkCoords);
+    m_loadedChunks[chunkCoords] = currentGameTick;
     m_nextUnloadedChunk++;
 }
 
@@ -166,12 +165,12 @@ bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chun
         return false;
     }
 
-    int a = m_processedChunk->x - m_playerChunkPosition[0];
-    int b = m_processedChunk->y - m_playerChunkPosition[1];
-    int c = m_processedChunk->z - m_playerChunkPosition[2];
+    int a = m_processedChunk->first.x - m_playerChunkPosition[0];
+    int b = m_processedChunk->first.y - m_playerChunkPosition[1];
+    int c = m_processedChunk->first.z - m_playerChunkPosition[2];
     *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
     if (*chunkOutOfRange) {
-        *chunkPosition = *m_processedChunk;
+        *chunkPosition = m_processedChunk->first;
         m_processedChunk = m_loadedChunks.erase(m_processedChunk);
     }
     else {

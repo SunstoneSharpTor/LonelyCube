@@ -310,10 +310,9 @@ void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE 
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
     IVec3 chunkPosition;
     integratedServer.loadChunkFromPacket(payload, chunkPosition);
-    m_unmeshedChunksMtx.lock();
+    std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
     m_unmeshedChunks.insert(chunkPosition);
     m_recentChunksBuilt.push(chunkPosition);
-    m_unmeshedChunksMtx.unlock();
 }
 
 void ClientWorld::unmeshChunks() {
@@ -543,10 +542,10 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
         }
         m_unmeshedChunksMtx.unlock();
     }
-    else if (!m_singleplayer && m_clientID > -1)
-    {
-        requestMoreChunks();
-    }
+    // else if (!m_singleplayer && m_clientID > -1)
+    // {
+    //     requestMoreChunks();
+    // }
 }
 
 uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {

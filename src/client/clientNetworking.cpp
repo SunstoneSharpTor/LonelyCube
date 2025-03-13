@@ -83,7 +83,6 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
         Packet<uint8_t, 9 * constants::CHUNK_SIZE * constants::CHUNK_SIZE *
             constants::CHUNK_SIZE> payload;
         memcpy(&payload, packet->data, packet->dataLength);
-        LOG("Chunk recieved");
         mainWorld.loadChunkFromPacket(payload);
     }
     break;
@@ -110,6 +109,7 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
         m_hostMtx.unlock();
         switch(event.type) {
             case ENET_EVENT_TYPE_RECEIVE:
+                LOG("Received packet");
                 receivePacket(event.packet, mainWorld);
                 break;
             default:

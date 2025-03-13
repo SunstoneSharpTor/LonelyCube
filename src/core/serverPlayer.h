@@ -22,7 +22,8 @@
 
 #include "core/pch.h"
 
-#include "core/chunk.h"
+#include "core/constants.h"
+#include "core/log.h"
 #include "core/utils/iVec3.h"
 
 namespace lonelycube {
@@ -44,25 +45,26 @@ private:
     int m_playerID;
     ENetPeer* m_peer;
     uint32_t m_lastPacketTick;
-    std::unordered_set<IVec3> m_loadedChunks;
-    std::unordered_set<IVec3>::iterator m_processedChunk;
+    std::unordered_map<IVec3, uint64_t> m_loadedChunks;
+    std::unordered_map<IVec3, uint64_t>::iterator m_processedChunk;
 
     void initChunkPositions();
     void initChunks();
+
 public:
     ServerPlayer() {};
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick);
     ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
     void updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition);
     bool updateNextUnloadedChunk();
-    void getNextChunkCoords(int* chunkCoords);
+    void getNextChunkCoords(int* chunkCoords, uint64_t currentGameTick);
     void beginUnloadingChunks();
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
     bool updateChunkLoadingTarget();
 
-    inline void setChunkLoaded(const IVec3& chunkPosition)
+    inline void setChunkLoaded(const IVec3& chunkPosition, uint64_t currentGameTick)
     {
-        m_loadedChunks.insert(chunkPosition);
+        m_loadedChunks[chunkPosition] = currentGameTick;
     }
 
     inline int getID() const {
@@ -105,9 +107,19 @@ public:
         blockPosition[1] = m_blockPosition[1];
         blockPosition[2] = m_blockPosition[2];
     }
-    inline void setChunkLoadingTarget(int target)
+    inline void setChunkLoadingTarget(int target, uint64_t currentTickNum)
     {
         m_currentNumLoadedChunks = target;
+
+        // If the server thinks the target chunk was already sent to the client
+        // a long time ago, resend it because the client has probably unloaded it
+        auto it = m_loadedChunks.find(m_unloadedChunks[target] + m_playerChunkPosition);
+        if (it != m_loadedChunks.end() && it->second + constants::TICKS_PER_SECOND < currentTickNum)
+        {
+            LOG("Resending " + std::to_string(target));
+            m_loadedChunks.erase(it);
+            m_nextUnloadedChunk = target;
+        }
     }
     inline int getChunkLoadingTarget() const
     {
@@ -129,16 +141,13 @@ public:
     {
         return m_numChunkRequests;
     }
-    inline int incrementNumChunkRequests()
+    inline void setNumChunkRequests(int64_t numRequests)
+    {
+        m_numChunkRequests = numRequests;
+    }
+    inline int64_t incrementNumChunkRequests()
     {
         return ++m_numChunkRequests;
-    }
-    int getChunkNumber(const IVec3& chunkCoords)
-    {
-        IVec3 relativeChunkCoords = chunkCoords - m_playerChunkPosition;
-        int i;
-        for (i = 0; m_unloadedChunks[i] != relativeChunkCoords; i++) {}
-        return i;
     }
 };
 

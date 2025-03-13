@@ -18,23 +18,24 @@
 
 #pragma once
 
-#include "core/chunkManager.h"
-#include "core/entities/entityManager.h"
 #include "core/pch.h"
 
 #include "enet/enet.h"
 
 #include "core/block.h"
 #include "core/chunk.h"
+#include "core/chunkManager.h"
 #include "core/compression.h"
 #include "core/constants.h"
+#include "core/entities/entityManager.h"
 #include "core/log.h"
 #include "core/packet.h"
 #include "core/random.h"
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
-#include <chrono>
+#include <mutex>
+#include <string>
 
 namespace lonelycube {
 
@@ -47,7 +48,7 @@ private:
     uint64_t m_seed;
     uint16_t m_nextPlayerID;
     uint16_t m_numChunkLoadingThreads;
-    uint32_t m_gameTick;
+    uint64_t m_gameTick;
     ResourcePack m_resourcePack;
     std::chrono::time_point<std::chrono::steady_clock> m_timeOfLastTick;
 
@@ -94,7 +95,7 @@ public:
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
     }
-    inline uint32_t getTickNum() {
+    inline uint64_t getTickNum() {
         return m_gameTick;
     }
     inline ResourcePack& getResourcePack() {
@@ -104,6 +105,7 @@ public:
     {
         return m_entityManager;
     }
+    void setPlayerChunkLoadingTarget(int playerID, uint64_t chunkRequestNum, int target, int bufferSize);
     bool updateClientChunkLoadingTarget();
 };
 
@@ -148,10 +150,6 @@ void ServerWorld<integrated>::updatePlayerPos(
                 }
             }
         }
-        while (!m_chunksToBeLoaded.empty()) {
-            m_chunksToBeLoaded.pop();
-        }
-        m_chunksBeingLoaded.clear();
         m_chunksBeingLoadedMtx.unlock();
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.unlock();
@@ -165,9 +163,9 @@ void ServerWorld<integrated>::findChunksToLoad() {
     std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
     std::lock_guard<std::mutex> lock3(m_chunksMtx);
     for (auto& [playerID, player] : m_players) {
-        if (!player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
+        if (player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
             int chunkPosition[3];
-            player.getNextChunkCoords(chunkPosition);
+            player.getNextChunkCoords(chunkPosition, m_gameTick);
             auto it = chunkManager.getWorldChunks().find(IVec3(chunkPosition));
             if (it != chunkManager.getWorldChunks().end()) {
                 it->second.incrementPlayerCount();
@@ -177,6 +175,7 @@ void ServerWorld<integrated>::findChunksToLoad() {
                     Compression::compressChunk(payload, it->second);
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                    std::lock_guard<std::mutex> lock(m_networkingMtx);
                     enet_peer_send(player.getPeer(), 0, packet);
                 }
             }
@@ -220,6 +219,7 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
                 if (!integrated) {
                     payload.setPeerID(playerID);
                     ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+                    std::lock_guard<std::mutex> lock(m_networkingMtx);
                     enet_peer_send(player.getPeer(), 0, packet);
                 }
             }
@@ -247,7 +247,7 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     chunk.setSkyLightBeingRelit(false);
     chunk.setBlockLightBeingRelit(false);
     if (integrated)
-        m_players.at(0).setChunkLoaded(chunkPosition);
+        m_players.at(0).setChunkLoaded(chunkPosition, m_gameTick);
 }
 
 // Overload used by the physical server
@@ -375,6 +375,7 @@ void ServerWorld<integrated>::broadcastBlockReplaced(int* blockCoords, int block
     }
     payload[3] = blockType;
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
+    std::lock_guard<std::mutex> lock(m_networkingMtx);
     for (auto& [playerID, player] : m_players) {
         if ((playerID != originalPlayerID) && (player.hasChunkLoaded(chunkPosition))) {
             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
@@ -393,8 +394,23 @@ float ServerWorld<integrated>::getTimeSinceLastTick()
 template<bool integrated>
 bool ServerWorld<integrated>::updateClientChunkLoadingTarget()
 {
-    std::lock_guard<std::mutex> lock(m_chunksMtx);
+    std::lock_guard<std::mutex> lock(m_playersMtx);
     return m_players.at(0).updateChunkLoadingTarget();
+}
+
+template<bool integrated>
+void ServerWorld<integrated>::setPlayerChunkLoadingTarget(
+    int playerID, uint64_t chunkRequestNum, int target, int bufferSize
+) {
+    std::lock_guard<std::mutex> lock(m_playersMtx);
+    ServerPlayer& player = getPlayer(playerID);
+    if (chunkRequestNum > player.getNumChunkRequests())
+    {
+        player.setNumChunkRequests(chunkRequestNum);
+        player.setTargetBufferSize(bufferSize);
+        player.setChunkLoadingTarget(target, m_gameTick);
+        LOG("Chunk request for " + std::to_string(target));
+    }
 }
 
 }  // namespace lonelycube
