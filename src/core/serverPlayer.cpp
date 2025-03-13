@@ -102,7 +102,7 @@ ServerPlayer::ServerPlayer(
     int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
-    m_targetBufferSize(50), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
+    m_targetBufferSize(1), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
 {
     m_blockPosition[0] = blockPosition[0];
     m_blockPosition[1] = blockPosition[1];
