@@ -21,6 +21,7 @@
 #include "core/pch.h"
 #include <cstdint>
 #include <cstring>
+#include <thread>
 
 #include "core/log.h"
 #include "core/packet.h"
@@ -106,14 +107,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
             float subBlockPosition[3] = { 0.0f, 0.0f, 0.0f };
             mainWorld.updatePlayerPos(playerID, newPlayerPos, subBlockPosition, unloadNeeded);
-
-            if (payload[3] > mainWorld.getPlayer(playerID).getNumChunkRequests())
-            {
-                ServerPlayer& player = mainWorld.getPlayer(playerID);
-                player.setChunkLoadingTarget(payload[4]);
-                player.setTargetBufferSize(payload[5]);
-                LOG("Chunk request for " + std::to_string(payload[4]));
-            }
+            mainWorld.setPlayerChunkLoadingTarget(playerID, payload[3], payload[4], payload[5]);
 
             if (unloadNeeded) {
                 mainWorld.releaseChunkLoaderThreads();
@@ -142,13 +136,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 
         }
         else {
-            if (payload[0] > mainWorld.getPlayer(playerID).getNumChunkRequests())
-            {
-                ServerPlayer& player = mainWorld.getPlayer(playerID);
-                player.setChunkLoadingTarget(payload[1]);
-                player.setTargetBufferSize(payload[2]);
-                LOG("Chunk request for " + std::to_string(payload[1]));
-            }
+            mainWorld.setPlayerChunkLoadingTarget(playerID, payload[0], payload[1], payload[2]);
         }
     }
     break;
@@ -164,7 +152,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
 void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
     ENetEvent event;
     m_hostMtx.lock();
-    while (enet_host_service(m_host, &event, 4) > 0) {
+    while (enet_host_service(m_host, &event, 0) > 0) {
         m_hostMtx.unlock();
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
@@ -177,8 +165,8 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 // LOG(std::string((const char*)event.peer->data) + " disconnected.");
-                // // Reset the peer's client information
-                // event.peer->data = NULL;
+                // Reset the peer's client information
+                event.peer->data = NULL;
                 break;
             case ENET_EVENT_TYPE_NONE:
                 break;
@@ -186,6 +174,7 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
         m_hostMtx.lock();
     }
     m_hostMtx.unlock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(4));
 }
 
 }  // namespace lonelycube::server

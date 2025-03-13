@@ -92,6 +92,7 @@ void LogicThread::go(bool& running)
                 payload[4] = player.getChunkLoadingTarget();
                 payload[5] = player.getTargetBufferSize();
                 ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), 0);
+                std::lock_guard<std::mutex> lock(m_networking.getMutex());
                 enet_peer_send(m_networking.getPeer(), 1, packet);
 
                 nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
