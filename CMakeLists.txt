@@ -54,6 +54,7 @@ set(CLIENT_SOURCE_FILES
     src/client/clientWorld.cpp
     # src/client/graphics/bloom.cpp
     src/client/graphics/camera.cpp
+    src/client/graphics/entityMeshManager.cpp
     # src/client/graphics/luminance.cpp
     src/client/graphics/meshBuilder.cpp
     src/client/graphics/renderer.cpp

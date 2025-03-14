@@ -85,7 +85,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(1.0f);
+    Renderer renderer(std::sqrt(2.0f));
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -112,251 +112,250 @@ void renderThread() {
     );
     std::thread logicWorker(&LogicThread::go, logicThread, std::ref(running));
 
-    {
-        bool windowLastFocus = false;
-        bool windowFullScreen = false;
-        bool lastWindowFullScreen = false;
-        bool lastLastWindowFullScreen = false;
-        int windowRestoredSize[2];
-        int windowRestoredPos[2];
-        bool lastF11 = false;
-        int windowDimensions[2];
-        int smallScreenWindowDimensions[2];
-        int smallScreenWindowPos[2];
-        glfwGetWindowSize(
-            renderer.getVulkanEngine().getWindow(), &windowDimensions[0], &windowDimensions[1]
-        );
-        const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    bool windowLastFocus = false;
+    bool windowFullScreen = false;
+    bool lastWindowFullScreen = false;
+    bool lastLastWindowFullScreen = false;
+    int windowRestoredSize[2];
+    int windowRestoredPos[2];
+    bool lastF11 = false;
+    int windowDimensions[2];
+    int smallScreenWindowDimensions[2];
+    int smallScreenWindowPos[2];
+    glfwGetWindowSize(
+        renderer.getVulkanEngine().getWindow(), &windowDimensions[0], &windowDimensions[1]
+    );
+    const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-        mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
+    mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
 
-        double time;
-        mainPlayer.processUserInput(
-            renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, time,
-            networking
-        );
+    double time;
+    mainPlayer.processUserInput(
+        renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, time,
+        networking
+    );
+    mainWorld.doRenderThreadJobs();
+
+    //set up game loop
+    float exposure = 0.0;
+    float exposureTimeByDTs = 0.0;
+    int FPS_CAP = std::numeric_limits<int>::max();
+    double DT = 1.0 / FPS_CAP;
+    uint64_t lastFrameRateFrames = 0;
+    auto start = std::chrono::steady_clock::now();
+    auto end = start;
+    time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
+    double frameStart = time - DT;
+    float lastFrameRateTime = frameStart + DT;
+    while (running) {
+        glfwPollEvents();
+        //toggle fullscreen if F11 pressed
+        if (glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
+            if (windowFullScreen) {
+                glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
+                    smallScreenWindowPos[0], smallScreenWindowPos[1],
+                    smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
+                    displayMode->refreshRate );
+            }
+            else {
+                smallScreenWindowDimensions[0] = windowDimensions[0];
+                smallScreenWindowDimensions[1] = windowDimensions[1];
+                glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
+                glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
+                    0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
+            }
+
+            windowFullScreen = !windowFullScreen;
+        }
+        lastF11 = glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS;
+        int windowSize[2];
+        glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize[0], &windowSize[1]);
+        if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
+            windowDimensions[0] = windowSize[0];
+            windowDimensions[1] = windowSize[1];
+        }
+        lastLastWindowFullScreen = lastWindowFullScreen;
+        lastWindowFullScreen = windowFullScreen;
+
+        // Render if a frame is needed
+        end = std::chrono::steady_clock::now();
+        double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>
+            (end - start).count() / 1000000;
+        if (currentTime > frameStart + DT) {
+            double actualDT = currentTime - frameStart;
+            if (currentTime - lastFrameRateTime > 1) {
+                LOG(
+                    std::to_string(
+                        renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
+                    ) + " FPS"
+                );
+                LOG(
+                    std::to_string(
+                        mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]
+                    ) + ", " + std::to_string(
+                        mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]
+                    ) + ", " + std::to_string(
+                        mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]
+                    )
+                );
+                lastFrameRateTime += 1;
+                lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
+            }
+            //update frame rate limiter
+            if ((currentTime - DT) < (frameStart + DT)) {
+                frameStart += DT;
+            }
+            else {
+                frameStart = currentTime;
+            }
+
+            mainPlayer.processUserInput(
+                renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
+                currentTime, networking
+            );
+            mainWorld.updateMeshes();
+            mainWorld.updatePlayerPos(
+                mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
+            );
+
+            //create model view projection matrix for the world
+            float fov = 60.0f;
+            fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
+            glm::mat4 projection = glm::perspective(
+                glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.1f,
+                (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
+            );
+            glm::mat4 projectionReversedDepth = glm::perspective(
+                glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
+                (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.1f
+            );
+            glm::mat4 view;
+            mainPlayer.viewCamera.getViewMatrix(&view);
+            glm::mat4 viewProjection = projectionReversedDepth * view;
+
+            uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
+            // Calculate ground luminance
+            float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
+            // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
+
+            glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
+                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
+            renderer.skyRenderInfo.sunDir = sunDirection;
+            renderer.skyRenderInfo.inverseViewProjection = glm::inverse(
+                projection * glm::lookAt(
+                    glm::vec3(0.0f), mainPlayer.viewCamera.front, -mainPlayer.viewCamera.up
+            ));
+            renderer.skyRenderInfo.brightness = groundLuminance;
+            renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
+            renderer.skyRenderInfo.sunGlowAmount = std::pow(
+                std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
+            );
+
+            renderer.beginRenderingFrame();
+            renderer.drawSky();
+            renderer.drawSun();
+            renderer.beginDrawingGeometry();
+
+            // Render the world geometry
+            float cameraSubBlockPos[3];
+            mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
+            mainWorld.renderWorld(
+                viewProjection, mainPlayer.cameraBlockPosition,
+                glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
+                (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
+                actualDT
+            );
+
+            // //auto tp2 = std::chrono::high_resolution_clock::now();
+            // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+
+            // //auto tp1 = std::chrono::high_resolution_clock::now();
+            // #ifndef GLES3
+            // bloom.render(0.005f, 0.005f);
+            // #endif
+            // //auto tp2 = std::chrono::high_resolution_clock::now();
+            // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+
+            // Draw the block outline
+            int breakBlockCoords[3];
+            int placeBlockCoords[3];
+            uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
+                mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
+                breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
+                //create the model view projection matrix for the outline
+                glm::vec3 offset;
+                for (uint8_t i = 0; i < 3; i++)
+                    offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
+                offset += glm::vec3(0.5f, 0.5f, 0.5f);
+                renderer.drawBlockOutline(
+                    viewProjection, offset,
+                    mainWorld.integratedServer.getResourcePack().getBlockData(
+                        lookingAtBlock).model->boundingBoxVertices
+                );
+            }
+
+            renderer.finishDrawingGeometry();
+
+            // // Update auto exposure
+            // #ifndef GLES3
+            // float luminanceVal = luminance.calculate();
+            // #else
+            const float minDarknessAmbientLight = 0.00002f;
+            float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
+            float skyLightLevel = (float)mainWorld.integratedServer.chunkManager.getSkyLight(
+                mainPlayer.cameraBlockPosition) / constants::skyLightMaxValue;
+            float factor = skyLightLevel * skyLightLevel * skyLightLevel;
+            float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
+                * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
+                45.0f) * (1.0f - factor);
+            float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
+            // #endif
+            float targetExposure = std::max(1.0f / 10.0f, std::min(0.15f / luminanceVal, 1.0f / 0.005f));
+            exposureTimeByDTs += actualDT;
+            while (exposureTimeByDTs > (1.0 / (double)constants::visualTPS)) {
+                float fac = 0.008f;
+                exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
+                    std::abs(targetExposure - exposure),
+                    (targetExposure - exposure) * (targetExposure - exposure) * fac
+                );
+                exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
+            }
+
+            renderer.exposure = exposure;
+            renderer.applyExposure();
+
+            renderer.drawCrosshair();
+
+            // // Draw the crosshair
+            // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+            // glActiveTexture(GL_TEXTURE0);
+            // mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
+            // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
+            // font.draw(mainRenderer);
+
+            renderer.submitFrame();
+        }
         mainWorld.doRenderThreadJobs();
 
-        //set up game loop
-        float exposure = 0.0;
-        float exposureTimeByDTs = 0.0;
-        int FPS_CAP = std::numeric_limits<int>::max();
-        double DT = 1.0 / FPS_CAP;
-        uint64_t lastFrameRateFrames = 0;
-        auto start = std::chrono::steady_clock::now();
-        auto end = start;
-        time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
-        double frameStart = time - DT;
-        float lastFrameRateTime = frameStart + DT;
-        while (running) {
-            glfwPollEvents();
-            //toggle fullscreen if F11 pressed
-            if (glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
-                if (windowFullScreen) {
-                    glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
-                        smallScreenWindowPos[0], smallScreenWindowPos[1],
-                        smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
-                        displayMode->refreshRate );
-                }
-                else {
-                    smallScreenWindowDimensions[0] = windowDimensions[0];
-                    smallScreenWindowDimensions[1] = windowDimensions[1];
-                    glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
-                    glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
-                        0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
-                }
-
-                windowFullScreen = !windowFullScreen;
-            }
-            lastF11 = glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS;
-            int windowSize[2];
-            glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize[0], &windowSize[1]);
-            if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
-                windowDimensions[0] = windowSize[0];
-                windowDimensions[1] = windowSize[1];
-            }
-            lastLastWindowFullScreen = lastWindowFullScreen;
-            lastWindowFullScreen = windowFullScreen;
-
-            // Render if a frame is needed
-            end = std::chrono::steady_clock::now();
-            double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>
-                (end - start).count() / 1000000;
-            if (currentTime > frameStart + DT) {
-                double actualDT = currentTime - frameStart;
-                if (currentTime - lastFrameRateTime > 1) {
-                    LOG(
-                        std::to_string(
-                            renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
-                        ) + " FPS"
-                    );
-                    LOG(
-                        std::to_string(
-                            mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]
-                        ) + ", " + std::to_string(
-                            mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]
-                        ) + ", " + std::to_string(
-                            mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]
-                        )
-                    );
-                    lastFrameRateTime += 1;
-                    lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
-                }
-                //update frame rate limiter
-                if ((currentTime - DT) < (frameStart + DT)) {
-                    frameStart += DT;
-                }
-                else {
-                    frameStart = currentTime;
-                }
-
-                mainPlayer.processUserInput(
-                    renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
-                    currentTime, networking
-                );
-                mainWorld.updateMeshes();
-                mainWorld.updatePlayerPos(
-                    mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
-                );
-
-                //create model view projection matrix for the world
-                float fov = 60.0f;
-                fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
-                glm::mat4 projection = glm::perspective(
-                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.1f,
-                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
-                );
-                glm::mat4 projectionReversedDepth = glm::perspective(
-                    glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
-                    (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.1f
-                );
-                glm::mat4 view;
-                mainPlayer.viewCamera.getViewMatrix(&view);
-                glm::mat4 viewProjection = projectionReversedDepth * view;
-
-                uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
-                // Calculate ground luminance
-                float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
-                // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
-
-                glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
-                    constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
-                    constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
-                renderer.skyRenderInfo.sunDir = sunDirection;
-                renderer.skyRenderInfo.inverseViewProjection = glm::inverse(
-                    projection * glm::lookAt(
-                        glm::vec3(0.0f), mainPlayer.viewCamera.front, -mainPlayer.viewCamera.up
-                ));
-                renderer.skyRenderInfo.brightness = groundLuminance;
-                renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
-                renderer.skyRenderInfo.sunGlowAmount = std::pow(
-                    std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
-                );
-
-                renderer.beginRenderingFrame();
-                renderer.drawSky();
-                renderer.drawSun();
-                renderer.beginDrawingGeometry();
-
-                // Render the world geometry
-                float cameraSubBlockPos[3];
-                mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
-                mainWorld.renderWorld(
-                    viewProjection, mainPlayer.cameraBlockPosition,
-                    glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
-                    (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
-                    actualDT
-                );
-
-                // //auto tp2 = std::chrono::high_resolution_clock::now();
-                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-
-                // //auto tp1 = std::chrono::high_resolution_clock::now();
-                // #ifndef GLES3
-                // bloom.render(0.005f, 0.005f);
-                // #endif
-                // //auto tp2 = std::chrono::high_resolution_clock::now();
-                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-
-                // Draw the block outline
-                int breakBlockCoords[3];
-                int placeBlockCoords[3];
-                uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
-                    mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
-                    breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
-                    //create the model view projection matrix for the outline
-                    glm::vec3 offset;
-                    for (uint8_t i = 0; i < 3; i++)
-                        offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
-                    offset += glm::vec3(0.5f, 0.5f, 0.5f);
-                    renderer.drawBlockOutline(
-                        viewProjection, offset,
-                        mainWorld.integratedServer.getResourcePack().getBlockData(
-                            lookingAtBlock).model->boundingBoxVertices
-                    );
-                }
-
-                renderer.finishDrawingGeometry();
-
-                // // Update auto exposure
-                // #ifndef GLES3
-                // float luminanceVal = luminance.calculate();
-                // #else
-                const float minDarknessAmbientLight = 0.00002f;
-                float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
-                float skyLightLevel = (float)mainWorld.integratedServer.chunkManager.getSkyLight(
-                    mainPlayer.cameraBlockPosition) / constants::skyLightMaxValue;
-                float factor = skyLightLevel * skyLightLevel * skyLightLevel;
-                float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
-                    * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
-                    45.0f) * (1.0f - factor);
-                float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
-                // #endif
-                float targetExposure = std::max(1.0f / 10.0f, std::min(0.15f / luminanceVal, 1.0f / 0.005f));
-                exposureTimeByDTs += actualDT;
-                while (exposureTimeByDTs > (1.0 / (double)constants::visualTPS)) {
-                    float fac = 0.008f;
-                    exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
-                        std::abs(targetExposure - exposure),
-                        (targetExposure - exposure) * (targetExposure - exposure) * fac
-                    );
-                    exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
-                }
-
-                renderer.exposure = exposure;
-                renderer.applyExposure();
-
-                renderer.drawCrosshair();
-
-                // // Draw the crosshair
-                // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-                // glActiveTexture(GL_TEXTURE0);
-                // mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
-                // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-                // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
-                // font.draw(mainRenderer);
-
-                renderer.submitFrame();
-            }
-            mainWorld.doRenderThreadJobs();
-
-            if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
+        if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
+        {
+            do
             {
-                do
-                {
-                    running = false;
-                    for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
-                        running |= chunkLoaderThreadsRunning[i];
-                    }
-                    mainWorld.doRenderThreadJobs();
-                } while (running);
-            }
+                running = false;
+                for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
+                    running |= chunkLoaderThreadsRunning[i];
+                }
+                mainWorld.doRenderThreadJobs();
+            } while (running);
         }
-
-        vkDeviceWaitIdle(renderer.getVulkanEngine().getDevice());
-        mainWorld.unloadAllMeshes();
     }
+
+    vkDeviceWaitIdle(renderer.getVulkanEngine().getDevice());
+    mainWorld.unloadAllMeshes();
+    mainWorld.freeEntityMesh();
 
     logicWorker.join();
 

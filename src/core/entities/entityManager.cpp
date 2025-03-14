@@ -21,7 +21,6 @@
 #include "core/chunkManager.h"
 #include "core/constants.h"
 #include "core/entities/ECS.h"
-#include "core/entities/ECSView.h"
 #include "core/entities/components/itemComponent.h"
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/physicsComponent.h"

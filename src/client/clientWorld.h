@@ -20,17 +20,14 @@
 
 #include "core/pch.h"
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include "enet/enet.h"
 
-#include "client/graphics/renderer.h"
 #include "client/graphics/camera.h"
-#include "core/chunk.h"
-#include "core/entities/entityMeshManager.h"
+#include "client/graphics/entityMeshManager.h"
+#include "client/graphics/renderer.h"
 #include "core/packet.h"
-#include "core/utils/iVec3.h"
 #include "core/serverWorld.h"
+#include "core/utils/iVec3.h"
 
 namespace lonelycube::client {
 
@@ -107,7 +104,8 @@ private:
     int m_clientID;
     bool m_chunkRequestScheduled;
 
-    EntityMeshManager<true> m_meshManager;
+    EntityMeshManager m_meshManager;
+    GPUMutableMeshBuffers m_entityMesh;
 
     void unloadMesh(MeshData& mesh);
     bool chunkHasNeighbours(const IVec3& chunkPosition);
@@ -142,9 +140,14 @@ public:
     void doRenderThreadJobs();
     void updateMeshes();
     void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
-    void initialiseEntityRenderBuffers();
-    void deinitialiseEntityRenderBuffers();
     void unloadAllMeshes();
+    inline void freeEntityMesh()
+    {
+        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(
+            m_entityMesh.vertexBuffer);
+        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(
+            m_entityMesh.indexBuffer);
+    }
     inline void setClientID(int ID) {
         m_clientID = ID;
     }
