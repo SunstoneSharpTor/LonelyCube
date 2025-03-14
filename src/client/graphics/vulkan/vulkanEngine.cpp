@@ -23,6 +23,7 @@
 #include "core/log.h"
 #include <cassert>
 #include <string>
+#include <vulkan/vulkan_core.h>
 
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION
@@ -900,7 +901,9 @@ AllocatedHostVisibleAndDeviceLocalBuffer VulkanEngine::createHostVisibleAndDevic
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
         VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
         VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    newBuffer.deviceLocalBuffer = createBuffer(allocationSize, usage, flags);
+    newBuffer.deviceLocalBuffer = createBuffer(
+        allocationSize, usage, hostVisibleAndDeviceLocalFlags | flags
+    );
 
     VkMemoryPropertyFlags memPropFlags;
     vmaGetAllocationMemoryProperties(
@@ -926,6 +929,63 @@ AllocatedHostVisibleAndDeviceLocalBuffer VulkanEngine::createHostVisibleAndDevic
     return newBuffer;
 }
 
+void VulkanEngine::updateHostVisibleAndDeviceLocalBuffer(
+    VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer, uint32_t size,
+    VkAccessFlags accessMask
+) {
+    VK_CHECK(vmaFlushAllocation(m_allocator, buffer.deviceLocalBuffer.allocation, 0, size));
+
+    VkBufferMemoryBarrier bufMemBarrier{};
+    bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufMemBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+    bufMemBarrier.dstAccessMask = accessMask;
+    bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.offset = 0;
+    bufMemBarrier.size = size;
+
+    if (buffer.hostVisibleAndDeviceLocal)
+    {
+        bufMemBarrier.buffer = buffer.deviceLocalBuffer.buffer;
+        vkCmdPipelineBarrier(
+            command, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr,
+            1, &bufMemBarrier, 0, nullptr
+        );
+    }
+    else
+    {
+        bufMemBarrier.buffer = buffer.stagingBuffer.buffer;
+        vkCmdPipelineBarrier(
+            command, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr,
+            1, &bufMemBarrier, 0, nullptr
+        );
+
+        VkBufferCopy bufferCopy = {
+            0,  // srcOffset
+            0,  // dstOffset,
+            size,  // size
+        };
+        vkCmdCopyBuffer(
+            command, buffer.stagingBuffer.buffer, buffer.deviceLocalBuffer.buffer, 1, &bufferCopy
+        );
+
+        VkBufferMemoryBarrier bufMemBarrier2{};
+        bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufMemBarrier2.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        bufMemBarrier2.dstAccessMask = accessMask;
+        bufMemBarrier2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufMemBarrier2.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufMemBarrier2.buffer = buffer.deviceLocalBuffer.buffer;
+        bufMemBarrier2.offset = 0;
+        bufMemBarrier2.size = size;
+
+        vkCmdPipelineBarrier(
+            command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0,
+            nullptr, 1, &bufMemBarrier2, 0, nullptr
+        );
+    }
+}
+
 GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uint32_t> indices)
 {
     const size_t vertexBufferSize = vertices.size() * sizeof(float);
@@ -942,7 +1002,6 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
     VkBufferDeviceAddressInfo deviceAddressInfo{};
     deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     deviceAddressInfo.buffer = newMesh.vertexBuffer.buffer;
-
     newMesh.vertexBufferAddress = vkGetBufferDeviceAddress(m_device, &deviceAddressInfo);
 
     newMesh.indexBuffer = createBuffer(
@@ -981,6 +1040,52 @@ GPUMeshBuffers VulkanEngine::uploadMesh(std::span<float> vertices, std::span<uin
     newMesh.indexCount = indices.size();
 
     return newMesh;
+}
+
+GPUMutableMeshBuffers VulkanEngine::allocateMutableMesh(
+    uint32_t maxVertexBufferSize, uint32_t maxIndexBufferSize
+) {
+    GPUMutableMeshBuffers newMesh;
+    newMesh.vertexBuffer = createHostVisibleAndDeviceLocalBuffer(
+        maxVertexBufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        0
+    );
+
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer = newMesh.vertexBuffer.deviceLocalBuffer.buffer;
+    newMesh.vertexBufferAddress = vkGetBufferDeviceAddress(m_device, &deviceAddressInfo);
+
+    newMesh.indexBuffer = createHostVisibleAndDeviceLocalBuffer(
+        maxIndexBufferSize,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        0
+    );
+
+    newMesh.indexCount = 0;
+
+    return newMesh;
+}
+
+void VulkanEngine::updateMutableMesh(
+    VkCommandBuffer command, GPUMutableMeshBuffers& mesh, uint32_t vertexBufferSize,
+    uint32_t indexCount
+) {
+    if (vertexBufferSize > 0)
+    {
+        updateHostVisibleAndDeviceLocalBuffer(
+            command, mesh.vertexBuffer, vertexBufferSize, VK_ACCESS_SHADER_READ_BIT
+        );
+    }
+    if (indexCount > 0)
+    {
+        updateHostVisibleAndDeviceLocalBuffer(
+            command, mesh.indexBuffer, indexCount * sizeof(float), VK_ACCESS_INDEX_READ_BIT
+        );
+    }
+    mesh.indexCount = indexCount;
 }
 
 AllocatedImage VulkanEngine::createImage(

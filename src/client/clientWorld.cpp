@@ -43,7 +43,7 @@ ClientWorld::ClientWorld(
     ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
 ) : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_renderer(renderer),
     m_peer(peer), m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
-    m_meshManager(integratedServer, 1680000, 360000)
+    m_meshManager(integratedServer)
 {
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
@@ -78,6 +78,10 @@ ClientWorld::ClientWorld(
     m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
     m_unmeshNeeded = false;
+
+    m_entityMesh = m_renderer.getVulkanEngine().allocateMutableMesh(
+        1680000 * sizeof(float), 360000 * sizeof(uint32_t)
+    );
 
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -160,10 +164,16 @@ void ClientWorld::renderWorld(
     }
 
     // Render entities
-    // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
-    // m_meshManager.createBatch(playerBlockPosition);
-    // m_entityIndexBuffer->update(m_meshManager.indexBuffer.get(), m_meshManager.numIndices);
-    // m_entityVertexBuffer->update(m_meshManager.vertexBuffer.get(), m_meshManager.sizeOfVertices * sizeof(float));
+    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    m_meshManager.createBatch(
+        playerBlockPos, reinterpret_cast<float*>(m_entityMesh.vertexBuffer.mappedData),
+        reinterpret_cast<uint32_t*>(m_entityMesh.indexBuffer.mappedData)
+    );
+    FrameData& currentFrameData = m_renderer.getVulkanEngine().getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+    m_renderer.getVulkanEngine().updateMutableMesh(
+        command, m_entityMesh, m_meshManager.sizeOfVertices, m_meshManager.numIndices
+    );
     // blockShader.setUniformMat4f("u_modelView", viewMatrix);
     // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
 
@@ -627,26 +637,6 @@ void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value) {
         m_threadWaiting[threadNum] = false;
     }
     m_threadWaiting[threadNum] = value;
-}
-
-void ClientWorld::initialiseEntityRenderBuffers()
-{
-    // VertexBufferLayout entityLayout;
-    // entityLayout.push<float>(3);
-    // entityLayout.push<float>(2);
-    // entityLayout.push<float>(1);
-    // entityLayout.push<float>(1);
-    // m_entityVertexArray = new VertexArray();
-    // m_entityVertexBuffer = new VertexBuffer(m_meshManager.vertexBuffer.get(), 0, true);
-    // m_entityIndexBuffer = new IndexBuffer(m_meshManager.indexBuffer.get(), 0, true);
-    // m_entityVertexArray->addBuffer(*m_entityVertexBuffer, entityLayout);
-}
-
-void ClientWorld::deinitialiseEntityRenderBuffers()
-{
-    // delete m_entityVertexArray;
-    // delete m_entityVertexBuffer;
-    // delete m_entityIndexBuffer;
 }
 
 void ClientWorld::requestMoreChunks()

@@ -81,6 +81,14 @@ struct GPUMeshBuffers
     uint32_t indexCount;
 };
 
+struct GPUMutableMeshBuffers
+{
+    AllocatedHostVisibleAndDeviceLocalBuffer vertexBuffer;
+    AllocatedHostVisibleAndDeviceLocalBuffer indexBuffer;
+    VkDeviceAddress vertexBufferAddress;
+    uint32_t indexCount;
+};
+
 struct GPUDynamicMeshBuffers
 {
     AllocatedHostVisibleAndDeviceLocalBuffer vertexBuffer;
@@ -113,7 +121,7 @@ public:
         size_t allocationSize, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags
     );
     inline void destroyHostVisibleAndDeviceLocalBuffer(
-        const AllocatedHostVisibleAndDeviceLocalBuffer& buffer
+        AllocatedHostVisibleAndDeviceLocalBuffer& buffer
     ) {
         vmaDestroyBuffer(
             m_allocator, buffer.deviceLocalBuffer.buffer, buffer.deviceLocalBuffer.allocation
@@ -125,8 +133,19 @@ public:
             );
         }
     }
+    void updateHostVisibleAndDeviceLocalBuffer(
+        VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer, uint32_t size,
+        VkAccessFlags accessMask
+    );
     void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
     GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
+    GPUMutableMeshBuffers allocateMutableMesh(
+        uint32_t maxVertexBufferSize, uint32_t maxIndexBufferSize
+    );
+    void updateMutableMesh(
+        VkCommandBuffer command, GPUMutableMeshBuffers& mesh, uint32_t vertexBufferSize,
+        uint32_t indexCount
+    );
 
     // Images
     AllocatedImage createImage(
