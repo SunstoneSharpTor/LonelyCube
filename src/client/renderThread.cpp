@@ -327,12 +327,6 @@ void renderThread() {
 
             renderer.drawCrosshair();
 
-            // // Draw the crosshair
-            // glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-            // glActiveTexture(GL_TEXTURE0);
-            // mainRenderer.draw(crosshairVA, crosshairIB, crosshairShader);
-            // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
             // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
             // font.draw(mainRenderer);
 

@@ -30,6 +30,7 @@
 #include "core/random.h"
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
+#include "glm/ext/matrix_transform.hpp"
 
 namespace lonelycube::client {
 
@@ -153,8 +154,7 @@ void ClientWorld::renderWorld(
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, coordinatesVec);
+                glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), coordinatesVec);
                 m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
                 m_renderer.blockRenderInfo.cameraOffset = coordinatesVec - playerSubBlockPos;
                 m_renderer.drawBlocks(mesh.blockMesh);
@@ -164,12 +164,14 @@ void ClientWorld::renderWorld(
     }
 
     // Render entities
-    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
     m_entityMeshManager.createBatch(
         playerBlockPos, reinterpret_cast<float*>(m_entityMesh.vertexBuffer.mappedData),
         reinterpret_cast<uint32_t*>(m_entityMesh.indexBuffer.mappedData)
     );
-    m_renderer.blockRenderInfo.mvp = viewProj;
+    // glm::vec3 coordinatesVec(-playerBlockPos[0], -playerBlockPos[1], -playerBlockPos[2]);
+    m_renderer.blockRenderInfo.mvp = viewProj;  // * glm::translate(glm::mat4(1.0f), coordinatesVec);
+    m_renderer.blockRenderInfo.cameraOffset = -playerSubBlockPos;
     m_renderer.drawEntities(m_entityMeshManager, m_entityMesh);
 
     // Render water
@@ -180,8 +182,7 @@ void ClientWorld::renderWorld(
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, coordinatesVec);
+                glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), coordinatesVec);
                 m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
                 m_renderer.blockRenderInfo.cameraOffset = coordinatesVec;
                 m_renderer.drawBlocks(mesh.waterMesh);

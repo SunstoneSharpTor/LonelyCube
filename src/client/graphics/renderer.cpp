@@ -872,8 +872,6 @@ void Renderer::drawEntities(
     vkCmdBeginRendering(command, &renderingInfo);
 
     blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
-    blockRenderInfo.cameraOffset = glm::vec3(0);
-
     vkCmdPushConstants(
         command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
         &blockRenderInfo

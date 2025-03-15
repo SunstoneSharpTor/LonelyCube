@@ -902,7 +902,8 @@ AllocatedHostVisibleAndDeviceLocalBuffer VulkanEngine::createHostVisibleAndDevic
         VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
         VMA_ALLOCATION_CREATE_MAPPED_BIT;
     newBuffer.deviceLocalBuffer = createBuffer(
-        allocationSize, usage, hostVisibleAndDeviceLocalFlags | flags
+        allocationSize, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        flags | hostVisibleAndDeviceLocalFlags
     );
 
     VkMemoryPropertyFlags memPropFlags;
@@ -930,7 +931,7 @@ AllocatedHostVisibleAndDeviceLocalBuffer VulkanEngine::createHostVisibleAndDevic
 }
 
 void VulkanEngine::updateHostVisibleAndDeviceLocalBuffer(
-    VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer, uint32_t size,
+    VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer, const uint32_t size,
     VkAccessFlags accessMask, VkPipelineStageFlagBits dstStageMask
 ) {
     VK_CHECK(vmaFlushAllocation(m_allocator, buffer.deviceLocalBuffer.allocation, 0, size));
@@ -955,7 +956,7 @@ void VulkanEngine::updateHostVisibleAndDeviceLocalBuffer(
     else
     {
         VkBufferMemoryBarrier bufMemBarrier2{};
-        bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufMemBarrier2.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufMemBarrier2.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
         bufMemBarrier2.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
         bufMemBarrier2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -971,13 +972,13 @@ void VulkanEngine::updateHostVisibleAndDeviceLocalBuffer(
         VkBufferCopy bufferCopy = {
             0,  // srcOffset
             0,  // dstOffset,
-            size,  // size
+            size  // size
         };
         vkCmdCopyBuffer(
             command, buffer.stagingBuffer.buffer, buffer.deviceLocalBuffer.buffer, 1, &bufferCopy
         );
 
-        bufMemBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        bufMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         vkCmdPipelineBarrier(
             command, VK_PIPELINE_STAGE_TRANSFER_BIT, dstStageMask, 0, 0, nullptr, 1,
             &bufMemBarrier, 0, nullptr
@@ -1047,8 +1048,7 @@ GPUDynamicMeshBuffers VulkanEngine::allocateDynamicMesh(
     GPUDynamicMeshBuffers newMesh;
     newMesh.vertexBuffer = createHostVisibleAndDeviceLocalBuffer(
         maxVertexBufferSize,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
-            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         0
     );
 
@@ -1058,9 +1058,7 @@ GPUDynamicMeshBuffers VulkanEngine::allocateDynamicMesh(
     newMesh.vertexBufferAddress = vkGetBufferDeviceAddress(m_device, &deviceAddressInfo);
 
     newMesh.indexBuffer = createHostVisibleAndDeviceLocalBuffer(
-        maxIndexBufferSize,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        0
+        maxIndexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0
     );
 
     newMesh.indexCount = 0;
@@ -1074,20 +1072,20 @@ void VulkanEngine::updateDynamicMesh(
 ) {
     if (vertexBufferSize > 0)
     {
-        LOG(std::to_string(vertexBufferSize));
         updateHostVisibleAndDeviceLocalBuffer(
-            command, mesh.vertexBuffer, vertexBufferSize, VK_ACCESS_SHADER_READ_BIT,
+            command, mesh.vertexBuffer, vertexBufferSize * sizeof(float), VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
         );
     }
+
     if (indexCount > 0)
     {
-        LOG(std::to_string(indexCount));
         updateHostVisibleAndDeviceLocalBuffer(
-            command, mesh.indexBuffer, indexCount * sizeof(float), VK_ACCESS_INDEX_READ_BIT,
+            command, mesh.indexBuffer, indexCount * sizeof(uint32_t), VK_ACCESS_INDEX_READ_BIT,
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
         );
     }
+
     mesh.indexCount = indexCount;
 }
 
