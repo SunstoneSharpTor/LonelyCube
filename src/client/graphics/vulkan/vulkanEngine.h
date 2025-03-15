@@ -121,13 +121,13 @@ public:
         if (!buffer.hostVisibleAndDeviceLocal)
         {
             vmaDestroyBuffer(
-                m_allocator, buffer.stagingBuffer.buffer, buffer.deviceLocalBuffer.allocation
+                m_allocator, buffer.stagingBuffer.buffer, buffer.stagingBuffer.allocation
             );
         }
     }
     void updateHostVisibleAndDeviceLocalBuffer(
-        VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer, uint32_t size,
-        VkAccessFlags accessMask, VkPipelineStageFlagBits dstStageMask
+        VkCommandBuffer command, AllocatedHostVisibleAndDeviceLocalBuffer& buffer,
+        const uint32_t size, VkAccessFlags accessMask, VkPipelineStageFlagBits dstStageMask
     );
     void immediateSubmit(std::function<void(VkCommandBuffer command)>&& function);
     GPUMeshBuffers uploadMesh(std::span<float> vertices, std::span<uint32_t> indices);
