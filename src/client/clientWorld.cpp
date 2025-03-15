@@ -80,9 +80,13 @@ ClientWorld::ClientWorld(
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
     m_unmeshNeeded = false;
 
-    m_entityMesh = m_renderer.getVulkanEngine().allocateDynamicMesh(
-        1680000 * sizeof(float), 360000 * sizeof(uint32_t)
-    );
+    m_entityMeshes.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
+    for (int i = 0; i < VulkanEngine::MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        m_entityMeshes.push_back(m_renderer.getVulkanEngine().allocateDynamicMesh(
+            1680000 * sizeof(float), 360000 * sizeof(uint32_t)
+        ));
+    }
 
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
         m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
@@ -164,15 +168,18 @@ void ClientWorld::renderWorld(
     }
 
     // Render entities
-    // integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    GPUDynamicMeshBuffers& entityMesh = m_entityMeshes[
+        m_renderer.getVulkanEngine().getFrameDataIndex()
+    ];
     m_entityMeshManager.createBatch(
-        playerBlockPos, reinterpret_cast<float*>(m_entityMesh.vertexBuffer.mappedData),
-        reinterpret_cast<uint32_t*>(m_entityMesh.indexBuffer.mappedData)
+        playerBlockPos, reinterpret_cast<float*>(entityMesh.vertexBuffer.mappedData),
+        reinterpret_cast<uint32_t*>(entityMesh.indexBuffer.mappedData)
     );
     // glm::vec3 coordinatesVec(-playerBlockPos[0], -playerBlockPos[1], -playerBlockPos[2]);
     m_renderer.blockRenderInfo.mvp = viewProj;  // * glm::translate(glm::mat4(1.0f), coordinatesVec);
     m_renderer.blockRenderInfo.cameraOffset = -playerSubBlockPos;
-    m_renderer.drawEntities(m_entityMeshManager, m_entityMesh);
+    m_renderer.drawEntities(m_entityMeshManager, entityMesh);
 
     // Render water
     m_renderer.beginDrawingWater();
@@ -678,6 +685,15 @@ void ClientWorld::unloadAllMeshes()
             unloadMesh(mesh);
 
         meshesToUnload.clear();
+    }
+}
+
+void ClientWorld::freeEntityMeshes()
+{
+    for (GPUDynamicMeshBuffers mesh : m_entityMeshes)
+    {
+        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(mesh.vertexBuffer);
+        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(mesh.indexBuffer);
     }
 }
 

@@ -349,7 +349,7 @@ void renderThread() {
 
     vkDeviceWaitIdle(renderer.getVulkanEngine().getDevice());
     mainWorld.unloadAllMeshes();
-    mainWorld.freeEntityMesh();
+    mainWorld.freeEntityMeshes();
 
     logicWorker.join();
 

@@ -105,7 +105,7 @@ private:
     bool m_chunkRequestScheduled;
 
     EntityMeshManager m_entityMeshManager;
-    GPUDynamicMeshBuffers m_entityMesh;
+    std::vector<GPUDynamicMeshBuffers> m_entityMeshes;
 
     void unloadMesh(MeshData& mesh);
     bool chunkHasNeighbours(const IVec3& chunkPosition);
@@ -141,13 +141,7 @@ public:
     void updateMeshes();
     void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
     void unloadAllMeshes();
-    inline void freeEntityMesh()
-    {
-        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(
-            m_entityMesh.vertexBuffer);
-        m_renderer.getVulkanEngine().destroyHostVisibleAndDeviceLocalBuffer(
-            m_entityMesh.indexBuffer);
-    }
+    void freeEntityMeshes();
     inline void setClientID(int ID) {
         m_clientID = ID;
     }
