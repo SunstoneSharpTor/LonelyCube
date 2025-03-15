@@ -35,7 +35,7 @@ public:
 
     IVec3(int x, int y, int z) : m_coords{ x, y, z } {}
     IVec3(const int* coords) : m_coords{ coords[0], coords[1], coords[2] } {}
-    IVec3(const Vec3 other) : m_coords{ static_cast<int>(std::floor(other.x)),
+    IVec3(const Vec3& other) : m_coords{ static_cast<int>(std::floor(other.x)),
         static_cast<int>(std::floor(other.y)),
         static_cast<int>(std::floor(other.z)) } {}
     IVec3(const IVec3& other) : m_coords{ other.x, other.y, other.z } {}

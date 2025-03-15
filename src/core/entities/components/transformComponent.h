@@ -33,7 +33,7 @@ struct TransformComponent
     glm::mat4 subBlockTransform;
 
     TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, float scale, Vec3 rotation);
-    void updateTransform();
+    void updateTransformMatrix();
 };
 
 }  // namespace lonelycube
