@@ -20,6 +20,8 @@
 
 #include "core/chunkManager.h"
 #include "core/entities/ECS.h"
+#include "core/entities/components/physicsComponent.h"
+#include "core/entities/components/transformComponent.h"
 #include "core/resourcePack.h"
 
 namespace lonelycube {
@@ -31,11 +33,13 @@ private:
     ECS& m_ecs;
     const ResourcePack& m_resourcePack;
 
+    void stepPhysics(const EntityId entity, const float DT);
+
 public:
     PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
     void stepPhysics();
-    bool entityCollidingWithWorld(EntityId entity);
-    void extrapolateTransforms(float DT);
+    bool entityCollidingWithWorld(const EntityId entity);
+    void extrapolateTransforms(const float DT);
 };
 
 }  // namespace lonelycube

@@ -27,10 +27,10 @@ TransformComponent::TransformComponent(IVec3 blockCoords, Vec3 subBlockCoords, f
     rotation) : scale(scale), blockCoords(blockCoords), subBlockCoords(subBlockCoords),
     rotation(rotation)
 {
-    updateTransform();
+    updateTransformMatrix();
 }
 
-void TransformComponent::updateTransform()
+void TransformComponent::updateTransformMatrix()
 {
     glm::vec3 glmSubBlockCoords(subBlockCoords.x, subBlockCoords.y, subBlockCoords.z);
     subBlockTransform = glm::translate(glm::mat4(1.0f), glmSubBlockCoords);

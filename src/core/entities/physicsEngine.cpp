@@ -32,52 +32,57 @@ namespace lonelycube {
 PhysicsEngine::PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack)
     : m_chunkManager(chunkManager), m_ecs(ecs), m_resourcePack(resourcePack) {}
 
+void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
+) {
+    TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
+    PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
+    transform.rotation += physics.angularVelocity * DT;
+    if (entityCollidingWithWorld(entity))
+    {
+        physics.velocity.y += 6.0f * DT;
+        physics.velocity *= 0.88f;
+        transform.subBlockCoords.x += physics.velocity.x * DT;
+        transform.subBlockCoords.z += physics.velocity.z * DT;
+        if (entityCollidingWithWorld(entity))
+        {
+            transform.subBlockCoords.x -= physics.velocity.x * DT;
+            transform.subBlockCoords.z -= physics.velocity.z * DT;
+            transform.subBlockCoords.y += physics.velocity.y * DT;
+            return;
+        }
+    }
+
+    physics.velocity.y -= 20.0f * DT;
+    physics.velocity *= 0.88f;
+    for (int axis = 0; axis < 3; axis++)
+    {
+        transform.subBlockCoords[axis] += physics.velocity[axis] * DT;
+        if (entityCollidingWithWorld(entity))
+        {
+            transform.subBlockCoords[axis] -= physics.velocity[axis] * DT;
+            physics.velocity[axis] = 0.0f;
+        }
+        else
+        {
+            int carry = static_cast<int>(std::floor(transform.subBlockCoords[axis]));
+            transform.subBlockCoords[axis] -= carry;
+            transform.blockCoords[axis] += carry;
+        }
+    }
+}
+
 void PhysicsEngine::stepPhysics()
 {
     const float DT = 1.0f / constants::TICKS_PER_SECOND;
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
+        stepPhysics(entity, DT);
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
-        PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
-        transform.rotation += physics.angularVelocity * DT;
-        if (entityCollidingWithWorld(entity))
-        {
-            physics.velocity.y += 6.0f * DT;
-            physics.velocity *= 0.88f;
-            transform.subBlockCoords.x += physics.velocity.x * DT;
-            transform.subBlockCoords.z += physics.velocity.z * DT;
-            if (entityCollidingWithWorld(entity))
-            {
-                transform.subBlockCoords.x -= physics.velocity.x * DT;
-                transform.subBlockCoords.z -= physics.velocity.z * DT;
-                transform.subBlockCoords.y += physics.velocity.y * DT;
-            }
-            transform.updateTransform();
-            continue;
-        }
-        physics.velocity.y -= 20.0f * DT;
-        physics.velocity *= 0.88f;
-        for (int axis = 0; axis < 3; axis++)
-        {
-            transform.subBlockCoords[axis] += physics.velocity[axis] * DT;
-            if (entityCollidingWithWorld(entity))
-            {
-                transform.subBlockCoords[axis] -= physics.velocity[axis] * DT;
-                physics.velocity[axis] = 0.0f;
-            }
-            else
-            {
-                int carry = static_cast<int>(std::floor(transform.subBlockCoords[axis]));
-                transform.subBlockCoords[axis] -= carry;
-                transform.blockCoords[axis] += carry;
-            }
-        }
-        transform.updateTransform();
-
+        transform.updateTransformMatrix();
     }
 }
 
-bool PhysicsEngine::entityCollidingWithWorld(EntityId entity)
+bool PhysicsEngine::entityCollidingWithWorld(const EntityId entity)
 {
     const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
     const Model* entityModel = m_ecs.get<MeshComponent>(entity).model;
@@ -103,22 +108,27 @@ bool PhysicsEngine::entityCollidingWithWorld(EntityId entity)
     return colliding;
 }
 
-void PhysicsEngine::extrapolateTransforms(float DT)
+void PhysicsEngine::extrapolateTransforms(const float DT)
 {
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
         PhysicsComponent& physics = m_ecs.get<PhysicsComponent>(entity);
-        Vec3 actualSubBlockCoords = transform.subBlockCoords;
-        Vec3 actualRotation = transform.rotation;
-        Vec3 averageVelocity = physics.velocity;
-        averageVelocity.y -= 12.0f / constants::TICKS_PER_SECOND * physics.velocity.y > 0;
-        averageVelocity *= 0.8f;
-        transform.subBlockCoords += averageVelocity * DT;
-        transform.rotation += physics.angularVelocity * DT;
-        transform.updateTransform();
-        transform.subBlockCoords = actualSubBlockCoords;
-        transform.rotation = actualRotation;
+        IVec3 oldBlockCoords = transform.blockCoords;
+        Vec3 oldSubBlockCoords = transform.subBlockCoords;
+        Vec3 oldRotation = transform.rotation;
+        Vec3 oldVelocity = physics.velocity;
+
+        stepPhysics(entity, DT);
+        transform.subBlockCoords.x += transform.blockCoords.x - oldBlockCoords.x;
+        transform.subBlockCoords.y += transform.blockCoords.y - oldBlockCoords.y;
+        transform.subBlockCoords.z += transform.blockCoords.z - oldBlockCoords.z;
+        transform.updateTransformMatrix();
+
+        transform.blockCoords = oldBlockCoords;
+        transform.subBlockCoords = oldSubBlockCoords;
+        transform.rotation = oldRotation;
+        physics.velocity = oldVelocity;
     }
 }
 
