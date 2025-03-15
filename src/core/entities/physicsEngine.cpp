@@ -24,13 +24,15 @@
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/physicsComponent.h"
 #include "core/entities/components/transformComponent.h"
+#include "core/log.h"
 #include "core/random.h"
 #include "core/resourcePack.h"
 
 namespace lonelycube {
 
-PhysicsEngine::PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack)
-    : m_chunkManager(chunkManager), m_ecs(ecs), m_resourcePack(resourcePack) {}
+PhysicsEngine::PhysicsEngine(
+    const ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack
+) : m_chunkManager(chunkManager), m_ecs(ecs), m_resourcePack(resourcePack) {}
 
 void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
 ) {
@@ -39,28 +41,31 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
     transform.rotation += physics.angularVelocity * DT;
     if (entityCollidingWithWorld(entity))
     {
-        physics.velocity.y += 6.0f * DT;
-        physics.velocity *= 0.88f;
-        transform.subBlockCoords.x += physics.velocity.x * DT;
-        transform.subBlockCoords.z += physics.velocity.z * DT;
-        if (entityCollidingWithWorld(entity))
-        {
-            transform.subBlockCoords.x -= physics.velocity.x * DT;
-            transform.subBlockCoords.z -= physics.velocity.z * DT;
-            transform.subBlockCoords.y += physics.velocity.y * DT;
-            return;
-        }
+        transform.subBlockCoords.y += physics.velocity.y * DT;
+        int carry = static_cast<int>(std::floor(transform.subBlockCoords.y));
+        transform.subBlockCoords.y -= carry;
+        transform.blockCoords.y += carry;
+        return;
     }
 
     physics.velocity.y -= 20.0f * DT;
-    physics.velocity *= 0.88f;
+    physics.velocity *= 0.98f;
     for (int axis = 0; axis < 3; axis++)
     {
         transform.subBlockCoords[axis] += physics.velocity[axis] * DT;
         if (entityCollidingWithWorld(entity))
         {
-            transform.subBlockCoords[axis] -= physics.velocity[axis] * DT;
+            if (physics.velocity[axis] > 0)
+                transform.subBlockCoords[axis] -= findPenetrationDepthIntoWorld(entity, axis, 1);
+            else
+                transform.subBlockCoords[axis] += findPenetrationDepthIntoWorld(entity, axis, -1);
+
             physics.velocity[axis] = 0.0f;
+            if (axis == 1)
+            {
+                physics.velocity[0] *= 0.6f;
+                physics.velocity[2] *= 0.6f;
+            }
         }
         else
         {
@@ -105,7 +110,61 @@ bool PhysicsEngine::entityCollidingWithWorld(const EntityId entity)
             }
         }
     }
+
     return colliding;
+}
+
+float PhysicsEngine::findPenetrationDepthIntoWorld(const EntityId entity, int axis, int direction)
+{
+    const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
+    const Model* entityModel = m_ecs.get<MeshComponent>(entity).model;
+    Vec3 minVertex(entityModel->boundingBoxVertices);
+    Vec3 maxVertex(entityModel->boundingBoxVertices + 15);
+    minVertex = minVertex * transform.scale + transform.subBlockCoords;
+    maxVertex = maxVertex * transform.scale + transform.subBlockCoords;
+    IVec3 minBlock = IVec3(minVertex) + transform.blockCoords;
+    IVec3 maxBlock = IVec3(maxVertex) + transform.blockCoords;
+
+    float penetrationDepth = 0.0f;
+    IVec3 block;
+    std::array<int, 2> p{ (axis + 1) % 3, (axis + 2) % 3 };  // perpendicular axes
+    block[axis] = direction == 1 ? maxBlock[axis] : minBlock[axis];
+    int i = 0;
+    for (block[p[0]] = minBlock[p[0]]; i < 1 + minBlock[p[0]] != maxBlock[p[0]];
+        block[p[0]] = maxBlock[p[0]])
+    {
+        int j = 0;
+        for (block[p[1]] = minBlock[p[1]]; j < 1 + minBlock[p[1]] != maxBlock[p[1]];
+            block[p[1]] = maxBlock[p[1]])
+        {
+            LOG(std::to_string(block.x) + ", " + std::to_string(block.y) + ", " + std::to_string(block.z));
+            bool collidable =
+                m_resourcePack.getBlockData(m_chunkManager.getBlock(block)).collidable;
+            if (collidable)
+            {
+                float depth;
+                if (block[axis] == minBlock[axis])
+                {
+                    if (direction == -1)
+                        depth = std::ceil(minVertex[axis]) - minVertex[axis];
+                    else
+                        depth = minVertex[axis] - std::floor(minVertex[axis]);
+                }
+                if (block[axis] == maxBlock[axis])
+                {
+                    if (direction == -1)
+                        depth = std::ceil(maxVertex[axis]) - maxVertex[axis];
+                    else
+                        depth = maxVertex[axis] - std::floor(maxVertex[axis]);
+                }
+                penetrationDepth = std::max(penetrationDepth, depth);
+            }
+            j++;
+        }
+        i++;
+    }
+
+    return penetrationDepth;
 }
 
 void PhysicsEngine::extrapolateTransforms(const float DT)
