@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "client/graphics/entityMeshManager.h"
 #include "glm/glm.hpp"
 #include "stb_image.h"
 
@@ -66,6 +67,9 @@ public:
     void beginDrawingGeometry();
     void beginDrawingBlocks();
     void drawBlocks(const GPUMeshBuffers& mesh);
+    void drawEntities(
+        const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh
+    );
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();

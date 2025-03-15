@@ -104,8 +104,8 @@ private:
     int m_clientID;
     bool m_chunkRequestScheduled;
 
-    EntityMeshManager m_meshManager;
-    GPUMutableMeshBuffers m_entityMesh;
+    EntityMeshManager m_entityMeshManager;
+    GPUDynamicMeshBuffers m_entityMesh;
 
     void unloadMesh(MeshData& mesh);
     bool chunkHasNeighbours(const IVec3& chunkPosition);
