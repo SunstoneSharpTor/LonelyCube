@@ -53,7 +53,7 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockC
 
 void EntityManager::tick()
 {
-    // m_physicsEngine.stepPhysics();
+    m_physicsEngine.stepPhysics();
 }
 
 }  // namespace lonelycube
