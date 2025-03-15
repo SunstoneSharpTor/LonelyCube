@@ -43,7 +43,7 @@ ClientWorld::ClientWorld(
     ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
 ) : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_renderer(renderer),
     m_peer(peer), m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
-    m_meshManager(integratedServer)
+    m_entityMeshManager(integratedServer)
 {
     m_renderDistance = renderDistance + 1;
     m_renderDiameter = m_renderDistance * 2 + 1;
@@ -79,7 +79,7 @@ ClientWorld::ClientWorld(
     m_threadWaiting = new bool[m_numChunkLoadingThreads];
     m_unmeshNeeded = false;
 
-    m_entityMesh = m_renderer.getVulkanEngine().allocateMutableMesh(
+    m_entityMesh = m_renderer.getVulkanEngine().allocateDynamicMesh(
         1680000 * sizeof(float), 360000 * sizeof(uint32_t)
     );
 
@@ -165,17 +165,12 @@ void ClientWorld::renderWorld(
 
     // Render entities
     integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
-    m_meshManager.createBatch(
+    m_entityMeshManager.createBatch(
         playerBlockPos, reinterpret_cast<float*>(m_entityMesh.vertexBuffer.mappedData),
         reinterpret_cast<uint32_t*>(m_entityMesh.indexBuffer.mappedData)
     );
-    FrameData& currentFrameData = m_renderer.getVulkanEngine().getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
-    m_renderer.getVulkanEngine().updateMutableMesh(
-        command, m_entityMesh, m_meshManager.sizeOfVertices, m_meshManager.numIndices
-    );
-    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
+    m_renderer.blockRenderInfo.mvp = viewProj;
+    m_renderer.drawEntities(m_entityMeshManager, m_entityMesh);
 
     // Render water
     m_renderer.beginDrawingWater();

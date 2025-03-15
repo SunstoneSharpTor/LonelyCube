@@ -28,6 +28,7 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -832,6 +833,57 @@ void Renderer::beginDrawingBlocks()
         0, 1, &m_worldTexturesDescriptors,
         0, nullptr
     );
+}
+
+void Renderer::drawEntities(
+    const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh
+) {
+    FrameData& currentFrameData = getVulkanEngine().getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdEndRendering(command);
+
+    getVulkanEngine().updateDynamicMesh(
+        command, mesh, entityMeshManager.sizeOfVertices, entityMeshManager.numIndices
+    );
+
+    VkRenderingAttachmentInfo colourAttachment{};
+    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colourAttachment.imageView = m_drawImage.imageView;
+    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingAttachmentInfo depthAttachment{};
+    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    depthAttachment.imageView = m_depthImage.imageView;
+    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colourAttachment;
+    renderingInfo.pDepthAttachment = &depthAttachment;
+
+    vkCmdBeginRendering(command, &renderingInfo);
+
+    blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
+    blockRenderInfo.cameraOffset = glm::vec3(0);
+
+    vkCmdPushConstants(
+        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
+        &blockRenderInfo
+    );
+    vkCmdBindIndexBuffer(
+        command, mesh.indexBuffer.deviceLocalBuffer.buffer, 0, VK_INDEX_TYPE_UINT32
+    );
+    vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
+    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
+    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
 }
 
 void Renderer::beginDrawingWater()
