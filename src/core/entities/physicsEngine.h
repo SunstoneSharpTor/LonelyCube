@@ -20,8 +20,6 @@
 
 #include "core/chunkManager.h"
 #include "core/entities/ECS.h"
-#include "core/entities/components/physicsComponent.h"
-#include "core/entities/components/transformComponent.h"
 #include "core/resourcePack.h"
 
 namespace lonelycube {
@@ -29,16 +27,17 @@ namespace lonelycube {
 class PhysicsEngine
 {
 private:
-    ChunkManager& m_chunkManager;
+    const ChunkManager& m_chunkManager;
     ECS& m_ecs;
     const ResourcePack& m_resourcePack;
 
     void stepPhysics(const EntityId entity, const float DT);
+    bool entityCollidingWithWorld(const EntityId entity);
+    float findPenetrationDepthIntoWorld(const EntityId entity, int axis, int direction);
 
 public:
-    PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
+    PhysicsEngine(const ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
     void stepPhysics();
-    bool entityCollidingWithWorld(const EntityId entity);
     void extrapolateTransforms(const float DT);
 };
 
