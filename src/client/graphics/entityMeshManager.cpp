@@ -32,6 +32,7 @@ void EntityMeshManager::createBatch(
 ) {
     numIndices = 0;
     sizeOfVertices = 0;
+    std::lock_guard<std::mutex> lock(m_ecs.mutex);
     for (EntityId entity : ECSView<MeshComponent>(m_ecs))
     {
         const Model* model = m_ecs.get<MeshComponent>(entity).model;

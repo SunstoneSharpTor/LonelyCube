@@ -168,7 +168,8 @@ void ClientWorld::renderWorld(
     }
 
     // Render entities
-    integratedServer.getEntityManager().extrapolateTransforms(integratedServer.getTimeSinceLastTick());
+    integratedServer.getEntityManager().getPhysicsEngine().extrapolateTransforms(
+        integratedServer.getTimeSinceLastTick());
     GPUDynamicMeshBuffers& entityMesh = m_entityMeshes[
         m_renderer.getVulkanEngine().getFrameDataIndex()
     ];

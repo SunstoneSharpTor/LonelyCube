@@ -20,8 +20,6 @@
 
 #include "core/pch.h"
 
-#include <bitset>
-
 namespace lonelycube {
 
 const int MAX_COMPONENTS = 32;
@@ -65,6 +63,8 @@ private:
     std::vector<ComponentPool*> m_componentPools;
 
 public:
+    std::mutex mutex;
+
     ECS(int maxEntities);
     ~ECS();
 
