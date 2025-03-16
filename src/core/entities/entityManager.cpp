@@ -36,6 +36,7 @@ EntityManager::EntityManager(int maxNumEntities, ChunkManager& chunkManager, con
 
 void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockCoords)
 {
+    std::lock_guard<std::mutex> lock(m_ecs.mutex);
     EntityId entity = m_ecs.newEntity();
     m_ecs.assign<TransformComponent>(
         entity, blockCoords, subBlockCoords, 0.25f, Vec3(0.0f, 1.0f, 0.0f)
@@ -53,6 +54,7 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockC
 
 void EntityManager::tick()
 {
+    std::lock_guard<std::mutex> lock(m_ecs.mutex);
     m_physicsEngine.stepPhysics();
 }
 

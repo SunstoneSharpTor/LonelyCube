@@ -56,11 +56,17 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
         if (entityCollidingWithWorld(entity))
         {
             if (physics.velocity[axis] > 0)
+            {
                 transform.subBlockCoords[axis] -= findPenetrationDepthIntoWorld(entity, axis, 1);
+                transform.subBlockCoords[axis] -= 0.001f;
+            }
             else
+            {
                 transform.subBlockCoords[axis] += findPenetrationDepthIntoWorld(entity, axis, -1);
+                transform.subBlockCoords[axis] += 0.001f;
+            }
 
-            physics.velocity[axis] = 0.0f;
+            physics.velocity[axis] = 0.0f;  // -0.2f * physics.velocity[axis];
             if (axis == 1)
             {
                 physics.velocity[0] *= 0.6f;
@@ -130,33 +136,20 @@ float PhysicsEngine::findPenetrationDepthIntoWorld(const EntityId entity, int ax
     std::array<int, 2> p{ (axis + 1) % 3, (axis + 2) % 3 };  // perpendicular axes
     block[axis] = direction == 1 ? maxBlock[axis] : minBlock[axis];
     int i = 0;
-    for (block[p[0]] = minBlock[p[0]]; i < 1 + minBlock[p[0]] != maxBlock[p[0]];
+    for (block[p[0]] = minBlock[p[0]]; i < 1 + (minBlock[p[0]] != maxBlock[p[0]]);
         block[p[0]] = maxBlock[p[0]])
     {
         int j = 0;
-        for (block[p[1]] = minBlock[p[1]]; j < 1 + minBlock[p[1]] != maxBlock[p[1]];
+        for (block[p[1]] = minBlock[p[1]]; j < 1 + (minBlock[p[1]] != maxBlock[p[1]]);
             block[p[1]] = maxBlock[p[1]])
         {
-            LOG(std::to_string(block.x) + ", " + std::to_string(block.y) + ", " + std::to_string(block.z));
-            bool collidable =
-                m_resourcePack.getBlockData(m_chunkManager.getBlock(block)).collidable;
-            if (collidable)
+            if (m_resourcePack.getBlockData(m_chunkManager.getBlock(block)).collidable)
             {
                 float depth;
-                if (block[axis] == minBlock[axis])
-                {
-                    if (direction == -1)
-                        depth = std::ceil(minVertex[axis]) - minVertex[axis];
-                    else
-                        depth = minVertex[axis] - std::floor(minVertex[axis]);
-                }
-                if (block[axis] == maxBlock[axis])
-                {
-                    if (direction == -1)
-                        depth = std::ceil(maxVertex[axis]) - maxVertex[axis];
-                    else
-                        depth = maxVertex[axis] - std::floor(maxVertex[axis]);
-                }
+                if (direction == -1)
+                    depth = std::ceil(minVertex[axis]) - minVertex[axis];
+                else
+                    depth = maxVertex[axis] - std::floor(maxVertex[axis]);
                 penetrationDepth = std::max(penetrationDepth, depth);
             }
             j++;
@@ -169,6 +162,7 @@ float PhysicsEngine::findPenetrationDepthIntoWorld(const EntityId entity, int ax
 
 void PhysicsEngine::extrapolateTransforms(const float DT)
 {
+    std::lock_guard<std::mutex> lock(m_ecs.mutex);
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
