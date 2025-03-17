@@ -42,7 +42,8 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
     if (entityCollidingWithWorld(entity))
     {
         float minPenetrationDepth = 100000.0f;
-        int axisOfLeastPenetration, directionToResolve = 1;
+        int axisOfLeastPenetration = 1;
+        int directionToResolve = 1;
         for (int axis = 0; axis < 3; axis++)
         {
             for (int direction = -1; direction <= 1; direction += 2)
