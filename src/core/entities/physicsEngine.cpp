@@ -56,7 +56,7 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
         if (entityCollidingWithWorld(entity))
         {
             transform.subBlockCoords[axis] += (findPenetrationDepthIntoWorld(
-                entity, axis, physics.velocity[axis]
+                entity, axis, physics.velocity[axis] * DT
             ) + 0.0001f) * (physics.velocity[axis] > 0 ? -1 : 1);
 
             physics.velocity[axis] = 0.0f;  // -0.2f * physics.velocity[axis];
@@ -114,10 +114,11 @@ bool PhysicsEngine::entityCollidingWithWorld(const EntityId entity)
 }
 
 float PhysicsEngine::findPenetrationDepthIntoWorld(
-    const EntityId entity, const int axis, const float velocityAlongAxis
+    const EntityId entity, const int axis, const float displacementAlongAxis
 ) {
     const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
     const Model* entityModel = m_ecs.get<MeshComponent>(entity).model;
+    const int direction = displacementAlongAxis > 0 ? 1 : -1;
     Vec3 minVertex(entityModel->boundingBoxVertices);
     Vec3 maxVertex(entityModel->boundingBoxVertices + 15);
     minVertex = minVertex * transform.scale + transform.subBlockCoords;
@@ -125,24 +126,32 @@ float PhysicsEngine::findPenetrationDepthIntoWorld(
     IVec3 minBlock = IVec3(minVertex) + transform.blockCoords;
     IVec3 maxBlock = IVec3(maxVertex) + transform.blockCoords;
 
-    float penetrationDepth = 0.0f;
-    IVec3 block;
     std::array<int, 2> p{ (axis + 1) % 3, (axis + 2) % 3 };  // perpendicular axes
-    // int startBlock = velocityAlongAxis > 0 ? static_cast<int>(maxVertex[axis] - 
-    int endBlock = velocityAlongAxis > 0 ? maxBlock[axis] : minBlock[axis];
-    block[axis] = endBlock;
-    for (block[p[0]] = minBlock[p[0]]; block[p[0]] <= maxBlock[p[0]]; block[p[0]]++)
-    {
-        for (block[p[1]] = minBlock[p[1]]; block[p[1]] <= maxBlock[p[1]]; block[p[1]]++)
+    int startBlock = displacementAlongAxis > 0 ?
+        static_cast<int>(maxVertex[axis] - displacementAlongAxis) + transform.blockCoords[axis] :
+        static_cast<int>(minVertex[axis] - displacementAlongAxis) + transform.blockCoords[axis];
+    int endBlock = displacementAlongAxis > 0 ? maxBlock[axis] : minBlock[axis];
+    IVec3 block;
+    float penetrationDepth = 0.0f;
+    for (
+        block[axis] = startBlock;
+        block[axis] != endBlock + direction && penetrationDepth == 0.0f;
+        block[axis] += direction
+    ) {
+        for (block[p[0]] = minBlock[p[0]]; block[p[0]] <= maxBlock[p[0]]; block[p[0]]++)
         {
-            if (m_resourcePack.getBlockData(m_chunkManager.getBlock(block)).collidable)
+            for (block[p[1]] = minBlock[p[1]]; block[p[1]] <= maxBlock[p[1]]; block[p[1]]++)
             {
-                float depth;
-                if (velocityAlongAxis > 0)
-                    depth = maxVertex[axis] - std::floor(maxVertex[axis]);
-                else
-                    depth = std::ceil(minVertex[axis]) - minVertex[axis];
-                penetrationDepth = std::max(penetrationDepth, depth);
+                if (m_resourcePack.getBlockData(m_chunkManager.getBlock(block)).collidable)
+                {
+                    float depth;
+                    if (displacementAlongAxis > 0)
+                        depth = maxVertex[axis] - std::floor(maxVertex[axis]);
+                    else
+                        depth = std::ceil(minVertex[axis]) - minVertex[axis];
+                    depth += std::abs(endBlock - block[axis]);
+                    penetrationDepth = std::max(penetrationDepth, depth);
+                }
             }
         }
     }

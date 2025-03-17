@@ -33,7 +33,9 @@ private:
 
     void stepPhysics(const EntityId entity, const float DT);
     bool entityCollidingWithWorld(const EntityId entity);
-    float findPenetrationDepthIntoWorld(const EntityId entity, const int axis, const float velocityAlongAxis);
+    float findPenetrationDepthIntoWorld(
+        const EntityId entity, const int axis, const float displacementAlongAxis
+    );
 
 public:
     PhysicsEngine(const ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
