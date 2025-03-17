@@ -41,10 +41,35 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
     transform.rotation += physics.angularVelocity * DT;
     if (entityCollidingWithWorld(entity))
     {
-        transform.subBlockCoords.y += physics.velocity.y * DT;
-        int carry = static_cast<int>(std::floor(transform.subBlockCoords.y));
-        transform.subBlockCoords.y -= carry;
-        transform.blockCoords.y += carry;
+        float minPenetrationDepth = 100000.0f;
+        int axisOfLeastPenetration, directionToResolve = 1;
+        for (int axis = 0; axis < 3; axis++)
+        {
+            for (int direction = -1; direction <= 1; direction += 2)
+            {
+                IVec3 neighbouringBlock = transform.blockCoords;
+                neighbouringBlock[axis] -= direction;
+                if (!m_resourcePack.getBlockData(m_chunkManager.getBlock(
+                        neighbouringBlock)).collidable
+                ) {
+                    float penetrationDepth = findPenetrationDepthIntoWorld(
+                        entity, axis, direction * 0.001f
+                    );
+                    if (penetrationDepth < minPenetrationDepth && penetrationDepth != 0.0f)
+                    {
+                        minPenetrationDepth = penetrationDepth;
+                        axisOfLeastPenetration = axis;
+                        directionToResolve = -direction;
+                    }
+                }
+            }
+        }
+        physics.velocity = Vec3(0.0f, 0.0f, 0.0f);
+        physics.velocity[axisOfLeastPenetration] += directionToResolve * 50.0f /
+            constants::TICKS_PER_SECOND;
+        transform.subBlockCoords[axisOfLeastPenetration] +=
+            physics.velocity[axisOfLeastPenetration] * DT;
+
         return;
     }
 
