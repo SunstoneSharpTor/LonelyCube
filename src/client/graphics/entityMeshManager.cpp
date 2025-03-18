@@ -18,6 +18,8 @@
 
 #include "client/graphics/entityMeshManager.h"
 
+#include "core/constants.h"
+#include "core/entities/components/itemComponent.h"
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/transformComponent.h"
 #include "core/entities/ECSView.h"
@@ -28,7 +30,8 @@ EntityMeshManager::EntityMeshManager(ServerWorld<true>& serverWorld) :
     m_ecs(serverWorld.getEntityManager().getECS()), m_serverWorld(serverWorld), numIndices(0) {}
 
 void EntityMeshManager::createBatch(
-    IVec3 playerBlockCoords, float* vertexBuffer, uint32_t* indexBuffer
+    const IVec3 playerBlockCoords, float* vertexBuffer, uint32_t* indexBuffer,
+    const float timeSinceLastTick
 ) {
     numIndices = 0;
     sizeOfVertices = 0;
@@ -41,6 +44,14 @@ void EntityMeshManager::createBatch(
         float entitySkyLight = interpolateSkyLight(transform.blockCoords, transform.subBlockCoords);
         float entityBlockLight = interpolateBlockLight(transform.blockCoords,
                                                        transform.subBlockCoords);
+        glm::vec4 offset = glm::vec4(0.0f);
+        if (m_ecs.entityHasComponent<ItemComponent>(entity))
+        {
+            float timer = m_ecs.get<ItemComponent>(entity).timer -
+                timeSinceLastTick * constants::TICKS_PER_SECOND;
+            offset[1] = std::sin(timer * 0.15f) * 0.06125f + 0.06125f;
+        }
+
         sizeOfVertices += 7;
         for (int faceNum = 0; faceNum < model->numFaces; faceNum++)
         {
@@ -56,6 +67,7 @@ void EntityMeshManager::createBatch(
                     vertexSubBlock[element] = model->faces[faceNum].coords[vertexNum * 3 + element];
                 vertexSubBlock[3] = 1.0f;
                 vertexSubBlock = transform.subBlockTransform * vertexSubBlock;
+                vertexSubBlock += offset;
                 vertexBuffer[sizeOfVertices] = vertexSubBlock.x + (transform.blockCoords.x -
                     playerBlockCoords.x);
                 vertexBuffer[sizeOfVertices + 1] = vertexSubBlock.y + (transform.blockCoords.y -

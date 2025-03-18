@@ -21,6 +21,7 @@
 #include "core/chunkManager.h"
 #include "core/constants.h"
 #include "core/entities/ECS.h"
+#include "core/entities/ECSView.h"
 #include "core/entities/components/itemComponent.h"
 #include "core/entities/components/meshComponent.h"
 #include "core/entities/components/physicsComponent.h"
@@ -52,9 +53,20 @@ void EntityManager::addItem(uint8_t blockType, IVec3 blockCoords, Vec3 subBlockC
     m_ecs.assign<ItemComponent>(entity, 3600 * constants::TICKS_PER_SECOND);
 }
 
+void EntityManager::tickItems()
+{
+    for (EntityId entity : ECSView<ItemComponent>(m_ecs))
+    {
+        ItemComponent& itemComponent = m_ecs.get<ItemComponent>(entity);
+        if (--itemComponent.timer == 0)
+            m_ecs.destroyEntity(entity);
+    }
+}
+
 void EntityManager::tick()
 {
     std::lock_guard<std::mutex> lock(m_ecs.mutex);
+    tickItems();
     m_physicsEngine.stepPhysics();
 }
 
