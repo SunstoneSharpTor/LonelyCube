@@ -102,7 +102,8 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     enet_packet_destroy(packet);
 }
 
-void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
+bool ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
+    bool packetReceived = false;
     ENetEvent event;
     m_hostMtx.lock();
     while(enet_host_service(m_host, &event, 0) > 0) {
@@ -111,6 +112,7 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
             case ENET_EVENT_TYPE_RECEIVE:
                 LOG("Received packet");
                 receivePacket(event.packet, mainWorld);
+                packetReceived = true;
                 break;
             default:
                 break;
@@ -118,6 +120,8 @@ void ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
         m_hostMtx.lock();
     }
     m_hostMtx.unlock();
+
+    return packetReceived;
 }
 
 }  // namespace lonelycube::client

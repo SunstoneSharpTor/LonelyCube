@@ -46,14 +46,14 @@ public:
 
 private:
     uint64_t m_seed;
-    uint16_t m_nextPlayerID;
-    uint16_t m_numChunkLoadingThreads;
+    uint32_t m_nextPlayerID;
+    uint32_t m_numChunkLoadingThreads;
     uint64_t m_gameTick;
     ResourcePack m_resourcePack;
     std::chrono::time_point<std::chrono::steady_clock> m_timeOfLastTick;
 
     // World
-    std::unordered_map<uint16_t, ServerPlayer> m_players;
+    std::unordered_map<uint32_t, ServerPlayer> m_players;
     std::queue<IVec3> m_chunksToBeLoaded;
     std::unordered_set<IVec3> m_chunksBeingLoaded;
 
@@ -68,18 +68,16 @@ private:
     bool m_threadsWait;
     bool* m_threadWaiting;
 
-    void disconnectPlayer(uint16_t playerID);
-
 public:
     ServerWorld(uint64_t seed, std::mutex& networkingMtx);
     void tick();
-    void addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
-    uint16_t addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer);
-    void updatePlayerPos(int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded);
-    ServerPlayer& getPlayer(int playerID) {
+    void addPlayer(int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer);
+    uint32_t addPlayer(int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer);
+    void updatePlayerPos(uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded);
+    ServerPlayer& getPlayer(uint32_t playerID) {
         return m_players.at(playerID);
     }
-    std::unordered_map<uint16_t, ServerPlayer>& getPlayers() {
+    std::unordered_map<uint32_t, ServerPlayer>& getPlayers() {
         return m_players;
     }
     void waitIfRequired(uint8_t threadNum);
@@ -107,6 +105,7 @@ public:
     }
     void setPlayerChunkLoadingTarget(int playerID, uint64_t chunkRequestNum, int target, int bufferSize);
     bool updateClientChunkLoadingTarget();
+    void disconnectPlayer(uint32_t playerID);
 };
 
 template<bool integrated>
@@ -126,7 +125,7 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
 
 template<bool integrated>
 void ServerWorld<integrated>::updatePlayerPos(
-    int playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded
+    uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded
 ) {
     m_playersMtx.lock();
     ServerPlayer& player = m_players.at(playerID);
@@ -252,10 +251,14 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
 
 // Overload used by the physical server
 template<bool integrated>
-uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer) {
+uint32_t ServerWorld<integrated>::addPlayer(
+    int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer
+) {
     m_playersMtx.lock();
-    uint16_t playerID = m_nextPlayerID;
-    m_players[playerID] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick };
+    uint32_t playerID = m_nextPlayerID;
+    m_players[playerID] = {
+        m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick
+    };
     m_nextPlayerID = 0;
     while (m_players.contains(m_nextPlayerID))
         m_nextPlayerID++;
@@ -265,14 +268,16 @@ uint16_t ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockP
 
 // Overload used by the integrated server
 template<bool integrated>
-void ServerWorld<integrated>::addPlayer(int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer) {
+void ServerWorld<integrated>::addPlayer(
+    int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer
+) {
     m_playersMtx.lock();
     m_players[0] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, multiplayer };
     m_playersMtx.unlock();
 }
 
 template<bool integrated>
-void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
+void ServerWorld<integrated>::disconnectPlayer(uint32_t playerID) {
     LOG(std::to_string(chunkManager.getWorldChunks().size()));
     pauseChunkLoaderThreads();
 
@@ -311,6 +316,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint16_t playerID) {
     }
     m_chunksBeingLoaded.clear();
 
+    m_players.erase(playerID);
     releaseChunkLoaderThreads();
     LOG(std::to_string(playerID) + " disconnected");
     LOG(std::to_string(chunkManager.getWorldChunks().size()));
@@ -354,13 +360,10 @@ void ServerWorld<integrated>::tick() {
     if (!integrated) {
         auto it = m_players.begin();
         while (it != m_players.end()) {
-            if (m_gameTick - it->second.getLastPacketTick() > 40) {
-                disconnectPlayer(it->first);
-                it = m_players.erase(it);
-            }
-            else {
-                it++;
-            }
+            ServerPlayer& player = it->second;
+            it++;
+            if (m_gameTick - player.getLastPacketTick() > 40)
+                disconnectPlayer(player.getID());
         }
     }
 

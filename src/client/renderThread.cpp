@@ -357,20 +357,8 @@ void renderThread() {
 
     if (multiplayer) {
         std::lock_guard<std::mutex> lock(networking.getMutex());
-        enet_peer_disconnect(networking.getPeer(), 0);
-        ENetEvent event;
-        while (enet_host_service(networking.getHost(), &event, 3000) > 0) {
-            switch (event.type) {
-                case ENET_EVENT_TYPE_RECEIVE:
-                enet_packet_destroy(event.packet);
-                break;
-                case ENET_EVENT_TYPE_DISCONNECT:
-                LOG("Disconnection succeeded!");
-                break;
-                default:
-                break;
-            }
-        }
+        enet_peer_disconnect(networking.getPeer(), mainWorld.getClientID());
+        enet_peer_reset(networking.getPeer());
 
         enet_deinitialize();
     }

@@ -17,6 +17,7 @@
 */
 
 #include "client/logicThread.h"
+
 #include <enet/enet.h>
 
 #include "client/clientNetworking.h"
@@ -28,8 +29,9 @@
 
 namespace lonelycube::client {
 
-static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running, int8_t threadNum, int&
-    numThreadsBeingUsed) {
+static void chunkLoaderThreadSingleplayer(
+    ClientWorld& mainWorld, bool& running, int8_t threadNum, int& numThreadsBeingUsed
+) {
     while (running) {
         while (threadNum >= numThreadsBeingUsed && running) {
             mainWorld.setThreadWaiting(threadNum, true);
@@ -40,16 +42,24 @@ static void chunkLoaderThreadSingleplayer(ClientWorld& mainWorld, bool& running,
     }
 }
 
-static void chunkLoaderThreadMultiplayer(ClientWorld& mainWorld, ClientNetworking& networking, bool&
-    running, int8_t threadNum, int& numThreadsBeingUsed) {
+static void chunkLoaderThreadMultiplayer(
+    ClientWorld& mainWorld, ClientNetworking& networking, bool& running, int8_t threadNum,
+    int& numThreadsBeingUsed
+) {
+    std::chrono::time_point<std::chrono::steady_clock> timeStartedWaiting = 
+        std::chrono::steady_clock::now();
     while (running) {
         while (threadNum >= numThreadsBeingUsed && running) {
             mainWorld.setThreadWaiting(threadNum, true);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
             mainWorld.setThreadWaiting(threadNum, false);
+            timeStartedWaiting = std::chrono::steady_clock::now();
         }
-        mainWorld.loadChunksAroundPlayerMultiplayer(threadNum);
-        networking.receiveEvents(mainWorld);
+        if (mainWorld.loadChunksAroundPlayerMultiplayer(threadNum) ||
+            networking.receiveEvents(mainWorld)
+        )
+            std::chrono::time_point<std::chrono::steady_clock> currentTime =
+                std::chrono::steady_clock::now();
     }
 }
 

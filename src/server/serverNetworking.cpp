@@ -164,7 +164,8 @@ void ServerNetworking::receiveEvents(ServerWorld<false>& mainWorld) {
                 receivePacket(event.packet, event.peer, mainWorld);
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
-                // LOG(std::string((const char*)event.peer->data) + " disconnected.");
+                if (mainWorld.getPlayers().contains(event.data))
+                    mainWorld.disconnectPlayer(event.data);
                 // Reset the peer's client information
                 event.peer->data = NULL;
                 break;

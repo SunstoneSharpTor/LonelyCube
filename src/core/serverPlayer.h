@@ -30,8 +30,8 @@ namespace lonelycube {
 
 class ServerPlayer {
 private:
-    uint16_t m_renderDistance;
-    uint16_t m_renderDiameter;
+    int m_renderDistance;
+    int m_renderDiameter;
     float m_minUnloadedChunkDistance;
     uint32_t m_maxNumChunks;  // The max number of chunks in the player's render distance
     int m_blockPosition[3];
@@ -42,7 +42,7 @@ private:
     int m_targetBufferSize;
     int m_currentNumLoadedChunks;
     int64_t m_numChunkRequests;
-    int m_playerID;
+    uint32_t m_playerID;
     ENetPeer* m_peer;
     uint32_t m_lastPacketTick;
     std::unordered_map<IVec3, uint64_t> m_loadedChunks;
@@ -53,8 +53,14 @@ private:
 
 public:
     ServerPlayer() {};
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, ENetPeer* peer, uint32_t gameTick);
-    ServerPlayer(int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance, bool multiplayer);
+    ServerPlayer(
+        uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
+        ENetPeer* peer, uint32_t gameTick
+    );
+    ServerPlayer(
+        uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
+        bool multiplayer
+    );
     void updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition);
     bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords, uint64_t currentGameTick);
@@ -67,7 +73,7 @@ public:
         m_loadedChunks[chunkPosition] = currentGameTick;
     }
 
-    inline int getID() const {
+    inline uint32_t getID() const {
         return m_playerID;
     }
 
@@ -98,7 +104,7 @@ public:
         return m_lastPacketTick;
     }
 
-    inline uint16_t getRenderDistance() const {
+    inline int getRenderDistance() const {
         return m_renderDistance;
     }
 
