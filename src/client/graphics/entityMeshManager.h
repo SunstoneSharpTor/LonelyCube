@@ -41,7 +41,10 @@ public:
     uint32_t sizeOfVertices;
 
     EntityMeshManager(ServerWorld<true>& serverWorld);
-    void createBatch(IVec3 playerBlockCoords, float* vertexBuffer, uint32_t* indexBuffer);
+    void createBatch(
+        const IVec3 playerBlockCoords, float* vertexBuffer, uint32_t* indexBuffer,
+        const float timeSinceLastTick
+    );
 };
 
 }  // namespace lonelycube

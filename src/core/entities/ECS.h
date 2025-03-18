@@ -106,6 +106,12 @@ public:
         return m_entities[getEntityIndex(id)].id == id;
     }
 
+    template<typename T>
+    inline bool entityHasComponent(const EntityId id)
+    {
+        return m_entities[getEntityIndex(id)].mask[getComponentId<T>()];
+    }
+
     inline static EntityId createEntityId(EntityIndex index, EntityVersion version)
     {
         return ((EntityId)index << 32) | ((EntityId)version);

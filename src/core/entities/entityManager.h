@@ -35,6 +35,8 @@ private:
 
     PhysicsEngine m_physicsEngine;
 
+    void tickItems();
+
 public:
     EntityManager(int maxNumEntities, ChunkManager& chunkManager, const ResourcePack& resourcePack);
     void tick();

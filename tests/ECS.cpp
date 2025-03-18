@@ -1,13 +1,13 @@
 /*
   Lonely Cube, a voxel game
-  Copyright (C) 2024 Bertie Cartwright
+  Copyright (C) 2024-2025 Bertie Cartwright
 
-  This program is free software: you can redistribute it and/or modify
+  Lonely Cube is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
+  Lonely Cube is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -78,6 +78,18 @@ TEST_CASE( "Entities can be added, destroyed and have components assigned to the
 
         REQUIRE( ecs.get<std::string>(entity2) == "New value" );
         REQUIRE( ecs.get<IVec3>(entity1) == IVec3(1, 2, 3) );
+    }
+    SECTION( "It is possible to check whether or not an entity has a given component" )
+    {
+        REQUIRE( ecs.entityHasComponent<IVec3>(entity1) == true );
+        REQUIRE( ecs.entityHasComponent<std::string>(entity1) == true );
+        REQUIRE( ecs.entityHasComponent<int>(entity1) == true );
+        REQUIRE( ecs.entityHasComponent<IVec3>(entity2) == true );
+        REQUIRE( ecs.entityHasComponent<std::string>(entity2) == true );
+        REQUIRE( ecs.entityHasComponent<int>(entity2) == false );
+        REQUIRE( ecs.entityHasComponent<IVec3>(entity3) == false );
+        REQUIRE( ecs.entityHasComponent<std::string>(entity3) == false );
+        REQUIRE( ecs.entityHasComponent<int>(entity3) == true );
     }
 }
 

@@ -168,14 +168,14 @@ void ClientWorld::renderWorld(
     }
 
     // Render entities
-    integratedServer.getEntityManager().getPhysicsEngine().extrapolateTransforms(
-        integratedServer.getTimeSinceLastTick());
+    float timeSinceLastTick = integratedServer.getTimeSinceLastTick();
+    integratedServer.getEntityManager().getPhysicsEngine().extrapolateTransforms(timeSinceLastTick);
     GPUDynamicMeshBuffers& entityMesh = m_entityMeshes[
         m_renderer.getVulkanEngine().getFrameDataIndex()
     ];
     m_entityMeshManager.createBatch(
         playerBlockPos, reinterpret_cast<float*>(entityMesh.vertexBuffer.mappedData),
-        reinterpret_cast<uint32_t*>(entityMesh.indexBuffer.mappedData)
+        reinterpret_cast<uint32_t*>(entityMesh.indexBuffer.mappedData), timeSinceLastTick
     );
     // glm::vec3 coordinatesVec(-playerBlockPos[0], -playerBlockPos[1], -playerBlockPos[2]);
     m_renderer.blockRenderInfo.mvp = viewProj;  // * glm::translate(glm::mat4(1.0f), coordinatesVec);
