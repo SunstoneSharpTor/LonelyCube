@@ -77,7 +77,7 @@ void ServerPlayer::initChunkPositions() {
 
 // The constructor used by the physical server
 ServerPlayer::ServerPlayer(
-    int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
+    uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
     ENetPeer* peer, uint32_t gameTick
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
     m_targetBufferSize(0), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID),
@@ -99,7 +99,7 @@ ServerPlayer::ServerPlayer(
 
 // The constructor used by the integrated server
 ServerPlayer::ServerPlayer(
-    int playerID, int* blockPosition, float* subBlockPosition, uint16_t renderDistance,
+    uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
     bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
     m_targetBufferSize(1), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)

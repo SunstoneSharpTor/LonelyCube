@@ -51,8 +51,8 @@ private:
     };
 
     bool m_singleplayer;
-    uint16_t m_renderDistance;
-    uint16_t m_renderDiameter;
+    int m_renderDistance;
+    int m_renderDiameter;
     int m_playerChunkPosition[3];
     int m_newPlayerChunkPosition[3];
     int m_updatingPlayerChunkPosition[3];
@@ -119,7 +119,7 @@ private:
 
 public:
     ClientWorld(
-        uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
+        int renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
         ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
     );
     void renderWorld(
@@ -127,8 +127,8 @@ public:
         float aspectRatio, float fov, float skyLightIntensity, double DT
     );
     void loadChunksAroundPlayerSingleplayer(int8_t threadNum);
-    void loadChunksAroundPlayerMultiplayer(int8_t threadNum);
-    void buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
+    bool loadChunksAroundPlayerMultiplayer(int8_t threadNum);
+    bool buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
     uint8_t shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
     void replaceBlock(const IVec3& blockCoords, uint8_t blockType);
     inline int getRenderDistance() {

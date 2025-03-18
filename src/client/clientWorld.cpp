@@ -40,7 +40,7 @@ static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, 
 static bool unmeshCompleted = true;
 
 ClientWorld::ClientWorld(
-    uint16_t renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
+    int renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
     ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
 ) : integratedServer(seed, networkingMutex), m_singleplayer(singleplayer), m_renderer(renderer),
     m_peer(peer), m_networkingMtx(networkingMutex), m_clientID(-1), m_chunkRequestScheduled(true),
@@ -308,7 +308,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
+bool ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
         // locking
@@ -317,7 +317,7 @@ void ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
-    buildMeshesForNewChunksWithNeighbours(threadNum);
+    return buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
 void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
@@ -511,7 +511,8 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     }
 }
 
-void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
+bool ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
+    bool meshBuilt = false;
     if (m_recentChunksBuilt.size() > 0) {
         m_unmeshedChunksMtx.lock();
         if (m_recentChunksBuilt.size() > 0) {
@@ -551,6 +552,7 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
                     }
                     addChunkMesh(chunkPosition, threadNum);
                     m_unmeshedChunksMtx.lock();
+                    meshBuilt = true;
                 }
             }
         }
@@ -560,6 +562,8 @@ void ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {
     // {
     //     requestMoreChunks();
     // }
+
+    return meshBuilt;
 }
 
 uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords) {

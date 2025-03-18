@@ -35,7 +35,7 @@ private:
 public:
     bool establishConnection(std::string& serverIP, uint16_t renderDistance);
     void receivePacket(ENetPacket* packet, ClientWorld& mainWorld);
-    void receiveEvents(ClientWorld& mainWorld);
+    bool receiveEvents(ClientWorld& mainWorld);
     ENetPeer* getPeer() {
         return m_peer;
     }
