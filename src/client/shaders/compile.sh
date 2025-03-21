@@ -5,7 +5,7 @@ glslangValidator -V src/client/shaders/block.frag.glsl -o res/shaders/block.frag
 glslangValidator -V src/client/shaders/water.vert.glsl -o res/shaders/water.vert.spv
 glslangValidator -V src/client/shaders/water.frag.glsl -o res/shaders/water.frag.spv
 glslangValidator -V src/client/shaders/fullscreen.vert.glsl -o res/shaders/fullscreen.vert.spv
-glslangValidator -V src/client/shaders/exposure.frag.glsl -o res/shaders/exposure.frag.spv
+glslangValidator -V src/client/shaders/toneMap.frag.glsl -o res/shaders/toneMap.frag.spv
 glslangValidator -V src/client/shaders/blockOutline.vert.glsl -o res/shaders/blockOutline.vert.spv
 glslangValidator -V src/client/shaders/blockOutline.frag.glsl -o res/shaders/blockOutline.frag.spv
 glslangValidator -V src/client/shaders/crosshair.vert.glsl -o res/shaders/crosshair.vert.spv

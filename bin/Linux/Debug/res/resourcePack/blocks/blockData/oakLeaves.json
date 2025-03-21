@@ -1,8 +1,0 @@
-{
-    "transparrent": true,
-    "collidable": true,
-    "dimsLight": true,
-    "castsAmbientOcclusion": false,
-    "model": "cube",
-    "textureIndices": [7,7,7,7,7,7]
-}

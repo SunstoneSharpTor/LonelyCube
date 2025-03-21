@@ -46,10 +46,10 @@ struct BlockPushConstants
     float skyLightIntensity;
 };
 
-struct ExposurePushConstants
+struct ToneMapPushConstants
 {
     glm::vec2 inverseDrawImageSize;
-    float exposure;
+    float toneMap;
 };
 
 class Renderer
@@ -57,7 +57,7 @@ class Renderer
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
-    float exposure;
+    float toneMap;
 
     Renderer(float renderScale);
     ~Renderer();
@@ -73,7 +73,7 @@ public:
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
-    void applyExposure();
+    void applyToneMap();
     void drawCrosshair();
     void submitFrame();
 
@@ -110,10 +110,10 @@ private:
     VkPipeline m_blockPipeline;
     VkPipeline m_waterPipeline;
 
-    VkDescriptorSetLayout m_exposureDescriptorLayout;
-    VkDescriptorSet m_exposureDescriptors;
-    VkPipelineLayout m_exposurePipelineLayout;
-    VkPipeline m_exposurePipeline;
+    VkDescriptorSetLayout m_toneMapDescriptorLayout;
+    VkDescriptorSet m_toneMapDescriptors;
+    VkPipelineLayout m_toneMapPipelineLayout;
+    VkPipeline m_toneMapPipeline;
 
     VkPipelineLayout m_blockOutlinePipelineLayout;
     VkPipeline m_blockOutlinePipeline;
@@ -139,8 +139,8 @@ private:
     void cleanupWorldPipelines();
     void createBlockOutlinePipeline();
     void cleanupBlockOutlinePipeline();
-    void createExposurePipeline();
-    void cleanupExposurePipeline();
+    void createToneMapPipeline();
+    void cleanupToneMapPipeline();
     void createCrosshairPipeline();
     void cleanupCrosshairPipeline();
     void createPipelines();
@@ -149,7 +149,7 @@ private:
     void createDrawImageDescriptors();
     void createSkyDescriptors();
     void createWorldDescriptors();
-    void createExposureDescriptors();
+    void createToneMapDescriptors();
     void createCrosshairDescriptors();
     void createDescriptors();
     void cleanupDescriptors();

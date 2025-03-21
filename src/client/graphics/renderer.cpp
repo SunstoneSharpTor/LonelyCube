@@ -264,25 +264,25 @@ void Renderer::createWorldDescriptors()
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
 }
 
-void Renderer::createExposureDescriptors()
+void Renderer::createToneMapDescriptors()
 {
     DescriptorLayoutBuilder builder;
     DescriptorWriter writer;
 
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    m_exposureDescriptorLayout = builder.build(
+    m_toneMapDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
 
-    m_exposureDescriptors = m_globalDescriptorAllocator.allocate(
-        m_vulkanEngine.getDevice(), m_exposureDescriptorLayout
+    m_toneMapDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_toneMapDescriptorLayout
     );
 
     writer.writeImage(
         0, m_drawImage.imageView, m_linearFullscreenSampler,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_exposureDescriptors);
+    writer.updateSet(m_vulkanEngine.getDevice(), m_toneMapDescriptors);
 }
 
 void Renderer::createCrosshairDescriptors()
@@ -311,7 +311,7 @@ void Renderer::createDescriptors()
     createDrawImageDescriptors();
     createSkyDescriptors();
     createWorldDescriptors();
-    createExposureDescriptors();
+    createToneMapDescriptors();
     createCrosshairDescriptors();
 }
 
@@ -322,7 +322,7 @@ void Renderer::cleanupDescriptors()
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
     );
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_exposureDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_toneMapDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_crosshairDescriptorLayout, nullptr);
 }
 
@@ -562,10 +562,10 @@ void Renderer::cleanupBlockOutlinePipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blockOutlinePipelineLayout, nullptr);
 }
 
-void Renderer::createExposurePipeline()
+void Renderer::createToneMapPipeline()
 {
     VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(ExposurePushConstants);
+    bufferRange.size = sizeof(ToneMapPushConstants);
     bufferRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -573,10 +573,10 @@ void Renderer::createExposurePipeline()
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_exposureDescriptorLayout;
+    pipelineLayoutInfo.pSetLayouts = &m_toneMapDescriptorLayout;
 
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_exposurePipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_toneMapPipelineLayout
     ));
 
     VkShaderModule fullscreenVertexShader;
@@ -585,16 +585,16 @@ void Renderer::createExposurePipeline()
     ) {
         LOG("Failed to find shader \"res/shaders/fullscreen.vert.spv\"");
     }
-    VkShaderModule exposureFragmentShader;
+    VkShaderModule toneMapFragmentShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/exposure.frag.spv", exposureFragmentShader)
+        m_vulkanEngine.getDevice(), "res/shaders/toneMap.frag.spv", toneMapFragmentShader)
     ) {
-        LOG("Failed to find shader \"res/shaders/exposure.frag.spv\"");
+        LOG("Failed to find shader \"res/shaders/toneMap.frag.spv\"");
     }
 
     PipelineBuilder pipelineBuilder;
-    pipelineBuilder.pipelineLayout = m_exposurePipelineLayout;
-    pipelineBuilder.setShaders(fullscreenVertexShader, exposureFragmentShader);
+    pipelineBuilder.pipelineLayout = m_toneMapPipelineLayout;
+    pipelineBuilder.setShaders(fullscreenVertexShader, toneMapFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
@@ -604,16 +604,16 @@ void Renderer::createExposurePipeline()
     pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
     pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
 
-    m_exposurePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+    m_toneMapPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), exposureFragmentShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), toneMapFragmentShader, nullptr);
 }
 
-void Renderer::cleanupExposurePipeline()
+void Renderer::cleanupToneMapPipeline()
 {
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_exposurePipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_exposurePipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_toneMapPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_toneMapPipelineLayout, nullptr);
 }
 
 void Renderer::createCrosshairPipeline()
@@ -676,7 +676,7 @@ void Renderer::createPipelines()
     createSunPipeline();
     createWorldPipelines();
     createBlockOutlinePipeline();
-    createExposurePipeline();
+    createToneMapPipeline();
     createCrosshairPipeline();
 }
 
@@ -686,7 +686,7 @@ void Renderer::cleanupPipelines()
     cleanupSunPipeline();
     cleanupWorldPipelines();
     cleanupBlockOutlinePipeline();
-    cleanupExposurePipeline();
+    cleanupToneMapPipeline();
     cleanupCrosshairPipeline();
 }
 
@@ -939,7 +939,7 @@ void Renderer::finishDrawingGeometry()
     vkCmdEndRendering(command);
 }
 
-void Renderer::applyExposure()
+void Renderer::applyToneMap()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -968,7 +968,7 @@ void Renderer::applyExposure()
     renderingInfo.pColorAttachments = &colourAttachment;
 
     vkCmdBeginRendering(command, &renderingInfo);
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipeline);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMapPipeline);
 
     VkViewport viewport{};
     viewport.width = m_vulkanEngine.getSwapchainExtent().width;
@@ -984,18 +984,18 @@ void Renderer::applyExposure()
     vkCmdSetScissor(command, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_exposurePipelineLayout,
-        0, 1, &m_exposureDescriptors,
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMapPipelineLayout,
+        0, 1, &m_toneMapDescriptors,
         0, nullptr
     );
 
-    ExposurePushConstants pushConstants;
+    ToneMapPushConstants pushConstants;
     pushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
     pushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
-    pushConstants.exposure = exposure;
+    pushConstants.toneMap = toneMap;
     vkCmdPushConstants(
-        command, m_exposurePipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-        sizeof(ExposurePushConstants), &pushConstants
+        command, m_toneMapPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+        sizeof(ToneMapPushConstants), &pushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
 }

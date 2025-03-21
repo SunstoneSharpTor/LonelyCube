@@ -137,8 +137,8 @@ void renderThread() {
     mainWorld.doRenderThreadJobs();
 
     //set up game loop
-    float exposure = 0.0;
-    float exposureTimeByDTs = 0.0;
+    float toneMap = 0.0;
+    float toneMapTimeByDTs = 0.0;
     int FPS_CAP = std::numeric_limits<int>::max();
     double DT = 1.0 / FPS_CAP;
     uint64_t lastFrameRateFrames = 0;
@@ -297,7 +297,7 @@ void renderThread() {
 
             renderer.finishDrawingGeometry();
 
-            // // Update auto exposure
+            // // Update auto toneMap
             // #ifndef GLES3
             // float luminanceVal = luminance.calculate();
             // #else
@@ -311,19 +311,19 @@ void renderThread() {
                 45.0f) * (1.0f - factor);
             float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
             // #endif
-            float targetExposure = std::max(1.0f / 10.0f, std::min(0.15f / luminanceVal, 1.0f / 0.005f));
-            exposureTimeByDTs += actualDT;
-            while (exposureTimeByDTs > (1.0 / (double)constants::visualTPS)) {
+            float targetToneMap = std::max(0.1f, std::min(0.38f / luminanceVal, 1.0f / 0.002f));
+            toneMapTimeByDTs += actualDT;
+            while (toneMapTimeByDTs > (1.0 / (double)constants::visualTPS)) {
                 float fac = 0.008f;
-                exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
-                    std::abs(targetExposure - exposure),
-                    (targetExposure - exposure) * (targetExposure - exposure) * fac
+                toneMap += ((targetToneMap > toneMap) * 2 - 1) * std::min(
+                    std::abs(targetToneMap - toneMap),
+                    (targetToneMap - toneMap) * (targetToneMap - toneMap) * fac
                 );
-                exposureTimeByDTs -= (1.0/(float)constants::visualTPS);
+                toneMapTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
 
-            renderer.exposure = exposure;
-            renderer.applyExposure();
+            renderer.toneMap = toneMap;
+            renderer.applyToneMap();
 
             renderer.drawCrosshair();
 
@@ -385,7 +385,7 @@ void renderThread() {
         // Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
         // screenShader.bind();
         // screenShader.setUniform1i("screenTexture", 0);
-        // screenShader.setUniform1f("exposure", 1.0f);
+        // screenShader.setUniform1f("toneMap", 1.0f);
         // #ifndef GLES3
         // ComputeShader skyShader("res/shaders/sky.txt");
         // ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
