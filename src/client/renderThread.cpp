@@ -137,7 +137,7 @@ void renderThread() {
     mainWorld.doRenderThreadJobs();
 
     //set up game loop
-    float toneMap = 0.0;
+    float exposure = 0.0;
     float toneMapTimeByDTs = 0.0;
     int FPS_CAP = std::numeric_limits<int>::max();
     double DT = 1.0 / FPS_CAP;
@@ -297,7 +297,8 @@ void renderThread() {
 
             renderer.finishDrawingGeometry();
 
-            // // Update auto toneMap
+            // Update auto exposure
+            renderer.calculateAutoExposure();
             // #ifndef GLES3
             // float luminanceVal = luminance.calculate();
             // #else
@@ -311,18 +312,18 @@ void renderThread() {
                 45.0f) * (1.0f - factor);
             float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
             // #endif
-            float targetToneMap = std::max(0.1f, std::min(0.38f / luminanceVal, 1.0f / 0.002f));
+            float targetExposure = std::max(0.1f, std::min(0.38f / luminanceVal, 1.0f / 0.002f));
             toneMapTimeByDTs += actualDT;
             while (toneMapTimeByDTs > (1.0 / (double)constants::visualTPS)) {
                 float fac = 0.008f;
-                toneMap += ((targetToneMap > toneMap) * 2 - 1) * std::min(
-                    std::abs(targetToneMap - toneMap),
-                    (targetToneMap - toneMap) * (targetToneMap - toneMap) * fac
+                exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
+                    std::abs(targetExposure - exposure),
+                    (targetExposure - exposure) * (targetExposure - exposure) * fac
                 );
                 toneMapTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
 
-            renderer.toneMap = toneMap;
+            renderer.exposure = exposure;
             renderer.applyToneMap();
 
             renderer.drawCrosshair();
@@ -366,120 +367,5 @@ void renderThread() {
 
 }  // namespace lonelycube::client
 
-        // // Create shaders
-        // Shader waterShader("res/shaders/blockVertex.txt", "res/shaders/waterFragment.txt");
-        // waterShader.bind();
-        // waterShader.setUniform1i("u_blockTextures", 0);
-        // waterShader.setUniform1i("u_skyTexture", 1);
-        // waterShader.setUniform1f("u_renderDistance", (mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE);
-        // Shader blockShader("res/shaders/blockVertex.txt", "res/shaders/blockFragment.txt");
-        // blockShader.bind();
-        // blockShader.setUniform1i("u_blockTextures", 0);
-        // blockShader.setUniform1i("u_skyTexture", 1);
-        // blockShader.setUniform1f("u_renderDistance", (mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE);
-        // Shader blockOutlineShader("res/shaders/wireframeVertex.txt", "res/shaders/wireframeFragment.txt");
-        // Shader crosshairShader("res/shaders/crosshairVertex.txt", "res/shaders/crosshairFragment.txt");
-        // crosshairShader.bind();
-        // glm::mat4 crosshairProj = glm::ortho(-(float)windowDimensions[0] / 2, (float)windowDimensions[0] / 2, -(float)windowDimensions[1] / 2, (float)windowDimensions[1] / 2, -1.0f, 1.0f);
-        // crosshairShader.setUniformMat4f("u_MVP", crosshairProj);
-        // Shader screenShader("res/shaders/screenShaderVertex.txt", "res/shaders/screenShaderFragment.txt");
-        // screenShader.bind();
-        // screenShader.setUniform1i("screenTexture", 0);
-        // screenShader.setUniform1f("toneMap", 1.0f);
-        // #ifndef GLES3
-        // ComputeShader skyShader("res/shaders/sky.txt");
-        // ComputeShader skyBlitShader("res/shaders/skyBlit.txt");
-        // ComputeShader sunShader("res/shaders/sun.txt");
-        // ComputeShader bloomDownsampleShader("res/shaders/bloomDownsample.txt");
-        // bloomDownsampleShader.bind();
-        // bloomDownsampleShader.setUniform1i("srcTexture", 0);
-        // ComputeShader bloomUpsampleShader("res/shaders/bloomUpsample.txt");
-        // bloomUpsampleShader.bind();
-        // bloomUpsampleShader.setUniform1i("srcTexture", 0);
-        // ComputeShader bloomBlitShader("res/shaders/bloomBlit.txt");
-        // bloomBlitShader.bind();
-        // bloomBlitShader.setUniform1i("srcTexture", 0);
-        // ComputeShader logLuminanceDownsampleShader("res/shaders/logLuminanceDownsample.txt");
-        // ComputeShader simpleDownsampleShader("res/shaders/simpleDownsample.txt");
-        // simpleDownsampleShader.bind();
-        // simpleDownsampleShader.setUniform1i("srcTexture", 0);
-        // #endif
-        //
-        // Texture worldTextures("res/resourcePack/textures.png");
-        //
-        // GlRenderer mainRenderer;
-        //
-        // mainRenderer.setOpenGlOptions();
-        //
-        // //set up crosshair
-        // float crosshairCoordinates[24] = { -1.0f,  8.0f,
-        //                                     1.0f,  8.0f,
-        //                                     1.0f, -8.0f,
-        //                                    -1.0f, -8.0f,
-        //
-        //                                    -8.0f,  1.0f,
-        //                                    -1.0f,  1.0f,
-        //                                    -1.0f, -1.0f,
-        //                                    -8.0f, -1.0f,
-        //
-        //                                     8.0f,  1.0f,
-        //                                     1.0f,  1.0f,
-        //                                     1.0f, -1.0f,
-        //                                     8.0f, -1.0f };
-        //
-        // uint32_t crosshairIndices[18] = { 2,  1,  0,
-        //                                       0,  3,  2,
-        //                                       6,  5,  4,
-        //                                       4,  7,  6,
-        //                                      10,  8,  9,
-        //                                       8, 10, 11 };
-        //
-        // VertexArray crosshairVA;
-        // VertexBuffer crosshairVB(crosshairCoordinates, 24 * sizeof(float));
-        // VertexBufferLayout crosshairVBlayout;
-        // crosshairVBlayout.push<float>(2);
-        // crosshairVA.addBuffer(crosshairVB, crosshairVBlayout);
-        // IndexBuffer crosshairIB(crosshairIndices, 18);
-        //
-        // //set up block outline
-        // VertexBufferLayout blockOutlineVBL;
-        // blockOutlineVBL.push<float>(3);
-        // IndexBuffer blockOutlineIB(constants::CUBE_WIREFRAME_IB, 16);
-        //
-        // FrameBuffer<true> worldFrameBuffer(reinterpret_cast<uint32_t*>(windowDimensions));
-        // worldFrameBuffer.unbind();
-        // #ifndef GLES3
-        // Bloom bloom(
-        //     worldFrameBuffer.getTextureColourBuffer(),
-        //     reinterpret_cast<uint32_t*>(windowDimensions), bloomDownsampleShader,
-        //     bloomUpsampleShader, bloomBlitShader
-        // );
-        // Luminance luminance(
-        //     worldFrameBuffer.getTextureColourBuffer(),
-        //     reinterpret_cast<uint32_t*>(windowDimensions), logLuminanceDownsampleShader,
-        //     simpleDownsampleShader
-        // );
-        //
-        // uint32_t skyTexture;
-        // glGenTextures(1, &skyTexture);
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, skyTexture);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, windowDimensions[0], windowDimensions[1], 0, GL_RGBA, GL_FLOAT, NULL);
-        // #else
-        // FrameBuffer<false> skyFrameBuffer(windowDimensions);
-        // #endif
-        //
-        // mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
-        //
-        // double time;
-        // mainPlayer.processUserInput(window, windowDimensions, &windowLastFocus, &running, time, networking);
-        // mainWorld.doRenderThreadJobs();
-        //
-        // mainWorld.initialiseEntityRenderBuffers();
-        //
         // Font font("res/resourcePack/gui/font.png", reinterpret_cast<uint32_t*>(windowDimensions));
         // // glfwSetCharCallback(window, characterCallback);

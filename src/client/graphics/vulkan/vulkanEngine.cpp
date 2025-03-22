@@ -68,6 +68,10 @@ void VulkanEngine::init()
     createSwapchainImageViews();
     createFrameData();
     initImmediateSubmit();
+
+    VkImageFormatProperties p;
+    vkGetPhysicalDeviceImageFormatProperties(m_physicalDevice, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, 0, &p);
+    LOG("max array layers: " + std::to_string(p.maxArrayLayers));
 }
 
 void VulkanEngine::createWindow()
@@ -1109,7 +1113,7 @@ AllocatedImage VulkanEngine::createImage(
 
     VmaAllocationCreateInfo imageAllocInfo{};
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    imageAllocInfo.flags = 0;
+    imageAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
     VK_CHECK(vmaCreateImage(
         m_allocator, &imageCreateInfo, &imageAllocInfo, &newImage.image, &newImage.allocation,

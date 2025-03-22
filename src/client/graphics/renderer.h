@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "client/graphics/entityMeshManager.h"
 #include "glm/glm.hpp"
 #include "stb_image.h"
 
+#include "client/graphics/entityMeshManager.h"
+#include "client/graphics/luminance.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
 
@@ -49,7 +50,7 @@ struct BlockPushConstants
 struct ToneMapPushConstants
 {
     glm::vec2 inverseDrawImageSize;
-    float toneMap;
+    float exposure;
 };
 
 class Renderer
@@ -57,7 +58,7 @@ class Renderer
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
-    float toneMap;
+    float exposure;
 
     Renderer(float renderScale);
     ~Renderer();
@@ -73,6 +74,7 @@ public:
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
+    void calculateAutoExposure();
     void applyToneMap();
     void drawCrosshair();
     void submitFrame();
@@ -110,13 +112,15 @@ private:
     VkPipeline m_blockPipeline;
     VkPipeline m_waterPipeline;
 
+    VkPipelineLayout m_blockOutlinePipelineLayout;
+    VkPipeline m_blockOutlinePipeline;
+
+    Luminance m_luminance;
+
     VkDescriptorSetLayout m_toneMapDescriptorLayout;
     VkDescriptorSet m_toneMapDescriptors;
     VkPipelineLayout m_toneMapPipelineLayout;
     VkPipeline m_toneMapPipeline;
-
-    VkPipelineLayout m_blockOutlinePipelineLayout;
-    VkPipeline m_blockOutlinePipeline;
 
     VkDescriptorSetLayout m_crosshairDescriptorLayout;
     VkDescriptorSet m_crosshairDescriptors;
@@ -154,16 +158,12 @@ private:
     void createDescriptors();
     void cleanupDescriptors();
 
+    void createRenderImages();
+    void cleanupRenderImages();
+    void createSamplers();
+    void cleanupSamplers();
     void loadTextures();
     void cleanupTextures();
-
-    void createDrawImage();
-    void createDepthImage();
-    void cleanupDepthImage();
-    void createSkyImage();
-    void cleanupSkyImage();
-    void createFullscreenSamplers();
-    void cleanupFullscreenSamplers();
 };
 
 }  // namespace lonelycube::client

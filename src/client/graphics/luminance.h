@@ -18,36 +18,48 @@
 
 #pragma once
 
-#include "core/pch.h"
-
 #include "glm/glm.hpp"
+#include "stb_image.h"
 
-#include "client/graphics/computeShader.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
+#include "client/graphics/vulkan/descriptors.h"
 
 namespace lonelycube::client {
 
-struct LuminanceMip {
-    glm::vec2 size;
-    glm::ivec2 intSize;
-    uint32_t texture;
+struct LuminancePushConstants
+{
+    VkDeviceAddress luminanceBuffer;
+    int luminanceImageSize;
 };
 
-class Luminance {
+class Luminance
+{
 public:
-private:
-    ComputeShader& m_luminanceShader;
-    ComputeShader& m_downsampleShader;
-    std::vector<LuminanceMip> m_mipChain;
-    LuminanceMip m_srcTexture;
+    Luminance(VulkanEngine& vulkanEngine);
+    void init(
+        DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,
+        VkSampler sampler
+    );
+    void cleanup();
+    void calculate();
 
-    void createMips(glm::ivec2 srcTextureSize);
-    void deleteMips();
-public:
-    Luminance(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader& luminanceShader,
-        ComputeShader& downsampleShader);
-    ~Luminance();
-    float calculate();
-    void resize(uint32_t windowSize[2]);
+private:
+    static constexpr uint32_t s_luminanceImageResolution = 1024;
+
+    VulkanEngine& m_vulkanEngine;
+
+    AllocatedBuffer m_luminanceBuffer;
+    VkDescriptorSetLayout m_luminanceDescriptorSetLayout;
+    VkDescriptorSet m_luminanceDescriptors;
+    VkPipelineLayout m_luminancePipelineLayout;
+    VkPipeline m_luminancePipeline;
+    LuminancePushConstants m_luminancePushConstants;
+
+    void createLuminanceDescriptors(
+        DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,
+        VkSampler sampler
+    );
+    void createLuminancePipeline();
 };
 
 }  // namespace lonelycube::client
