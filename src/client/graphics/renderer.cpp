@@ -31,7 +31,7 @@
 
 namespace lonelycube::client {
 
-Renderer::Renderer(float renderScale) : m_renderScale(renderScale)
+Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_luminance(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -42,32 +42,32 @@ Renderer::Renderer(float renderScale) : m_renderScale(renderScale)
     };
     m_globalDescriptorAllocator.init(m_vulkanEngine.getDevice(), 10, sizes);
 
-    createDrawImage();
-    createDepthImage();
-    createSkyImage();
+    createRenderImages();
+    createSamplers();
     loadTextures();
-    createFullscreenSamplers();
     createDescriptors();
     createPipelines();
+
+    m_luminance.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
 }
 
 Renderer::~Renderer()
 {
     vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
+    m_luminance.cleanup();
+
     cleanupPipelines();
     cleanupDescriptors();
-    m_vulkanEngine.destroyImage(m_skyImage);
-    m_vulkanEngine.destroyImage(m_drawImage);
-    m_vulkanEngine.destroyImage(m_depthImage);
+    cleanupRenderImages();
     cleanupTextures();
-    cleanupFullscreenSamplers();
+    cleanupSamplers();
     m_globalDescriptorAllocator.destroyPools(m_vulkanEngine.getDevice());
 
     m_vulkanEngine.cleanup();
 }
 
-void Renderer::createDrawImage()
+void Renderer::createRenderImages()
 {
     int numVideoModes;
     const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
@@ -89,29 +89,27 @@ void Renderer::createDrawImage()
     VkImageUsageFlags drawImageUsages =
     VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT| VK_IMAGE_USAGE_SAMPLED_BIT;
-
     m_drawImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages
     );
-}
 
-void Renderer::createDepthImage()
-{
+    VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+        | VK_IMAGE_USAGE_SAMPLED_BIT;
+    m_skyImage = m_vulkanEngine.createImage(
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
+    );
+
     VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
     m_depthImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages
     );
 }
 
-void Renderer::createSkyImage()
+void Renderer::cleanupRenderImages()
 {
-    VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
-        | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-    m_skyImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
-    );
+    m_vulkanEngine.destroyImage(m_skyImage);
+    m_vulkanEngine.destroyImage(m_drawImage);
+    m_vulkanEngine.destroyImage(m_depthImage);
 }
 
 void Renderer::loadTextures()
@@ -131,9 +129,31 @@ void Renderer::loadTextures()
         buffer, extent, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
+}
 
+void Renderer::cleanupTextures()
+{
+    m_vulkanEngine.destroyImage(m_worldTextures);
+    m_vulkanEngine.destroyImage(m_crosshairTexture);
+}
+
+void Renderer::createSamplers()
+{
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
+
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
+
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
     // samplerInfo.anisotropyEnable =
@@ -158,37 +178,13 @@ void Renderer::loadTextures()
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_uiSampler);
 }
 
-void Renderer::cleanupTextures()
-{
-    m_vulkanEngine.destroyImage(m_worldTextures);
-    m_vulkanEngine.destroyImage(m_crosshairTexture);
-
-    vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
-    vkDestroySampler(m_vulkanEngine.getDevice(), m_uiSampler, nullptr);
-}
-
-void Renderer::createFullscreenSamplers()
-{
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
-
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-
-    vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
-}
-
-void Renderer::cleanupFullscreenSamplers()
+void Renderer::cleanupSamplers()
 {
     vkDestroySampler(m_vulkanEngine.getDevice(), m_nearestFullscreenSampler, nullptr);
     vkDestroySampler(m_vulkanEngine.getDevice(), m_linearFullscreenSampler, nullptr);
+
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_uiSampler, nullptr);
 }
 
 void Renderer::createDrawImageDescriptors()
@@ -939,7 +935,7 @@ void Renderer::finishDrawingGeometry()
     vkCmdEndRendering(command);
 }
 
-void Renderer::applyToneMap()
+void Renderer::calculateAutoExposure()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -948,6 +944,15 @@ void Renderer::applyToneMap()
         command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
+
+    m_luminance.calculate();
+}
+
+void Renderer::applyToneMap()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
     transitionImage(
         command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -992,7 +997,7 @@ void Renderer::applyToneMap()
     ToneMapPushConstants pushConstants;
     pushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
     pushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
-    pushConstants.toneMap = toneMap;
+    pushConstants.exposure = exposure;
     vkCmdPushConstants(
         command, m_toneMapPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
         sizeof(ToneMapPushConstants), &pushConstants

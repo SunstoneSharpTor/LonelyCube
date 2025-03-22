@@ -20,100 +20,131 @@
 
 #include "core/pch.h"
 
+#include "client/graphics/vulkan/shaders.h"
+#include "client/graphics/vulkan/utils.h"
+#include "core/log.h"
+
 namespace lonelycube::client {
 
-Luminance::Luminance(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader&
-    luminanceShader, ComputeShader& downsampleShader) : m_luminanceShader(luminanceShader),
-    m_downsampleShader(downsampleShader) {
-    // glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
-    // glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
-    //
-    // m_srcTexture.size = mipSize;
-    // m_srcTexture.intSize = mipIntSize;
-    // m_srcTexture.texture = srcTexture;
-    //
-    // createMips(mipIntSize);
+Luminance::Luminance(VulkanEngine& vulkanEngine) : m_vulkanEngine(vulkanEngine) {}
+
+void Luminance::init(
+    DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView, VkSampler sampler
+) {
+    m_luminanceBuffer = m_vulkanEngine.createBuffer(
+        s_luminanceImageResolution * s_luminanceImageResolution * 4,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
+    );
+    m_luminancePushConstants.luminanceImageSize = s_luminanceImageResolution;
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer = m_luminanceBuffer.buffer;
+    m_luminancePushConstants.luminanceBuffer = vkGetBufferDeviceAddress(
+        m_vulkanEngine.getDevice(), &deviceAddressInfo
+    );
+
+    createLuminanceDescriptors(descriptorAllocator, srcImageView, sampler);
+    createLuminancePipeline();
 }
 
-Luminance::~Luminance() {
-    deleteMips();
+void Luminance::cleanup()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_luminancePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_luminancePipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(
+        m_vulkanEngine.getDevice(), m_luminanceDescriptorSetLayout, nullptr
+    );
+    m_vulkanEngine.destroyBuffer(m_luminanceBuffer);
 }
 
-float Luminance::calculate() {
-    // m_luminanceShader.bind();
-    // glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    // glBindImageTexture(1, m_mipChain[0].texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
-    // glDispatchCompute((uint32_t)((m_mipChain[0].intSize.x + 7) / 8),
-    //     (uint32_t)((m_mipChain[0].intSize.y + 7) / 8), 1);
-    // // Make sure writing to image has finished before read
-    // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    //
-    // m_downsampleShader.bind();
-    //
-    // // Progressively downsample through the mip chain
-    // for (int i = 1; i < m_mipChain.size(); i++) {
-    //     const LuminanceMip& srcMip = m_mipChain[i - 1];
-    //     const LuminanceMip& outputMip = m_mipChain[i];
-    //
-    //     glActiveTexture(GL_TEXTURE0);
-    //     glBindTexture(GL_TEXTURE_2D, srcMip.texture);
-    //     glBindImageTexture(0, outputMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R16F);
-    //     glDispatchCompute((uint32_t)((outputMip.intSize.x + 7) / 8),
-    //         (uint32_t)((outputMip.intSize.y + 7) / 8), 1);
-    //     // Make sure writing to image has finished before read
-    //     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    // }
-    //
-    // float luminance;
-    // glBindTexture(GL_TEXTURE_2D, m_mipChain[m_mipChain.size() - 1].texture);
-    // glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, &luminance);
-    // return std::exp(luminance - 64.0f);
-    return 0;
+void Luminance::createLuminanceDescriptors(
+    DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView, VkSampler sampler
+) {
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_luminanceDescriptorSetLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
+
+    m_luminanceDescriptors = descriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_luminanceDescriptorSetLayout
+    );
+
+    writer.writeImage(
+        0, srcImageView, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_luminanceDescriptors);
 }
 
-void Luminance::createMips(glm::ivec2 srcTextureSize) {
-    // glm::ivec2 mipIntSize = srcTextureSize;
-    // glm::vec2 mipSize = srcTextureSize;
-    //
-    // while (mipIntSize.x > 1 || mipIntSize.y > 1) {
-    //     LuminanceMip mip;
-    //
-    //     mipSize *= 0.5f;
-    //     mipIntSize.x = std::max(mipIntSize.x / 2, 1);
-    //     mipIntSize.y = std::max(mipIntSize.y / 2, 1);
-    //     mip.size = mipSize;
-    //     mip.intSize = mipIntSize;
-    //
-    //     glGenTextures(1, &mip.texture);
-    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
-    //     // we are downscaling an HDR color buffer, so we need a float texture format
-    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, mipIntSize.x, mipIntSize.y, 0,
-    //         GL_RED, GL_FLOAT, nullptr);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //     GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
-    //
-    //     m_mipChain.emplace_back(mip);
-    // }
+void Luminance::createLuminancePipeline()
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_luminanceDescriptorSetLayout;
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(LuminancePushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_luminancePipelineLayout
+    ));
+
+    VkShaderModule luminanceShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/luminance.comp.spv", luminanceShader))
+    {
+        LOG("Failed to find shader \"res/shaders/luminance.comp.spv\"");
+    }
+
+    VkPipelineShaderStageCreateInfo stageInfo{};
+    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfo.module = luminanceShader;
+    stageInfo.pName = "main";
+
+    VkComputePipelineCreateInfo skyPipelineCreateInfo{};
+    skyPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    skyPipelineCreateInfo.layout = m_luminancePipelineLayout;
+    skyPipelineCreateInfo.stage = stageInfo;
+
+    VK_CHECK(vkCreateComputePipelines(
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &skyPipelineCreateInfo, nullptr,
+        &m_luminancePipeline
+    ));
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), luminanceShader, nullptr);
 }
 
-void Luminance::deleteMips() {
-    // for (int i = 0; i < m_mipChain.size(); i++) {
-    //     glDeleteTextures(1, &m_mipChain[i].texture);
-    // }
-    // m_mipChain.clear();
-}
+void Luminance::calculate()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
 
-void Luminance::resize(uint32_t windowSize[2]) {
-    // deleteMips();
-    // glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
-    // glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
-    // m_srcTexture.size = mipSize;
-    // m_srcTexture.intSize = mipIntSize;
-    // createMips(m_srcTexture.intSize);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_luminancePipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_luminancePipelineLayout,
+        0, 1, &m_luminanceDescriptors,
+        0, nullptr
+    );
+
+    vkCmdPushConstants(
+        command, m_luminancePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+        sizeof(LuminancePushConstants), &m_luminancePushConstants
+    );
+
+    vkCmdDispatch(
+        command, (s_luminanceImageResolution + 15) / 16, (s_luminanceImageResolution + 15) / 16, 1
+    );
 }
 
 }  // namespace lonelycube::client
