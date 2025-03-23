@@ -19,6 +19,7 @@
 #pragma once
 
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
 
@@ -198,6 +199,7 @@ private:
     VkPhysicalDeviceVulkan11Properties m_physicalDeviceVulkan11Properties;
     VkPhysicalDeviceVulkan12Properties m_physicalDeviceVulkan12Properties;
     VkPhysicalDeviceVulkan13Properties m_physicalDeviceVulkan13Properties;
+    VkPhysicalDeviceSubgroupProperties m_physicalDeviceSubgroupProperties;
     VkPhysicalDeviceFeatures2 m_physicalDeviceFeatures;
     VkPhysicalDeviceVulkan11Features m_physicalDeviceVulkan11Features;
     VkPhysicalDeviceVulkan12Features m_physicalDeviceVulkan12Features;
@@ -243,6 +245,10 @@ public:
     inline VkPhysicalDeviceProperties2 getPhysicalDeviceProperties()
     {
         return m_physicalDeviceProperties;
+    }
+    inline VkPhysicalDeviceSubgroupProperties getPhysicalDeviceSubgroupProperties()
+    {
+        return m_physicalDeviceSubgroupProperties;
     }
     inline VkPhysicalDeviceFeatures2 getPhysicalDeviceFeatures()
     {

@@ -9,5 +9,6 @@ glslangValidator -V src/client/shaders/blockOutline.frag.glsl -o res/shaders/blo
 glslangValidator -V src/client/shaders/luminance.comp.glsl -o res/shaders/luminance.comp.spv
 glslangValidator -V src/client/shaders/fullscreen.vert.glsl -o res/shaders/fullscreen.vert.spv
 glslangValidator -V src/client/shaders/toneMap.frag.glsl -o res/shaders/toneMap.frag.spv
+glslangValidator -V src/client/shaders/parallelReduceMean.comp.glsl -o res/shaders/parallelReduceMean.comp.spv
 glslangValidator -V src/client/shaders/crosshair.vert.glsl -o res/shaders/crosshair.vert.spv
 glslangValidator -V src/client/shaders/crosshair.frag.glsl -o res/shaders/crosshair.frag.spv

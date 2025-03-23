@@ -23,6 +23,7 @@
 #include "core/log.h"
 #include <cassert>
 #include <string>
+#include <vulkan/vulkan_core.h>
 
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION
@@ -234,9 +235,12 @@ bool VulkanEngine::pickPhysicalDevice()
         return false;
     }
 
+    m_physicalDeviceSubgroupProperties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+    m_physicalDeviceSubgroupProperties.pNext = nullptr;
     m_physicalDeviceVulkan13Properties.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
-    m_physicalDeviceVulkan13Properties.pNext = nullptr;
+    m_physicalDeviceVulkan13Properties.pNext = &m_physicalDeviceSubgroupProperties;
     m_physicalDeviceVulkan12Properties.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
     m_physicalDeviceVulkan12Properties.pNext = &m_physicalDeviceVulkan13Properties;

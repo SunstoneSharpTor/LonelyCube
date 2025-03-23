@@ -19,7 +19,7 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
 
-layout (buffer_reference, std430) buffer Buffer
+layout (buffer_reference, std430) buffer NumbersBuffer
 {
     float elements[];
 };
@@ -28,10 +28,9 @@ layout (local_size_x = 16) in;
 
 layout (push_constant, std430) uniform constants
 {
-    Buffer buffer;
+    NumbersBuffer numbersBuffer;
 };
 
 void main() {
-    buffer.elements[luminanceTexelCoord.y * luminanceImageSize + luminanceTexelCoord.x] =
-        luminance + 0.00001;
+    numbersBuffer.elements[0] = 0.00001;
 }
