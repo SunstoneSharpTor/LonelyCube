@@ -47,6 +47,7 @@ void Luminance::init(
 
     createLuminanceDescriptors(descriptorAllocator, srcImageView, sampler);
     createLuminancePipeline();
+    createParallelReduceMeanPipeline();
 }
 
 void Luminance::cleanup()
@@ -145,20 +146,31 @@ void Luminance::createParallelReduceMeanPipeline()
 
     VkShaderModule parallelReduceMeanShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/parallelReduceMean.comp.spv", parallelReduceMeanShader))
+        m_vulkanEngine.getDevice(), "res/shaders/parallelReduceMean.comp.spv",
+        parallelReduceMeanShader))
     {
         LOG("Failed to find shader \"res/shaders/parallelReduceMean.comp.spv\"");
     }
 
-    VkSpecializationInfo specConstantsInfo{};
-    specConstantsInfo.
+    uint32_t subgroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
+    LOG("Subgroup size: " + std::to_string(subgroupSize));
+
+    VkSpecializationMapEntry specializationMapEntry;
+    specializationMapEntry.constantID = 0;
+    specializationMapEntry.size = sizeof(int);
+
+    VkSpecializationInfo specializationInfo{};
+    specializationInfo.dataSize = sizeof(int);
+    specializationInfo.mapEntryCount = 1;
+    specializationInfo.pMapEntries = &specializationMapEntry;
+    specializationInfo.pData = &subgroupSize;
 
     VkPipelineShaderStageCreateInfo stageInfo{};
     stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     stageInfo.module = parallelReduceMeanShader;
     stageInfo.pName = "main";
-    stageInfo.pSpecializationInfo = 0;
+    stageInfo.pSpecializationInfo = &specializationInfo;
 
     VkComputePipelineCreateInfo pipelineCreateInfo{};
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -170,7 +182,7 @@ void Luminance::createParallelReduceMeanPipeline()
         &m_luminancePipeline
     ));
 
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), luminanceShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), parallelReduceMeanShader, nullptr);
 }
 
 void Luminance::calculate()
