@@ -44,11 +44,10 @@ Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_luminance(
 
     createRenderImages();
     createSamplers();
+    m_luminance.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
     loadTextures();
     createDescriptors();
     createPipelines();
-
-    m_luminance.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
 }
 
 Renderer::~Renderer()
@@ -604,6 +603,10 @@ void Renderer::createToneMapPipeline()
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), toneMapFragmentShader, nullptr);
+
+    m_toneMapPushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
+    m_toneMapPushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
+    m_toneMapPushConstants.luminanceBuffer = m_luminance.getLuminanceBuffer();
 }
 
 void Renderer::cleanupToneMapPipeline()
@@ -994,13 +997,9 @@ void Renderer::applyToneMap()
         0, nullptr
     );
 
-    ToneMapPushConstants pushConstants;
-    pushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
-    pushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
-    pushConstants.exposure = exposure;
     vkCmdPushConstants(
         command, m_toneMapPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-        sizeof(ToneMapPushConstants), &pushConstants
+        sizeof(ToneMapPushConstants), &m_toneMapPushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
 }

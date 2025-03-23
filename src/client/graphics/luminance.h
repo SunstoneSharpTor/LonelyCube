@@ -42,6 +42,10 @@ public:
     );
     void cleanup();
     void calculate();
+    inline VkDeviceAddress getLuminanceBuffer() const
+    {
+        return m_luminancePushConstants.luminanceBuffer;
+    }
 
 private:
     static constexpr uint32_t s_luminanceImageResolution = 1024;

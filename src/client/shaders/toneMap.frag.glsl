@@ -17,6 +17,12 @@
 */
 
 #version 460
+#extension GL_EXT_buffer_reference : require
+
+layout (buffer_reference, std430) buffer LuminanceBuffer
+{
+    float luminance[];
+};
 
 layout (location = 0) out vec4 outColour;
 
@@ -25,7 +31,7 @@ layout (set = 0, binding = 0) uniform sampler2D drawImage;
 layout (push_constant, std430) uniform constants
 {
     vec2 inverseDrawImageSize;
-    float exposure;
+    LuminanceBuffer luminanceBuffer;
 };
 
 //
@@ -115,6 +121,7 @@ void main() {
 
     // Exposure tone mapping
     // vec3 mapped = vec3(1.0) - exp(-hdrColour * exposure);
+    float exposure = max(0.1, min(0.38 / exp(luminanceBuffer.luminance[0]), 1.0 / 0.002));
     vec3 mapped = ACESFitted(hdrColour * exposure);
 
     // // Gamma correction
