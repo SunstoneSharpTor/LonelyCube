@@ -53,17 +53,23 @@ private:
     VulkanEngine& m_vulkanEngine;
 
     AllocatedBuffer m_luminanceBuffer;
+
     VkDescriptorSetLayout m_luminanceDescriptorSetLayout;
     VkDescriptorSet m_luminanceDescriptors;
     VkPipelineLayout m_luminancePipelineLayout;
     VkPipeline m_luminancePipeline;
     LuminancePushConstants m_luminancePushConstants;
 
+    VkPipelineLayout m_parallelReduceMeanPipelineLayout;
+    VkPipeline m_parallelReduceMeanPipeline;
+
     void createLuminanceDescriptors(
         DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,
         VkSampler sampler
     );
     void createLuminancePipeline();
+
+    void createParallelReduceMeanPipeline();
 };
 
 }  // namespace lonelycube::client
