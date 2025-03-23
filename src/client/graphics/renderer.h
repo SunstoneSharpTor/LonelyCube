@@ -50,7 +50,7 @@ struct BlockPushConstants
 struct ToneMapPushConstants
 {
     glm::vec2 inverseDrawImageSize;
-    float exposure;
+    VkDeviceAddress luminanceBuffer;
 };
 
 class Renderer
@@ -58,7 +58,6 @@ class Renderer
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
-    float exposure;
 
     Renderer(float renderScale);
     ~Renderer();
@@ -121,6 +120,7 @@ private:
     VkDescriptorSet m_toneMapDescriptors;
     VkPipelineLayout m_toneMapPipelineLayout;
     VkPipeline m_toneMapPipeline;
+    ToneMapPushConstants m_toneMapPushConstants;
 
     VkDescriptorSetLayout m_crosshairDescriptorLayout;
     VkDescriptorSet m_crosshairDescriptors;

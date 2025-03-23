@@ -323,7 +323,6 @@ void renderThread() {
                 toneMapTimeByDTs -= (1.0/(float)constants::visualTPS);
             }
 
-            renderer.exposure = exposure;
             renderer.applyToneMap();
 
             renderer.drawCrosshair();
