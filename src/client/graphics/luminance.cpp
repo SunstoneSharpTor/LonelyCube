@@ -23,6 +23,7 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include "vulkan/vulkan_core.h"
 
 namespace lonelycube::client {
 
@@ -112,13 +113,60 @@ void Luminance::createLuminancePipeline()
     stageInfo.module = luminanceShader;
     stageInfo.pName = "main";
 
-    VkComputePipelineCreateInfo skyPipelineCreateInfo{};
-    skyPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    skyPipelineCreateInfo.layout = m_luminancePipelineLayout;
-    skyPipelineCreateInfo.stage = stageInfo;
+    VkComputePipelineCreateInfo pipelineCreateInfo{};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.layout = m_luminancePipelineLayout;
+    pipelineCreateInfo.stage = stageInfo;
 
     VK_CHECK(vkCreateComputePipelines(
-        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &skyPipelineCreateInfo, nullptr,
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr,
+        &m_luminancePipeline
+    ));
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), luminanceShader, nullptr);
+}
+
+void Luminance::createParallelReduceMeanPipeline()
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(VkDeviceAddress);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_luminancePipelineLayout
+    ));
+
+    VkShaderModule parallelReduceMeanShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/parallelReduceMean.comp.spv", parallelReduceMeanShader))
+    {
+        LOG("Failed to find shader \"res/shaders/parallelReduceMean.comp.spv\"");
+    }
+
+    VkSpecializationInfo specConstantsInfo{};
+    specConstantsInfo.
+
+    VkPipelineShaderStageCreateInfo stageInfo{};
+    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfo.module = parallelReduceMeanShader;
+    stageInfo.pName = "main";
+    stageInfo.pSpecializationInfo = 0;
+
+    VkComputePipelineCreateInfo pipelineCreateInfo{};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.layout = m_luminancePipelineLayout;
+    pipelineCreateInfo.stage = stageInfo;
+
+    VK_CHECK(vkCreateComputePipelines(
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr,
         &m_luminancePipeline
     ));
 
