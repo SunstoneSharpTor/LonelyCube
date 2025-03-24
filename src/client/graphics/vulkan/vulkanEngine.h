@@ -19,7 +19,6 @@
 #pragma once
 
 #include <volk.h>
-#include <vulkan/vulkan_core.h>
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
 

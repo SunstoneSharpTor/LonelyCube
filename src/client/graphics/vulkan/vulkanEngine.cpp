@@ -23,7 +23,6 @@
 #include "core/log.h"
 #include <cassert>
 #include <string>
-#include <vulkan/vulkan_core.h>
 
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION

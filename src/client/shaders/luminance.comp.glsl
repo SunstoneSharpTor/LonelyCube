@@ -31,12 +31,14 @@ layout (set = 0, binding = 0) uniform sampler2D srcTexture;
 layout (push_constant, std430) uniform constants
 {
     LuminanceBuffer luminanceBuffer;
+    vec2 renderAreaFraction;
     int luminanceImageSize;
 };
 
 void main() {
     ivec2 luminanceTexelCoord = ivec2(gl_GlobalInvocationID.xy);
-    vec2 srcTextureCoord = (vec2(luminanceTexelCoord) + vec2(0.5, 0.5)) / luminanceImageSize;
+    vec2 srcTextureCoord = (vec2(luminanceTexelCoord) + vec2(0.5, 0.5)) * 
+        renderAreaFraction / luminanceImageSize;
 
     vec4 srcColour = texture(srcTexture, srcTextureCoord);
     float luminance = log(

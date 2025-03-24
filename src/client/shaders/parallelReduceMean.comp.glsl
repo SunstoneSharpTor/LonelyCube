@@ -31,14 +31,15 @@ layout (local_size_x_id = 0) in;
 
 layout (push_constant, std430) uniform constants
 {
-    NumbersBuffer numbersBuffer;
+    NumbersBuffer inputNumbers;
+    NumbersBuffer outputNumbers;
 };
 
 shared float sharedNumbers[subgroupSize];
 
 void main()
 {
-    sharedNumbers[gl_LocalInvocationID.x] = numbersBuffer.elements[gl_GlobalInvocationID.x];
+    sharedNumbers[gl_LocalInvocationID.x] = inputNumbers.elements[gl_GlobalInvocationID.x];
     subgroupMemoryBarrier();
 
     for (uint s = subgroupSize / 2; s > 0; s >>= 1)
@@ -54,6 +55,6 @@ void main()
 
     if (subgroupElect())
     {
-        numbersBuffer.elements[gl_GlobalInvocationID.x] = sharedNumbers[0];
+        outputNumbers.elements[gl_WorkGroupID.x] = sharedNumbers[0];
     }
 }
