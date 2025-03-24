@@ -19,7 +19,6 @@
 #pragma once
 
 #include "glm/glm.hpp"
-#include "stb_image.h"
 
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
@@ -29,7 +28,14 @@ namespace lonelycube::client {
 struct LuminancePushConstants
 {
     VkDeviceAddress luminanceBuffer;
+    glm::vec2 renderAreaFraction;
     int luminanceImageSize;
+};
+
+struct ParallelReduceMeanPushConstants
+{
+    VkDeviceAddress inputNumbersBuffer;
+    VkDeviceAddress outputNumbersBuffer;
 };
 
 class Luminance
@@ -41,7 +47,7 @@ public:
         VkSampler sampler
     );
     void cleanup();
-    void calculate();
+    void calculate(const glm::vec2 renderAreaFraction);
     inline VkDeviceAddress getLuminanceBuffer() const
     {
         return m_luminancePushConstants.luminanceBuffer;
@@ -52,7 +58,7 @@ private:
 
     VulkanEngine& m_vulkanEngine;
 
-    AllocatedBuffer m_luminanceBuffer;
+    std::array<AllocatedBuffer, 2> m_luminanceBuffers;
 
     VkDescriptorSetLayout m_luminanceDescriptorSetLayout;
     VkDescriptorSet m_luminanceDescriptors;
@@ -62,6 +68,7 @@ private:
 
     VkPipelineLayout m_parallelReduceMeanPipelineLayout;
     VkPipeline m_parallelReduceMeanPipeline;
+    std::array<ParallelReduceMeanPushConstants, 2> m_parallelReduceMeanPushConstants;
 
     void createLuminanceDescriptors(
         DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,

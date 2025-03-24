@@ -948,7 +948,11 @@ void Renderer::calculateAutoExposure()
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
 
-    m_luminance.calculate();
+    glm::vec2 renderAreaFraction(
+        static_cast<float>(m_renderExtent.width) / m_drawImageExtent.width,
+         static_cast<float>(m_renderExtent.height) / m_drawImageExtent.height
+    );
+    m_luminance.calculate(renderAreaFraction);
 }
 
 void Renderer::applyToneMap()

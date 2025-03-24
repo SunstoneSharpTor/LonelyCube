@@ -24,7 +24,6 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include "vulkan/vulkan_core.h"
 
 namespace lonelycube::client {
 
@@ -33,18 +32,27 @@ Luminance::Luminance(VulkanEngine& vulkanEngine) : m_vulkanEngine(vulkanEngine) 
 void Luminance::init(
     DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView, VkSampler sampler
 ) {
-    m_luminanceBuffer = m_vulkanEngine.createBuffer(
-        s_luminanceImageResolution * s_luminanceImageResolution * 4,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
-    );
+    // Set up SSBOs to store luminance values for the pixels
+    for (int i = 0; i < 2; i++)
+    {
+        m_luminanceBuffers[i] = m_vulkanEngine.createBuffer(
+            s_luminanceImageResolution * s_luminanceImageResolution * 4 / (i + 1),
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
+        );
+        VkBufferDeviceAddressInfo deviceAddressInfo{};
+        deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+        deviceAddressInfo.buffer = m_luminanceBuffers[i].buffer;
+        m_parallelReduceMeanPushConstants[i].inputNumbersBuffer = vkGetBufferDeviceAddress(
+            m_vulkanEngine.getDevice(), &deviceAddressInfo
+        );
+        m_parallelReduceMeanPushConstants[(i + 1) % 2].outputNumbersBuffer =
+            m_parallelReduceMeanPushConstants[i].inputNumbersBuffer;
+    }
+
     m_luminancePushConstants.luminanceImageSize = s_luminanceImageResolution;
-    VkBufferDeviceAddressInfo deviceAddressInfo{};
-    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    deviceAddressInfo.buffer = m_luminanceBuffer.buffer;
-    m_luminancePushConstants.luminanceBuffer = vkGetBufferDeviceAddress(
-        m_vulkanEngine.getDevice(), &deviceAddressInfo
-    );
+    m_luminancePushConstants.luminanceBuffer =
+        m_parallelReduceMeanPushConstants[0].inputNumbersBuffer;
 
     createLuminanceDescriptors(descriptorAllocator, srcImageView, sampler);
     createLuminancePipeline();
@@ -62,7 +70,8 @@ void Luminance::cleanup()
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_luminanceDescriptorSetLayout, nullptr
     );
-    m_vulkanEngine.destroyBuffer(m_luminanceBuffer);
+    m_vulkanEngine.destroyBuffer(m_luminanceBuffers[0]);
+    m_vulkanEngine.destroyBuffer(m_luminanceBuffers[1]);
 }
 
 void Luminance::createLuminanceDescriptors(
@@ -139,7 +148,7 @@ void Luminance::createParallelReduceMeanPipeline()
 
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
-    pushConstant.size = sizeof(VkDeviceAddress);
+    pushConstant.size = sizeof(ParallelReduceMeanPushConstants);
     pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     pipelineLayoutInfo.pushConstantRangeCount = 1;
@@ -190,8 +199,9 @@ void Luminance::createParallelReduceMeanPipeline()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), parallelReduceMeanShader, nullptr);
 }
 
-void Luminance::calculate()
+void Luminance::calculate(const glm::vec2 renderAreaFraction)
 {
+    // Calculate luminance for the frame and store in an a 1D array on the GPU
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
@@ -202,6 +212,7 @@ void Luminance::calculate()
         0, nullptr
     );
 
+    m_luminancePushConstants.renderAreaFraction = renderAreaFraction;
     vkCmdPushConstants(
         command, m_luminancePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
         sizeof(LuminancePushConstants), &m_luminancePushConstants
@@ -213,15 +224,48 @@ void Luminance::calculate()
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_parallelReduceMeanPipeline);
 
-    vkCmdPushConstants(
-        command, m_luminancePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-        sizeof(VkDeviceAddress), &m_luminancePushConstants.luminanceBuffer
-    );
+    VkBufferMemoryBarrier bufMemBarrier{};
+    bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.offset = 0;
 
+    // Reduce the array down to a size that is less than the size of a single subgroup
+    // using the mean
     uint32_t workGroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
-    vkCmdDispatch(
-        command, (s_luminanceImageResolution + workGroupSize - 1) / workGroupSize *
-        (s_luminanceImageResolution + workGroupSize - 1) / workGroupSize, 1, 1
+    uint32_t numWorkGroups = s_luminanceImageResolution * s_luminanceImageResolution /
+        workGroupSize;
+    int inputBufferIndex = 0;
+    while (numWorkGroups > 0)
+    {
+        bufMemBarrier.buffer = m_luminanceBuffers[inputBufferIndex].buffer;
+        bufMemBarrier.size = numWorkGroups * workGroupSize;
+
+        vkCmdPipelineBarrier(
+            command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+            0, nullptr, 1, &bufMemBarrier, 0, nullptr
+        );
+
+        vkCmdPushConstants(
+            command, m_luminancePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+            sizeof(ParallelReduceMeanPushConstants),
+            &m_parallelReduceMeanPushConstants[inputBufferIndex]
+        );
+
+        vkCmdDispatch(command, numWorkGroups, 1, 1);
+
+        inputBufferIndex = (inputBufferIndex + 1) % 2;
+        numWorkGroups /= workGroupSize;
+    }
+
+    bufMemBarrier.buffer = m_luminanceBuffers[inputBufferIndex].buffer;
+    bufMemBarrier.size = workGroupSize;
+
+    vkCmdPipelineBarrier(
+        command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+        0, nullptr, 1, &bufMemBarrier, 0, nullptr
     );
 }
 
