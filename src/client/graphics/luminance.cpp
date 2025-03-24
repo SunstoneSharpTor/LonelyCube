@@ -18,6 +18,7 @@
 
 #include "client/graphics/luminance.h"
 
+#include "client/graphics/vulkan/vulkanEngine.h"
 #include "core/pch.h"
 
 #include "client/graphics/vulkan/shaders.h"
@@ -54,6 +55,10 @@ void Luminance::cleanup()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_luminancePipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_luminancePipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_parallelReduceMeanPipeline, nullptr);
+    vkDestroyPipelineLayout(
+        m_vulkanEngine.getDevice(), m_parallelReduceMeanPipelineLayout, nullptr
+    );
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_luminanceDescriptorSetLayout, nullptr
     );
@@ -141,7 +146,8 @@ void Luminance::createParallelReduceMeanPipeline()
     pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
 
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_luminancePipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr,
+        &m_parallelReduceMeanPipelineLayout
     ));
 
     VkShaderModule parallelReduceMeanShader;
@@ -153,9 +159,8 @@ void Luminance::createParallelReduceMeanPipeline()
     }
 
     uint32_t subgroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
-    LOG("Subgroup size: " + std::to_string(subgroupSize));
 
-    VkSpecializationMapEntry specializationMapEntry;
+    VkSpecializationMapEntry specializationMapEntry{};
     specializationMapEntry.constantID = 0;
     specializationMapEntry.size = sizeof(int);
 
@@ -174,12 +179,12 @@ void Luminance::createParallelReduceMeanPipeline()
 
     VkComputePipelineCreateInfo pipelineCreateInfo{};
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineCreateInfo.layout = m_luminancePipelineLayout;
+    pipelineCreateInfo.layout = m_parallelReduceMeanPipelineLayout;
     pipelineCreateInfo.stage = stageInfo;
 
     VK_CHECK(vkCreateComputePipelines(
         m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr,
-        &m_luminancePipeline
+        &m_parallelReduceMeanPipeline
     ));
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), parallelReduceMeanShader, nullptr);
@@ -204,6 +209,19 @@ void Luminance::calculate()
 
     vkCmdDispatch(
         command, (s_luminanceImageResolution + 15) / 16, (s_luminanceImageResolution + 15) / 16, 1
+    );
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_parallelReduceMeanPipeline);
+
+    vkCmdPushConstants(
+        command, m_luminancePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+        sizeof(VkDeviceAddress), &m_luminancePushConstants.luminanceBuffer
+    );
+
+    uint32_t workGroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
+    vkCmdDispatch(
+        command, (s_luminanceImageResolution + workGroupSize - 1) / workGroupSize *
+        (s_luminanceImageResolution + workGroupSize - 1) / workGroupSize, 1, 1
     );
 }
 
