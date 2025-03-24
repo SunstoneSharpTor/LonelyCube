@@ -69,10 +69,6 @@ void VulkanEngine::init()
     createSwapchainImageViews();
     createFrameData();
     initImmediateSubmit();
-
-    VkImageFormatProperties p;
-    vkGetPhysicalDeviceImageFormatProperties(m_physicalDevice, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, &p);
-    LOG("max array layers: " + std::to_string(p.maxArrayLayers));
 }
 
 void VulkanEngine::createWindow()
@@ -464,6 +460,7 @@ void VulkanEngine::createLogicalDevice()
     device13features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     device13features.dynamicRendering = VK_TRUE;
     device13features.synchronization2 = VK_TRUE;
+    device13features.maintenance4 = VK_TRUE;
 
     VkPhysicalDeviceVulkan12Features device12features{};
     device12features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;

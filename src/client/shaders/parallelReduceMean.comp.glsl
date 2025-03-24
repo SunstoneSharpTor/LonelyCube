@@ -18,19 +18,42 @@
 
 #version 460
 #extension GL_EXT_buffer_reference : require
+#extension GL_KHR_shader_subgroup_basic : require
 
 layout (buffer_reference, std430) buffer NumbersBuffer
 {
     float elements[];
 };
 
-layout (local_size_x = 16) in;
+layout (constant_id = 0) const uint subgroupSize = 8;
+
+layout (local_size_x_id = 0) in;
 
 layout (push_constant, std430) uniform constants
 {
     NumbersBuffer numbersBuffer;
 };
 
-void main() {
-    numbersBuffer.elements[0] = 0.00001;
+shared float sharedNumbers[subgroupSize];
+
+void main()
+{
+    sharedNumbers[gl_LocalInvocationID.x] = numbersBuffer.elements[gl_GlobalInvocationID.x];
+    subgroupMemoryBarrier();
+
+    for (uint s = subgroupSize / 2; s > 0; s >>= 1)
+    {
+        if (gl_LocalInvocationID.x < s)
+        {
+            sharedNumbers[gl_LocalInvocationID.x] = (
+                sharedNumbers[gl_LocalInvocationID.x] + sharedNumbers[gl_LocalInvocationID.x + s]
+            ) / 2;
+        }
+        subgroupMemoryBarrier();
+    }
+
+    if (subgroupElect())
+    {
+        numbersBuffer.elements[gl_GlobalInvocationID.x] = sharedNumbers[0];
+    }
 }
