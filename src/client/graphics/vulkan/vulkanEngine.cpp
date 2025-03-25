@@ -21,8 +21,6 @@
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include <cassert>
-#include <string>
 
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION
@@ -68,6 +66,7 @@ void VulkanEngine::init()
     createSwapchainImageViews();
     createFrameData();
     initImmediateSubmit();
+    createTimestampQueryPools();
 }
 
 void VulkanEngine::createWindow()
@@ -109,9 +108,8 @@ void VulkanEngine::cleanup()
     vkDeviceWaitIdle(m_device);
 
     cleanupSwapchain();
-
+    cleanupTimestampQueryPool();
     cleanupImmediateSubmit();
-
     cleanupFrameData();
 
     vmaDestroyAllocator(m_allocator);
@@ -741,6 +739,33 @@ void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer command)>&
     VK_CHECK(vkWaitForFences(m_device, 1, &m_immediateSubmitFence, true, UINT64_MAX));
 }
 
+void VulkanEngine::createTimestampQueryPools()
+{
+    #ifdef TIMESTAMPS
+    VkQueryPoolCreateInfo queryPoolInfo{};
+    queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+    queryPoolInfo.queryCount = static_cast<uint32_t>(m_timestamps.size());
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        VK_CHECK(vkCreateQueryPool(m_device, &queryPoolInfo, nullptr, &m_timestampQueryPools[i]));
+    #endif
+}
+
+void VulkanEngine::cleanupTimestampQueryPool()
+{
+    #ifdef TIMESTAMPS
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        vkDestroyQueryPool(m_device, m_timestampQueryPools[i], nullptr);
+    #endif
+}
+
+float VulkanEngine::getDeltaTimestamp(int firstTimeStampIndex, int secondTimeStampIndex)
+{
+    VkPhysicalDeviceLimits device_limits = m_physicalDeviceProperties.properties.limits;
+    return float(m_timestamps[secondTimeStampIndex] - m_timestamps[firstTimeStampIndex]) *
+        device_limits.timestampPeriod / 1000000.0f;
+}
+
 void VulkanEngine::createSyncObjects(int frameNum)
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
@@ -785,6 +810,13 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     VK_CHECK(vkResetFences(m_device, 1, &currentFrameData.inFlightFence));
 
     VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
+
+    vkGetQueryPoolResults(
+        m_device, m_timestampQueryPools[m_frameDataIndex], 0, 32,
+        m_timestamps.size() * sizeof(uint64_t), m_timestamps.data(), sizeof(uint64_t),
+        VK_QUERY_RESULT_64_BIT
+    );
+
     VK_CHECK(vkResetCommandBuffer(commandBuffer, 0));
 
     swapchainExtent = m_swapchainExtent;

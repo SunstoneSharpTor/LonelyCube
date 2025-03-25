@@ -232,6 +232,11 @@ void Luminance::calculate(const glm::vec2 renderAreaFraction)
     bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     bufMemBarrier.offset = 0;
 
+    #ifdef TIMESTAMPS
+    vkCmdWriteTimestamp(
+        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 0
+    );
+    #endif
     // Reduce the array down to a size that is less than the size of a single subgroup
     // using the mean
     uint32_t workGroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
@@ -267,6 +272,11 @@ void Luminance::calculate(const glm::vec2 renderAreaFraction)
         command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
         0, nullptr, 1, &bufMemBarrier, 0, nullptr
     );
+    #ifdef TIMESTAMPS
+    vkCmdWriteTimestamp(
+        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 1
+    );
+    #endif
 }
 
 }  // namespace lonelycube::client
