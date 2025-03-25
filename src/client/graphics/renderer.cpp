@@ -711,6 +711,13 @@ void Renderer::beginRenderingFrame()
     beginInfo.pInheritanceInfo = nullptr;
 
     VK_CHECK(vkBeginCommandBuffer(command, &beginInfo));
+    #ifdef TIMESTAMPS
+    vkCmdResetQueryPool(
+        command, m_vulkanEngine.getCurrentTimestampQueryPool(), 0,
+        static_cast<uint32_t>(m_vulkanEngine.getTimestamps().size())
+    );
+    #endif
+    LOG(std::to_string(m_vulkanEngine.getDeltaTimestamp(0, 1)));
 }
 
 void Renderer::drawSky()

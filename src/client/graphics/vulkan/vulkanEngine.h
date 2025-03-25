@@ -18,6 +18,8 @@
 
 #pragma once
 
+#define TIMESTAMPS
+
 #include <volk.h>
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
@@ -92,7 +94,7 @@ struct GPUDynamicMeshBuffers
 class VulkanEngine
 {
 public:
-    static const int MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
     VulkanEngine();
     void init();
@@ -153,6 +155,7 @@ public:
     // Rendering
     void startRenderingFrame(VkExtent2D& swapchainExtent);
     void submitFrame();
+    float getDeltaTimestamp(int firstTimeStampIndex, int secondTimeStampIndex);
 
 private:
     const std::vector<const char*> m_validationLayers = {
@@ -205,6 +208,12 @@ private:
     VkPhysicalDeviceVulkan13Features m_physicalDeviceVulkan13Features;
     VkSampleCountFlagBits m_maxMSAAsamples;
 
+    // Timing
+    #ifdef TIMESTAMPS
+    std::array<VkQueryPool, MAX_FRAMES_IN_FLIGHT> m_timestampQueryPools;
+    std::array<uint64_t, 32> m_timestamps;
+    #endif
+
     // Initialisation
     bool createInstance();
     void createWindow();
@@ -230,11 +239,13 @@ private:
     void createSyncObjects(int frameNum);
     void createAllocator();
     void initImmediateSubmit();
+    void createTimestampQueryPools();
 
     // Cleanup
     void cleanupSwapchain();
     void cleanupFrameData();
     void cleanupImmediateSubmit();
+    void cleanupTimestampQueryPool();
 
 public:
     inline VkDevice getDevice()
@@ -275,7 +286,7 @@ public:
     }
     inline FrameData& getCurrentFrameData()
     {
-        return m_frameData[m_currentFrame % MAX_FRAMES_IN_FLIGHT];
+        return m_frameData[m_frameDataIndex];
     }
     inline VkImage getCurrentSwapchainImage()
     {
@@ -296,6 +307,14 @@ public:
     inline VkSampleCountFlagBits getMaxMSAAsamples()
     {
         return m_maxMSAAsamples;
+    }
+    inline VkQueryPool getCurrentTimestampQueryPool()
+    {
+        return m_timestampQueryPools[m_frameDataIndex];
+    }
+    inline std::array<uint64_t, 32>& getTimestamps()
+    {
+        return m_timestamps;
     }
 };
 
