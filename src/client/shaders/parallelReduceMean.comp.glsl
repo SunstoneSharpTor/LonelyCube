@@ -39,7 +39,10 @@ shared float sharedNumbers[subgroupSize];
 
 void main()
 {
-    sharedNumbers[gl_LocalInvocationID.x] = inputNumbers.elements[gl_GlobalInvocationID.x];
+    uint globalIndex = gl_WorkGroupID.x * subgroupSize * 2 + gl_LocalInvocationID.x;
+    sharedNumbers[gl_LocalInvocationID.x] = (
+        inputNumbers.elements[globalIndex] + inputNumbers.elements[globalIndex + subgroupSize]
+    ) / 2;
     subgroupMemoryBarrier();
 
     for (uint s = subgroupSize / 2; s > 0; s >>= 1)
