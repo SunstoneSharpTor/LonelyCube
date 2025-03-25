@@ -201,10 +201,10 @@ void Luminance::createParallelReduceMeanPipeline()
 
 void Luminance::calculate(const glm::vec2 renderAreaFraction)
 {
-    // Calculate luminance for the frame and store in an a 1D array on the GPU
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
+    // Calculate luminance for the frame and store in an a 1D array on the GPU
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_luminancePipeline);
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_COMPUTE, m_luminancePipelineLayout,
@@ -232,21 +232,16 @@ void Luminance::calculate(const glm::vec2 renderAreaFraction)
     bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     bufMemBarrier.offset = 0;
 
-    #ifdef TIMESTAMPS
-    vkCmdWriteTimestamp(
-        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 0
-    );
-    #endif
     // Reduce the array down to a size that is less than the size of a single subgroup
     // using the mean
     uint32_t workGroupSize = m_vulkanEngine.getPhysicalDeviceSubgroupProperties().subgroupSize;
     uint32_t numWorkGroups = s_luminanceImageResolution * s_luminanceImageResolution /
-        workGroupSize;
+        workGroupSize / 2;
     int inputBufferIndex = 0;
     while (numWorkGroups > 0)
     {
         bufMemBarrier.buffer = m_luminanceBuffers[inputBufferIndex].buffer;
-        bufMemBarrier.size = numWorkGroups * workGroupSize;
+        bufMemBarrier.size = numWorkGroups * workGroupSize * 2 * 4;
 
         vkCmdPipelineBarrier(
             command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
@@ -262,7 +257,7 @@ void Luminance::calculate(const glm::vec2 renderAreaFraction)
         vkCmdDispatch(command, numWorkGroups, 1, 1);
 
         inputBufferIndex = (inputBufferIndex + 1) % 2;
-        numWorkGroups /= workGroupSize;
+        numWorkGroups /= workGroupSize * 2;
     }
 
     bufMemBarrier.buffer = m_luminanceBuffers[inputBufferIndex].buffer;
@@ -272,11 +267,6 @@ void Luminance::calculate(const glm::vec2 renderAreaFraction)
         command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
         0, nullptr, 1, &bufMemBarrier, 0, nullptr
     );
-    #ifdef TIMESTAMPS
-    vkCmdWriteTimestamp(
-        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 1
-    );
-    #endif
 }
 
 }  // namespace lonelycube::client

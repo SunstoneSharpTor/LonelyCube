@@ -28,6 +28,7 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -967,6 +968,11 @@ void Renderer::applyToneMap()
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
+    #ifdef TIMESTAMPS
+    vkCmdWriteTimestamp(
+        command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 0
+    );
+    #endif
     transitionImage(
         command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -1013,6 +1019,11 @@ void Renderer::applyToneMap()
         sizeof(ToneMapPushConstants), &m_toneMapPushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
+    #ifdef TIMESTAMPS
+    vkCmdWriteTimestamp(
+        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 1
+    );
+    #endif
 }
 
 void Renderer::drawCrosshair()
