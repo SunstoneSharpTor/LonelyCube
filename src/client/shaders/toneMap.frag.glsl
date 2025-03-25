@@ -121,7 +121,7 @@ void main() {
 
     // Exposure tone mapping
     // vec3 mapped = vec3(1.0) - exp(-hdrColour * exposure);
-    float exposure = max(0.1, min(0.38 / exp(luminanceBuffer.luminance[0]), 1.0 / 0.002));
+    float exposure = luminanceBuffer.luminance[0];
     vec3 mapped = ACESFitted(hdrColour * exposure);
 
     // // Gamma correction

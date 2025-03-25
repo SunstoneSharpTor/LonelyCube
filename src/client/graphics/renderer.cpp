@@ -28,11 +28,10 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
-Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_luminance(m_vulkanEngine)
+Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_autoExposure(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -45,7 +44,7 @@ Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_luminance(
 
     createRenderImages();
     createSamplers();
-    m_luminance.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
+    m_autoExposure.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
     loadTextures();
     createDescriptors();
     createPipelines();
@@ -55,7 +54,7 @@ Renderer::~Renderer()
 {
     vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
-    m_luminance.cleanup();
+    m_autoExposure.cleanup();
 
     cleanupPipelines();
     cleanupDescriptors();
@@ -607,7 +606,7 @@ void Renderer::createToneMapPipeline()
 
     m_toneMapPushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
     m_toneMapPushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
-    m_toneMapPushConstants.luminanceBuffer = m_luminance.getLuminanceBuffer();
+    m_toneMapPushConstants.luminanceBuffer = m_autoExposure.getExposureBuffer();
 }
 
 void Renderer::cleanupToneMapPipeline()
@@ -717,8 +716,8 @@ void Renderer::beginRenderingFrame()
         command, m_vulkanEngine.getCurrentTimestampQueryPool(), 0,
         static_cast<uint32_t>(m_vulkanEngine.getTimestamps().size())
     );
-    #endif
     LOG(std::to_string(m_vulkanEngine.getDeltaTimestamp(0, 1)));
+    #endif
 }
 
 void Renderer::drawSky()
@@ -946,7 +945,7 @@ void Renderer::finishDrawingGeometry()
     vkCmdEndRendering(command);
 }
 
-void Renderer::calculateAutoExposure()
+void Renderer::calculateAutoExposure(double DT)
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -960,7 +959,7 @@ void Renderer::calculateAutoExposure()
         static_cast<float>(m_renderExtent.width) / m_drawImageExtent.width,
          static_cast<float>(m_renderExtent.height) / m_drawImageExtent.height
     );
-    m_luminance.calculate(renderAreaFraction);
+    m_autoExposure.calculate(renderAreaFraction, DT);
 }
 
 void Renderer::applyToneMap()
@@ -968,11 +967,6 @@ void Renderer::applyToneMap()
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    #ifdef TIMESTAMPS
-    vkCmdWriteTimestamp(
-        command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 0
-    );
-    #endif
     transitionImage(
         command, m_vulkanEngine.getCurrentSwapchainImage(), VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -1019,11 +1013,6 @@ void Renderer::applyToneMap()
         sizeof(ToneMapPushConstants), &m_toneMapPushConstants
     );
     vkCmdDraw(command, 3, 1, 0, 0);
-    #ifdef TIMESTAMPS
-    vkCmdWriteTimestamp(
-        command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_vulkanEngine.getCurrentTimestampQueryPool(), 1
-    );
-    #endif
 }
 
 void Renderer::drawCrosshair()

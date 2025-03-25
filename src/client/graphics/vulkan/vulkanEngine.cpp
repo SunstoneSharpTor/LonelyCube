@@ -759,12 +759,14 @@ void VulkanEngine::cleanupTimestampQueryPool()
     #endif
 }
 
+#ifdef TIMESTAMPS
 float VulkanEngine::getDeltaTimestamp(int firstTimeStampIndex, int secondTimeStampIndex)
 {
     VkPhysicalDeviceLimits device_limits = m_physicalDeviceProperties.properties.limits;
     return float(m_timestamps[secondTimeStampIndex] - m_timestamps[firstTimeStampIndex]) *
         device_limits.timestampPeriod / 1000000.0f;
 }
+#endif
 
 void VulkanEngine::createSyncObjects(int frameNum)
 {
@@ -811,11 +813,13 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
 
     VkCommandBuffer commandBuffer = currentFrameData.commandBuffer;
 
+    #ifdef TIMESTAMPS
     vkGetQueryPoolResults(
         m_device, m_timestampQueryPools[m_frameDataIndex], 0, 32,
         m_timestamps.size() * sizeof(uint64_t), m_timestamps.data(), sizeof(uint64_t),
         VK_QUERY_RESULT_64_BIT
     );
+    #endif
 
     VK_CHECK(vkResetCommandBuffer(commandBuffer, 0));
 
