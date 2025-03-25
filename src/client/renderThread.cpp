@@ -20,6 +20,7 @@
 
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
+#include <iterator>
 #include "glm/fwd.hpp"
 #include "glm/matrix.hpp"
 #include "stb_image.h"
@@ -233,9 +234,12 @@ void renderThread() {
             mainPlayer.viewCamera.getViewMatrix(&view);
             glm::mat4 viewProjection = projectionReversedDepth * view;
 
-            uint32_t timeOfDay = (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) % constants::DAY_LENGTH;
-            // Calculate ground luminance
-            float groundLuminance = calculateBrightness(constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay);
+            uint32_t timeOfDay =
+                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) %
+                constants::DAY_LENGTH;
+            float groundLuminance = calculateBrightness(
+                constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay
+            );
             // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
 
             glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
@@ -260,12 +264,24 @@ void renderThread() {
             // Render the world geometry
             float cameraSubBlockPos[3];
             mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
+            FrameData& currentFrameData = renderer.getVulkanEngine().getCurrentFrameData();
+            VkCommandBuffer command = currentFrameData.commandBuffer;
+            #ifdef TIMESTAMPS
+            vkCmdWriteTimestamp(
+                command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 0
+            );
+            #endif
             mainWorld.renderWorld(
                 viewProjection, mainPlayer.cameraBlockPosition,
                 glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
                 (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
                 actualDT
             );
+            #ifdef TIMESTAMPS
+            vkCmdWriteTimestamp(
+                command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 1
+            );
+            #endif
 
             // //auto tp2 = std::chrono::high_resolution_clock::now();
             // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
@@ -296,35 +312,8 @@ void renderThread() {
             }
 
             renderer.finishDrawingGeometry();
-
-            // Update auto exposure
-            renderer.calculateAutoExposure();
-            // #ifndef GLES3
-            // float luminanceVal = luminance.calculate();
-            // #else
-            const float minDarknessAmbientLight = 0.00002f;
-            float maxDarknessAmbientLight = std::min(0.001f, groundLuminance);
-            float skyLightLevel = (float)mainWorld.integratedServer.chunkManager.getSkyLight(
-                mainPlayer.cameraBlockPosition) / constants::skyLightMaxValue;
-            float factor = skyLightLevel * skyLightLevel * skyLightLevel;
-            float skyLightBrightness = groundLuminance / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) * 45.0f)
-                * factor + maxDarknessAmbientLight / (1.0f + (1.0f - skyLightLevel) * (1.0f - skyLightLevel) *
-                45.0f) * (1.0f - factor);
-            float luminanceVal = std::max(skyLightBrightness, minDarknessAmbientLight) * 0.1f;
-            // #endif
-            float targetExposure = std::max(0.1f, std::min(0.38f / luminanceVal, 1.0f / 0.002f));
-            toneMapTimeByDTs += actualDT;
-            while (toneMapTimeByDTs > (1.0 / (double)constants::visualTPS)) {
-                float fac = 0.008f;
-                exposure += ((targetExposure > exposure) * 2 - 1) * std::min(
-                    std::abs(targetExposure - exposure),
-                    (targetExposure - exposure) * (targetExposure - exposure) * fac
-                );
-                toneMapTimeByDTs -= (1.0/(float)constants::visualTPS);
-            }
-
+            renderer.calculateAutoExposure(actualDT);
             renderer.applyToneMap();
-
             renderer.drawCrosshair();
 
             // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));

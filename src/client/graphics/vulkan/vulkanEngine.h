@@ -18,7 +18,7 @@
 
 #pragma once
 
-#define TIMESTAMPS
+// #define TIMESTAMPS
 
 #include <volk.h>
 #include "GLFW/glfw3.h"
@@ -155,7 +155,9 @@ public:
     // Rendering
     void startRenderingFrame(VkExtent2D& swapchainExtent);
     void submitFrame();
+    #ifdef TIMESTAMPS
     float getDeltaTimestamp(int firstTimeStampIndex, int secondTimeStampIndex);
+    #endif
 
 private:
     const std::vector<const char*> m_validationLayers = {
@@ -308,6 +310,7 @@ public:
     {
         return m_maxMSAAsamples;
     }
+    #ifdef TIMESTAMPS
     inline VkQueryPool getCurrentTimestampQueryPool()
     {
         return m_timestampQueryPools[m_frameDataIndex];
@@ -316,6 +319,7 @@ public:
     {
         return m_timestamps;
     }
+    #endif
 };
 
 }  // namespace lonelycube::client

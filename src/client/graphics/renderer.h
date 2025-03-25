@@ -22,7 +22,7 @@
 #include "stb_image.h"
 
 #include "client/graphics/entityMeshManager.h"
-#include "client/graphics/luminance.h"
+#include "client/graphics/autoExposure.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
 
@@ -73,7 +73,7 @@ public:
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
-    void calculateAutoExposure();
+    void calculateAutoExposure(double DT);
     void applyToneMap();
     void drawCrosshair();
     void submitFrame();
@@ -114,7 +114,7 @@ private:
     VkPipelineLayout m_blockOutlinePipelineLayout;
     VkPipeline m_blockOutlinePipeline;
 
-    Luminance m_luminance;
+    AutoExposure m_autoExposure;
 
     VkDescriptorSetLayout m_toneMapDescriptorLayout;
     VkDescriptorSet m_toneMapDescriptors;

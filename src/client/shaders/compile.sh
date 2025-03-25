@@ -10,5 +10,6 @@ glslangValidator -V src/client/shaders/luminance.comp.glsl -o res/shaders/lumina
 glslangValidator -V src/client/shaders/fullscreen.vert.glsl -o res/shaders/fullscreen.vert.spv
 glslangValidator -V src/client/shaders/toneMap.frag.glsl -o res/shaders/toneMap.frag.spv
 glslangValidator --target-env vulkan1.3 src/client/shaders/parallelReduceMean.comp.glsl -o res/shaders/parallelReduceMean.comp.spv
+glslangValidator -V src/client/shaders/autoExposure.comp.glsl -o res/shaders/autoExposure.comp.spv
 glslangValidator -V src/client/shaders/crosshair.vert.glsl -o res/shaders/crosshair.vert.spv
 glslangValidator -V src/client/shaders/crosshair.frag.glsl -o res/shaders/crosshair.frag.spv
