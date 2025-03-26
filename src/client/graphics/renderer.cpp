@@ -31,7 +31,8 @@
 
 namespace lonelycube::client {
 
-Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_autoExposure(m_vulkanEngine)
+Renderer::Renderer(float renderScale) :
+    m_renderScale(renderScale), m_autoExposure(m_vulkanEngine), m_bloom(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -45,6 +46,7 @@ Renderer::Renderer(float renderScale) : m_renderScale(renderScale), m_autoExposu
     createRenderImages();
     createSamplers();
     m_autoExposure.init(m_globalDescriptorAllocator, m_drawImage.imageView, m_linearFullscreenSampler);
+    m_bloom.init(m_globalDescriptorAllocator, m_drawImage, m_linearFullscreenSampler);
     loadTextures();
     createDescriptors();
     createPipelines();

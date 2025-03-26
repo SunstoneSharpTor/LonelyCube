@@ -20,24 +20,43 @@
 
 #include "core/pch.h"
 
+#include "core/log.h"
+
 namespace lonelycube::client {
 
-Bloom::Bloom(uint32_t srcTexture, uint32_t windowSize[2], ComputeShader& downsampleShader,
-    ComputeShader& upsampleShader, ComputeShader& blitShader) :
-    m_downsampleShader(downsampleShader), m_upsampleShader(upsampleShader),
-    m_blitShader(blitShader) {
-    glm::vec2 mipSize((float)windowSize[0], (float)windowSize[1]);
-    glm::ivec2 mipIntSize((int)windowSize[0], (int)windowSize[1]);
+Bloom::Bloom(VulkanEngine& vulkanEngine) : m_vulkanEngine(vulkanEngine) {}
 
-    m_srcTexture.size = mipSize;
-    m_srcTexture.intSize = mipIntSize;
-    m_srcTexture.texture = srcTexture;
+void Bloom::init(
+    DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage, VkSampler sampler
+) {
+    m_srcImage = srcImage;
+    DescriptorLayoutBuilder builder;
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_descriptorSetLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
 
-    createMips(mipIntSize);
-}
+    DescriptorWriter writer;
+    glm::ivec2 mipSize(srcImage.imageExtent.width, srcImage.imageExtent.height);
+    while (mipSize.x > 1 || mipSize.y > 1)
+    {
+        mipSize /= 2;
+        mipSize = glm::max(mipSize, glm::ivec2(1, 1));
 
-Bloom::~Bloom() {
-    deleteMips();
+
+        m_drawImageDescriptors = m_globalDescriptorAllocator.allocate(
+            m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout
+        );
+
+        writer.writeImage(
+            0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        );
+        writer.updateSet(m_vulkanEngine.getDevice(), m_drawImageDescriptors);
+    }
+
+    // createMips(glm::ivec2(srcImage.imageExtent.width, srcImage.imageExtent.height));
 }
 
 void Bloom::renderDownsamples() {
@@ -97,41 +116,6 @@ void Bloom::render(float filterRadius, float strength) {
     //     (uint32_t)((m_srcTexture.intSize.y + 7) / 8), 1);
     // // Make sure writing to image has finished before read
     // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-}
-
-void Bloom::createMips(glm::ivec2 srcTextureSize) {
-    // glm::ivec2 mipIntSize = srcTextureSize;
-    // glm::vec2 mipSize = srcTextureSize;
-    //
-    // while (mipIntSize.x > 1 && mipIntSize.y > 1) {
-    //     BloomMip mip;
-    //
-    //     mipSize *= 0.5f;
-    //     mipIntSize /= 2;
-    //     mip.size = mipSize;
-    //     mip.intSize = mipIntSize;
-    //
-    //     glGenTextures(1, &mip.texture);
-    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
-    //     // we are downscaling an HDR color buffer, so we need a float texture format
-    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, (int)mipSize.x, (int)mipSize.y, 0,
-    //         GL_RGBA, GL_FLOAT, nullptr);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    //     GLfloat borderColour[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
-    //
-    //     m_mipChain.emplace_back(mip);
-    // }
-}
-
-void Bloom::deleteMips() {
-    // for (int i = 0; i < m_mipChain.size(); i++) {
-    //     glDeleteTextures(1, &m_mipChain[i].texture);
-    // }
-    // m_mipChain.clear();
 }
 
 }  // namespace lonelycube::client
