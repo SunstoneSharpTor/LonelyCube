@@ -57,6 +57,7 @@ Renderer::~Renderer()
     vkDeviceWaitIdle(m_vulkanEngine.getDevice());
 
     m_autoExposure.cleanup();
+    m_bloom.cleanup();
 
     cleanupPipelines();
     cleanupDescriptors();
@@ -203,8 +204,8 @@ void Renderer::createDrawImageDescriptors()
     );
 
     writer.writeImage(
-        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_drawImageDescriptors);
 }
@@ -225,12 +226,12 @@ void Renderer::createSkyDescriptors()
     );
 
     writer.writeImage(
-        0, m_skyImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        0, m_skyImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
     );
     writer.writeImage(
-        1, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        1, m_drawImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
 }
@@ -252,11 +253,11 @@ void Renderer::createWorldDescriptors()
 
     writer.writeImage(
         0, m_worldTextures.imageView, m_worldTexturesSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.writeImage(
         1, m_skyImage.imageView, m_nearestFullscreenSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_worldTexturesDescriptors);
 }
@@ -277,7 +278,7 @@ void Renderer::createToneMapDescriptors()
 
     writer.writeImage(
         0, m_drawImage.imageView, m_linearFullscreenSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_toneMapDescriptors);
 }
@@ -297,8 +298,8 @@ void Renderer::createCrosshairDescriptors()
     );
 
     writer.writeImage(
-        0, m_crosshairTexture.imageView, m_uiSampler,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        0, m_crosshairTexture.imageView, m_uiSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_crosshairDescriptors);
 }

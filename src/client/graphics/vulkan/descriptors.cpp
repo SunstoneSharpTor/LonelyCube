@@ -232,7 +232,7 @@ void DescriptorWriter::writeBuffer(
 }
 
 void DescriptorWriter::writeImage(
-    int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type
+    int binding, VkImageView image, VkSampler sampler, VkDescriptorType type, VkImageLayout layout
 ) {
     VkDescriptorImageInfo& info = m_imageInfos.emplace_back(VkDescriptorImageInfo{
         .sampler = sampler,

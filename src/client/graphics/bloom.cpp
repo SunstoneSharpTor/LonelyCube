@@ -18,9 +18,11 @@
 
 #include "client/graphics/bloom.h"
 
+#include "client/graphics/vulkan/descriptors.h"
 #include "core/pch.h"
 
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -30,33 +32,85 @@ void Bloom::init(
     DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage, VkSampler sampler
 ) {
     m_srcImage = srcImage;
+
+    // Sampler descriptor set
     DescriptorLayoutBuilder builder;
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    DescriptorWriter writer;
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLER);
+    m_samplerDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
+    m_samplerDescriptorSet = descriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_samplerDescriptorLayout
+    );
+    writer.writeImage(0, VK_NULL_HANDLE, sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+    writer.updateSet(m_vulkanEngine.getDevice(), m_samplerDescriptorSet);
+
+    // Image descriptor sets
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_descriptorSetLayout = builder.build(
+    m_imagesDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
     );
 
-    DescriptorWriter writer;
-    glm::ivec2 mipSize(srcImage.imageExtent.width, srcImage.imageExtent.height);
-    while (mipSize.x > 1 || mipSize.y > 1)
+    // Create mips
+    VkExtent3D mipSize(srcImage.imageExtent.width, srcImage.imageExtent.height, 1);
+    while (mipSize.width > 1 || mipSize.height > 1)
     {
-        mipSize /= 2;
-        mipSize = glm::max(mipSize, glm::ivec2(1, 1));
+        mipSize.width = std::max(mipSize.width / 2, 1u);
+        mipSize.height = std::max(mipSize.height / 2, 1u);
+        BloomMip& currentMip = m_mipChain.emplace_back();
 
-
-        m_drawImageDescriptors = m_globalDescriptorAllocator.allocate(
-            m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout
+        currentMip.image = m_vulkanEngine.createImage(
+            mipSize, VK_FORMAT_R16G16B16A16_SFLOAT,
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         );
-
-        writer.writeImage(
-            0, m_drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+        currentMip.downsampleDescriptors = descriptorAllocator.allocate(
+            m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
         );
-        writer.updateSet(m_vulkanEngine.getDevice(), m_drawImageDescriptors);
+        currentMip.upsampleDescriptors = descriptorAllocator.allocate(
+            m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
+        );
     }
 
-    // createMips(glm::ivec2(srcImage.imageExtent.width, srcImage.imageExtent.height));
+    // Write descriptor sets for mips
+    VkImageView prevImageView = srcImage.imageView;
+    for (int i = 0; i < m_mipChain.size(); i++)
+    {
+        writer.clear();
+        writer.writeImage(
+            0, prevImageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+        writer.writeImage(
+            1, m_mipChain[i].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            VK_IMAGE_LAYOUT_GENERAL
+        );
+        writer.updateSet(m_vulkanEngine.getDevice(), m_mipChain[i].downsampleDescriptors);
+
+        if (i < m_mipChain.size() - 1)
+        {
+            writer.clear();
+            writer.writeImage(
+                0, m_mipChain[i + 1].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            );
+            writer.writeImage(
+                1, m_mipChain[i].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                VK_IMAGE_LAYOUT_GENERAL
+            );
+            writer.updateSet(m_vulkanEngine.getDevice(), m_mipChain[i].downsampleDescriptors);
+        }
+    }
+}
+
+void Bloom::cleanup()
+{
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
+    for (const auto& mip : m_mipChain)
+        m_vulkanEngine.destroyImage(mip.image);
 }
 
 void Bloom::renderDownsamples() {
