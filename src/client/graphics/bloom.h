@@ -20,7 +20,6 @@
 
 #include "core/pch.h"
 
-#include "glm/fwd.hpp"
 #include "glm/glm.hpp"
 
 #include "client/graphics/vulkan/descriptors.h"
@@ -31,7 +30,8 @@ namespace lonelycube::client {
 struct BloomMip
 {
     AllocatedImage image;
-    VkDescriptorSet descriptors;
+    VkDescriptorSet downsampleDescriptors;
+    VkDescriptorSet upsampleDescriptors;
 };
 
 class Bloom {
@@ -41,10 +41,10 @@ private:
 
     std::vector<BloomMip> m_mipChain;
     AllocatedImage m_srcImage;
-    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkDescriptorSetLayout m_samplerDescriptorLayout;
+    VkDescriptorSetLayout m_imagesDescriptorLayout;
+    VkDescriptorSet m_samplerDescriptorSet;
 
-    void createMips(glm::ivec2 srcTextureSize);
-    void deleteMips();
     void renderDownsamples();
     void renderUpsamples(float filterRadius);
 public:
@@ -54,9 +54,6 @@ public:
     );
     void cleanup();
     void render(float filterRadius, float strength);
-    AllocatedImage getSmallestMip() {
-        return m_mipChain[m_mipChain.size() - 1];
-    }
 };
 
 }  // namespace lonelycube::client

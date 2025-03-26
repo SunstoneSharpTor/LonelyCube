@@ -137,8 +137,8 @@ void AutoExposure::createLuminanceDescriptors(
     );
 
     writer.writeImage(
-        0, srcImageView, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        0, srcImageView, sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_luminanceDescriptors);
 }
