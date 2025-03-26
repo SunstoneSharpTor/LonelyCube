@@ -20,36 +20,41 @@
 
 #include "core/pch.h"
 
+#include "glm/fwd.hpp"
 #include "glm/glm.hpp"
+
+#include "client/graphics/vulkan/descriptors.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
 
 namespace lonelycube::client {
 
-struct BloomMip {
-    glm::vec2 size;
-    glm::ivec2 intSize;
-    uint32_t texture;
+struct BloomMip
+{
+    AllocatedImage image;
+    VkDescriptorSet descriptors;
 };
 
 class Bloom {
 public:
 private:
-    ComputeShader& m_downsampleShader;
-    ComputeShader& m_upsampleShader;
-    ComputeShader& m_blitShader;
+    VulkanEngine& m_vulkanEngine;
+
     std::vector<BloomMip> m_mipChain;
-    BloomMip m_srcTexture;
+    AllocatedImage m_srcImage;
+    VkDescriptorSetLayout m_descriptorSetLayout;
 
     void createMips(glm::ivec2 srcTextureSize);
     void deleteMips();
     void renderDownsamples();
     void renderUpsamples(float filterRadius);
 public:
-    Bloom(uint32_t srcTexture, uint32_t windowSize[2],
-        ComputeShader& downsampleShader, ComputeShader& upsampleShader, ComputeShader& blitShader);
-    ~Bloom();
+    Bloom(VulkanEngine& vulkanEngine);
+    void init(DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage,
+        VkSampler sampler
+    );
+    void cleanup();
     void render(float filterRadius, float strength);
-    void resize(uint32_t windowSize[2]);
-    BloomMip getSmallestMip() {
+    AllocatedImage getSmallestMip() {
         return m_mipChain[m_mipChain.size() - 1];
     }
 };

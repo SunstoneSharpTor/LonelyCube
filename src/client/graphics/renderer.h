@@ -23,6 +23,7 @@
 
 #include "client/graphics/entityMeshManager.h"
 #include "client/graphics/autoExposure.h"
+#include "client/graphics/bloom.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
 
@@ -115,6 +116,7 @@ private:
     VkPipeline m_blockOutlinePipeline;
 
     AutoExposure m_autoExposure;
+    Bloom m_bloom;
 
     VkDescriptorSetLayout m_toneMapDescriptorLayout;
     VkDescriptorSet m_toneMapDescriptors;
