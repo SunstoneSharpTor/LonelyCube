@@ -18,11 +18,13 @@
 
 #include "client/graphics/bloom.h"
 
-#include "client/graphics/vulkan/descriptors.h"
 #include "core/pch.h"
 
+#include "client/graphics/vulkan/descriptors.h"
+#include "client/graphics/vulkan/images.h"
+#include "client/graphics/vulkan/shaders.h"
+#include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -46,6 +48,26 @@ void Bloom::init(
     writer.writeImage(0, VK_NULL_HANDLE, sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
     writer.updateSet(m_vulkanEngine.getDevice(), m_samplerDescriptorSet);
 
+    createMips(descriptorAllocator, sampler);
+    createPipelines();
+}
+
+void Bloom::cleanup()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_downsamplePipeline, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_upsamplePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_downsamplePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_upsamplePipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
+    for (const auto& mip : m_mipChain)
+        m_vulkanEngine.destroyImage(mip.image);
+}
+
+void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler) {
+    DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
     // Image descriptor sets
     builder.clear();
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
@@ -55,7 +77,7 @@ void Bloom::init(
     );
 
     // Create mips
-    VkExtent3D mipSize(srcImage.imageExtent.width, srcImage.imageExtent.height, 1);
+    VkExtent3D mipSize(m_srcImage.imageExtent.width, m_srcImage.imageExtent.height, 1);
     while (mipSize.width > 1 || mipSize.height > 1)
     {
         mipSize.width = std::max(mipSize.width / 2, 1u);
@@ -75,7 +97,7 @@ void Bloom::init(
     }
 
     // Write descriptor sets for mips
-    VkImageView prevImageView = srcImage.imageView;
+    VkImageView prevImageView = m_srcImage.imageView;
     for (int i = 0; i < m_mipChain.size(); i++)
     {
         writer.clear();
@@ -105,36 +127,123 @@ void Bloom::init(
     }
 }
 
-void Bloom::cleanup()
+void Bloom::createPipelines()
 {
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
-    for (const auto& mip : m_mipChain)
-        m_vulkanEngine.destroyImage(mip.image);
+    std::array<VkDescriptorSetLayout, 2> setLayouts = {
+        m_samplerDescriptorLayout, m_imagesDescriptorLayout
+    };
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = setLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(DownsamplePushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_downsamplePipelineLayout
+    ));
+
+    pushConstant.size = sizeof(UpsamplePushConstants);
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_upsamplePipelineLayout
+    ));
+
+    VkShaderModule downsampleShader, upsampleShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/bloomDownsample.comp.spv", downsampleShader))
+    {
+        LOG("Failed to find shader \"res/shaders/bloomDownsample.comp.spv\"");
+    }
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/bloomUpsample.comp.spv", upsampleShader))
+    {
+        LOG("Failed to find shader \"res/shaders/bloomUpsample.comp.spv\"");
+    }
+
+    std::array<VkPipelineShaderStageCreateInfo, 2> stageInfos{};
+    stageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageInfos[0].stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageInfos[0].module = downsampleShader;
+    stageInfos[0].pName = "main";
+
+    stageInfos[1] = stageInfos[0];
+    stageInfos[1].module = upsampleShader;
+
+    std::array<VkComputePipelineCreateInfo, 2> pipelineCreateInfos{};
+    pipelineCreateInfos[0].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfos[0].layout = m_downsamplePipelineLayout;
+    pipelineCreateInfos[0].stage = stageInfos[0];
+
+    pipelineCreateInfos[1].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfos[1].layout = m_upsamplePipelineLayout;
+    pipelineCreateInfos[1].stage = stageInfos[1];
+
+    std::array<VkPipeline, 2> pipelines;
+    VK_CHECK(vkCreateComputePipelines(
+        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, pipelineCreateInfos.size(),
+        pipelineCreateInfos.data(), nullptr, pipelines.data()
+    ));
+    m_downsamplePipeline = pipelines[0];
+    m_upsamplePipeline = pipelines[1];
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), downsampleShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), upsampleShader, nullptr);
 }
 
-void Bloom::renderDownsamples() {
-    // m_downsampleShader.bind();
-    //
-    // // Bind srcTexture (HDR color buffer) as initial texture input
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, m_srcTexture.texture);
-    //
-    // // Progressively downsample through the mip chain
-    // for (int i = 0; i < m_mipChain.size(); i++) {
-    //     const BloomMip& mip = m_mipChain[i];
-    //     glBindImageTexture(0, mip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    //     glDispatchCompute((uint32_t)((mip.intSize.x + 7) / 8),
-    //         (uint32_t)((mip.intSize.y + 7) / 8), 1);
-    //     // Make sure writing to image has finished before read
-    //     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    //
-    //     // Set current mip as texture input for next iteration
-    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
-    // }
+void Bloom::renderDownsamples(VkExtent2D renderExtent) {
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipeline);
+
+    glm::vec2 prevMipTexelSize = glm::vec2(
+        1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height
+    );
+    glm::ivec2 renderSize(m_srcImage.imageExtent.width, m_srcImage.imageExtent.height);
+    int mipIndex = 0;
+    while (renderSize.x > 1 || renderSize.y > 1)
+    {
+        renderSize = glm::max(renderSize / 2, glm::ivec2(1));
+        const BloomMip& mip = m_mipChain[mipIndex];
+
+        vkCmdBindDescriptorSets(
+            command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
+            0, 1, &mip.downsampleDescriptors,
+            0, nullptr
+        );
+
+        DownsamplePushConstants pushConstants;
+        pushConstants.srcTexelSize = prevMipTexelSize;
+        pushConstants.dstTexelSize = glm::vec2(
+            1.0f / mip.image.imageExtent.width, 1.0f / mip.image.imageExtent.height);
+        prevMipTexelSize = pushConstants.dstTexelSize;
+
+        vkCmdPushConstants(
+            command, m_downsamplePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+            sizeof(DownsamplePushConstants), &pushConstants
+        );
+
+        vkCmdDispatch(
+            command,
+            (mip.image.imageExtent.width + 15) / 16, (mip.image.imageExtent.height + 15) / 16, 1
+        );
+
+        transitionImage(
+            command, mip.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+
+        mipIndex++;
+    }
 }
 
-void Bloom::renderUpsamples(float filterRadius) {
+void Bloom::renderUpsamples(float filterRadius, VkExtent2D renderExtent) {
     // m_upsampleShader.bind();
     // m_upsampleShader.setUniform1f("filterRadius", filterRadius);
     //
@@ -152,9 +261,9 @@ void Bloom::renderUpsamples(float filterRadius) {
     // }
 }
 
-void Bloom::render(float filterRadius, float strength) {
-    // renderDownsamples();
-    // renderUpsamples(filterRadius);
+void Bloom::render(float filterRadius, float strength, VkExtent2D renderExtent) {
+    renderDownsamples(renderExtent);
+    renderUpsamples(filterRadius, renderExtent);
     //
     // //glClear(GL_COLOR_BUFFER_BIT);  // Use to test the bloom image before it's composited
     //

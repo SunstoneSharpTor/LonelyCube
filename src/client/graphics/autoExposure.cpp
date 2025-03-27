@@ -25,6 +25,7 @@
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "core/constants.h"
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -106,12 +107,12 @@ void AutoExposure::init(
 void AutoExposure::cleanup()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_luminancePipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_luminancePipelineLayout, nullptr);
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_parallelReduceMeanPipeline, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_autoExposurePipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_luminancePipelineLayout, nullptr);
     vkDestroyPipelineLayout(
         m_vulkanEngine.getDevice(), m_parallelReduceMeanPipelineLayout, nullptr
     );
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_autoExposurePipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_autoExposurePipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_luminanceDescriptorSetLayout, nullptr
@@ -396,6 +397,21 @@ void AutoExposure::updateExposure(double DT)
     );
 
     vkCmdDispatch(command, 1, 1, 1);
+
+    VkBufferMemoryBarrier bufMemBarrier{};
+    bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufMemBarrier.offset = 0;
+    bufMemBarrier.buffer = m_exposureBuffer.buffer;
+    bufMemBarrier.size = 4;
+
+    vkCmdPipelineBarrier(
+        command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+        0, nullptr, 1, &bufMemBarrier, 0, nullptr
+    );
 }
 
 void AutoExposure::calculate(const glm::vec2 renderAreaFraction, double DT)
