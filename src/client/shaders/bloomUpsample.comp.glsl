@@ -26,9 +26,9 @@ layout (push_constant, std430) uniform constants
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout (set = 0, binding = 0) uniform texture2D srcTexture;
-layout (set = 1, binding = 0) uniform sampler linearSampler;
-layout (rgba16f, set = 2, binding = 0) uniform writeonly image2D dstImage;
+layout (set = 0, binding = 0) uniform sampler linearSampler;
+layout (set = 1, binding = 0) uniform texture2D srcTexture;
+layout (rgba16f, set = 1, binding = 1) uniform writeonly image2D dstImage;
 
 void main() {
     vec2 texCoord = (gl_GlobalInvocationID.xy + vec2(0.5, 0.5)) * dstTexelSize;

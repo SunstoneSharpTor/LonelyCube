@@ -24,6 +24,7 @@
 
 #include "client/graphics/vulkan/descriptors.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -34,26 +35,46 @@ struct BloomMip
     VkDescriptorSet upsampleDescriptors;
 };
 
+struct DownsamplePushConstants
+{
+    glm::vec2 srcTexelSize;
+    glm::vec2 dstTexelSize;
+};
+
+struct UpsamplePushConstants
+{
+    glm::vec2 dstTexelSize;
+    float filterRadius;
+};
+
 class Bloom {
 public:
+public:
+    Bloom(VulkanEngine& vulkanEngine);
+    void init(
+        DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage, VkSampler sampler
+    );
+    void cleanup();
+    void render(float filterRadius, float strength, VkExtent2D renderExtent);
+
 private:
     VulkanEngine& m_vulkanEngine;
 
-    std::vector<BloomMip> m_mipChain;
     AllocatedImage m_srcImage;
+    std::vector<BloomMip> m_mipChain;
     VkDescriptorSetLayout m_samplerDescriptorLayout;
     VkDescriptorSetLayout m_imagesDescriptorLayout;
     VkDescriptorSet m_samplerDescriptorSet;
 
-    void renderDownsamples();
-    void renderUpsamples(float filterRadius);
-public:
-    Bloom(VulkanEngine& vulkanEngine);
-    void init(DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage,
-        VkSampler sampler
-    );
-    void cleanup();
-    void render(float filterRadius, float strength);
+    VkPipelineLayout m_downsamplePipelineLayout;
+    VkPipeline m_downsamplePipeline;
+    VkPipelineLayout m_upsamplePipelineLayout;
+    VkPipeline m_upsamplePipeline;
+
+    void createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler);
+    void createPipelines();
+    void renderDownsamples(VkExtent2D renderExtent);
+    void renderUpsamples(float filterRadius, VkExtent2D renderExtent);
 };
 
 }  // namespace lonelycube::client
