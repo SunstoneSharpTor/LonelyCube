@@ -50,7 +50,7 @@ struct BlockPushConstants
 
 struct ToneMapPushConstants
 {
-    glm::vec2 inverseDrawImageSize;
+    glm::vec2 drawImageTexelSize;
     VkDeviceAddress luminanceBuffer;
 };
 
