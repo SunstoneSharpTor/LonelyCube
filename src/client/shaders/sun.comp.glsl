@@ -20,7 +20,7 @@
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout (rgba16f, set = 0, binding = 0) uniform image2D drawImage;
+layout (rgba16f, set = 0, binding = 0) uniform writeonly image2D drawImage;
 
 layout (push_constant, std430) uniform constants
 {

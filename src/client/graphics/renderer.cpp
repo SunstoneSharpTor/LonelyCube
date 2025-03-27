@@ -607,8 +607,8 @@ void Renderer::createToneMapPipeline()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), toneMapFragmentShader, nullptr);
 
-    m_toneMapPushConstants.inverseDrawImageSize.x = 1.0f / m_maxWindowExtent.width;
-    m_toneMapPushConstants.inverseDrawImageSize.y = 1.0f / m_maxWindowExtent.height;
+    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_maxWindowExtent.width;
+    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_maxWindowExtent.height;
     m_toneMapPushConstants.luminanceBuffer = m_autoExposure.getExposureBuffer();
 }
 

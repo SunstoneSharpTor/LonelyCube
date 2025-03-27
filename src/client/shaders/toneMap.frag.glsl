@@ -30,7 +30,7 @@ layout (set = 0, binding = 0) uniform sampler2D drawImage;
 
 layout (push_constant, std430) uniform constants
 {
-    vec2 inverseDrawImageSize;
+    vec2 drawImageTexelSize;
     LuminanceBuffer luminanceBuffer;
 };
 
@@ -117,7 +117,7 @@ vec3 lms_to_rgb(vec3 c)
 }
 
 void main() {
-    vec3 hdrColour = texture(drawImage, vec2(gl_FragCoord.xy) * inverseDrawImageSize).rgb;
+    vec3 hdrColour = texture(drawImage, vec2(gl_FragCoord.xy) * drawImageTexelSize).rgb;
 
     // Exposure tone mapping
     // vec3 mapped = vec3(1.0) - exp(-hdrColour * exposure);
