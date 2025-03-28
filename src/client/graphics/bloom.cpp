@@ -25,6 +25,7 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -213,6 +214,12 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
         renderSize = glm::max(renderSize / 2, glm::ivec2(1));
         const BloomMip& mip = m_mipChain[mipIndex];
 
+        transitionImage(
+            command, mip.image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_MEMORY_WRITE_BIT
+        );
+
         vkCmdBindDescriptorSets(
             command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
             0, 1, &mip.downsampleDescriptors,
@@ -236,7 +243,10 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
         );
 
         transitionImage(
-            command, mip.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            command, mip.image.image, VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT
         );
 
         mipIndex++;

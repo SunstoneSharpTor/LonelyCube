@@ -21,15 +21,17 @@
 namespace lonelycube::client {
 
 void transitionImage(
-    VkCommandBuffer command, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout
+    VkCommandBuffer command, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout,
+    VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
+    VkPipelineStageFlags2 dststageMask, VkAccessFlags2 dstAccessMask
 ) {
     VkImageMemoryBarrier2 imageBarrier{};
     imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+    imageBarrier.srcStageMask = srcStageMask;
+    imageBarrier.srcAccessMask = srcAccessMask;
+    imageBarrier.dstStageMask = dststageMask;
+    imageBarrier.dstAccessMask = dstAccessMask;
 
     imageBarrier.oldLayout = currentLayout;
     imageBarrier.newLayout = newLayout;
