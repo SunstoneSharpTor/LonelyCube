@@ -23,7 +23,9 @@
 namespace lonelycube::client {
 
 void transitionImage(
-    VkCommandBuffer command, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout
+    VkCommandBuffer command, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout,
+    VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
+    VkPipelineStageFlags2 dststageMask, VkAccessFlags2 dstAccessMask
 );
 
 }  // namespace lonelycube::client
