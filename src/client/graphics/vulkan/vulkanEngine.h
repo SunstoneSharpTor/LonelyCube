@@ -208,7 +208,7 @@ private:
     VkPhysicalDeviceVulkan11Features m_physicalDeviceVulkan11Features;
     VkPhysicalDeviceVulkan12Features m_physicalDeviceVulkan12Features;
     VkPhysicalDeviceVulkan13Features m_physicalDeviceVulkan13Features;
-    VkSampleCountFlagBits m_maxMSAAsamples;
+    VkSampleCountFlagBits m_maxSamples;
 
     // Timing
     #ifdef TIMESTAMPS
@@ -306,9 +306,9 @@ public:
     {
         return m_swapchainImageFormat;
     }
-    inline VkSampleCountFlagBits getMaxMSAAsamples()
+    inline VkSampleCountFlagBits getMaxSamples()
     {
-        return m_maxMSAAsamples;
+        return m_maxSamples;
     }
     #ifdef TIMESTAMPS
     inline VkQueryPool getCurrentTimestampQueryPool()

@@ -83,8 +83,8 @@ void PipelineBuilder::setMultisamplingNone()
 
 void PipelineBuilder::setMultisampling(VkSampleCountFlagBits sampleCount)
 {
-    multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = sampleCount;
+    multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.minSampleShading = 1.0f;
     multisampling.alphaToCoverageEnable = VK_FALSE;
     multisampling.alphaToOneEnable = VK_FALSE;

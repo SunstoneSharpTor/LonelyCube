@@ -24,7 +24,6 @@
 
 #include "client/graphics/vulkan/descriptors.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 

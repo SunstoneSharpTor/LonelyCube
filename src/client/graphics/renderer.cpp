@@ -28,11 +28,10 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
-Renderer::Renderer(float renderScale) :
+Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     m_renderScale(renderScale), m_autoExposure(m_vulkanEngine), m_bloom(m_vulkanEngine)
 {
     m_vulkanEngine.init();
@@ -43,6 +42,9 @@ Renderer::Renderer(float renderScale) :
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
     };
     m_globalDescriptorAllocator.init(m_vulkanEngine.getDevice(), 10, sizes);
+
+    m_numSamples = m_vulkanEngine.getMaxSamples() < numSamples ?
+        m_vulkanEngine.getMaxSamples() : numSamples;
 
     createRenderImages();
     createSamplers();
@@ -96,6 +98,10 @@ void Renderer::createRenderImages()
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages
     );
 
+    m_multisampledDrawImage = m_vulkanEngine.createImage(
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, 1, m_numSamples
+    );
+
     VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         | VK_IMAGE_USAGE_SAMPLED_BIT;
     m_skyImage = m_vulkanEngine.createImage(
@@ -104,7 +110,7 @@ void Renderer::createRenderImages()
 
     VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     m_depthImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, 1, m_numSamples
     );
 }
 
@@ -469,17 +475,13 @@ void Renderer::createWorldPipelines()
         LOG("Failed to find shader \"res/shaders/water.frag.spv\"");
     }
 
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_4_BIT;
-    numSamples = VK_SAMPLE_COUNT_1_BIT;
-
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_worldPipelineLayout;
     pipelineBuilder.setShaders(blockVertexShader, blockFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineBuilder.setMultisampling(numSamples);
+    pipelineBuilder.setMultisampling(m_numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
@@ -535,15 +537,12 @@ void Renderer::createBlockOutlinePipeline()
         LOG("Failed to find shader \"res/shaders/blockOutline.frag.spv\"");
     }
 
-    VkSampleCountFlagBits numSamples = m_vulkanEngine.getMaxMSAAsamples() < VK_SAMPLE_COUNT_4_BIT ?
-        m_vulkanEngine.getMaxMSAAsamples() : VK_SAMPLE_COUNT_1_BIT;
-
     PipelineBuilder pipelineBuilder;
     pipelineBuilder.pipelineLayout = m_blockOutlinePipelineLayout;
     pipelineBuilder.setShaders(vertexShader, fragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineBuilder.setMultisampling(numSamples);
+    pipelineBuilder.setMultisampling(m_numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
@@ -807,10 +806,13 @@ void Renderer::beginDrawingGeometry()
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_drawImage.imageView;
+    colourAttachment.imageView = m_multisampledDrawImage.imageView;
     colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colourAttachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+    colourAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colourAttachment.resolveImageView = m_drawImage.imageView;
 
     VkRenderingAttachmentInfo depthAttachment{};
     depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -856,6 +858,29 @@ void Renderer::beginDrawingBlocks()
         0, 1, &m_worldTexturesDescriptors,
         0, nullptr
     );
+}
+
+void Renderer::beginDrawingWater()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_waterPipeline);
+}
+
+void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
+
+    vkCmdPushConstants(
+        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
+        &blockRenderInfo
+    );
+    vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
 }
 
 void Renderer::drawEntities(
@@ -907,29 +932,6 @@ void Renderer::drawEntities(
     // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
 }
 
-void Renderer::beginDrawingWater()
-{
-    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
-
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_waterPipeline);
-}
-
-void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
-{
-    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
-
-    blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
-
-    vkCmdPushConstants(
-        command, m_worldPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BlockPushConstants),
-        &blockRenderInfo
-    );
-    vkCmdBindIndexBuffer(command, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
-}
-
 void Renderer::drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel)
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
@@ -963,7 +965,7 @@ void Renderer::finishDrawingGeometry()
     vkCmdEndRendering(command);
 }
 
-void Renderer::calculateAutoExposure(double DT)
+void Renderer::renderBloom()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -971,6 +973,21 @@ void Renderer::calculateAutoExposure(double DT)
     transitionImage(
         command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_READ_BIT
+    );
+
+    m_bloom.render(0.04, 0.04, m_renderExtent);
+}
+
+void Renderer::calculateAutoExposure(double DT)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    transitionImage(
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
