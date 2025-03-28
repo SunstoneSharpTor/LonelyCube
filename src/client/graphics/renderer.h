@@ -60,7 +60,7 @@ public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
 
-    Renderer(float renderScale);
+    Renderer(VkSampleCountFlagBits numSamples, float renderScale);
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
@@ -74,6 +74,7 @@ public:
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
+    void renderBloom();
     void calculateAutoExposure(double DT);
     void applyToneMap();
     void drawCrosshair();
@@ -89,8 +90,10 @@ private:
     DescriptorAllocatorGrowable m_globalDescriptorAllocator;
 
     AllocatedImage m_drawImage;
+    AllocatedImage m_multisampledDrawImage;
     AllocatedImage m_depthImage;
     float m_renderScale;
+    VkSampleCountFlagBits m_numSamples;
     VkExtent2D m_maxWindowExtent;
     VkExtent3D m_drawImageExtent;
     VkExtent2D m_renderExtent;

@@ -25,7 +25,6 @@
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -123,8 +122,10 @@ void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampl
                 1, m_mipChain[i].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                 VK_IMAGE_LAYOUT_GENERAL
             );
-            writer.updateSet(m_vulkanEngine.getDevice(), m_mipChain[i].downsampleDescriptors);
+            writer.updateSet(m_vulkanEngine.getDevice(), m_mipChain[i].upsampleDescriptors);
         }
+
+        prevImageView = m_mipChain[i].image.imageView;
     }
 }
 
@@ -203,6 +204,11 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
+        0, 1, &m_samplerDescriptorSet,
+        0, nullptr
+    );
 
     glm::vec2 prevMipTexelSize = glm::vec2(
         1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height
@@ -222,7 +228,7 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
 
         vkCmdBindDescriptorSets(
             command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
-            0, 1, &mip.downsampleDescriptors,
+            1, 1, &mip.downsampleDescriptors,
             0, nullptr
         );
 

@@ -25,7 +25,6 @@
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "core/constants.h"
 #include "core/log.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 

@@ -23,7 +23,6 @@
 #include "core/log.h"
 
 #include "glm/glm.hpp"
-#include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_BOX
 #include "stb_image.h"
@@ -261,13 +260,13 @@ bool VulkanEngine::pickPhysicalDevice()
         m_physicalDeviceProperties.properties.limits.framebufferColorSampleCounts
         & m_physicalDeviceProperties.properties.limits.framebufferDepthSampleCounts;
 
-    if (counts & VK_SAMPLE_COUNT_64_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_64_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_32_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_32_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_16_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_16_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_8_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_8_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_4_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_4_BIT; }
-    else if (counts & VK_SAMPLE_COUNT_2_BIT) { m_maxMSAAsamples = VK_SAMPLE_COUNT_2_BIT; }
-    else { m_maxMSAAsamples = VK_SAMPLE_COUNT_1_BIT; }
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { m_maxSamples = VK_SAMPLE_COUNT_64_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_32_BIT) { m_maxSamples = VK_SAMPLE_COUNT_32_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_16_BIT) { m_maxSamples = VK_SAMPLE_COUNT_16_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_8_BIT) { m_maxSamples = VK_SAMPLE_COUNT_8_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_4_BIT) { m_maxSamples = VK_SAMPLE_COUNT_4_BIT; }
+    else if (counts & VK_SAMPLE_COUNT_2_BIT) { m_maxSamples = VK_SAMPLE_COUNT_2_BIT; }
+    else { m_maxSamples = VK_SAMPLE_COUNT_1_BIT; }
 
     return true;
 }
@@ -1178,11 +1177,11 @@ AllocatedImage VulkanEngine::createImage(
 
 AllocatedImage VulkanEngine::createImage(
     void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, uint32_t mipLevels,
-    VkSampleCountFlagBits numMSAAsamples
+    VkSampleCountFlagBits numSamples
 ) {
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        mipLevels, numMSAAsamples
+        mipLevels, numSamples
     );
 
     std::vector<AllocatedBuffer> stagingBuffers(mipLevels);

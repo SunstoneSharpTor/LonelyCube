@@ -86,7 +86,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(std::sqrt(2.0f));
+    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -286,13 +286,6 @@ void renderThread() {
             // //auto tp2 = std::chrono::high_resolution_clock::now();
             // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
-            // //auto tp1 = std::chrono::high_resolution_clock::now();
-            // #ifndef GLES3
-            // bloom.render(0.005f, 0.005f);
-            // #endif
-            // //auto tp2 = std::chrono::high_resolution_clock::now();
-            // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-
             // Draw the block outline
             int breakBlockCoords[3];
             int placeBlockCoords[3];
@@ -312,6 +305,7 @@ void renderThread() {
             }
 
             renderer.finishDrawingGeometry();
+            renderer.renderBloom();
             renderer.calculateAutoExposure(actualDT);
             renderer.applyToneMap();
             renderer.drawCrosshair();
