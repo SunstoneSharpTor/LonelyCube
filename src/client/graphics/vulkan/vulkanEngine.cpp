@@ -340,6 +340,7 @@ bool VulkanEngine::checkDeviceFeaturesSupport(VkPhysicalDevice device)
     return device12features.bufferDeviceAddress == VK_TRUE
         && device12features.descriptorIndexing == VK_TRUE
         && device13features.dynamicRendering == VK_TRUE
+        && device13features.maintenance4 == VK_TRUE
         && device13features.synchronization2 == VK_TRUE;
 }
 
@@ -469,6 +470,7 @@ void VulkanEngine::createLogicalDevice()
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures.pNext = &device12features;
     deviceFeatures.features.samplerAnisotropy = m_physicalDeviceFeatures.features.samplerAnisotropy;
+    deviceFeatures.features.sampleRateShading = m_physicalDeviceFeatures.features.sampleRateShading;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

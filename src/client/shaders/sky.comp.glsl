@@ -21,7 +21,7 @@
 layout (local_size_x = 16, local_size_y = 16) in;
 
 layout (rgba16f, set = 0, binding = 0) uniform writeonly image2D skyImage;
-layout (rgba16f, set = 0, binding = 1) uniform writeonly image2D drawImage;
+layout (rgba16f, set = 0, binding = 1) uniform writeonly image2D skyBackgroundImage;
 
 layout (push_constant, std430) uniform constants
 {
@@ -71,5 +71,14 @@ void main() {
     value *= brightness;
 
     imageStore(skyImage, texelCoords, vec4(value, 1.0));
-    imageStore(drawImage, texelCoords, vec4(value, 1.0));
+
+    sunDistance = dot(rayDir, sunDir) + 1.0;  //max(max(abs(rayDir.x - sunDir.x), abs(rayDir.y - sunDir.y)), abs(rayDir.z - sunDir.z));
+    if (sunDistance > 1.9997)  //if (sunDistance < 0.025)
+    {
+        imageStore(skyBackgroundImage, texelCoords, vec4(vec3(1.0, 0.7, 0.25) * brightness, 1.0));
+    }
+    else
+    {
+        imageStore(skyBackgroundImage, texelCoords, vec4(value, 1.0));
+    }
 }

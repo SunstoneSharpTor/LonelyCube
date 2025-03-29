@@ -18,6 +18,7 @@
 
 #include "client/graphics/renderer.h"
 
+#include "client/graphics/vulkan/vulkanEngine.h"
 #include "stb_image.h"
 
 #include "client/graphics/vulkan/images.h"
@@ -28,6 +29,7 @@
 #include <cmath>
 #include <string>
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -45,6 +47,8 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
 
     m_numSamples = m_vulkanEngine.getMaxSamples() < numSamples ?
         m_vulkanEngine.getMaxSamples() : numSamples;
+    if (m_vulkanEngine.getPhysicalDeviceFeatures().features.sampleRateShading == VK_FALSE)
+        m_numSamples = VK_SAMPLE_COUNT_1_BIT;
 
     createRenderImages();
     createSamplers();
@@ -91,33 +95,41 @@ void Renderer::createRenderImages()
     m_drawImageExtent.height = std::ceil(m_maxWindowExtent.height * m_renderScale);
     m_drawImageExtent.depth = 1;
 
-    VkImageUsageFlags drawImageUsages =
-    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT
-        | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT| VK_IMAGE_USAGE_SAMPLED_BIT;
+    VkImageUsageFlags drawImageUsages = VK_IMAGE_USAGE_STORAGE_BIT |
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     m_drawImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages
     );
 
-    m_multisampledDrawImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, drawImageUsages, 1, m_numSamples
-    );
+    if (m_numSamples > VK_SAMPLE_COUNT_1_BIT)
+    {
+        m_multisampledDrawImage = m_vulkanEngine.createImage(
+            m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1,
+            m_numSamples
+        );
+    }
 
-    VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT
-        | VK_IMAGE_USAGE_SAMPLED_BIT;
+    VkImageUsageFlags skyImageUsages = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     m_skyImage = m_vulkanEngine.createImage(
         m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
     );
+    m_skyBackgroundImage = m_vulkanEngine.createImage(
+        m_drawImageExtent, VK_FORMAT_R16G16B16A16_SFLOAT, skyImageUsages
+    );
 
-    VkImageUsageFlags depthImageUsages = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     m_depthImage = m_vulkanEngine.createImage(
-        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, depthImageUsages, 1, m_numSamples
+        m_drawImageExtent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1,
+        m_numSamples
     );
 }
 
 void Renderer::cleanupRenderImages()
 {
     m_vulkanEngine.destroyImage(m_skyImage);
+    m_vulkanEngine.destroyImage(m_skyBackgroundImage);
     m_vulkanEngine.destroyImage(m_drawImage);
+    if (m_numSamples != VK_SAMPLE_COUNT_1_BIT)
+        m_vulkanEngine.destroyImage(m_multisampledDrawImage);
     m_vulkanEngine.destroyImage(m_depthImage);
 }
 
@@ -164,16 +176,16 @@ void Renderer::createSamplers()
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
 
     samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
     // samplerInfo.anisotropyEnable =
     //     m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy != 0.0f;
     // samplerInfo.maxAnisotropy =
     //     m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy;
 
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
-    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.mipLodBias = -0.0f;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
 
@@ -196,27 +208,6 @@ void Renderer::cleanupSamplers()
     vkDestroySampler(m_vulkanEngine.getDevice(), m_uiSampler, nullptr);
 }
 
-void Renderer::createDrawImageDescriptors()
-{
-    DescriptorLayoutBuilder builder;
-    DescriptorWriter writer;
-
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_drawImageDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
-    );
-
-    m_drawImageDescriptors = m_globalDescriptorAllocator.allocate(
-        m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout
-    );
-
-    writer.writeImage(
-        0, m_drawImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        VK_IMAGE_LAYOUT_GENERAL
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_drawImageDescriptors);
-}
-
 void Renderer::createSkyDescriptors()
 {
     DescriptorLayoutBuilder builder;
@@ -237,10 +228,28 @@ void Renderer::createSkyDescriptors()
         VK_IMAGE_LAYOUT_GENERAL
     );
     writer.writeImage(
-        1, m_drawImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        1, m_skyBackgroundImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         VK_IMAGE_LAYOUT_GENERAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
+
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLER);
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    m_skyBackgroundDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_skyBackgroundDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_skyBackgroundDescriptorLayout
+    );
+    writer.clear();
+    writer.writeImage(0, VK_NULL_HANDLE, m_nearestFullscreenSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+    writer.writeImage(
+        1, m_skyBackgroundImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_skyBackgroundDescriptors);
 }
 
 void Renderer::createWorldDescriptors()
@@ -313,7 +322,6 @@ void Renderer::createCrosshairDescriptors()
 
 void Renderer::createDescriptors()
 {
-    createDrawImageDescriptors();
     createSkyDescriptors();
     createWorldDescriptors();
     createToneMapDescriptors();
@@ -322,8 +330,10 @@ void Renderer::createDescriptors()
 
 void Renderer::cleanupDescriptors()
 {
-    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_drawImageDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(
+        m_vulkanEngine.getDevice(), m_skyBackgroundDescriptorLayout, nullptr
+    );
     vkDestroyDescriptorSetLayout(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout, nullptr
     );
@@ -382,55 +392,60 @@ void Renderer::cleanupSkyPipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_skyPipelineLayout, nullptr);
 }
 
-void Renderer::createSunPipeline()
+void Renderer::createSkyBlitPipeline()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_drawImageDescriptorLayout;
-
-    VkPushConstantRange pushConstant{};
-    pushConstant.offset = 0;
-    pushConstant.size = sizeof(SkyPushConstants);
-    pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+    pipelineLayoutInfo.pSetLayouts = &m_skyBackgroundDescriptorLayout;
 
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_sunPipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_fullscreenBlitPipelineLayout
     ));
 
-    VkShaderModule computeDrawShader;
+    VkShaderModule fullscreenVertexShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/sun.comp.spv", computeDrawShader))
-    {
-        LOG("Failed to find shader \"res/shaders/sun.comp.spv\"");
+        m_vulkanEngine.getDevice(), "res/shaders/fullscreen.vert.spv", fullscreenVertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/fullscreen.vert.spv\"");
+    }
+    VkShaderModule blitFragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/blit.frag.spv", blitFragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/blit.frag.spv\"");
     }
 
-    VkPipelineShaderStageCreateInfo stageInfo{};
-    stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    stageInfo.module = computeDrawShader;
-    stageInfo.pName = "main";
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_fullscreenBlitPipelineLayout;
+    pipelineBuilder.setShaders(fullscreenVertexShader, blitFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+    if (m_numSamples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+        pipelineBuilder.setMultisamplingNone();
+    }
+    else
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_multisampledDrawImage.imageFormat);
+        pipelineBuilder.setMultisampling(m_numSamples);
+    }
 
-    VkComputePipelineCreateInfo sunPipelineCreateInfo{};
-    sunPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    sunPipelineCreateInfo.layout = m_sunPipelineLayout;
-    sunPipelineCreateInfo.stage = stageInfo;
+    m_skyBlitPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
-    VK_CHECK(vkCreateComputePipelines(
-        m_vulkanEngine.getDevice(), VK_NULL_HANDLE, 1, &sunPipelineCreateInfo, nullptr,
-        &m_sunPipeline
-    ));
-
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), computeDrawShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blitFragmentShader, nullptr);
 }
 
-void Renderer::cleanupSunPipeline()
+void Renderer::cleanupSkyBlitPipeline()
 {
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_sunPipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_sunPipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyBlitPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_fullscreenBlitPipelineLayout, nullptr);
 }
 
 void Renderer::createWorldPipelines()
@@ -481,11 +496,19 @@ void Renderer::createWorldPipelines()
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineBuilder.setMultisampling(m_numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
     pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+    if (m_numSamples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+        pipelineBuilder.setMultisamplingNone();
+    }
+    else
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_multisampledDrawImage.imageFormat);
+        pipelineBuilder.setMultisampling(m_numSamples);
+    }
 
     m_blockPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
@@ -542,11 +565,20 @@ void Renderer::createBlockOutlinePipeline()
     pipelineBuilder.setShaders(vertexShader, fragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineBuilder.setMultisampling(m_numSamples);
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
     pipelineBuilder.setDepthAttachmentFormat(m_depthImage.imageFormat);
+    if (m_numSamples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_drawImage.imageFormat);
+        pipelineBuilder.setMultisamplingNone();
+    }
+    else
+    {
+        pipelineBuilder.setColourAttachmentFormat(m_multisampledDrawImage.imageFormat);
+        pipelineBuilder.setMultisampling(m_numSamples);
+    }
 
     m_blockOutlinePipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
@@ -675,7 +707,7 @@ void Renderer::cleanupCrosshairPipeline()
 void Renderer::createPipelines()
 {
     createSkyPipeline();
-    createSunPipeline();
+    createSkyBlitPipeline();
     createWorldPipelines();
     createBlockOutlinePipeline();
     createToneMapPipeline();
@@ -685,7 +717,7 @@ void Renderer::createPipelines()
 void Renderer::cleanupPipelines()
 {
     cleanupSkyPipeline();
-    cleanupSunPipeline();
+    cleanupSkyBlitPipeline();
     cleanupWorldPipelines();
     cleanupBlockOutlinePipeline();
     cleanupToneMapPipeline();
@@ -734,7 +766,7 @@ void Renderer::drawSky()
         VK_ACCESS_2_MEMORY_WRITE_BIT
     );
     transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        command, m_skyBackgroundImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_PIPELINE_STAGE_NONE, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_WRITE_BIT
     );
@@ -762,34 +794,22 @@ void Renderer::drawSky()
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
+    transitionImage(
+        command, m_skyBackgroundImage.image, VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_READ_BIT
+    );
 }
 
-void Renderer::drawSun()
-{
+void Renderer::updateEntityMesh(
+    const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh
+) {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_sunPipeline);
-    vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_sunPipelineLayout,
-        0, 1, &m_drawImageDescriptors,
-        0, nullptr
-    );
-
-    vkCmdPushConstants(
-        command, m_sunPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
-        &skyRenderInfo
-    );
-
-    vkCmdDispatch(
-        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
-    );
-
-    transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_READ_BIT
+    m_vulkanEngine.updateDynamicMesh(
+        command, mesh, entityMeshManager.sizeOfVertices, entityMeshManager.numIndices
     );
 }
 
@@ -799,6 +819,11 @@ void Renderer::beginDrawingGeometry()
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     transitionImage(
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT
+    );
+    transitionImage(
         command, m_depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT
@@ -806,20 +831,28 @@ void Renderer::beginDrawingGeometry()
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_multisampledDrawImage.imageView;
     colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colourAttachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
-    colourAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colourAttachment.resolveImageView = m_drawImage.imageView;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    if (m_numSamples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colourAttachment.imageView = m_drawImage.imageView;
+    }
+    else
+    {
+        colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colourAttachment.imageView = m_multisampledDrawImage.imageView;
+        colourAttachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+        colourAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colourAttachment.resolveImageView = m_drawImage.imageView;
+    }
 
     VkRenderingAttachmentInfo depthAttachment{};
     depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     depthAttachment.imageView = m_depthImage.imageView;
     depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.clearValue.depthStencil.depth = 0.0f;
 
     VkRenderingInfo renderingInfo{};
@@ -833,12 +866,12 @@ void Renderer::beginDrawingGeometry()
     vkCmdBeginRendering(command, &renderingInfo);
 }
 
-void Renderer::beginDrawingBlocks()
+void Renderer::blitSky()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipeline);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_skyBlitPipeline);
 
     VkViewport viewport{};
     viewport.width = m_renderExtent.width;
@@ -852,6 +885,22 @@ void Renderer::beginDrawingBlocks()
 
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_fullscreenBlitPipelineLayout,
+        0, 1, &m_skyBackgroundDescriptors,
+        0, nullptr
+    );
+
+    vkCmdDraw(command, 3, 1, 0, 0);
+}
+
+void Renderer::beginDrawingBlocks()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blockPipeline);
 
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_worldPipelineLayout,
@@ -883,41 +932,10 @@ void Renderer::drawBlocks(const GPUMeshBuffers& mesh)
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
 }
 
-void Renderer::drawEntities(
-    const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh
-) {
+void Renderer::drawEntities(GPUDynamicMeshBuffers& mesh)
+{
     FrameData& currentFrameData = getVulkanEngine().getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
-
-    vkCmdEndRendering(command);
-
-    getVulkanEngine().updateDynamicMesh(
-        command, mesh, entityMeshManager.sizeOfVertices, entityMeshManager.numIndices
-    );
-
-    VkRenderingAttachmentInfo colourAttachment{};
-    colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_drawImage.imageView;
-    colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    VkRenderingAttachmentInfo depthAttachment{};
-    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depthAttachment.imageView = m_depthImage.imageView;
-    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    VkRenderingInfo renderingInfo{};
-    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments = &colourAttachment;
-    renderingInfo.pDepthAttachment = &depthAttachment;
-
-    vkCmdBeginRendering(command, &renderingInfo);
 
     blockRenderInfo.vertexBuffer = mesh.vertexBufferAddress;
     vkCmdPushConstants(
@@ -928,8 +946,6 @@ void Renderer::drawEntities(
         command, mesh.indexBuffer.deviceLocalBuffer.buffer, 0, VK_INDEX_TYPE_UINT32
     );
     vkCmdDrawIndexed(command, mesh.indexCount, 1, 0, 0, 0);
-    // blockShader.setUniformMat4f("u_modelView", viewMatrix);
-    // mainRenderer.draw(*m_entityVertexArray, *m_entityIndexBuffer, blockShader);
 }
 
 void Renderer::drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel)

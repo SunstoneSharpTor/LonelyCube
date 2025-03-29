@@ -64,13 +64,12 @@ public:
     ~Renderer();
     void beginRenderingFrame();
     void drawSky();
-    void drawSun();
+    void updateEntityMesh(const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh);
     void beginDrawingGeometry();
+    void blitSky();
     void beginDrawingBlocks();
     void drawBlocks(const GPUMeshBuffers& mesh);
-    void drawEntities(
-        const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh
-    );
+    void drawEntities(GPUDynamicMeshBuffers& mesh);
     void beginDrawingWater();
     void drawBlockOutline(glm::mat4& viewProjection, glm::vec3& offset, float* outlineModel);
     void finishDrawingGeometry();
@@ -99,10 +98,16 @@ private:
     VkExtent2D m_renderExtent;
 
     AllocatedImage m_skyImage;
+    AllocatedImage m_skyBackgroundImage;
     VkDescriptorSetLayout m_skyImageDescriptorLayout;
     VkDescriptorSet m_skyImageDescriptors;
     VkPipelineLayout m_skyPipelineLayout;
     VkPipeline m_skyPipeline;
+
+    VkDescriptorSetLayout m_skyBackgroundDescriptorLayout;
+    VkDescriptorSet m_skyBackgroundDescriptors;
+    VkPipelineLayout m_fullscreenBlitPipelineLayout;
+    VkPipeline m_skyBlitPipeline;
 
     VkDescriptorSetLayout m_drawImageDescriptorLayout;
     VkDescriptorSet m_drawImageDescriptors;
@@ -142,8 +147,8 @@ private:
 
     void createSkyPipeline();
     void cleanupSkyPipeline();
-    void createSunPipeline();
-    void cleanupSunPipeline();
+    void createSkyBlitPipeline();
+    void cleanupSkyBlitPipeline();
     void createWorldPipelines();
     void cleanupWorldPipelines();
     void createBlockOutlinePipeline();
