@@ -170,7 +170,7 @@ void Renderer::createSamplers()
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
 
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    // samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
@@ -234,8 +234,7 @@ void Renderer::createSkyDescriptors()
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
 
     builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLER);
-    builder.addBinding(1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     m_skyBackgroundDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
@@ -244,10 +243,9 @@ void Renderer::createSkyDescriptors()
         m_vulkanEngine.getDevice(), m_skyBackgroundDescriptorLayout
     );
     writer.clear();
-    writer.writeImage(0, VK_NULL_HANDLE, m_nearestFullscreenSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
     writer.writeImage(
-        1, m_skyBackgroundImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        0, m_skyBackgroundImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyBackgroundDescriptors);
 }
@@ -795,10 +793,9 @@ void Renderer::drawSky()
         VK_ACCESS_2_MEMORY_READ_BIT
     );
     transitionImage(
-        command, m_skyBackgroundImage.image, VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_READ_BIT
+        command, m_skyBackgroundImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT
     );
 }
 

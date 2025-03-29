@@ -21,12 +21,9 @@
 
 layout (location = 0) out vec4 outColour;
 
-layout (set = 0, binding = 0) uniform sampler imageSampler;
-layout (set = 0, binding = 1) uniform texture2D image;
+layout (rgba16f, set = 0, binding = 0) uniform readonly image2D srcImage;
 
 void main()
 {
-    outColour = texture(
-        sampler2D(image, imageSampler), vec2(gl_FragCoord.xy) / vec2(textureSize(image, 0))
-    );
+    outColour = imageLoad(srcImage, ivec2(gl_FragCoord.xy));
 }
