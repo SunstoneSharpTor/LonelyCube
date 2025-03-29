@@ -892,9 +892,10 @@ void VulkanEngine::recreateSwapchain()
     vkDeviceWaitIdle(m_device);
 
     cleanupSwapchain();
-
     createSwapchain();
     createSwapchainImageViews();
+
+    m_renderExtentResized = true;
 }
 
 void VulkanEngine::createAllocator()

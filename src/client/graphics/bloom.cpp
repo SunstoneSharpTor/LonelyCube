@@ -50,21 +50,39 @@ void Bloom::init(
 
     createMips(descriptorAllocator, sampler);
     createPipelines();
+
+    // Blit descriptor set
+    m_blitImageDescriptors = descriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
+    );
+    writer.clear();
+    writer.writeImage(
+        0, m_mipChain[0].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.writeImage(
+        1, m_srcImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_blitImageDescriptors);
 }
 
 void Bloom::cleanup()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_downsamplePipeline, nullptr);
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_upsamplePipeline, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blitPipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_downsamplePipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_upsamplePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blitPipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
     for (const auto& mip : m_mipChain)
         m_vulkanEngine.destroyImage(mip.image);
 }
 
-void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler) {
+void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler)
+{
     DescriptorLayoutBuilder builder;
     DescriptorWriter writer;
 
@@ -152,12 +170,16 @@ void Bloom::createPipelines()
     ));
 
     pushConstant.size = sizeof(UpsamplePushConstants);
-
     VK_CHECK(vkCreatePipelineLayout(
         m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_upsamplePipelineLayout
     ));
 
-    VkShaderModule downsampleShader, upsampleShader;
+    pushConstant.size = sizeof(BlitPushConstants);
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blitPipelineLayout
+    ));
+
+    VkShaderModule downsampleShader, upsampleShader, blitShader;
     if (!createShaderModule(
         m_vulkanEngine.getDevice(), "res/shaders/bloomDownsample.comp.spv", downsampleShader))
     {
@@ -168,8 +190,13 @@ void Bloom::createPipelines()
     {
         LOG("Failed to find shader \"res/shaders/bloomUpsample.comp.spv\"");
     }
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/bloomBlit.comp.spv", blitShader))
+    {
+        LOG("Failed to find shader \"res/shaders/bloomBlit.comp.spv\"");
+    }
 
-    std::array<VkPipelineShaderStageCreateInfo, 2> stageInfos{};
+    std::array<VkPipelineShaderStageCreateInfo, 3> stageInfos{};
     stageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     stageInfos[0].stage = VK_SHADER_STAGE_COMPUTE_BIT;
     stageInfos[0].module = downsampleShader;
@@ -178,7 +205,10 @@ void Bloom::createPipelines()
     stageInfos[1] = stageInfos[0];
     stageInfos[1].module = upsampleShader;
 
-    std::array<VkComputePipelineCreateInfo, 2> pipelineCreateInfos{};
+    stageInfos[2] = stageInfos[0];
+    stageInfos[2].module = blitShader;
+
+    std::array<VkComputePipelineCreateInfo, 3> pipelineCreateInfos{};
     pipelineCreateInfos[0].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineCreateInfos[0].layout = m_downsamplePipelineLayout;
     pipelineCreateInfos[0].stage = stageInfos[0];
@@ -187,33 +217,48 @@ void Bloom::createPipelines()
     pipelineCreateInfos[1].layout = m_upsamplePipelineLayout;
     pipelineCreateInfos[1].stage = stageInfos[1];
 
-    std::array<VkPipeline, 2> pipelines;
+    pipelineCreateInfos[2].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfos[2].layout = m_blitPipelineLayout;
+    pipelineCreateInfos[2].stage = stageInfos[2];
+
+    std::array<VkPipeline, 3> pipelines;
     VK_CHECK(vkCreateComputePipelines(
         m_vulkanEngine.getDevice(), VK_NULL_HANDLE, pipelineCreateInfos.size(),
         pipelineCreateInfos.data(), nullptr, pipelines.data()
     ));
     m_downsamplePipeline = pipelines[0];
     m_upsamplePipeline = pipelines[1];
+    m_blitPipeline = pipelines[2];
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), downsampleShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), upsampleShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blitShader, nullptr);
 }
 
-void Bloom::renderDownsamples(VkExtent2D renderExtent) {
+void Bloom::resize(VkExtent2D renderExtent)
+{
+    m_renderExtent.x = renderExtent.width;
+    m_renderExtent.y = renderExtent.height;
+    m_smallestMipIndex = static_cast<int>(std::floor(std::log2(std::max(
+        renderExtent.width, renderExtent.height
+    )))) - 1;
+}
+
+void Bloom::renderDownsamples(float strength)
+{
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipeline);
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
-        0, 1, &m_samplerDescriptorSet,
-        0, nullptr
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout, 0, 1,
+        &m_samplerDescriptorSet, 0, nullptr
     );
 
     glm::vec2 prevMipTexelSize = glm::vec2(
         1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height
     );
-    glm::ivec2 renderSize(m_srcImage.imageExtent.width, m_srcImage.imageExtent.height);
+    glm::ivec2 renderSize = m_renderExtent;
     int mipIndex = 0;
     while (renderSize.x > 1 || renderSize.y > 1)
     {
@@ -227,15 +272,15 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
         );
 
         vkCmdBindDescriptorSets(
-            command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout,
-            1, 1, &mip.downsampleDescriptors,
-            0, nullptr
+            command, VK_PIPELINE_BIND_POINT_COMPUTE, m_downsamplePipelineLayout, 1, 1,
+            &mip.downsampleDescriptors, 0, nullptr
         );
 
         DownsamplePushConstants pushConstants;
         pushConstants.srcTexelSize = prevMipTexelSize;
         pushConstants.dstTexelSize = glm::vec2(
             1.0f / mip.image.imageExtent.width, 1.0f / mip.image.imageExtent.height);
+        pushConstants.strength = mipIndex == 0 ? strength : 1.0f;
         prevMipTexelSize = pushConstants.dstTexelSize;
 
         vkCmdPushConstants(
@@ -259,42 +304,98 @@ void Bloom::renderDownsamples(VkExtent2D renderExtent) {
     }
 }
 
-void Bloom::renderUpsamples(float filterRadius, VkExtent2D renderExtent) {
-    // m_upsampleShader.bind();
-    // m_upsampleShader.setUniform1f("filterRadius", filterRadius);
-    //
-    // for (int i = m_mipChain.size() - 1; i > 0; i--) {
-    //     const BloomMip& mip = m_mipChain[i];
-    //     const BloomMip& nextMip = m_mipChain[i-1];
-    //
-    //     glActiveTexture(GL_TEXTURE0);
-    //     glBindTexture(GL_TEXTURE_2D, mip.texture);
-    //     glBindImageTexture(0, nextMip.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    //     glDispatchCompute((uint32_t)((nextMip.intSize.x + 7) / 8),
-    //         (uint32_t)((nextMip.intSize.y + 7) / 8), 1);
-    //     // Make sure writing to image has finished before read
-    //     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    // }
+void Bloom::renderUpsamples(float filterRadius)
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_upsamplePipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_upsamplePipelineLayout, 0, 1,
+        &m_samplerDescriptorSet, 0, nullptr
+    );
+
+    for (int mipIndex = m_smallestMipIndex - 1; mipIndex >= 0; mipIndex--)
+    {
+        const BloomMip& mip = m_mipChain[mipIndex];
+
+        transitionImage(
+            command, mip.image.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_MEMORY_WRITE_BIT
+        );
+
+        vkCmdBindDescriptorSets(
+            command, VK_PIPELINE_BIND_POINT_COMPUTE, m_upsamplePipelineLayout, 1, 1,
+            &mip.upsampleDescriptors, 0, nullptr
+        );
+
+        UpsamplePushConstants pushConstants;
+        pushConstants.dstTexelSize = glm::vec2(
+            1.0f / mip.image.imageExtent.width, 1.0f / mip.image.imageExtent.height);
+        pushConstants.filterRadius = filterRadius;
+
+        vkCmdPushConstants(
+            command, m_downsamplePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+            sizeof(UpsamplePushConstants), &pushConstants
+        );
+
+        vkCmdDispatch(
+            command,
+            (mip.image.imageExtent.width + 15) / 16, (mip.image.imageExtent.height + 15) / 16, 1
+        );
+
+        transitionImage(
+            command, mip.image.image, VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT
+        );
+    }
 }
 
-void Bloom::render(float filterRadius, float strength, VkExtent2D renderExtent) {
-    renderDownsamples(renderExtent);
-    renderUpsamples(filterRadius, renderExtent);
-    //
-    // //glClear(GL_COLOR_BUFFER_BIT);  // Use to test the bloom image before it's composited
-    //
-    // m_blitShader.bind();
-    // m_blitShader.setUniform1f("strength", strength);
-    //
-    // const BloomMip& mip = m_mipChain[0];
-    //
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, mip.texture);
-    // glBindImageTexture(0, m_srcTexture.texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-    // glDispatchCompute((uint32_t)((m_srcTexture.intSize.x + 7) / 8),
-    //     (uint32_t)((m_srcTexture.intSize.y + 7) / 8), 1);
-    // // Make sure writing to image has finished before read
-    // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+void Bloom::render(float filterRadius, float strength)
+{
+    renderDownsamples(strength);
+    renderUpsamples(filterRadius);
+
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipeline);
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipelineLayout, 0, 1,
+        &m_samplerDescriptorSet, 0, nullptr
+    );
+
+    transitionImage(
+        command, m_srcImage.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_WRITE_BIT
+    );
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipelineLayout, 1, 1,
+        &m_blitImageDescriptors, 0, nullptr
+    );
+
+    BlitPushConstants pushConstants;
+    pushConstants.dstTexelSize = glm::vec2(
+        1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height);
+    pushConstants.filterRadius = filterRadius;
+    pushConstants.strength = strength;
+
+    vkCmdPushConstants(
+        command, m_downsamplePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+        sizeof(BlitPushConstants), &pushConstants
+    );
+
+    vkCmdDispatch(
+        command,
+        (m_srcImage.imageExtent.width + 15) / 16, (m_srcImage.imageExtent.height + 15) / 16, 1
+    );
 }
 
 }  // namespace lonelycube::client

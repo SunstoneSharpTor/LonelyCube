@@ -192,6 +192,7 @@ private:
     uint32_t m_frameDataIndex = 0;
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
+    bool m_renderExtentResized = false;
 
     // Immediate Submit
     VkFence m_immediateSubmitFence;
@@ -306,9 +307,13 @@ public:
     {
         return m_swapchainImageFormat;
     }
-    inline VkSampleCountFlagBits getMaxSamples()
+    inline VkSampleCountFlagBits getMaxSamples() const
     {
         return m_maxSamples;
+    }
+    inline bool resizedSinceLastFrame() const
+    {
+        return m_renderExtentResized;
     }
     #ifdef TIMESTAMPS
     inline VkQueryPool getCurrentTimestampQueryPool()

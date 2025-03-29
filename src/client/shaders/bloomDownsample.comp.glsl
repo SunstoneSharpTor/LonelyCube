@@ -22,6 +22,7 @@ layout (push_constant, std430) uniform constants
 {
     vec2 srcTexelSize;
     vec2 dstTexelSize;
+    float strength;
 };
 
 layout (local_size_x = 16, local_size_y = 16) in;
@@ -69,5 +70,6 @@ void main() {
     downsample += (b + d + f + h) * 0.0625;
     downsample += (a + c + g + i) * 0.03125;
 
-    imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(downsample, 1.0));
+    imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(downsample * strength, 1.0));
+    // imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(e * strength, 1.0));
 }
