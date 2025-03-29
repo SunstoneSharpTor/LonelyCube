@@ -27,6 +27,7 @@
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 #include <cmath>
+#include <filesystem>
 #include <string>
 #include <volk.h>
 #include <vulkan/vulkan_core.h>
@@ -49,6 +50,8 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
         m_vulkanEngine.getMaxSamples() : numSamples;
     if (m_vulkanEngine.getPhysicalDeviceFeatures().features.sampleRateShading == VK_FALSE)
         m_numSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    m_renderExtent = { 0, 0 };
 
     createRenderImages();
     createSamplers();
@@ -170,7 +173,7 @@ void Renderer::createSamplers()
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_nearestFullscreenSampler);
 
-    // samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
@@ -291,7 +294,8 @@ void Renderer::createToneMapDescriptors()
     );
 
     writer.writeImage(
-        0, m_drawImage.imageView, m_linearFullscreenSampler,
+        0, m_drawImage.imageView,
+        m_renderScale > 1.0f ? m_linearFullscreenSampler : m_nearestFullscreenSampler,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_toneMapDescriptors);
@@ -726,14 +730,22 @@ void Renderer::beginRenderingFrame()
 {
     VkExtent2D swapchainExtent;
     m_vulkanEngine.startRenderingFrame(swapchainExtent);
-    m_renderExtent.width = std::min(
+    VkExtent2D newRenderExtent;
+    newRenderExtent.width = std::min(
         static_cast<uint32_t>(std::ceil(swapchainExtent.width * m_renderScale)),
         m_drawImageExtent.width
     );
-    m_renderExtent.height = std::min(
+    newRenderExtent.height = std::min(
         static_cast<uint32_t>(std::ceil(swapchainExtent.height * m_renderScale)),
         m_drawImageExtent.height
     );
+
+    if (newRenderExtent.width != m_renderExtent.width ||
+        newRenderExtent.height != m_renderExtent.height)
+    {
+        m_bloom.resize(newRenderExtent);
+        m_renderExtent = newRenderExtent;
+    }
 
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -990,7 +1002,14 @@ void Renderer::renderBloom()
         VK_ACCESS_2_MEMORY_READ_BIT
     );
 
-    m_bloom.render(0.04, 0.04, m_renderExtent);
+    m_bloom.render(4.0f, 0.01f);
+
+    transitionImage(
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_MEMORY_READ_BIT
+    );
 }
 
 void Renderer::calculateAutoExposure(double DT)

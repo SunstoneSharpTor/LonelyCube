@@ -75,7 +75,7 @@ void main() {
     sunDistance = dot(rayDir, sunDir) + 1.0;  //max(max(abs(rayDir.x - sunDir.x), abs(rayDir.y - sunDir.y)), abs(rayDir.z - sunDir.z));
     if (sunDistance > 1.9997)  //if (sunDistance < 0.025)
     {
-        imageStore(skyBackgroundImage, texelCoords, vec4(vec3(1.0, 0.7, 0.25) * brightness, 1.0));
+        imageStore(skyBackgroundImage, texelCoords, vec4(vec3(1.0, 0.7, 0.25) * brightness * 260, 1.0));
     }
     else
     {

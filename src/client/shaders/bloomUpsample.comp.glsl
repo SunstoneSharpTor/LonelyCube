@@ -28,35 +28,39 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 layout (set = 0, binding = 0) uniform sampler linearSampler;
 layout (set = 1, binding = 0) uniform texture2D srcTexture;
-layout (rgba16f, set = 1, binding = 1) uniform writeonly image2D dstImage;
+layout (rgba16f, set = 1, binding = 1) uniform image2D dstImage;
 
 void main() {
     vec2 texCoord = (gl_GlobalInvocationID.xy + vec2(0.5, 0.5)) * dstTexelSize;
+    float x = dstTexelSize.x * filterRadius;
+    float y = dstTexelSize.y * filterRadius;
 
     vec3 a = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x - filterRadius, texCoord.y + filterRadius)).rgb;
+                     vec2(texCoord.x - x, texCoord.y + y)).rgb;
     vec3 b = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x, texCoord.y + filterRadius)).rgb;
+                     vec2(texCoord.x, texCoord.y + y)).rgb;
     vec3 c = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x + filterRadius, texCoord.y + filterRadius)).rgb;
+                     vec2(texCoord.x + x, texCoord.y + y)).rgb;
 
     vec3 d = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x - filterRadius, texCoord.y)).rgb;
+                     vec2(texCoord.x - x, texCoord.y)).rgb;
     vec3 e = texture(sampler2D(srcTexture, linearSampler),
                      vec2(texCoord.x, texCoord.y)).rgb;
     vec3 f = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x + filterRadius, texCoord.y)).rgb;
+                     vec2(texCoord.x + x, texCoord.y)).rgb;
 
     vec3 g = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x - filterRadius, texCoord.y - filterRadius)).rgb;
+                     vec2(texCoord.x - x, texCoord.y - y)).rgb;
     vec3 h = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x, texCoord.y - filterRadius)).rgb;
+                     vec2(texCoord.x, texCoord.y - y)).rgb;
     vec3 i = texture(sampler2D(srcTexture, linearSampler),
-                     vec2(texCoord.x + filterRadius, texCoord.y - filterRadius)).rgb;
+                     vec2(texCoord.x + x, texCoord.y - y)).rgb;
 
     vec3 upsample = e * 0.25;
     upsample += (b + d + f + h) * 0.125;
     upsample += (a + c + g + i) * 0.0625;
 
-    imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(upsample, 1.0));
+    vec4 colour = imageLoad(dstImage, ivec2(gl_GlobalInvocationID.xy));
+    imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), colour + vec4(upsample, 0.0));
+    // imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), colour + vec4(e, 0.0));
 }
