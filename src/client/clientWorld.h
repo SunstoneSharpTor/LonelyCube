@@ -141,6 +141,7 @@ public:
     void updateMeshes();
     void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
     void unloadAllMeshes();
+    void buildEntityMesh(const IVec3& playerBlockPos);
     void freeEntityMeshes();
     inline void setClientID(int ID) {
         m_clientID = ID;

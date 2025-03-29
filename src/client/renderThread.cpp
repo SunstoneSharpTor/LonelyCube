@@ -258,8 +258,9 @@ void renderThread() {
 
             renderer.beginRenderingFrame();
             renderer.drawSky();
-            renderer.drawSun();
+            mainWorld.buildEntityMesh(mainPlayer.cameraBlockPosition);
             renderer.beginDrawingGeometry();
+            renderer.blitSky();
 
             // Render the world geometry
             float cameraSubBlockPos[3];
