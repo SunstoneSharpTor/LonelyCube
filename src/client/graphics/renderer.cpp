@@ -19,18 +19,13 @@
 #include "client/graphics/renderer.h"
 
 #include "client/graphics/vulkan/vulkanEngine.h"
-#include "stb_image.h"
 
 #include "client/graphics/vulkan/images.h"
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
-#include <cmath>
-#include <filesystem>
-#include <string>
 #include <volk.h>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 

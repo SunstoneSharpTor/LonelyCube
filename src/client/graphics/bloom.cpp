@@ -242,7 +242,9 @@ void Bloom::renderDownsamples(float strength)
     while (renderSize.x > 1 || renderSize.y > 1)
     {
         renderSize = glm::max(renderSize / 2, glm::ivec2(1));
-        const BloomMip& mip = m_mipChain[mipIndex];
+        BloomMip& mip = m_mipChain[mipIndex];
+        mip.renderSize = glm::vec2(renderSize) /
+            glm::vec2(mip.image.imageExtent.width, mip.image.imageExtent.height);
 
         transitionImage(
             command, mip.image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
@@ -257,6 +259,7 @@ void Bloom::renderDownsamples(float strength)
 
         DownsamplePushConstants pushConstants;
         pushConstants.srcTexelSize = prevMipTexelSize;
+        pushConstants.srcRenderSize = mip.renderSize;
         pushConstants.dstTexelSize = glm::vec2(
             1.0f / mip.image.imageExtent.width, 1.0f / mip.image.imageExtent.height);
         pushConstants.strength = mipIndex == 0 ? strength : 1.0f;
@@ -371,7 +374,7 @@ void Bloom::render(float filterRadius, float strength)
 
     vkCmdDispatch(
         command,
-        (m_srcImage.imageExtent.width + 15) / 16, (m_srcImage.imageExtent.height + 15) / 16, 1
+        (m_renderExtent.x + 15) / 16, (m_renderExtent.y + 15) / 16, 1
     );
 }
 
