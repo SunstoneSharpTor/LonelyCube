@@ -50,7 +50,7 @@ void main() {
     {
         float change = log(abs(targetExposure - exposure) + 1);
         if (targetExposure > exposure)
-            change /= 16;
+            change /= 8;
         float factor =  1 - 2 / (exp(adjustmentSpeed * change) + exp(-adjustmentSpeed * change));
         exposure = mix(exposure, targetExposure, factor);
     }

@@ -24,13 +24,13 @@
 
 #include "client/graphics/vulkan/descriptors.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
 struct BloomMip
 {
     AllocatedImage image;
+    glm::ivec2 renderSize;
     VkDescriptorSet downsampleDescriptors;
     VkDescriptorSet upsampleDescriptors;
 };
@@ -38,12 +38,14 @@ struct BloomMip
 struct DownsamplePushConstants
 {
     glm::vec2 srcTexelSize;
+    glm::vec2 srcRenderSize;
     glm::vec2 dstTexelSize;
     float strength;
 };
 
 struct UpsamplePushConstants
 {
+    glm::vec2 srcRenderSize;
     glm::vec2 dstTexelSize;
     float filterRadius;
 };

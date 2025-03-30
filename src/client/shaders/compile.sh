@@ -8,7 +8,6 @@ glslangValidator -V src/client/shaders/blockOutline.vert.glsl -o res/shaders/blo
 glslangValidator -V src/client/shaders/blockOutline.frag.glsl -o res/shaders/blockOutline.frag.spv
 glslangValidator -V src/client/shaders/bloomDownsample.comp.glsl -o res/shaders/bloomDownsample.comp.spv
 glslangValidator -V src/client/shaders/bloomUpsample.comp.glsl -o res/shaders/bloomUpsample.comp.spv
-glslangValidator -V src/client/shaders/bloomBlit.comp.glsl -o res/shaders/bloomBlit.comp.spv
 glslangValidator -V src/client/shaders/luminance.comp.glsl -o res/shaders/luminance.comp.spv
 glslangValidator -V src/client/shaders/fullscreen.vert.glsl -o res/shaders/fullscreen.vert.spv
 glslangValidator -V src/client/shaders/toneMap.frag.glsl -o res/shaders/toneMap.frag.spv

@@ -20,6 +20,7 @@
 
 layout (push_constant, std430) uniform constants
 {
+    vec2 srcRenderSize;
     vec2 dstTexelSize;
     float filterRadius;
 };

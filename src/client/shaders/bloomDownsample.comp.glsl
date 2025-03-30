@@ -21,6 +21,7 @@
 layout (push_constant, std430) uniform constants
 {
     vec2 srcTexelSize;
+    vec2 srcRenderSize;
     vec2 dstTexelSize;
     float strength;
 };
@@ -31,45 +32,68 @@ layout (set = 0, binding = 0) uniform sampler linearSampler;
 layout (set = 1, binding = 0) uniform texture2D srcTexture;
 layout (rgba16f, set = 1, binding = 1) uniform writeonly image2D dstImage;
 
-void main() {
-    vec2 texCoord = (gl_GlobalInvocationID.xy + vec2(0.5, 0.5)) * dstTexelSize;
-    float x = srcTexelSize.x;
-    float y = srcTexelSize.y;
+float sampleWithinSrcImage(vec2 samplePos)
+{
+    return float(samplePos.x > 0
+              && samplePos.y > 0
+              && samplePos.x < srcRenderSize.x
+              && samplePos.y < srcRenderSize.y);
+}
 
-    vec3 a = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x - 2 * x, texCoord.y + 2 * y)).rgb;
-    vec3 b = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x, texCoord.y + 2 * y)).rgb;
-    vec3 c = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x + 2 * x, texCoord.y + 2 * y)).rgb;
+void main()
+{
+    const vec2 texCoord = (gl_GlobalInvocationID.xy + vec2(0.5, 0.5)) * dstTexelSize;
+    const float x = srcTexelSize.x;
+    const float y = srcTexelSize.y;
 
-    vec3 d = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x - 2 * x, texCoord.y)).rgb;
-    vec3 e = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x, texCoord.y)).rgb;
-    vec3 f = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x + 2 * x, texCoord.y)).rgb;
+    // a---b---c
+    // --d---e--
+    // f---g---h
+    // --i---j--
+    // k---l---m
+    vec2 samplePos = vec2(texCoord.x - 2 * x, texCoord.y + 2 * y);
+    vec3 a = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    vec3 downsample = a * sampleWithinSrcImage(samplePos) * 0.03125;
+    samplePos = vec2(texCoord.x, texCoord.y + 2 * y);
+    vec3 b = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += b * sampleWithinSrcImage(samplePos) * 0.0625;
+    samplePos = vec2(texCoord.x + 2 * x, texCoord.y + 2 * y);
+    vec3 c = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += c * sampleWithinSrcImage(samplePos) * 0.03125;
 
-    vec3 g = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x - 2 * x, texCoord.y - 2 * y)).rgb;
-    vec3 h = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x, texCoord.y - 2 * y)).rgb;
-    vec3 i = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x + 2 * x, texCoord.y - 2 * y)).rgb;
+    samplePos = vec2(texCoord.x - x, texCoord.y + y);
+    vec3 d = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += d * sampleWithinSrcImage(samplePos) * 0.125;
+    samplePos = vec2(texCoord.x + x, texCoord.y + y);
+    vec3 e = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += e * sampleWithinSrcImage(samplePos) * 0.125;
 
-    vec3 j = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x - x, texCoord.y + y)).rgb;
-    vec3 k = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x + x, texCoord.y + y)).rgb;
-    vec3 l = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x - x, texCoord.y - y)).rgb;
-    vec3 m = texture(
-        sampler2D(srcTexture, linearSampler), vec2(texCoord.x + x, texCoord.y - y)).rgb;
+    samplePos = vec2(texCoord.x - 2 * x, texCoord.y);
+    vec3 f = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += f * sampleWithinSrcImage(samplePos) * 0.0625;
+    samplePos = vec2(texCoord.x, texCoord.y);
+    vec3 g = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += g * sampleWithinSrcImage(samplePos) * 0.125;
+    samplePos = vec2(texCoord.x + 2 * x, texCoord.y);
+    vec3 h = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += h * sampleWithinSrcImage(samplePos) * 0.0625;
 
-    vec3 downsample = (e + j + k + l + m) * 0.125;
-    downsample += (b + d + f + h) * 0.0625;
-    downsample += (a + c + g + i) * 0.03125;
+    samplePos = vec2(texCoord.x - x, texCoord.y - y);
+    vec3 i = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += i * sampleWithinSrcImage(samplePos) * 0.125;
+    samplePos = vec2(texCoord.x + x, texCoord.y - y);
+    vec3 j = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += j * sampleWithinSrcImage(samplePos) * 0.125;
+
+    samplePos = vec2(texCoord.x - 2 * x, texCoord.y - 2 * y);
+    vec3 k = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += k * sampleWithinSrcImage(samplePos) * 0.03125;
+    samplePos = vec2(texCoord.x, texCoord.y - 2 * y);
+    vec3 l = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += l * sampleWithinSrcImage(samplePos) * 0.0625;
+    samplePos = vec2(texCoord.x + 2 * x, texCoord.y - 2 * y);
+    vec3 m = texture(sampler2D(srcTexture, linearSampler), samplePos).rgb;
+    downsample += m * sampleWithinSrcImage(samplePos) * 0.03125;
 
     imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(downsample * strength, 1.0));
-    // imageStore(dstImage, ivec2(gl_GlobalInvocationID.xy), vec4(e * strength, 1.0));
 }
