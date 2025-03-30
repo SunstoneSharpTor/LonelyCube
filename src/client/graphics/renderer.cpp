@@ -1002,7 +1002,7 @@ void Renderer::renderBloom()
         VK_ACCESS_2_MEMORY_READ_BIT
     );
 
-    m_bloom.render(4.0f, 0.01f);
+    m_bloom.render(5.0f, 0.006f);
 
     transitionImage(
         command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,

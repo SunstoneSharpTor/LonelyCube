@@ -71,10 +71,8 @@ void Bloom::cleanup()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_downsamplePipeline, nullptr);
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_upsamplePipeline, nullptr);
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_blitPipeline, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_downsamplePipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_upsamplePipelineLayout, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_blitPipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
     for (const auto& mip : m_mipChain)
@@ -174,12 +172,7 @@ void Bloom::createPipelines()
         m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_upsamplePipelineLayout
     ));
 
-    pushConstant.size = sizeof(BlitPushConstants);
-    VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_blitPipelineLayout
-    ));
-
-    VkShaderModule downsampleShader, upsampleShader, blitShader;
+    VkShaderModule downsampleShader, upsampleShader;
     if (!createShaderModule(
         m_vulkanEngine.getDevice(), "res/shaders/bloomDownsample.comp.spv", downsampleShader))
     {
@@ -190,13 +183,8 @@ void Bloom::createPipelines()
     {
         LOG("Failed to find shader \"res/shaders/bloomUpsample.comp.spv\"");
     }
-    if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/bloomBlit.comp.spv", blitShader))
-    {
-        LOG("Failed to find shader \"res/shaders/bloomBlit.comp.spv\"");
-    }
 
-    std::array<VkPipelineShaderStageCreateInfo, 3> stageInfos{};
+    std::array<VkPipelineShaderStageCreateInfo, 2> stageInfos{};
     stageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     stageInfos[0].stage = VK_SHADER_STAGE_COMPUTE_BIT;
     stageInfos[0].module = downsampleShader;
@@ -205,10 +193,7 @@ void Bloom::createPipelines()
     stageInfos[1] = stageInfos[0];
     stageInfos[1].module = upsampleShader;
 
-    stageInfos[2] = stageInfos[0];
-    stageInfos[2].module = blitShader;
-
-    std::array<VkComputePipelineCreateInfo, 3> pipelineCreateInfos{};
+    std::array<VkComputePipelineCreateInfo, 2> pipelineCreateInfos{};
     pipelineCreateInfos[0].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineCreateInfos[0].layout = m_downsamplePipelineLayout;
     pipelineCreateInfos[0].stage = stageInfos[0];
@@ -217,22 +202,16 @@ void Bloom::createPipelines()
     pipelineCreateInfos[1].layout = m_upsamplePipelineLayout;
     pipelineCreateInfos[1].stage = stageInfos[1];
 
-    pipelineCreateInfos[2].sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineCreateInfos[2].layout = m_blitPipelineLayout;
-    pipelineCreateInfos[2].stage = stageInfos[2];
-
-    std::array<VkPipeline, 3> pipelines;
+    std::array<VkPipeline, 2> pipelines;
     VK_CHECK(vkCreateComputePipelines(
         m_vulkanEngine.getDevice(), VK_NULL_HANDLE, pipelineCreateInfos.size(),
         pipelineCreateInfos.data(), nullptr, pipelines.data()
     ));
     m_downsamplePipeline = pipelines[0];
     m_upsamplePipeline = pipelines[1];
-    m_blitPipeline = pipelines[2];
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), downsampleShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), upsampleShader, nullptr);
-    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blitShader, nullptr);
 }
 
 void Bloom::resize(VkExtent2D renderExtent)
@@ -363,9 +342,8 @@ void Bloom::render(float filterRadius, float strength)
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipeline);
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipelineLayout, 0, 1,
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_upsamplePipelineLayout, 0, 1,
         &m_samplerDescriptorSet, 0, nullptr
     );
 
@@ -377,19 +355,18 @@ void Bloom::render(float filterRadius, float strength)
     );
 
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_blitPipelineLayout, 1, 1,
+        command, VK_PIPELINE_BIND_POINT_COMPUTE, m_upsamplePipelineLayout, 1, 1,
         &m_blitImageDescriptors, 0, nullptr
     );
 
-    BlitPushConstants pushConstants;
+    UpsamplePushConstants pushConstants;
     pushConstants.dstTexelSize = glm::vec2(
         1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height);
     pushConstants.filterRadius = filterRadius;
-    pushConstants.strength = strength;
 
     vkCmdPushConstants(
         command, m_downsamplePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-        sizeof(BlitPushConstants), &pushConstants
+        sizeof(UpsamplePushConstants), &pushConstants
     );
 
     vkCmdDispatch(
