@@ -48,13 +48,6 @@ struct UpsamplePushConstants
     float filterRadius;
 };
 
-struct BlitPushConstants
-{
-    glm::vec2 dstTexelSize;
-    float filterRadius;
-    float strength;
-};
-
 class Bloom {
 public:
 public:
@@ -83,8 +76,6 @@ private:
     VkPipeline m_downsamplePipeline;
     VkPipelineLayout m_upsamplePipelineLayout;
     VkPipeline m_upsamplePipeline;
-    VkPipelineLayout m_blitPipelineLayout;
-    VkPipeline m_blitPipeline;
 
     void createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler);
     void createPipelines();
