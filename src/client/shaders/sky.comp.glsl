@@ -67,7 +67,7 @@ void main() {
     dotProd *= dotProd;
     float sunDistance = dotProd * 0.000003 * min(rayDistanceThroughAtmosphere -
         (ATMOSPHERE_RADIUS - PLANET_RADIUS) * 0.5, ATMOSPHERE_RADIUS * 0.5) / 75 * sunGlowAmount;
-    value = value * (1.0 - sunDistance) + sunGlowColour * sunDistance;
+    value = mix(value, sunGlowColour, sunDistance);
     value *= brightness;
 
     imageStore(skyImage, texelCoords, vec4(value, 1.0));

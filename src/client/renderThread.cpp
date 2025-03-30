@@ -251,9 +251,9 @@ void renderThread() {
                     glm::vec3(0.0f), mainPlayer.viewCamera.front, -mainPlayer.viewCamera.up
             ));
             renderer.skyRenderInfo.brightness = groundLuminance;
-            renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.5f, 0.6f, 0.13f);
+            renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.7f, 0.67f, 0.13f);
             renderer.skyRenderInfo.sunGlowAmount = std::pow(
-                std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 32.0f
+                std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 64.0f
             );
 
             renderer.beginRenderingFrame();
