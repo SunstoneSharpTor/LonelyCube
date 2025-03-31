@@ -26,6 +26,7 @@
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -45,8 +46,6 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
         m_vulkanEngine.getMaxSamples() : numSamples;
     if (m_vulkanEngine.getPhysicalDeviceFeatures().features.sampleRateShading == VK_FALSE)
         m_numSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    m_renderExtent = { 0, 0 };
 
     createRenderImages();
     createSamplers();
@@ -76,21 +75,10 @@ Renderer::~Renderer()
 
 void Renderer::createRenderImages()
 {
-    int numVideoModes;
-    const GLFWvidmode* displayModes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &numVideoModes);
-
-    m_maxWindowExtent = { 0, 0 };
-    for (int i = 0; i < numVideoModes; i++)
-    {
-        m_maxWindowExtent.width = std::max(
-            m_maxWindowExtent.width, static_cast<uint32_t>(displayModes[i].width)
-        );
-        m_maxWindowExtent.height = std::max(
-            m_maxWindowExtent.height, static_cast<uint32_t>(displayModes[i].height)
-        );
-    }
-    m_drawImageExtent.width = std::ceil(m_maxWindowExtent.width * m_renderScale);
-    m_drawImageExtent.height = std::ceil(m_maxWindowExtent.height * m_renderScale);
+    m_drawImageExtent.width = std::ceil(
+        m_vulkanEngine.getSwapchainExtent().width * m_renderScale);
+    m_drawImageExtent.height = std::ceil(
+        m_vulkanEngine.getSwapchainExtent().height * m_renderScale);
     m_drawImageExtent.depth = 1;
 
     VkImageUsageFlags drawImageUsages = VK_IMAGE_USAGE_STORAGE_BIT |
@@ -209,7 +197,6 @@ void Renderer::cleanupSamplers()
 void Renderer::createSkyDescriptors()
 {
     DescriptorLayoutBuilder builder;
-    DescriptorWriter writer;
 
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
@@ -221,6 +208,23 @@ void Renderer::createSkyDescriptors()
         m_vulkanEngine.getDevice(), m_skyImageDescriptorLayout
     );
 
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_skyBackgroundDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    m_skyBackgroundDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_skyBackgroundDescriptorLayout
+    );
+
+    updateSkyDescriptors();
+}
+
+void Renderer::updateSkyDescriptors()
+{
+    DescriptorWriter writer;
+
     writer.writeImage(
         0, m_skyImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         VK_IMAGE_LAYOUT_GENERAL
@@ -231,15 +235,6 @@ void Renderer::createSkyDescriptors()
     );
     writer.updateSet(m_vulkanEngine.getDevice(), m_skyImageDescriptors);
 
-    builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_skyBackgroundDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
-    );
-
-    m_skyBackgroundDescriptors = m_globalDescriptorAllocator.allocate(
-        m_vulkanEngine.getDevice(), m_skyBackgroundDescriptorLayout
-    );
     writer.clear();
     writer.writeImage(
         0, m_skyBackgroundImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -251,7 +246,6 @@ void Renderer::createSkyDescriptors()
 void Renderer::createWorldDescriptors()
 {
     DescriptorLayoutBuilder builder;
-    DescriptorWriter writer;
 
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -262,6 +256,13 @@ void Renderer::createWorldDescriptors()
     m_worldTexturesDescriptors = m_globalDescriptorAllocator.allocate(
         m_vulkanEngine.getDevice(), m_worldTexturesDescriptorLayout
     );
+
+    updateWorldDescriptors();
+}
+
+void Renderer::updateWorldDescriptors()
+{
+    DescriptorWriter writer;
 
     writer.writeImage(
         0, m_worldTextures.imageView, m_worldTexturesSampler,
@@ -277,7 +278,6 @@ void Renderer::createWorldDescriptors()
 void Renderer::createToneMapDescriptors()
 {
     DescriptorLayoutBuilder builder;
-    DescriptorWriter writer;
 
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     m_toneMapDescriptorLayout = builder.build(
@@ -288,6 +288,12 @@ void Renderer::createToneMapDescriptors()
         m_vulkanEngine.getDevice(), m_toneMapDescriptorLayout
     );
 
+    updateToneMapDescriptors();
+}
+
+void Renderer::updateToneMapDescriptors()
+{
+    DescriptorWriter writer;
     writer.writeImage(
         0, m_drawImage.imageView,
         m_renderScale > 1.0f ? m_linearFullscreenSampler : m_nearestFullscreenSampler,
@@ -636,8 +642,8 @@ void Renderer::createToneMapPipeline()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), toneMapFragmentShader, nullptr);
 
-    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_maxWindowExtent.width;
-    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_maxWindowExtent.height;
+    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_drawImageExtent.width;
+    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_drawImageExtent.height;
     m_toneMapPushConstants.luminanceBuffer = m_autoExposure.getExposureBuffer();
 }
 
@@ -726,20 +732,12 @@ void Renderer::beginRenderingFrame()
     VkExtent2D swapchainExtent;
     m_vulkanEngine.startRenderingFrame(swapchainExtent);
     VkExtent2D newRenderExtent;
-    newRenderExtent.width = std::min(
-        static_cast<uint32_t>(std::ceil(swapchainExtent.width * m_renderScale)),
-        m_drawImageExtent.width
-    );
-    newRenderExtent.height = std::min(
-        static_cast<uint32_t>(std::ceil(swapchainExtent.height * m_renderScale)),
-        m_drawImageExtent.height
-    );
-
-    if (newRenderExtent.width != m_renderExtent.width ||
-        newRenderExtent.height != m_renderExtent.height)
+    newRenderExtent.width = std::ceil(swapchainExtent.width * m_renderScale);
+    newRenderExtent.height = std::ceil(swapchainExtent.height * m_renderScale);
+    if (newRenderExtent.width != m_drawImageExtent.width ||
+        newRenderExtent.height != m_drawImageExtent.height)
     {
-        m_bloom.resize(newRenderExtent);
-        m_renderExtent = newRenderExtent;
+        resize();
     }
 
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
@@ -783,14 +781,14 @@ void Renderer::drawSky()
         0, nullptr
     );
 
-    skyRenderInfo.renderSize = glm::vec2(m_renderExtent.width, m_renderExtent.height);
+    skyRenderInfo.renderSize = glm::vec2(m_drawImageExtent.width, m_drawImageExtent.height);
     vkCmdPushConstants(
         command, m_skyPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkyPushConstants),
         &skyRenderInfo
     );
 
     vkCmdDispatch(
-        command, (m_renderExtent.width + 15) / 16, (m_renderExtent.height + 15) / 16, 1
+        command, (m_drawImageExtent.width + 15) / 16, (m_drawImageExtent.height + 15) / 16, 1
     );
 
     transitionImage(
@@ -861,7 +859,9 @@ void Renderer::beginDrawingGeometry()
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { { 0, 0 }, m_renderExtent };
+    renderingInfo.renderArea = {
+        { 0, 0 }, VkExtent2D(m_drawImageExtent.width, m_drawImageExtent.height) 
+    };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colourAttachment;
@@ -878,14 +878,14 @@ void Renderer::blitSky()
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_skyBlitPipeline);
 
     VkViewport viewport{};
-    viewport.width = m_renderExtent.width;
-    viewport.height = m_renderExtent.height;
+    viewport.width = m_drawImageExtent.width;
+    viewport.height = m_drawImageExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
-    scissor.extent.width = m_renderExtent.width;
-    scissor.extent.height = m_renderExtent.height;
+    scissor.extent.width = m_drawImageExtent.width;
+    scissor.extent.height = m_drawImageExtent.height;
 
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
@@ -993,18 +993,11 @@ void Renderer::renderBloom()
     transitionImage(
         command, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
 
     m_bloom.render(5.0f, 0.006f);
-
-    transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_MEMORY_READ_BIT
-    );
 }
 
 void Renderer::calculateAutoExposure(double DT)
@@ -1013,15 +1006,15 @@ void Renderer::calculateAutoExposure(double DT)
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
     transitionImage(
-        command, m_drawImage.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
 
     glm::vec2 renderAreaFraction(
-        static_cast<float>(m_renderExtent.width) / m_drawImageExtent.width,
-         static_cast<float>(m_renderExtent.height) / m_drawImageExtent.height
+        static_cast<float>(m_drawImageExtent.width) / m_drawImageExtent.width,
+         static_cast<float>(m_drawImageExtent.height) / m_drawImageExtent.height
     );
     m_autoExposure.calculate(renderAreaFraction, DT);
 }
@@ -1131,6 +1124,21 @@ void Renderer::submitFrame()
 
     VK_CHECK(vkEndCommandBuffer(command));
     m_vulkanEngine.submitFrame();
+}
+
+void Renderer::resize()
+{
+    LOG("RESIZING");
+    cleanupRenderImages();
+    createRenderImages();
+
+    updateSkyDescriptors();
+    updateWorldDescriptors();
+    m_autoExposure.updateImageView(m_drawImage.imageView, m_linearFullscreenSampler);
+    updateToneMapDescriptors();
+    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_drawImageExtent.width;
+    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_drawImageExtent.height;
+    m_bloom.updateSrcImage(m_globalDescriptorAllocator, m_drawImage);
 }
 
 }  // namespace lonelycube::client

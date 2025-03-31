@@ -55,6 +55,7 @@ public:
     );
     void cleanup();
     void calculate(const glm::vec2 renderAreaFraction, double DT);
+    void updateImageView(VkImageView imageView, VkSampler sampler);
     inline VkDeviceAddress getExposureBuffer() const
     {
         return m_autoExposurePushConstants.exposureBuffer;

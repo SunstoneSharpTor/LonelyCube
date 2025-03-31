@@ -48,23 +48,16 @@ void Bloom::init(
     writer.writeImage(0, VK_NULL_HANDLE, sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
     writer.updateSet(m_vulkanEngine.getDevice(), m_samplerDescriptorSet);
 
-    createMips(descriptorAllocator, sampler);
-    createPipelines();
+    // Image descriptor sets
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    m_imagesDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
+    );
 
-    // Blit descriptor set
-    m_blitImageDescriptors = descriptorAllocator.allocate(
-        m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
-    );
-    writer.clear();
-    writer.writeImage(
-        0, m_mipChain[0].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
-    writer.writeImage(
-        1, m_srcImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        VK_IMAGE_LAYOUT_GENERAL
-    );
-    writer.updateSet(m_vulkanEngine.getDevice(), m_blitImageDescriptors);
+    createMips(descriptorAllocator);
+    createPipelines();
 }
 
 void Bloom::cleanup()
@@ -79,42 +72,48 @@ void Bloom::cleanup()
         m_vulkanEngine.destroyImage(mip.image);
 }
 
-void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler)
+void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator)
 {
-    DescriptorLayoutBuilder builder;
     DescriptorWriter writer;
-
-    // Image descriptor sets
-    builder.clear();
-    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-    builder.addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    m_imagesDescriptorLayout = builder.build(
-        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT
-    );
 
     // Create mips
     VkExtent3D mipSize(m_srcImage.imageExtent.width, m_srcImage.imageExtent.height, 1);
+    int mipIndex = 0;
     while (mipSize.width > 1 || mipSize.height > 1)
     {
         mipSize.width = std::max(mipSize.width / 2, 1u);
         mipSize.height = std::max(mipSize.height / 2, 1u);
-        BloomMip& currentMip = m_mipChain.emplace_back();
+        if (mipIndex < m_mipChain.size())
+        {
+            m_mipChain[mipIndex].image = m_vulkanEngine.createImage(
+                mipSize, VK_FORMAT_R16G16B16A16_SFLOAT,
+                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+            );
+        }
+        else
+        {
+            BloomMip& currentMip = m_mipChain.emplace_back();
 
-        currentMip.image = m_vulkanEngine.createImage(
-            mipSize, VK_FORMAT_R16G16B16A16_SFLOAT,
-            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-        );
-        currentMip.downsampleDescriptors = descriptorAllocator.allocate(
-            m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
-        );
-        currentMip.upsampleDescriptors = descriptorAllocator.allocate(
-            m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
-        );
+            currentMip.image = m_vulkanEngine.createImage(
+                mipSize, VK_FORMAT_R16G16B16A16_SFLOAT,
+                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+            );
+            currentMip.downsampleDescriptors = descriptorAllocator.allocate(
+                m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
+            );
+            currentMip.upsampleDescriptors = descriptorAllocator.allocate(
+                m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
+            );
+        }
+
+        mipIndex++;
     }
+
+    m_smallestMipIndex = mipIndex - 1;
 
     // Write descriptor sets for mips
     VkImageView prevImageView = m_srcImage.imageView;
-    for (int i = 0; i < m_mipChain.size(); i++)
+    for (int i = 0; i <= m_smallestMipIndex; i++)
     {
         writer.clear();
         writer.writeImage(
@@ -127,7 +126,7 @@ void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampl
         );
         writer.updateSet(m_vulkanEngine.getDevice(), m_mipChain[i].downsampleDescriptors);
 
-        if (i < m_mipChain.size() - 1)
+        if (i < m_smallestMipIndex)
         {
             writer.clear();
             writer.writeImage(
@@ -143,6 +142,21 @@ void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampl
 
         prevImageView = m_mipChain[i].image.imageView;
     }
+
+    // Blit descriptor set
+    m_blitImageDescriptors = descriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_imagesDescriptorLayout
+    );
+    writer.clear();
+    writer.writeImage(
+        0, m_mipChain[0].image.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.writeImage(
+        1, m_srcImage.imageView, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_IMAGE_LAYOUT_GENERAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_blitImageDescriptors);
 }
 
 void Bloom::createPipelines()
@@ -214,13 +228,15 @@ void Bloom::createPipelines()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), upsampleShader, nullptr);
 }
 
-void Bloom::resize(VkExtent2D renderExtent)
-{
-    m_renderExtent.x = renderExtent.width;
-    m_renderExtent.y = renderExtent.height;
-    m_smallestMipIndex = static_cast<int>(std::floor(std::log2(std::max(
-        renderExtent.width, renderExtent.height
-    )))) - 1;
+void Bloom::updateSrcImage(
+    DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage
+) {
+    m_srcImage = srcImage;
+
+    for (int mipIndex = 0; mipIndex <= m_smallestMipIndex; mipIndex++)
+        m_vulkanEngine.destroyImage(m_mipChain[mipIndex].image);
+
+    createMips(descriptorAllocator);
 }
 
 void Bloom::renderDownsamples(float strength)
@@ -237,7 +253,7 @@ void Bloom::renderDownsamples(float strength)
     glm::vec2 prevMipTexelSize = glm::vec2(
         1.0f / m_srcImage.imageExtent.width, 1.0f / m_srcImage.imageExtent.height
     );
-    glm::ivec2 renderSize = m_renderExtent;
+    glm::ivec2 renderSize(m_srcImage.imageExtent.width, m_srcImage.imageExtent.height);
     int mipIndex = 0;
     while (renderSize.x > 1 || renderSize.y > 1)
     {
@@ -374,7 +390,7 @@ void Bloom::render(float filterRadius, float strength)
 
     vkCmdDispatch(
         command,
-        (m_renderExtent.x + 15) / 16, (m_renderExtent.y + 15) / 16, 1
+        (m_srcImage.imageExtent.width + 15) / 16, (m_srcImage.imageExtent.height + 15) / 16, 1
     );
 }
 

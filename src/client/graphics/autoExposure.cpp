@@ -420,4 +420,14 @@ void AutoExposure::calculate(const glm::vec2 renderAreaFraction, double DT)
     updateExposure(DT);
 }
 
+void AutoExposure::updateImageView(VkImageView imageView, VkSampler sampler)
+{
+    DescriptorWriter writer;
+    writer.writeImage(
+        0, imageView, sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_luminanceDescriptors);
+}
+
 }  // namespace lonelycube::client

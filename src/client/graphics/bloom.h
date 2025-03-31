@@ -58,13 +58,12 @@ public:
         DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage, VkSampler sampler
     );
     void cleanup();
-    void resize(VkExtent2D renderExtent);
+    void updateSrcImage(DescriptorAllocatorGrowable& descriptorAllocator, AllocatedImage srcImage);
     void render(float filterRadius, float strength);
 
 private:
     VulkanEngine& m_vulkanEngine;
 
-    glm::ivec2 m_renderExtent;
     int m_smallestMipIndex;
 
     AllocatedImage m_srcImage;
@@ -79,7 +78,7 @@ private:
     VkPipelineLayout m_upsamplePipelineLayout;
     VkPipeline m_upsamplePipeline;
 
-    void createMips(DescriptorAllocatorGrowable& descriptorAllocator, VkSampler sampler);
+    void createMips(DescriptorAllocatorGrowable& descriptorAllocator);
     void createPipelines();
     void renderDownsamples(float strength);
     void renderUpsamples(float filterRadius);
