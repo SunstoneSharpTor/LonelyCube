@@ -93,9 +93,7 @@ private:
     AllocatedImage m_depthImage;
     float m_renderScale;
     VkSampleCountFlagBits m_numSamples;
-    VkExtent2D m_maxWindowExtent;
     VkExtent3D m_drawImageExtent;
-    VkExtent2D m_renderExtent;
 
     AllocatedImage m_skyImage;
     AllocatedImage m_skyBackgroundImage;
@@ -160,10 +158,12 @@ private:
     void createPipelines();
     void cleanupPipelines();
 
-    void createDrawImageDescriptors();
     void createSkyDescriptors();
+    void updateSkyDescriptors();
     void createWorldDescriptors();
+    void updateWorldDescriptors();
     void createToneMapDescriptors();
+    void updateToneMapDescriptors();
     void createCrosshairDescriptors();
     void createDescriptors();
     void cleanupDescriptors();
@@ -174,6 +174,8 @@ private:
     void cleanupSamplers();
     void loadTextures();
     void cleanupTextures();
+
+    void resize();
 };
 
 }  // namespace lonelycube::client
