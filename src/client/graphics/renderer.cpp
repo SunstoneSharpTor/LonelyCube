@@ -1128,7 +1128,6 @@ void Renderer::submitFrame()
 
 void Renderer::resize()
 {
-    LOG("RESIZING");
     cleanupRenderImages();
     createRenderImages();
 
