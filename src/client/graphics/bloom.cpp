@@ -68,8 +68,8 @@ void Bloom::cleanup()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_upsamplePipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_samplerDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_imagesDescriptorLayout, nullptr);
-    for (const auto& mip : m_mipChain)
-        m_vulkanEngine.destroyImage(mip.image);
+    for (int mipIndex = 0; mipIndex <= m_smallestMipIndex; mipIndex++)
+        m_vulkanEngine.destroyImage(m_mipChain[mipIndex].image);
 }
 
 void Bloom::createMips(DescriptorAllocatorGrowable& descriptorAllocator)
