@@ -26,12 +26,12 @@
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 #include <volk.h>
-#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
 Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
-    m_renderScale(renderScale), m_autoExposure(m_vulkanEngine), m_bloom(m_vulkanEngine)
+    m_renderScale(renderScale), m_minimised(false), m_autoExposure(m_vulkanEngine),
+    m_bloom(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -740,6 +740,10 @@ void Renderer::beginRenderingFrame()
         resize();
     }
 
+    if (m_minimised)
+    {
+    }
+
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
@@ -1128,6 +1132,14 @@ void Renderer::submitFrame()
 
 void Renderer::resize()
 {
+    if (m_vulkanEngine.getSwapchainExtent().width + m_vulkanEngine.getSwapchainExtent().height == 0)
+    {
+        m_minimised = true;
+        return;
+    }
+
+    m_minimised= false;
+
     cleanupRenderImages();
     createRenderImages();
 

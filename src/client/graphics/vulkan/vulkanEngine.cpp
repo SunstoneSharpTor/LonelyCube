@@ -810,6 +810,10 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     {
         assert(result == VK_SUCCESS);
     }
+    else if (m_swapchainExtent.width + m_swapchainExtent.height == 0)
+    {
+        return;
+    }
 
     VK_CHECK(vkResetFences(m_device, 1, &currentFrameData.inFlightFence));
 
@@ -890,6 +894,15 @@ void VulkanEngine::submitFrame()
 void VulkanEngine::recreateSwapchain()
 {
     vkDeviceWaitIdle(m_device);
+
+    SwapchainSupportDetails swapchainSupport = querySwapchainSupport(m_physicalDevice);
+    VkExtent2D extent = chooseSwapExtent(swapchainSupport.capabilities);
+
+    if (extent.width + extent.height == 0)
+    {
+        m_swapchainExtent = extent;
+        return;
+    }
 
     cleanupSwapchain();
     createSwapchain();
