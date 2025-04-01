@@ -257,64 +257,67 @@ void renderThread() {
             );
 
             renderer.beginRenderingFrame();
-            renderer.drawSky();
-            mainWorld.buildEntityMesh(mainPlayer.cameraBlockPosition);
-            renderer.beginDrawingGeometry();
-            renderer.blitSky();
+            if (!renderer.isMinimised())
+            {
+                renderer.drawSky();
+                mainWorld.buildEntityMesh(mainPlayer.cameraBlockPosition);
+                renderer.beginDrawingGeometry();
+                renderer.blitSky();
 
-            // Render the world geometry
-            float cameraSubBlockPos[3];
-            mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
-            FrameData& currentFrameData = renderer.getVulkanEngine().getCurrentFrameData();
-            VkCommandBuffer command = currentFrameData.commandBuffer;
-            #ifdef TIMESTAMPS
-            vkCmdWriteTimestamp(
-                command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 0
-            );
-            #endif
-            mainWorld.renderWorld(
-                viewProjection, mainPlayer.cameraBlockPosition,
-                glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
-                (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
-                actualDT
-            );
-            #ifdef TIMESTAMPS
-            vkCmdWriteTimestamp(
-                command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 1
-            );
-            #endif
-
-            // //auto tp2 = std::chrono::high_resolution_clock::now();
-            // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-
-            // Draw the block outline
-            int breakBlockCoords[3];
-            int placeBlockCoords[3];
-            uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
-                mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
-                breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
-                //create the model view projection matrix for the outline
-                glm::vec3 offset;
-                for (uint8_t i = 0; i < 3; i++)
-                    offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
-                offset += glm::vec3(0.5f, 0.5f, 0.5f);
-                renderer.drawBlockOutline(
-                    viewProjection, offset,
-                    mainWorld.integratedServer.getResourcePack().getBlockData(
-                        lookingAtBlock).model->boundingBoxVertices
+                // Render the world geometry
+                float cameraSubBlockPos[3];
+                mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
+                FrameData& currentFrameData = renderer.getVulkanEngine().getCurrentFrameData();
+                VkCommandBuffer command = currentFrameData.commandBuffer;
+                #ifdef TIMESTAMPS
+                vkCmdWriteTimestamp(
+                    command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 0
                 );
+                #endif
+                mainWorld.renderWorld(
+                    viewProjection, mainPlayer.cameraBlockPosition,
+                    glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
+                    (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
+                    actualDT
+                );
+                #ifdef TIMESTAMPS
+                vkCmdWriteTimestamp(
+                    command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 1
+                );
+                #endif
+
+                // //auto tp2 = std::chrono::high_resolution_clock::now();
+                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+
+                // Draw the block outline
+                int breakBlockCoords[3];
+                int placeBlockCoords[3];
+                uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
+                    mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
+                    breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
+                    //create the model view projection matrix for the outline
+                    glm::vec3 offset;
+                    for (uint8_t i = 0; i < 3; i++)
+                        offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
+                    offset += glm::vec3(0.5f, 0.5f, 0.5f);
+                    renderer.drawBlockOutline(
+                        viewProjection, offset,
+                        mainWorld.integratedServer.getResourcePack().getBlockData(
+                            lookingAtBlock).model->boundingBoxVertices
+                    );
+                }
+
+                renderer.finishDrawingGeometry();
+                renderer.renderBloom();
+                renderer.calculateAutoExposure(actualDT);
+                renderer.applyToneMap();
+                renderer.drawCrosshair();
+
+                // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
+                // font.draw(mainRenderer);
+
+                renderer.submitFrame();
             }
-
-            renderer.finishDrawingGeometry();
-            renderer.renderBloom();
-            renderer.calculateAutoExposure(actualDT);
-            renderer.applyToneMap();
-            renderer.drawCrosshair();
-
-            // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
-            // font.draw(mainRenderer);
-
-            renderer.submitFrame();
         }
         mainWorld.doRenderThreadJobs();
 

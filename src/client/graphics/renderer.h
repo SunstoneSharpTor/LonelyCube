@@ -83,15 +83,21 @@ public:
     {
         return m_vulkanEngine;
     }
+    inline bool isMinimised()
+    {
+        return m_minimised;
+    }
 
 private:
     VulkanEngine m_vulkanEngine;
     DescriptorAllocatorGrowable m_globalDescriptorAllocator;
 
+    float m_renderScale;
+    bool m_minimised;
+
     AllocatedImage m_drawImage;
     AllocatedImage m_multisampledDrawImage;
     AllocatedImage m_depthImage;
-    float m_renderScale;
     VkSampleCountFlagBits m_numSamples;
     VkExtent3D m_drawImageExtent;
 
