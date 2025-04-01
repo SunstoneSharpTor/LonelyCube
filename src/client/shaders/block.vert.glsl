@@ -40,10 +40,11 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
 layout (push_constant, std430) uniform constants
 {
     mat4 mvp;
-    vec3 cameraOffset;
+    vec3 playerSubBlockPos;
     float renderDistance;
-    VertexBuffer vertexBuffer;
+    vec3 chunkCoordinates;
     float skyLightIntensity;
+    VertexBuffer vertexBuffer;
 };
 
 const float fogStart = 0.4;
@@ -58,6 +59,7 @@ void main() {
         vertexBuffer.vertices[gl_VertexIndex * 7 + 2],
         1.0
     );
+    position += vec4(chunkCoordinates, 0.0);
     vec2 texCoord = vec2(
         vertexBuffer.vertices[gl_VertexIndex * 7 + 3],
         vertexBuffer.vertices[gl_VertexIndex * 7 + 4]
@@ -80,7 +82,7 @@ void main() {
         * factor + maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) *
         45.0) * (1.0 - factor);
 
-    vec3 toCameraVector = cameraOffset + position.xyz;
+    vec3 toCameraVector = position.xyz - playerSubBlockPos;
     float distance = length(toCameraVector);
     float normalisedDistance = clamp(distance - renderDistance * fogStart, 0.0f, renderDistance
       * (1.0f - fogStart)) / (renderDistance * (1.0f - fogStart));

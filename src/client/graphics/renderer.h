@@ -42,10 +42,11 @@ struct SkyPushConstants
 struct BlockPushConstants
 {
     glm::mat4 mvp;
-    glm::vec3 cameraOffset;
+    glm::vec3 playerSubBlockPos;
     float renderDistance;
-    VkDeviceAddress vertexBuffer;
+    glm::vec3 chunkCoordinates;
     float skyLightIntensity;
+    VkDeviceAddress vertexBuffer;
 };
 
 struct ToneMapPushConstants
