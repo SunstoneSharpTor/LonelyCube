@@ -642,8 +642,8 @@ void Renderer::createToneMapPipeline()
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), toneMapFragmentShader, nullptr);
 
-    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_drawImageExtent.width;
-    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_drawImageExtent.height;
+    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_vulkanEngine.getSwapchainExtent().width;
+    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_vulkanEngine.getSwapchainExtent().height;
     m_toneMapPushConstants.luminanceBuffer = m_autoExposure.getExposureBuffer();
 }
 
@@ -1147,8 +1147,8 @@ void Renderer::resize()
     updateWorldDescriptors();
     m_autoExposure.updateImageView(m_drawImage.imageView, m_linearFullscreenSampler);
     updateToneMapDescriptors();
-    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_drawImageExtent.width;
-    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_drawImageExtent.height;
+    m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_vulkanEngine.getSwapchainExtent().width;
+    m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_vulkanEngine.getSwapchainExtent().height;
     m_bloom.updateSrcImage(m_globalDescriptorAllocator, m_drawImage);
 }
 
