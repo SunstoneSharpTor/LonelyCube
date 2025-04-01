@@ -120,6 +120,7 @@ void ClientWorld::renderWorld(
     Frustum viewFrustum = m_viewCamera.createViewFrustum(aspectRatio, fov, 0, 20);
     m_renderingFrame = true;
 
+    m_renderer.blockRenderInfo.mvp = viewProj;
     m_renderer.blockRenderInfo.skyLightIntensity = skyLightIntensity;
     m_timeByDTs += DT;
     while (m_timeByDTs > (1.0/(double)constants::visualTPS)) {
@@ -158,9 +159,8 @@ void ClientWorld::renderWorld(
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), coordinatesVec);
-                m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
-                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec - playerSubBlockPos;
+                m_renderer.blockRenderInfo.chunkCoordinates = coordinatesVec;
+                m_renderer.blockRenderInfo.playerSubBlockPos = playerSubBlockPos;
                 m_renderer.drawBlocks(mesh.blockMesh);
             }
             doRenderThreadJobs();
@@ -171,8 +171,8 @@ void ClientWorld::renderWorld(
     GPUDynamicMeshBuffers& entityMesh = m_entityMeshes[
         m_renderer.getVulkanEngine().getFrameDataIndex()
     ];
-    m_renderer.blockRenderInfo.mvp = viewProj;  // * glm::translate(glm::mat4(1.0f), coordinatesVec);
-    m_renderer.blockRenderInfo.cameraOffset = -playerSubBlockPos;
+    m_renderer.blockRenderInfo.chunkCoordinates = glm::vec3(0.0f);
+    m_renderer.blockRenderInfo.playerSubBlockPos = -playerSubBlockPos;
     m_renderer.drawEntities(entityMesh);
 
     // Render water
@@ -183,9 +183,8 @@ void ClientWorld::renderWorld(
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
-                glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), coordinatesVec);
-                m_renderer.blockRenderInfo.mvp = viewProj * modelMatrix;
-                m_renderer.blockRenderInfo.cameraOffset = coordinatesVec;
+                m_renderer.blockRenderInfo.chunkCoordinates = coordinatesVec;
+                m_renderer.blockRenderInfo.playerSubBlockPos = playerSubBlockPos;
                 m_renderer.drawBlocks(mesh.waterMesh);
             }
             doRenderThreadJobs();

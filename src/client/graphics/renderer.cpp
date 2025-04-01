@@ -1001,7 +1001,7 @@ void Renderer::renderBloom()
         VK_ACCESS_2_MEMORY_READ_BIT
     );
 
-    m_bloom.render(5.0f, 0.006f);
+    m_bloom.render(5.0f, 0.007f);
 }
 
 void Renderer::calculateAutoExposure(double DT)
