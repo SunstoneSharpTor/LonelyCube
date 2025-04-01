@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    static constexpr uint32_t s_luminanceImageResolution = 1024;
+    static constexpr uint32_t s_luminanceImageResolution = 512;
 
     double m_time = 0.0;
     uint64_t m_numTicks = 0;
