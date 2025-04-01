@@ -194,10 +194,6 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
     m_peaksAndValleysLocation = -1.5f / (1.4 * (m_peaksAndValleysLocation + 1.35f) * (m_peaksAndValleysLocation + 1.35f) + 1.0f) + 1.5f;
     //scale the peaks and valleys location to be higher near coasts so that mountains can still generate near coasts
     m_peaksAndValleysLocation *= (std::pow(std::abs(m_continentalness / 1.5f), 0.00001f) * m_continentalness + 0.6f) / 1.6f;
-    //flatten out peaks and valleys location near continentalness 0 to create long beaches
-    //using equation -1 / (mx^n + 1) + 1
-    float pccSquared = m_preCliffContinentalness * m_preCliffContinentalness;
-    m_peaksAndValleysLocation *= -0.75f / (1024.0f * pccSquared * pccSquared + 1.0f) + 1.0f;
     //scale the peaks and valleys height based on the peaks and valleys location noise
     m_peaksAndValleysHeight += 80.0f; //promotes all areas with high peaks and valleys to have a high y-value
     m_peaksAndValleysHeight *= m_peaksAndValleysLocation;
@@ -207,6 +203,10 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
     m_atCliffBase = std::pow(m_cliffFactor, 0.5f) * std::max(0.0f, (1.0f - 2.0f * std::abs(cliffContinentalness - s_cliffDepth)));
     //calculate the height of the terrain before rivers are added
     m_nonRiverHeight = m_continentalness * 30.0f + 1.0f + m_peaksAndValleysHeight * (1.0f - m_atCliffBase);
+    //flatten out the terrain height near 0 to create long beaches using equation -1 / (mx^n + 1) + 1
+    float closeToBeach = m_nonRiverHeight + (m_continentalness + 0.3f) * 5 - m_cliffFactor * 5;
+    float ctbSquared = closeToBeach * closeToBeach;
+    m_nonRiverHeight *= -0.7f / (0.005f * ctbSquared * ctbSquared + 1.0f) + 1.0f;
     //calculate how much of the river errosion needs to be applied
     //without this step, rivers would not disapear at oceans
     float fac = (std::min(std::max(m_nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;
@@ -273,9 +273,12 @@ void TerrainGen::generateTerrain(Chunk& chunk, uint64_t seed) {
             }
             int columnsRandom = PCG_Hash32(blockNumberInWorld + seed);
 
-            float beachFac = m_height + m_cliffFactor * m_cliffFactor * 25.0f + (std::abs(m_continentalness + 0.15f) - 0.15f) * 12.0f;
-            bool isBeach = (m_preCliffContinentalness < s_cliffBase + 0.0004f) * (m_cliffFactor > 0.04f)
-                || (beachFac < 1.3f + 1.25f * ((6.5025f - beachFac * beachFac) * 8.5f > (float)(columnsRandom & 0b1111)));
+            float cliffFactorSquared = m_cliffFactor * m_cliffFactor;
+            float cliffFace = -1.0f / (128.0f * cliffFactorSquared * cliffFactorSquared * cliffFactorSquared + 1.0f) + 1.0f;
+            float beachFac = m_height + cliffFace * 25.0f + std::abs(m_continentalness) * 10.0f;
+            float beachJitter = ((1.7f - m_height) * 9.5f > (float)(columnsRandom & 0b1111));
+            beachFac *= (m_height > (0.3f * beachJitter) * -6.0f * (m_continentalness + 0.15));
+            bool isBeach = beachFac < 1.5f;
 
             if ((x >= 0) && (x < constants::CHUNK_SIZE) && (z >= 0) && (z < constants::CHUNK_SIZE)) {
                 uint32_t blockNum = z * constants::CHUNK_SIZE + x;
