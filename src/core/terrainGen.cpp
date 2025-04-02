@@ -21,6 +21,7 @@
 #include <cmath>
 
 #include "core/block.h"
+#include "core/constants.h"
 #include "core/random.h"
 
 namespace lonelycube {
@@ -203,10 +204,14 @@ int TerrainGen::sumNoisesAndCalculateHeight(int minX, int minZ, int x, int z, in
     m_atCliffBase = std::pow(m_cliffFactor, 0.5f) * std::max(0.0f, (1.0f - 2.0f * std::abs(cliffContinentalness - s_cliffDepth)));
     //calculate the height of the terrain before rivers are added
     m_nonRiverHeight = m_continentalness * 30.0f + 1.0f + m_peaksAndValleysHeight * (1.0f - m_atCliffBase);
-    //flatten out the terrain height near 0 to create long beaches using equation -1 / (mx^n + 1) + 1
-    float closeToBeach = m_nonRiverHeight + (m_continentalness + 0.3f) * 5 - m_cliffFactor * 5;
+    //flatten out the terrain height near 0 to create long beaches
+    float notDeepOcean = std::max(0.0f, std::min(1.0f, (m_nonRiverHeight + 3.5f) / (0.3f + 3.5f)));  // Step between -3.5 and 0.3
+    float onCliffBase = std::max(0.0f, (1.0f / s_cliffDepth) * (s_cliffDepth - std::abs(cliffContinentalness)));
+    notDeepOcean = (m_nonRiverHeight > -5.0f) && (m_atCliffBase > 0.35f);
+    float closeToBeach = m_nonRiverHeight + (m_continentalness + 0.3f) * 5.0f;
+    closeToBeach += m_cliffFactor * 15.0f * onCliffBase * notDeepOcean;
     float ctbSquared = closeToBeach * closeToBeach;
-    m_nonRiverHeight *= -0.7f / (0.005f * ctbSquared * ctbSquared + 1.0f) + 1.0f;
+    m_nonRiverHeight *= -0.7f / (0.015f * ctbSquared * ctbSquared + 1.0f) + 1.0f;  // using equation -1 / (mx^n + 1) + 1
     //calculate how much of the river errosion needs to be applied
     //without this step, rivers would not disapear at oceans
     float fac = (std::min(std::max(m_nonRiverHeight, -4.0f), 15.0f) + 4.0f) / 19.0f;

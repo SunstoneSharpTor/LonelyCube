@@ -86,9 +86,10 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
+    Renderer renderer(VK_SAMPLE_COUNT_1_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
+    worldSeed = 1743573054;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(
         settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
