@@ -606,7 +606,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
 void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
-    // LOG(std::to_string((uint32_t)m_integratedServer.getBlockLight(blockCoords)) + " block light level\n");
+    LOG(std::to_string((uint32_t)integratedServer.chunkManager.getSkyLight(blockCoords)) + " sky light level\n");
     uint8_t originalBlockType = integratedServer.chunkManager.getBlock(blockCoords);
     integratedServer.chunkManager.setBlock(blockCoords, blockType);
 
@@ -617,8 +617,8 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
         chunksToRemesh, integratedServer.chunkManager.getWorldChunks(), integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
-    // LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
-    // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+    LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
+    LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
     for (auto& chunk : chunksToRemesh)
     {

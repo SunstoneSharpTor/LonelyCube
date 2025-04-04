@@ -16,8 +16,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <enet/enet.h>
-
 #include "client/renderThread.h"
 
 using namespace lonelycube::client;

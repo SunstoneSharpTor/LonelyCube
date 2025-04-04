@@ -76,6 +76,7 @@ void main() {
     outSkyBrightness = skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0)
         * factor + maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) *
         45.0) * (1.0 - factor);
+    // outSkyBrightness = 0.03 * skyLightIntensity / (0.01 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel));
     outSkyBrightness = max(outSkyBrightness, minDarknessAmbientLight);
     factor = blockLightLevel * blockLightLevel;
     outBlockBrightness = blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0)

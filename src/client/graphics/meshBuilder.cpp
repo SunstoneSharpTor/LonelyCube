@@ -327,7 +327,7 @@ void MeshBuilder::buildMesh()
                 }
                 if (blockType == 4)
                 {
-                    for (int faceNum = 0 ; faceNum < m_serverWorld.getResourcePack().
+                    for (int faceNum = 0; faceNum < m_serverWorld.getResourcePack().
                         getBlockData(blockType).model->numFaces; faceNum++)
                     {
                         int cullFace = m_serverWorld.getResourcePack().getBlockData(blockType).
@@ -345,7 +345,7 @@ void MeshBuilder::buildMesh()
                 }
                 else
                 {
-                    for (int faceNum = 0 ; faceNum < m_serverWorld.getResourcePack().
+                    for (int faceNum = 0; faceNum < m_serverWorld.getResourcePack().
                         getBlockData(blockType).model->numFaces; faceNum++)
                     {
                         int cullFace = m_serverWorld.getResourcePack().getBlockData(blockType).

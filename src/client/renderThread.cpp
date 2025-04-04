@@ -86,10 +86,9 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(VK_SAMPLE_COUNT_1_BIT, 1.0f);
+    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
-    worldSeed = 1743573054;
     int playerSpawnPoint[3] = { 0, 200, 0 };
     ClientWorld mainWorld(
         settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
@@ -236,7 +235,7 @@ void renderThread() {
             glm::mat4 viewProjection = projectionReversedDepth * view;
 
             uint32_t timeOfDay =
-                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) %
+                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 2) %
                 constants::DAY_LENGTH;
             float groundLuminance = calculateBrightness(
                 constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay
