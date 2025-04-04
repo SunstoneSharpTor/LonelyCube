@@ -68,7 +68,7 @@ void AutoExposure::init(
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT 
     );
-    float initialExposure = 0.0f;
+    float initialExposure = 0.5f;
     memcpy(staging.info.pMappedData, &initialExposure, 4);
 
     m_vulkanEngine.immediateSubmit([&](VkCommandBuffer command) {

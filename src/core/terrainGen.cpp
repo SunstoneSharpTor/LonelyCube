@@ -371,7 +371,7 @@ void TerrainGen::generateTerrain(Chunk& chunk, uint64_t seed) {
                             //if the block is in the chunk
                             if (((treeBlockPos[1] >= chunkMinCoords[1]) && (treeBlockPos[1] < chunkMaxCoords[1])) && ((treeBlockPos[0] >= chunkMinCoords[0]) && (treeBlockPos[0] < chunkMaxCoords[0])) && ((treeBlockPos[2] >= chunkMinCoords[2]) && (treeBlockPos[2] < chunkMaxCoords[2]))) {
                                 chunk.setBlockUnchecked(treeBlockNum, 1 + (logHeight >= 0) * (4 + (logHeight >= trunkHeight)));
-                                chunk.setSkyLight(treeBlockNum, (15 << (4 * !(treeBlockNum % 2))) | (15 * (logHeight >= trunkHeight)));
+                                // chunk.setSkyLight(treeBlockNum, (15 << (4 * !(treeBlockNum % 2))) | (15 * (logHeight >= trunkHeight)));
                             }
                             treeBlockPos[1]++;
                             treeBlockNum += constants::CHUNK_SIZE * constants::CHUNK_SIZE;

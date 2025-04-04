@@ -148,41 +148,39 @@ void Chunk::setBlock(uint32_t block, uint8_t blockType)
     }
 }
 
-void Chunk::setSkyLight(uint32_t block, uint8_t value)
+void Chunk::setSkyLight(const uint32_t block, const uint8_t value)
 {
     uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
-    if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
+    // Decompress the layer if needed
+    if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1 &&
+        value != m_layerSkyLightValues[layerNum])
     {
-        bool oddBlockNum = block % 2;
-        bool evenBlockNum = !oddBlockNum;
-        uint32_t index = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE) / 2;
-        m_skyLight[layerNum][index] &= 0b00001111 << (4 * evenBlockNum);
-        m_skyLight[layerNum][index] |= value << (4 * oddBlockNum);
-    }
-    else
-    {
-        if (value != m_layerSkyLightValues[layerNum])
+        // Allocate an extra 24 bits at the end to ensure that we dont write to out of bounds memory
+        m_skyLight[layerNum] =
+            new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE * 5 + 24 + 31) / 32 * 4];
+        std::size_t index = 0;
+        int offset = 0;
+        for (uint32_t blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE;
+            blockNum++)
         {
-            m_skyLight[layerNum] =
-                new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
-            uint8_t doubledUpValue = (m_layerSkyLightValues[layerNum] << 4) +
-                m_layerSkyLightValues[layerNum];
-            for (uint32_t blockNum = 0; blockNum < ((constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE + 1) / 2); blockNum++)
-            {
-                m_skyLight[layerNum][blockNum] = doubledUpValue;
-            }
-            bool oddBlockNum = block % 2;
-            bool evenBlockNum = !oddBlockNum;
-            uint32_t index = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE) / 2;
-            m_skyLight[layerNum][index] &= 0b00001111 << (4 * evenBlockNum);
-            m_skyLight[layerNum][index] |= value << (4 * oddBlockNum);
-            m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
+            *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) &= ~(0b11111 << offset);
+            *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) |= 
+                m_layerSkyLightValues[layerNum] << offset;
+            int carry = offset + 5 >= 8;
+            index += carry;
+            offset = offset + 5 - 8 * carry;
         }
+        m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
     }
+
+    std::size_t blockNumInLayer = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    std::size_t index = blockNumInLayer * 5 / 8;
+    std::size_t offset = blockNumInLayer * 5 % 8;
+    *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) &= ~(0b11111 << offset);
+    *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) |= value << offset;
 }
 
-void Chunk::setBlockLight(uint32_t block, uint8_t value)
+void Chunk::setBlockLight(const uint32_t block, const uint8_t value)
 {
     uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
     if (m_layerBlockLightValues[layerNum] == constants::blockLightMaxValue + 1)
@@ -243,15 +241,23 @@ void Chunk::compressSkyLight()
     {
         if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1)
         {
-            bool simpleLayer = (m_skyLight[layerNum][0] & 0b1111) == m_skyLight[layerNum][0] >> 4;
-            for (uint32_t blockNum = 1; blockNum < (constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE + 1) / 2 && simpleLayer; blockNum++)
+            uint32_t firstValue = m_skyLight[layerNum][0] & 0b11111;
+            bool simpleLayer = true;
+            std::size_t index = 0;
+            int offset = 5;
+            for (uint32_t blockNum = 1;
+                blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE && simpleLayer; blockNum++)
             {
-                simpleLayer &= m_skyLight[layerNum][blockNum] == m_skyLight[layerNum][0];
+                uint32_t value = *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]);
+                value = value >> offset & 0b11111;
+                simpleLayer = firstValue == value;
+                int carry = offset + 5 >= 8;
+                index += carry;
+                offset = offset + 5 - 8 * carry;
             }
             if (simpleLayer)
             {
-                m_layerSkyLightValues[layerNum] = m_skyLight[layerNum][0] >> 4;
+                m_layerSkyLightValues[layerNum] = firstValue;
                 delete[] m_skyLight[layerNum];
             }
         }
@@ -302,13 +308,21 @@ void Chunk::uncompressBlocksAndLight()
         }
         if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
         {
-            m_skyLight[layerNum] = new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE + 1) / 2];
-            uint8_t doubledUpValue = (m_layerSkyLightValues[layerNum] << 4) +
-                m_layerSkyLightValues[layerNum];
-            for (uint32_t blockNum = 0; blockNum < (constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE + 1) / 2; blockNum++)
+            // Allocate an extra 24 bits at the end to ensure that we dont write to out of bounds
+            // memory
+            m_skyLight[layerNum] =
+                new uint8_t[(constants::CHUNK_SIZE * constants::CHUNK_SIZE * 5 + 24 + 31) / 32 * 4];
+            std::size_t index = 0;
+            int offset = 0;
+            for (uint32_t blockNum = 0; blockNum < constants::CHUNK_SIZE * constants::CHUNK_SIZE;
+                blockNum++)
             {
-                m_skyLight[layerNum][blockNum] = doubledUpValue;
+                *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) &= ~(0b11111 << offset);
+                *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) |= 
+                    m_layerSkyLightValues[layerNum] << offset;
+                int carry = offset + 5 >= 8;
+                index += carry;
+                offset = offset + 5 - 8 * carry;
             }
             m_layerSkyLightValues[layerNum] = constants::skyLightMaxValue + 1;
         }

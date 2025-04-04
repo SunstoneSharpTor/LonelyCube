@@ -22,17 +22,19 @@
 
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
+#include <memory>
+#include <unistd.h>
 
 namespace lonelycube {
 
 class Chunk {
 private:
     std::array<uint8_t*, constants::CHUNK_SIZE> m_blocks;
-    std::array<int16_t, constants::CHUNK_SIZE> m_layerBlockTypes;
+    std::array<int32_t, constants::CHUNK_SIZE> m_layerBlockTypes;
     std::array<uint8_t*, constants::CHUNK_SIZE> m_skyLight;
-    std::array<uint8_t, constants::CHUNK_SIZE> m_layerSkyLightValues;
+    std::array<uint32_t, constants::CHUNK_SIZE> m_layerSkyLightValues;
     std::array<uint8_t*, constants::CHUNK_SIZE> m_blockLight;
-    std::array<uint8_t, constants::CHUNK_SIZE> m_layerBlockLightValues;
+    std::array<uint32_t, constants::CHUNK_SIZE> m_layerBlockLightValues;
     bool m_skyLightUpToDate;
     bool m_blockLightUpToDate;
     uint16_t m_playerCount; // The number of players that are rendering this chunk
@@ -132,11 +134,13 @@ public:
         m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)] = blockType;
     }
 
-    inline uint8_t getSkyLight(const uint32_t block) const {
+    inline uint32_t getSkyLight(const uint32_t block) const {
         uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         if (m_layerSkyLightValues[layerNum] == constants::skyLightMaxValue + 1) {
-            return (m_skyLight[layerNum][block % (constants::CHUNK_SIZE *
-                constants::CHUNK_SIZE) / 2] >> (4 * (block % 2))) & 0b1111;
+            std::size_t blockNumInLayer = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+            std::size_t index = blockNumInLayer * 5 / 8;
+            std::size_t offset = blockNumInLayer * 5 % 8;
+            return *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) >> offset & 0b11111;
         }
         return m_layerSkyLightValues[layerNum];
     }
@@ -149,10 +153,10 @@ public:
         }
         return m_layerBlockLightValues[layerNum];
     }
-    
-    void setSkyLight(uint32_t block, uint8_t value);
-    
-    void setBlockLight(uint32_t block, uint8_t value);
+
+    void setSkyLight(const uint32_t block, const uint8_t value);
+
+    void setBlockLight(const uint32_t block, const uint8_t value);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;
