@@ -32,7 +32,7 @@ constexpr uint32_t WORLD_BORDER_DISTANCE{ 128000 };
 //upper bound for world border distance as a multiple of CHUNK_SIZE
 constexpr uint32_t BORDER_DISTANCE_U_B{ (WORLD_BORDER_DISTANCE / CHUNK_SIZE + 1) * CHUNK_SIZE };
 
-constexpr uint8_t skyLightMaxValue{ 15 };
+constexpr uint8_t skyLightMaxValue{ 31 };
 
 constexpr uint8_t blockLightMaxValue{ 15 };
 
