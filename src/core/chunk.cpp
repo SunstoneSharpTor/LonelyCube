@@ -151,9 +151,11 @@ void Chunk::setBlock(uint32_t block, uint8_t blockType)
 void Chunk::setSkyLight(const uint32_t block, const uint8_t value)
 {
     uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
+    if (value == m_layerSkyLightValues[layerNum])
+        return;
+
     // Decompress the layer if needed
-    if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1 &&
-        value != m_layerSkyLightValues[layerNum])
+    if (m_layerSkyLightValues[layerNum] != constants::skyLightMaxValue + 1)
     {
         // Allocate an extra 24 bits at the end to ensure that we dont write to out of bounds memory
         m_skyLight[layerNum] =

@@ -343,10 +343,7 @@ void renderThread() {
     delete[] chunkLoaderThreadsRunning;
 
     if (multiplayer) {
-        std::lock_guard<std::mutex> lock(networking.getMutex());
-        enet_peer_disconnect(networking.getPeer(), mainWorld.getClientID());
-        enet_peer_reset(networking.getPeer());
-
+        networking.disconnect(mainWorld);
         enet_deinitialize();
     }
 }
