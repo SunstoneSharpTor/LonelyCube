@@ -73,15 +73,19 @@ void main() {
     gl_Position.z *= 0.996f;
     outTexCoord = texCoord;
     float factor = skyLightLevel * skyLightLevel * skyLightLevel;
-    //factor *= factor;
-    outSkyBrightness = skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0)
-        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) *
-        45.0) * (1.0 - factor);
+    outSkyBrightness = mix(
+        maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0),
+        skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0),
+        factor
+    );
     outSkyBrightness = max(outSkyBrightness, minDarknessAmbientLight);
+
     factor = blockLightLevel * blockLightLevel;
-    outBlockBrightness = blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0)
-        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) *
-        45.0) * (1.0 - factor);
+    outBlockBrightness = mix(
+        maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0),
+        blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0),
+        factor
+    );
 
     vec3 toCameraVector = position.xyz - playerSubBlockPos;
     float distance = length(toCameraVector);

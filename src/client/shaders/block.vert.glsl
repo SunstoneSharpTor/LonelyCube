@@ -49,7 +49,7 @@ layout (push_constant, std430) uniform constants
 
 const float fogStart = 0.4;
 const float fogDensity = 1.85;
-const float minDarknessAmbientLight = 0.00002;
+const float ambientLight = 0.000015;
 const float blockLightIntensity = 0.04;
 
 void main() {
@@ -67,21 +67,19 @@ void main() {
     float skyLightLevel = vertexBuffer.vertices[gl_VertexIndex * 7 + 5];
     float blockLightLevel = vertexBuffer.vertices[gl_VertexIndex * 7 + 6];
 
-    float maxDarknessAmbientLight = min(0.001f, skyLightIntensity);
-
     gl_Position = mvp * position;
     outTexCoord = texCoord;
-    float factor = skyLightLevel * skyLightLevel * skyLightLevel;
-    //factor *= factor;
-    outSkyBrightness = skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0)
-        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) *
-        45.0) * (1.0 - factor);
-    // outSkyBrightness = 0.03 * skyLightIntensity / (0.01 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel));
-    outSkyBrightness = max(outSkyBrightness, minDarknessAmbientLight);
-    factor = blockLightLevel * blockLightLevel;
-    outBlockBrightness = blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0)
-        * factor + maxDarknessAmbientLight / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) *
-        45.0) * (1.0 - factor);
+    outSkyBrightness = mix(
+        ambientLight,
+        skyLightIntensity / (1.0 + (1.0 - skyLightLevel) * (1.0 - skyLightLevel) * 45.0),
+        skyLightLevel * skyLightLevel * skyLightLevel
+    );
+
+    outBlockBrightness = mix(
+        0.0,
+        blockLightIntensity / (1.0 + (1.0 - blockLightLevel) * (1.0 - blockLightLevel) * 45.0),
+        blockLightLevel * blockLightLevel
+    );
 
     vec3 toCameraVector = position.xyz - playerSubBlockPos;
     float distance = length(toCameraVector);
