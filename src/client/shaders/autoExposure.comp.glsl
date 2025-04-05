@@ -44,13 +44,11 @@ void main() {
     averageLuminance /= numLuminanceElements;
 
     float exposure = exposureBuffer.values[0];
-    float targetExposure = clamp(0.19 / exp(averageLuminance), 0.01, 1200.0);
+    float targetExposure = clamp(0.19 / exp(averageLuminance), 0.01, 3800.0);
     const float adjustmentSpeed = 0.1;
     for (int i = 0; i < numTicks; i++)
     {
-        float change = log(abs(targetExposure - exposure) + 1);
-        if (targetExposure > exposure)
-            change /= 8;
+        float change = log(targetExposure) - log(exposure);
         float factor =  1 - 2 / (exp(adjustmentSpeed * change) + exp(-adjustmentSpeed * change));
         exposure = mix(exposure, targetExposure, factor);
     }
