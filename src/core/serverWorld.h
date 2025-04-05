@@ -297,7 +297,8 @@ void ServerWorld<integrated>::disconnectPlayer(uint32_t playerID) {
     bool chunkOutOfRange;
     int i = 0;
     player.beginUnloadingChunks();
-    while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
+    while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange))
+    {
         if (chunkManager.chunkLoaded(chunkPosition)) {
             auto it = chunkManager.getWorldChunks().find(chunkPosition);
             if (it != chunkManager.getWorldChunks().end()) {

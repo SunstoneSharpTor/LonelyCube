@@ -21,6 +21,7 @@
 #include "core/pch.h"
 
 #include "core/chunk.h"
+#include "core/log.h"
 #include "core/packet.h"
 
 namespace lonelycube {

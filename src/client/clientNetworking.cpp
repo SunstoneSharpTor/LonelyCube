@@ -24,6 +24,7 @@
 #include <string>
 
 #include "client/clientWorld.h"
+#include "enet/enet.h"
 
 namespace lonelycube::client {
 
@@ -35,9 +36,8 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
 
     m_host = enet_host_create(NULL, 1, 2, 0, 0);
 
-    if (m_host == NULL) {
+    if (m_host == NULL) 
         return EXIT_FAILURE;
-    }
 
     ENetAddress address;
 
@@ -45,31 +45,60 @@ bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t rende
     address.port = 5555;
 
     m_peer = enet_host_connect(m_host, &address, 2, 0);
-    if (m_peer == NULL) {
+    if (m_peer == NULL)
         return EXIT_FAILURE;
-    }
 
     ENetEvent event;
-    if ((enet_host_service(m_host, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT)) {
+    if ((enet_host_service(m_host, &event, 2000) > 0) && (event.type == ENET_EVENT_TYPE_CONNECT))
+    {
         LOG("Connection to " + serverIP + " succeeded!");
 
         Packet<int, 1> payload(0, PacketType::ClientConnection, 1);
         payload[0] = renderDistance;
-        ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
+        ENetPacket* packet = enet_packet_create(
+            (const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE
+        );
         enet_peer_send(m_peer, 0, packet);
         return true;
     }
-    else {
+    else
+    {
         enet_peer_reset(m_peer);
         LOG("Connection to 127.0.0.1 failed.");
         return false;
     }
 }
 
+void ClientNetworking::disconnect(ClientWorld& mainWorld)
+{
+    std::lock_guard<std::mutex> lock(m_hostMtx);
+    enet_peer_disconnect(m_peer, mainWorld.getClientID());
+    ENetEvent event;
+    while (enet_host_service(m_host, &event, 3000) > 0)
+    {
+        switch (event.type)
+        {
+        case ENET_EVENT_TYPE_RECEIVE:
+            enet_packet_destroy (event.packet);
+            break;
+     
+        case ENET_EVENT_TYPE_DISCONNECT:
+            puts ("Disconnection succeeded.");
+            return;
+
+        default:
+            break;
+        }
+    }
+
+    enet_peer_reset(m_peer);
+}
+
 void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld) {
     Packet<int, 0> head;
     memcpy(&head, packet->data, head.getSize());
-    switch (head.getPacketType()) {
+    switch (head.getPacketType())
+    {
     case PacketType::ClientConnection:
     {
         Packet<uint16_t, 1> payload;
@@ -102,13 +131,16 @@ void ClientNetworking::receivePacket(ENetPacket* packet, ClientWorld& mainWorld)
     enet_packet_destroy(packet);
 }
 
-bool ClientNetworking::receiveEvents(ClientWorld& mainWorld) {
+bool ClientNetworking::receiveEvents(ClientWorld& mainWorld)
+{
     bool packetReceived = false;
     ENetEvent event;
     m_hostMtx.lock();
-    while(enet_host_service(m_host, &event, 0) > 0) {
+    while(enet_host_service(m_host, &event, 0) > 0)
+    {
         m_hostMtx.unlock();
-        switch(event.type) {
+        switch(event.type)
+        {
             case ENET_EVENT_TYPE_RECEIVE:
                 LOG("Received packet");
                 receivePacket(event.packet, mainWorld);
