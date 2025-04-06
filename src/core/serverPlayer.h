@@ -45,8 +45,8 @@ private:
     uint32_t m_playerID;
     ENetPeer* m_peer;
     uint32_t m_lastPacketTick;
-    std::unordered_map<IVec3, uint64_t> m_loadedChunks;
-    std::unordered_map<IVec3, uint64_t>::iterator m_processedChunk;
+    std::map<IVec3, uint64_t> m_loadedChunks;
+    std::map<IVec3, uint64_t>::iterator m_processedChunk;
 
     void initChunkPositions();
     void initChunks();

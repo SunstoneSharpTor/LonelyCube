@@ -106,11 +106,29 @@ std::ostream& operator<<(std::ostream& os, const lonelycube::IVec3& vec);
 
 namespace std {
     template<>
-    struct hash<lonelycube::IVec3> {
+    struct hash<lonelycube::IVec3>
+    {
         size_t operator()(const lonelycube::IVec3& key) const {
             return key.x * 8410720864772165619u
                 ^ key.y * 8220336697060211182u
                 ^ key.z * 11615669650507345147u;
+        }
+    };
+
+    template<>
+    struct less<lonelycube::IVec3>
+    {
+        constexpr bool operator()(const lonelycube::IVec3& lhs, const lonelycube::IVec3& rhs) const
+        {
+            if (lhs.x == rhs.x)
+            {
+                if (lhs.y == rhs.y)
+                    return lhs.z < rhs.z;
+                else
+                    return lhs.y < rhs.y;
+            }
+            else
+                return lhs.x < rhs.x;
         }
     };
 }
