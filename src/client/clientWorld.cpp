@@ -153,18 +153,44 @@ void ClientWorld::renderWorld(
 
     // Render Blocks
     m_renderer.beginDrawingBlocks();
-    for (const auto& [chunkPosition, mesh] : m_meshes) {
-        if (mesh.blockMesh.indexCount > 0) {
-            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
+    int prevChunkDistance = -1;
+    float numSwaps = 0;
+    for (std::size_t i = 0; i < m_meshes.size(); i++) {
+        IVec3 chunkCoordinates = m_meshes[i].chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
+        if (m_meshes[i].blockMesh.indexCount > 0) {
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
                 m_renderer.blockRenderInfo.chunkCoordinates = coordinatesVec;
                 m_renderer.blockRenderInfo.playerSubBlockPos = playerSubBlockPos;
-                m_renderer.drawBlocks(mesh.blockMesh);
+                m_renderer.drawBlocks(m_meshes[i].blockMesh);
             }
+
             doRenderThreadJobs();
         }
+
+        // Sort the chunks depending on distance to the camera
+        chunkCoordinates += IVec3(constants::CHUNK_SIZE / 2);
+        const int chunkDistance = chunkCoordinates.x * chunkCoordinates.x
+            + chunkCoordinates.y * chunkCoordinates.y + chunkCoordinates.z * chunkCoordinates.z;
+        if (chunkDistance < prevChunkDistance)
+        {
+            const MeshData temp = m_meshes[i - 1];
+            m_meshes[i - 1] = m_meshes[i];
+            m_meshes[i] = temp;
+            m_meshArrayIndices[m_meshes[i - 1].chunkPosition] = i - 1;
+            m_meshArrayIndices[m_meshes[i].chunkPosition] = i;
+            numSwaps++;
+        }
+        prevChunkDistance = chunkDistance;
+    }
+
+    while (
+        !m_meshes.empty()
+        && m_meshes.back().blockMesh.indexCount == 0
+        && m_meshes.back().waterMesh.indexCount == 0
+    ) {
+        m_meshes.pop_back();
     }
 
     // Render entities
@@ -177,9 +203,9 @@ void ClientWorld::renderWorld(
 
     // Render water
     m_renderer.beginDrawingWater();
-    for (const auto& [chunkPosition, mesh] : m_meshes) {
+    for (const auto& mesh : m_meshes) {
         if (mesh.waterMesh.indexCount > 0) {
-            IVec3 chunkCoordinates = chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
+            IVec3 chunkCoordinates = mesh.chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
             glm::vec3 coordinatesVec(chunkCoordinates.x, chunkCoordinates.y, chunkCoordinates.z);
             AABB aabb(coordinatesVec, coordinatesVec + glm::vec3(constants::CHUNK_SIZE));
             if (aabb.isOnFrustum(viewFrustum)) {
@@ -190,6 +216,8 @@ void ClientWorld::renderWorld(
             doRenderThreadJobs();
         }
     }
+
+    // LOG(std::to_string(m_meshes.size()));
 
     m_renderingFrame = false;
 }
@@ -218,22 +246,18 @@ void ClientWorld::updateMeshes() {
 
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
-        auto meshIt = m_meshes.find(*it);
-        if (meshIt == m_meshes.end())
+        auto meshIt = m_meshArrayIndices.find(*it);
+        if (meshIt != m_meshArrayIndices.end())
         {
-            m_unmeshedChunks.insert(*it);
-            m_meshUpdates.insert(*it);
-            m_recentChunksBuilt.push(*it);
-            it = m_meshesToUpdate.erase(it);
-            continue;
+            m_meshesToUnload[
+                (m_renderer.getVulkanEngine().getFrameDataIndex()
+                + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
+            ].push_back(m_meshes[meshIt->second]);
+            m_meshes[meshIt->second].blockMesh.indexCount = 0;
+            m_meshes[meshIt->second].waterMesh.indexCount = 0;
         }
 
-        m_meshesToUnload[
-            (m_renderer.getVulkanEngine().getFrameDataIndex()
-            + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
-        ].push_back(meshIt->second);
         m_unmeshedChunks.insert(*it);
-        m_meshes.erase(meshIt);
         m_meshUpdates.insert(*it);
         m_recentChunksBuilt.push(*it);
         it = m_meshesToUpdate.erase(it);
@@ -327,8 +351,11 @@ void ClientWorld::unmeshChunks() {
     m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
     //unload any meshes and chunks that are out of render distance
     m_unmeshedChunksMtx.lock();
-    for (auto it = m_meshes.begin(); it != m_meshes.end();) {
-        const IVec3 chunkPosition = it->first;
+    for (std::size_t i = 0; i < m_meshes.size(); i++) {
+        if (m_meshes[i].blockMesh.indexCount == 0 && m_meshes[i].waterMesh.indexCount == 0)
+            continue;
+
+        const IVec3 chunkPosition = m_meshes[i].chunkPosition;
         float distance = (chunkPosition.x - m_updatingPlayerChunkPosition[0])
             * (chunkPosition.x - m_updatingPlayerChunkPosition[0]);
         distance += (chunkPosition.y - m_updatingPlayerChunkPosition[1])
@@ -340,12 +367,12 @@ void ClientWorld::unmeshChunks() {
             m_meshesToUnload[
                 (m_renderer.getVulkanEngine().getFrameDataIndex()
                 + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
-            ].push_back(it->second);
-            m_unmeshedChunks.insert(it->first);
-            it = m_meshes.erase(it);
+            ].push_back(m_meshes[i]);
+            m_meshes[i].blockMesh.indexCount = 0;
+            m_meshes[i].waterMesh.indexCount = 0;
+            m_meshArrayIndices.erase(m_meshes[i].chunkPosition);
+            m_unmeshedChunks.insert(m_meshes[i].chunkPosition);
         }
-        else
-            ++it;
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded
     for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
@@ -451,9 +478,12 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     chunkMeshUploaded[threadNum] = false;
 
     if (!m_meshUpdates.contains(chunkPosition)) {
-    m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) * (chunkPosition.x - m_playerChunkPosition[0])
-        + (chunkPosition.y - m_playerChunkPosition[1]) * (chunkPosition.y - m_playerChunkPosition[1])
-        + (chunkPosition.z - m_playerChunkPosition[2]) * (chunkPosition.z - m_playerChunkPosition[2]);
+        m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) *
+        (chunkPosition.x - m_playerChunkPosition[0]) +
+        (chunkPosition.y - m_playerChunkPosition[1]) *
+        (chunkPosition.y - m_playerChunkPosition[1]) +
+        (chunkPosition.z - m_playerChunkPosition[2]) *
+        (chunkPosition.z - m_playerChunkPosition[2]);
     }
 
     // locking
@@ -466,6 +496,7 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
 
 void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     MeshData newMesh;
+    newMesh.chunkPosition = m_chunkPosition[threadNum];
 
     if (m_numChunkIndices[threadNum] > 0)
     {
@@ -496,10 +527,16 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     std::lock_guard<std::mutex> lock(m_meshUpdatesMtx);
     m_renderThreadWaitingForMeshUpdates = false;
     m_renderThreadWaitingForMeshUpdatesMtx.unlock();
-    m_meshes[m_chunkPosition[threadNum]] = newMesh;
     auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
-    if (it != m_meshUpdates.end()) {
+    if (it != m_meshUpdates.end())
+    {
         m_meshUpdates.erase(it);
+        m_meshes[m_meshArrayIndices.at(m_chunkPosition[threadNum])] = newMesh;
+    }
+    else
+    {
+        m_meshArrayIndices[m_chunkPosition[threadNum]] = m_meshes.size();
+        m_meshes.push_back(newMesh);
     }
 }
 
@@ -669,12 +706,12 @@ void ClientWorld::unloadMeshes()
 
 void ClientWorld::unloadAllMeshes()
 {
-    while (!m_meshes.empty())
+    for (auto& mesh : m_meshes)
     {
-        unloadMesh(m_meshes.begin()->second);
-        m_unmeshedChunks.insert(m_meshes.begin()->first);
-        m_meshes.erase(m_meshes.begin());
+        unloadMesh(mesh);
     }
+    m_meshArrayIndices.clear();
+    m_meshes.resize(0);
 
     for (auto meshesToUnload : m_meshesToUnload)
     {
