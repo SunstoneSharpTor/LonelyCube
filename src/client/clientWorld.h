@@ -32,6 +32,7 @@
 namespace lonelycube::client {
 
 struct MeshData {
+    IVec3 chunkPosition;
     GPUMeshBuffers blockMesh;
     GPUMeshBuffers waterMesh;
 };
@@ -65,7 +66,8 @@ private:
     Camera m_viewCamera;
     Renderer& m_renderer;
 
-    std::unordered_map<IVec3, MeshData> m_meshes;
+    std::unordered_map<IVec3, std::size_t> m_meshArrayIndices;
+    std::vector<MeshData> m_meshes;
     std::unordered_set<IVec3> m_unmeshedChunks;
     std::unordered_set<IVec3> m_beingMeshesdChunks;
     std::unordered_set<IVec3> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update

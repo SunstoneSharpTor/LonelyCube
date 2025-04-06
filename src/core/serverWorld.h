@@ -127,7 +127,7 @@ template<bool integrated>
 void ServerWorld<integrated>::updatePlayerPos(
     uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded
 ) {
-    m_playersMtx.lock();
+    std::lock_guard<std::mutex> lock(m_playersMtx);
     ServerPlayer& player = m_players.at(playerID);
     player.updatePlayerPos(blockPosition, subBlockPosition);
     if (unloadNeeded) {
@@ -153,7 +153,6 @@ void ServerWorld<integrated>::updatePlayerPos(
         m_chunksToBeLoadedMtx.unlock();
         m_chunksMtx.unlock();
     }
-    m_playersMtx.unlock();
 }
 
 template<bool integrated>

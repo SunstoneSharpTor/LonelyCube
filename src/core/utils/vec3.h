@@ -29,6 +29,7 @@ public:
     float& y = m_coords[1];
     float& z = m_coords[2];
 
+    Vec3(float value) : m_coords{ value, value, value } {}
     Vec3(float x, float y, float z) : m_coords{ x, y, z } {}
     Vec3(const float* coords) : m_coords{ coords[0], coords[1], coords[2] } {}
     Vec3(const Vec3& other) : m_coords{ other.x, other.y, other.z } {}

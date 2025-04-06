@@ -235,7 +235,7 @@ void renderThread() {
             glm::mat4 viewProjection = projectionReversedDepth * view;
 
             uint32_t timeOfDay =
-                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH * 4 / 8) %
+                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) %
                 constants::DAY_LENGTH;
             float groundLuminance = calculateBrightness(
                 constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay

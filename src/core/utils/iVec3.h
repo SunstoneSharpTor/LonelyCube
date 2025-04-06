@@ -33,6 +33,7 @@ public:
     int& y = m_coords[1];
     int& z = m_coords[2];
 
+    IVec3(int value) : m_coords{ value, value, value } {}
     IVec3(int x, int y, int z) : m_coords{ x, y, z } {}
     IVec3(const int* coords) : m_coords{ coords[0], coords[1], coords[2] } {}
     IVec3(const Vec3& other) : m_coords{ static_cast<int>(std::floor(other.x)),
