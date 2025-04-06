@@ -306,9 +306,7 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
 void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
-        // locking
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        // waiting
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
@@ -327,9 +325,7 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum) {
 bool ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum) {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
         m_threadWaiting[threadNum] = true;
-        // locking
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        // waiting
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
@@ -531,13 +527,15 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     if (it != m_meshUpdates.end())
     {
         m_meshUpdates.erase(it);
-        m_meshes[m_meshArrayIndices.at(m_chunkPosition[threadNum])] = newMesh;
+        auto it = m_meshArrayIndices.find(m_chunkPosition[threadNum]);
+        if (it != m_meshArrayIndices.end())
+        {
+            m_meshes[it->second] = newMesh;
+            return;
+        }
     }
-    else
-    {
-        m_meshArrayIndices[m_chunkPosition[threadNum]] = m_meshes.size();
-        m_meshes.push_back(newMesh);
-    }
+    m_meshArrayIndices[m_chunkPosition[threadNum]] = m_meshes.size();
+    m_meshes.push_back(newMesh);
 }
 
 bool ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum) {

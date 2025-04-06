@@ -245,7 +245,10 @@ void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants:
     chunk.setSkyLightBeingRelit(false);
     chunk.setBlockLightBeingRelit(false);
     if (integrated)
+    {
+        std::lock_guard<std::mutex> lock(m_playersMtx);
         m_players.at(0).setChunkLoaded(chunkPosition, m_gameTick);
+    }
 }
 
 // Overload used by the physical server
@@ -253,7 +256,7 @@ template<bool integrated>
 uint32_t ServerWorld<integrated>::addPlayer(
     int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer
 ) {
-    m_playersMtx.lock();
+    std::lock_guard<std::mutex> lock(m_playersMtx);
     uint32_t playerID = m_nextPlayerID;
     m_players[playerID] = {
         m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick
@@ -261,7 +264,7 @@ uint32_t ServerWorld<integrated>::addPlayer(
     m_nextPlayerID = 0;
     while (m_players.contains(m_nextPlayerID))
         m_nextPlayerID++;
-    m_playersMtx.unlock();
+
     return playerID;
 }
 
@@ -270,9 +273,8 @@ template<bool integrated>
 void ServerWorld<integrated>::addPlayer(
     int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer
 ) {
-    m_playersMtx.lock();
+    std::lock_guard<std::mutex> lock(m_playersMtx);
     m_players[0] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, multiplayer };
-    m_playersMtx.unlock();
 }
 
 template<bool integrated>
