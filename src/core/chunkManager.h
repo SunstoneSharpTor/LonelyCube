@@ -29,6 +29,8 @@ private:
     std::unordered_map<IVec3, Chunk> m_chunks;
 
 public:
+    std::mutex mutex;
+
     ChunkManager();
     uint8_t getBlock(const IVec3& position) const;
     void setBlock(const IVec3& position, uint8_t blockType);

@@ -27,7 +27,7 @@ namespace lonelycube {
 class PhysicsEngine
 {
 private:
-    const ChunkManager& m_chunkManager;
+    ChunkManager& m_chunkManager;
     ECS& m_ecs;
     const ResourcePack& m_resourcePack;
 
@@ -38,7 +38,7 @@ private:
     );
 
 public:
-    PhysicsEngine(const ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
+    PhysicsEngine(ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack);
     void stepPhysics();
     void extrapolateTransforms(const float DT);
 };

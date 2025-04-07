@@ -65,7 +65,7 @@ void EntityManager::tickItems()
 
 void EntityManager::tick()
 {
-    std::lock_guard<std::mutex> lock(m_ecs.mutex);
+    std::lock_guard<std::mutex> lock1(m_ecs.mutex);
     tickItems();
     m_physicsEngine.stepPhysics();
 }

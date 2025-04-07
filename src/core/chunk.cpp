@@ -18,10 +18,10 @@
 
 #include "core/chunk.h"
 
-#include "core/constants.h"
 #include "core/pch.h"
 
 #include "core/block.h"
+#include "core/constants.h"
 #include "core/utils/iVec3.h"
 
 namespace lonelycube {

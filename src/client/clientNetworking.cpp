@@ -142,7 +142,7 @@ bool ClientNetworking::receiveEvents(ClientWorld& mainWorld)
         switch(event.type)
         {
             case ENET_EVENT_TYPE_RECEIVE:
-                LOG("Received packet");
+                // LOG("Received packet");
                 receivePacket(event.packet, mainWorld);
                 packetReceived = true;
                 break;
