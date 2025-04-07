@@ -18,40 +18,51 @@
 
 #pragma once
 
-#include "core/pch.h"
-
 #include "glm/glm.hpp"
 
-#include "client/graphics/glRenderer.h"
-#include "client/graphics/shader.h"
-#include "client/graphics/texture.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
+#include "client/graphics/vulkan/descriptors.h"
 
 namespace lonelycube::client {
 
+struct FontPushConstants
+{
+    glm::mat4 mvp;
+    VkDeviceAddress vertices;
+};
+
 class Font
 {
+public:
+    Font(VulkanEngine& vulkanEngine);
+    void init(const std::string& textureFilePath, glm::ivec2 windowDimensions);
+    void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
+    void draw();
+    void resize(const glm::ivec2 windowDimensions);
+
 private:
-    Shader m_shader;
-    Texture m_texture;
-    VertexArray m_vertexArray;
-    VertexBuffer m_vertexBuffer;
-    IndexBuffer m_indexBuffer;
-    VertexBufferLayout m_vbl;
     std::array<int, 96> m_charWidths;
-    std::vector<float> m_vertices;
-    std::vector<uint32_t> m_indices;
     int m_maxCharSize[2];
 
+    VulkanEngine& m_vulkanEngine;
+
+    std::vector<GPUDynamicBuffer> m_vertexBuffers;
+    int m_numVertices;
+    int m_vertexBufferSize;
+
+    AllocatedImage m_fontImage;
+    VkDescriptorSetLayout m_luminanceDescriptorSetLayout;
+    VkDescriptorSet m_luminanceDescriptors;
+    VkPipelineLayout m_luminancePipelineLayout;
+    VkPipeline m_luminancePipeline;
+    FontPushConstants m_pushConstants;
+
+    void createDescriptors(
+        DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,
+        VkSampler sampler
+    );
+    void createPipeline();
     void calculateCharWidths(const std::string& textureFilePath);
-
-public:
-    Font(const std::string& textureFilePath, uint32_t* windowDimensions);
-
-    void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
-
-    void draw(const GlRenderer& renderer);
-
-    void resize(const uint32_t* windowDimensions);
 };
 
 }  // namespace lonelycube::client

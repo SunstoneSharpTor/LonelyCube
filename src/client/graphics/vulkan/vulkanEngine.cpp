@@ -1144,6 +1144,39 @@ void VulkanEngine::updateDynamicMesh(
     mesh.indexCount = indexCount;
 }
 
+GPUDynamicBuffer VulkanEngine::allocateDynamicBuffer(uint32_t maxBufferSize)
+{
+    GPUDynamicBuffer newBuffer;
+    newBuffer.buffer = createHostVisibleAndDeviceLocalBuffer(
+        maxBufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        0
+    );
+
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer = newBuffer.buffer.deviceLocalBuffer.buffer;
+    newBuffer.bufferAddress = vkGetBufferDeviceAddress(m_device, &deviceAddressInfo);
+
+    newBuffer.size = 0;
+
+    return newBuffer;
+}
+
+void VulkanEngine::updateDynamicBuffer(
+    VkCommandBuffer command, GPUDynamicBuffer& mesh, uint32_t size
+) {
+    if (size > 0)
+    {
+        updateHostVisibleAndDeviceLocalBuffer(
+            command, mesh.buffer, size, VK_ACCESS_SHADER_READ_BIT,
+            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+        );
+    }
+
+    mesh.size = size;
+}
+
 AllocatedImage VulkanEngine::createImage(
     VkExtent3D size, VkFormat format, VkImageUsageFlags usage, uint32_t mipLevels,
     VkSampleCountFlagBits numSamples

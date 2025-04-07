@@ -63,7 +63,7 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vulkan/shaders.cpp
     src/client/graphics/vulkan/vulkanEngine.cpp
     src/client/graphics/vulkan/images.cpp
-    # src/client/gui/font.cpp
+    src/client/gui/font.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
     src/core/chunk.cpp
