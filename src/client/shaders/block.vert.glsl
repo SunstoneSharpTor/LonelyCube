@@ -24,14 +24,6 @@ layout (location = 1) out float outSkyBrightness;
 layout (location = 2) out float outBlockBrightness;
 layout (location = 3) out float outVisibility;
 
-struct Vertex
-{
-    vec3 position;
-    vec2 texCoord;
-    float skyLightLevel;
-    float blockLightLevel;
-};
-
 layout (buffer_reference, std430) readonly buffer VertexBuffer
 {
     float vertices[];

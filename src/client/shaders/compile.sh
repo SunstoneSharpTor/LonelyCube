@@ -15,3 +15,5 @@ glslangValidator --target-env vulkan1.3 src/client/shaders/parallelReduceMean.co
 glslangValidator -V src/client/shaders/autoExposure.comp.glsl -o res/shaders/autoExposure.comp.spv
 glslangValidator -V src/client/shaders/crosshair.vert.glsl -o res/shaders/crosshair.vert.spv
 glslangValidator -V src/client/shaders/crosshair.frag.glsl -o res/shaders/crosshair.frag.spv
+glslangValidator -V src/client/shaders/font.vert.glsl -o res/shaders/font.vert.spv
+glslangValidator -V src/client/shaders/font.frag.glsl -o res/shaders/font.frag.spv

@@ -91,6 +91,13 @@ struct GPUDynamicMeshBuffers
     uint32_t indexCount;
 };
 
+struct GPUDynamicBuffer
+{
+    AllocatedHostVisibleAndDeviceLocalBuffer buffer;
+    VkDeviceAddress bufferAddress;
+    uint32_t size;
+};
+
 class VulkanEngine
 {
 public:
@@ -139,6 +146,10 @@ public:
     void updateDynamicMesh(
         VkCommandBuffer command, GPUDynamicMeshBuffers& mesh, uint32_t vertexBufferSize,
         uint32_t indexCount
+    );
+    GPUDynamicBuffer allocateDynamicBuffer(uint32_t maxBufferSize);
+    void updateDynamicBuffer(
+        VkCommandBuffer command, GPUDynamicBuffer& mesh, uint32_t size
     );
 
     // Images
