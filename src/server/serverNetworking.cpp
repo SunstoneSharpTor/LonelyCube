@@ -129,7 +129,7 @@ void ServerNetworking::receivePacket(ENetPacket* packet, ENetPeer* peer, ServerW
     {
         Packet<int64_t, 2> payload;
         memcpy(&payload, packet->data, packet->dataLength);
-        LOG("Chunk request for " + std::to_string(payload[1]));
+        // LOG("Chunk request for " + std::to_string(payload[1]));
         uint16_t playerID = payload.getPeerID();
         auto it = mainWorld.getPlayers().find(playerID);
         if (it == mainWorld.getPlayers().end()) {

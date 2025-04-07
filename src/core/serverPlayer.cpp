@@ -188,4 +188,24 @@ bool ServerPlayer::updateChunkLoadingTarget()
     return m_currentNumLoadedChunks != oldTarget;
 }
 
+void ServerPlayer::setChunkLoadingTarget(int target, uint64_t currentTickNum)
+{
+    m_currentNumLoadedChunks = target;
+    if (target >= m_maxNumChunks)
+    {
+        target = m_maxNumChunks - 1;
+        return;
+    }
+
+    // If the server thinks the target chunk was already sent to the client
+    // a long time ago, resend it because the client has probably unloaded it
+    auto it = m_loadedChunks.find(m_unloadedChunks[target] + m_playerChunkPosition);
+    if (it != m_loadedChunks.end() && it->second + constants::TICKS_PER_SECOND < currentTickNum)
+    {
+        LOG("Resending " + std::to_string(target));
+        m_loadedChunks.erase(it);
+        m_nextUnloadedChunk = target;
+    }
+}
+
 }  // namespace lonelycube

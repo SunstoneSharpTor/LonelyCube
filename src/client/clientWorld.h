@@ -91,6 +91,7 @@ private:
     std::condition_variable* m_chunkMeshReadyCV;
     std::mutex m_unmeshNeededMtx;
     std::condition_variable m_unmeshNeededCV;
+    std::mutex m_meshesToUpdateMtx;
     std::mutex m_meshUpdatesMtx;
     std::mutex m_renderThreadWaitingForMeshUpdatesMtx;
     std::mutex m_unmeshedChunksMtx;

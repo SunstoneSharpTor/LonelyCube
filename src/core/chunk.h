@@ -22,8 +22,6 @@
 
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
-#include <memory>
-#include <unistd.h>
 
 namespace lonelycube {
 

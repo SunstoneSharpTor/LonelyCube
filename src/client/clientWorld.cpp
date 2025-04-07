@@ -244,18 +244,19 @@ void ClientWorld::updateMeshes() {
     m_renderThreadWaitingForMeshUpdatesMtx.unlock();
     std::lock_guard<std::mutex> unmeshedChunksLock(m_unmeshedChunksMtx);
 
+    std::lock_guard<std::mutex> lock(m_meshesToUpdateMtx);
     auto it = m_meshesToUpdate.begin();
     while (it != m_meshesToUpdate.end()) {
-        auto meshIt = m_meshArrayIndices.find(*it);
-        if (meshIt != m_meshArrayIndices.end())
-        {
-            m_meshesToUnload[
-                (m_renderer.getVulkanEngine().getFrameDataIndex()
-                + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
-            ].push_back(m_meshes[meshIt->second]);
-            m_meshes[meshIt->second].blockMesh.indexCount = 0;
-            m_meshes[meshIt->second].waterMesh.indexCount = 0;
-        }
+        // auto meshIt = m_meshArrayIndices.find(*it);
+        // if (meshIt != m_meshArrayIndices.end())
+        // {
+        //     m_meshesToUnload[
+        //         (m_renderer.getVulkanEngine().getFrameDataIndex()
+        //         + VulkanEngine::MAX_FRAMES_IN_FLIGHT - 1) % VulkanEngine::MAX_FRAMES_IN_FLIGHT
+        //     ].push_back(m_meshes[meshIt->second]);
+        //     m_meshes[meshIt->second].blockMesh.indexCount = 0;
+        //     m_meshes[meshIt->second].waterMesh.indexCount = 0;
+        // }
 
         m_unmeshedChunks.insert(*it);
         m_meshUpdates.insert(*it);
@@ -336,9 +337,18 @@ void ClientWorld::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE 
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload) {
     IVec3 chunkPosition;
     integratedServer.loadChunkFromPacket(payload, chunkPosition);
-    std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
-    m_unmeshedChunks.insert(chunkPosition);
-    m_recentChunksBuilt.push(chunkPosition);
+    // if (m_meshArrayIndices.contains(chunkPosition))
+    // {
+    //     std::lock_guard<std::mutex> lock(m_meshesToUpdateMtx);
+    //     m_meshesToUpdate.insert(chunkPosition);
+    //     LOG("Old");
+    // }
+    // else
+    // {
+        std::lock_guard<std::mutex> lock(m_unmeshedChunksMtx);
+        m_unmeshedChunks.insert(chunkPosition);
+        m_recentChunksBuilt.push(chunkPosition);
+    // }
 }
 
 void ClientWorld::unmeshChunks() {
@@ -530,6 +540,11 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
         auto it = m_meshArrayIndices.find(m_chunkPosition[threadNum]);
         if (it != m_meshArrayIndices.end())
         {
+            m_meshesToUnload[
+                (m_renderer.getVulkanEngine().getFrameDataIndex() +
+                VulkanEngine::MAX_FRAMES_IN_FLIGHT - !m_renderingFrame) %
+                VulkanEngine::MAX_FRAMES_IN_FLIGHT
+            ].push_back(m_meshes[it->second]);
             m_meshes[it->second] = newMesh;
             return;
         }
@@ -641,7 +656,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
 void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     IVec3 chunkPosition = Chunk::getChunkCoords(blockCoords);
 
-    LOG(std::to_string((uint32_t)integratedServer.chunkManager.getSkyLight(blockCoords)) + " sky light level\n");
+    // LOG(std::to_string((uint32_t)integratedServer.chunkManager.getSkyLight(blockCoords)) + " sky light level\n");
     uint8_t originalBlockType = integratedServer.chunkManager.getBlock(blockCoords);
     integratedServer.chunkManager.setBlock(blockCoords, blockType);
 
@@ -652,9 +667,10 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType) {
     Lighting::relightChunksAroundBlock(blockCoords, chunkPosition, originalBlockType, blockType,
         chunksToRemesh, integratedServer.chunkManager.getWorldChunks(), integratedServer.getResourcePack());
     auto tp2 = std::chrono::high_resolution_clock::now();
-    LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
-    LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
+    // LOG(std::to_string(chunksToRemesh.size()) + " chunks remeshed\n");
+    // LOG("relight took " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
 
+    std::lock_guard<std::mutex> lock(m_meshesToUpdateMtx);
     for (auto& chunk : chunksToRemesh)
     {
         if (chunkHasNeighbours(chunk))

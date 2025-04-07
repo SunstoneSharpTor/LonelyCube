@@ -67,6 +67,7 @@ public:
     void beginUnloadingChunks();
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
     bool updateChunkLoadingTarget();
+    void setChunkLoadingTarget(int target, uint64_t currentTickNum);
 
     inline void setChunkLoaded(const IVec3& chunkPosition, uint64_t currentGameTick)
     {
@@ -112,20 +113,6 @@ public:
         blockPosition[0] = m_blockPosition[0];
         blockPosition[1] = m_blockPosition[1];
         blockPosition[2] = m_blockPosition[2];
-    }
-    inline void setChunkLoadingTarget(int target, uint64_t currentTickNum)
-    {
-        m_currentNumLoadedChunks = target;
-
-        // If the server thinks the target chunk was already sent to the client
-        // a long time ago, resend it because the client has probably unloaded it
-        auto it = m_loadedChunks.find(m_unloadedChunks[target] + m_playerChunkPosition);
-        if (it != m_loadedChunks.end() && it->second + constants::TICKS_PER_SECOND < currentTickNum)
-        {
-            LOG("Resending " + std::to_string(target));
-            m_loadedChunks.erase(it);
-            m_nextUnloadedChunk = target;
-        }
     }
     inline int getChunkLoadingTarget() const
     {

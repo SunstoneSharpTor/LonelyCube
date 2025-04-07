@@ -31,7 +31,7 @@
 namespace lonelycube {
 
 PhysicsEngine::PhysicsEngine(
-    const ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack
+    ChunkManager& chunkManager, ECS& ecs, const ResourcePack& resourcePack
 ) : m_chunkManager(chunkManager), m_ecs(ecs), m_resourcePack(resourcePack) {}
 
 void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
@@ -103,6 +103,7 @@ void PhysicsEngine::stepPhysics(const EntityId entity, const float DT
 
 void PhysicsEngine::stepPhysics()
 {
+    std::lock_guard<std::mutex> lock2(m_chunkManager.mutex);
     const float DT = 1.0f / constants::TICKS_PER_SECOND;
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
@@ -187,7 +188,8 @@ float PhysicsEngine::findPenetrationDepthIntoWorld(
 
 void PhysicsEngine::extrapolateTransforms(const float DT)
 {
-    std::lock_guard<std::mutex> lock(m_ecs.mutex);
+    std::lock_guard<std::mutex> lock1(m_ecs.mutex);
+    std::lock_guard<std::mutex> lock2(m_chunkManager.mutex);
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);

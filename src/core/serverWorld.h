@@ -34,8 +34,6 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
-#include <mutex>
-#include <string>
 
 namespace lonelycube {
 
@@ -46,7 +44,6 @@ public:
 
 private:
     uint64_t m_seed;
-    uint32_t m_nextPlayerID;
     uint32_t m_numChunkLoadingThreads;
     uint64_t m_gameTick;
     ResourcePack m_resourcePack;
@@ -60,7 +57,6 @@ private:
     EntityManager m_entityManager;
 
     // Synchronisation
-    std::mutex m_chunksMtx;
     std::mutex m_playersMtx;
     std::mutex m_chunksToBeLoadedMtx;
     std::mutex m_chunksBeingLoadedMtx;
@@ -88,7 +84,6 @@ public:
     void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
-    bool getNextLoadedChunkPosition(IVec3* chunkPosition);
     float getTimeSinceLastTick();
     inline int8_t getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
@@ -110,9 +105,8 @@ public:
 
 template<bool integrated>
 ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
-    : m_seed(seed), m_nextPlayerID(0), m_gameTick(0), m_resourcePack("res/resourcePack"),
-    m_entityManager(10000, chunkManager, m_resourcePack), m_networkingMtx(networkingMtx),
-    m_threadsWait(false)
+    : m_seed(seed), m_gameTick(0), m_resourcePack("res/resourcePack"), m_entityManager(10000,
+    chunkManager, m_resourcePack), m_networkingMtx(networkingMtx), m_threadsWait(false)
 {
     PCG_SeedRandom32(m_seed);
     seedNoise();
@@ -131,7 +125,7 @@ void ServerWorld<integrated>::updatePlayerPos(
     ServerPlayer& player = m_players.at(playerID);
     player.updatePlayerPos(blockPosition, subBlockPosition);
     if (unloadNeeded) {
-        m_chunksMtx.lock();
+        chunkManager.mutex.lock();
         m_chunksToBeLoadedMtx.lock();
         m_chunksBeingLoadedMtx.lock();
         // If the player has moved chunk, remove all the chunks that are out of
@@ -151,7 +145,7 @@ void ServerWorld<integrated>::updatePlayerPos(
         }
         m_chunksBeingLoadedMtx.unlock();
         m_chunksToBeLoadedMtx.unlock();
-        m_chunksMtx.unlock();
+        chunkManager.mutex.unlock();
     }
 }
 
@@ -159,7 +153,7 @@ template<bool integrated>
 void ServerWorld<integrated>::findChunksToLoad() {
     std::lock_guard<std::mutex> lock1(m_playersMtx);
     std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
-    std::lock_guard<std::mutex> lock3(m_chunksMtx);
+    std::lock_guard<std::mutex> lock3(chunkManager.mutex);
     for (auto& [playerID, player] : m_players) {
         if (player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
             int chunkPosition[3];
@@ -194,12 +188,12 @@ bool ServerWorld<integrated>::loadNextChunk(IVec3* chunkPosition) {
         *chunkPosition = m_chunksToBeLoaded.front();
         m_chunksToBeLoaded.pop();
         m_chunksToBeLoadedMtx.unlock();
-        m_chunksMtx.lock();
+        chunkManager.mutex.lock();
         Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
         chunkManager.getWorldChunks()[*chunkPosition] = { *chunkPosition };
         Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
         Chunk& chunk = chunkManager.getChunk(*chunkPosition);
-        m_chunksMtx.unlock();
+        chunkManager.mutex.unlock();
         TerrainGen().generateTerrain(chunk, m_seed);
         m_chunksBeingLoadedMtx.lock();
         m_chunksBeingLoaded.erase(*chunkPosition);
@@ -235,12 +229,21 @@ template<bool integrated>
 void ServerWorld<integrated>::loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
     constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition) {
     Compression::getChunkPosition(payload, chunkPosition);
-    m_chunksMtx.lock();
+    chunkManager.mutex.lock();
     Chunk::s_checkingNeighbourSkyRelightsMtx.lock();
-    chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
+    auto it = chunkManager.getWorldChunks().find(chunkPosition);
+    if (it != chunkManager.getWorldChunks().end())
+    {
+        it->second.unload();
+        it->second = { chunkPosition };
+    }
+    else
+    {
+        chunkManager.getWorldChunks()[chunkPosition] = { chunkPosition };
+    }
     Chunk::s_checkingNeighbourSkyRelightsMtx.unlock();
     Chunk& chunk = chunkManager.getChunk(chunkPosition);
-    m_chunksMtx.unlock();
+    chunkManager.mutex.unlock();
     Compression::decompressChunk(payload, chunk);
     chunk.setSkyLightBeingRelit(false);
     chunk.setBlockLightBeingRelit(false);
@@ -257,13 +260,12 @@ uint32_t ServerWorld<integrated>::addPlayer(
     int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer
 ) {
     std::lock_guard<std::mutex> lock(m_playersMtx);
-    uint32_t playerID = m_nextPlayerID;
+    uint32_t playerID = 0;
+    while (m_players.contains(playerID))
+        playerID++;
     m_players[playerID] = {
-        m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick
+        playerID, blockPosition, subBlockPosition, renderDistance, peer, m_gameTick
     };
-    m_nextPlayerID = 0;
-    while (m_players.contains(m_nextPlayerID))
-        m_nextPlayerID++;
 
     return playerID;
 }
@@ -274,7 +276,7 @@ void ServerWorld<integrated>::addPlayer(
     int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer
 ) {
     std::lock_guard<std::mutex> lock(m_playersMtx);
-    m_players[0] = { m_nextPlayerID, blockPosition, subBlockPosition, renderDistance, multiplayer };
+    m_players[0] = { 0, blockPosition, subBlockPosition, renderDistance, multiplayer };
 }
 
 template<bool integrated>
@@ -283,7 +285,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint32_t playerID) {
     pauseChunkLoaderThreads();
 
     std::lock_guard<std::mutex> lock1(m_playersMtx);
-    std::lock_guard<std::mutex> lock2(m_chunksMtx);
+    std::lock_guard<std::mutex> lock2(chunkManager.mutex);
     std::lock_guard<std::mutex> lock3(m_chunksToBeLoadedMtx);
     std::lock_guard<std::mutex> lock4(m_chunksBeingLoadedMtx);
     ServerPlayer& player = m_players.at(playerID);
