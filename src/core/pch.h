@@ -38,6 +38,7 @@
 // Data structures
 #include <array>
 #include <bitset>
+#include <deque>
 #include <map>
 #include <optional>
 #include <queue>
