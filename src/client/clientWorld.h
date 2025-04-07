@@ -73,7 +73,7 @@ private:
     std::unordered_set<IVec3> m_meshUpdates; //stores chunks that have to have their meshes rebuilt after a block update
     std::unordered_set<IVec3> m_meshesToUpdate;
     std::array<std::vector<MeshData>, VulkanEngine::MAX_FRAMES_IN_FLIGHT> m_meshesToUnload;
-    std::queue<IVec3> m_recentChunksBuilt;
+    std::deque<IVec3> m_recentChunksBuilt;
     //mesh building data - this is stored at class-level because it allows it to be
     //accessed from multiple threads
     uint32_t* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value
