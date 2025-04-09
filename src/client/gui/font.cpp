@@ -21,26 +21,51 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "stb_image.h"
 
+#include "client/graphics/vulkan/pipelines.h"
+#include "client/graphics/vulkan/shaders.h"
+#include "client/graphics/vulkan/utils.h"
+#include "client/graphics/vulkan/vulkanEngine.h"
+#include "core/log.h"
+
 namespace lonelycube::client {
+
+const std::string Font::s_textureFilePath = "res/resourcePack/gui/font.png";
 
 Font::Font(VulkanEngine& vulkanEngine) : m_vulkanEngine(vulkanEngine) {}
 
-void Font::init(const std::string& textureFilePath, glm::ivec2 windowDimensions)
-{
+void Font::init(
+    DescriptorAllocatorGrowable& descriptorAllocator,
+    VkDescriptorSetLayout uiSamplerDescriptorLayout, VkDescriptorSetLayout uiImageDescriptorLayout,
+    VkSampler uiSampler, glm::ivec2 windowDimensions
+) {
+    m_sampler = uiSampler;
+
     m_vertexBuffers.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < VulkanEngine::MAX_FRAMES_IN_FLIGHT; i++)
         m_vertexBuffers.push_back(m_vulkanEngine.allocateDynamicBuffer(65536));
 
     int size[2];
     int channels;
-    uint8_t* buffer = stbi_load(textureFilePath.c_str(), &size[0], &size[1], &channels, 4);
+    uint8_t* buffer = stbi_load(s_textureFilePath.c_str(), &size[0], &size[1], &channels, 4);
     VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
     m_fontImage = m_vulkanEngine.createImage(
         buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
     );
-    calculateCharWidths(textureFilePath);
+    calculateCharWidths(s_textureFilePath);
     stbi_image_free(buffer);
+    createDescriptors(descriptorAllocator, uiSamplerDescriptorLayout, uiImageDescriptorLayout);
+    createPipeline(uiSamplerDescriptorLayout, uiImageDescriptorLayout);
+
     resize(windowDimensions);
+}
+
+void Font::cleanup()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_pipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_pipelineLayout, nullptr);
+    m_vulkanEngine.destroyImage(m_fontImage);
+    for (GPUDynamicBuffer buffer : m_vertexBuffers)
+        m_vulkanEngine.destroyHostVisibleAndDeviceLocalBuffer(buffer.buffer);
 }
 
 void Font::resize(const glm::ivec2 windowDimensions)
@@ -102,20 +127,6 @@ void Font::queue(const std::string& text, glm::ivec2 position, int size,
     }
 }
 
-void Font::draw(const GlRenderer& renderer)
-{
-    // if (vertices.empty())
-    //     return;
-    //
-    // m_vertexBuffer.update(&vertices.front(), vertices.size() * sizeof(float));
-    // m_indexBuffer.update(&m_indices.front(), m_indices.size());
-    // vertices.clear();
-    // m_indices.clear();
-    // m_texture.bind();
-    // renderer.draw(m_vertexArray, m_indexBuffer, m_shader);
-    m_numVertices = m_vertexBufferSize = 0;
-}
-
 void Font::calculateCharWidths(const std::string& textureFilePath)
 {
     int textureSize[2];
@@ -158,6 +169,90 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
     m_charWidths[0] = m_maxCharSize[0] / 2;
 
     stbi_image_free(pixels);
+}
+
+void Font::createDescriptors(
+    DescriptorAllocatorGrowable& descriptorAllocator,
+    VkDescriptorSetLayout uiSamplerDescriptorLayout, VkDescriptorSetLayout uiImageDescriptorLayout
+) {
+    DescriptorWriter writer;
+
+    m_imageDescriptors = descriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), uiImageDescriptorLayout 
+    );
+
+    writer.writeImage(
+        0, m_fontImage.imageView, nullptr, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_imageDescriptors);
+}
+
+void Font::createPipeline(
+    VkDescriptorSetLayout uiSamplerDescriptorLayout,
+    VkDescriptorSetLayout uiImageDescriptorLayout
+) {
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(FontPushConstants);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    std::array<VkDescriptorSetLayout, 2> setLayouts = {
+        uiSamplerDescriptorLayout, uiImageDescriptorLayout
+    };
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+    pipelineLayoutInfo.setLayoutCount = 2;
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout
+    ));
+
+    VkShaderModule vertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/font.vert.spv", vertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/font.vert.spv\"");
+    }
+    VkShaderModule fragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/font.frag.spv", fragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/font.frag.spv\"");
+    }
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_pipelineLayout;
+    pipelineBuilder.setShaders(vertexShader, fragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+
+    m_pipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), vertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fragmentShader, nullptr);
+}
+
+void Font::draw()
+{
+    // if (vertices.empty())
+    //     return;
+    //
+    // m_vertexBuffer.update(&vertices.front(), vertices.size() * sizeof(float));
+    // m_indexBuffer.update(&m_indices.front(), m_indices.size());
+    // vertices.clear();
+    // m_indices.clear();
+    // m_texture.bind();
+    // renderer.draw(m_vertexArray, m_indexBuffer, m_shader);
+    m_numVertices = m_vertexBufferSize = 0;
 }
 
 }  // namespace lonelycube::client

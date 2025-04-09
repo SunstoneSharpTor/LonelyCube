@@ -26,6 +26,7 @@
 #include "client/graphics/bloom.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
+#include "client/gui/font.h"
 
 namespace lonelycube::client {
 
@@ -130,6 +131,7 @@ private:
 
     AutoExposure m_autoExposure;
     Bloom m_bloom;
+    Font m_font;
 
     VkDescriptorSetLayout m_toneMapDescriptorLayout;
     VkDescriptorSet m_toneMapDescriptors;
@@ -141,6 +143,9 @@ private:
     VkDescriptorSet m_crosshairDescriptors;
     VkPipelineLayout m_crosshairPipelineLayout;
     VkPipeline m_crosshairPipeline;
+
+    VkDescriptorSetLayout m_uiImageDescriptorLayout;
+    VkDescriptorSetLayout m_uiSamplerDescriptorLayout;
 
     AllocatedImage m_worldTextures;
     AllocatedImage m_crosshairTexture;
@@ -172,6 +177,7 @@ private:
     void createToneMapDescriptors();
     void updateToneMapDescriptors();
     void createCrosshairDescriptors();
+    void createUiDescriptors();
     void createDescriptors();
     void cleanupDescriptors();
 

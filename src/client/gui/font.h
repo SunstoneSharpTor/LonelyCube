@@ -35,12 +35,20 @@ class Font
 {
 public:
     Font(VulkanEngine& vulkanEngine);
-    void init(const std::string& textureFilePath, glm::ivec2 windowDimensions);
+    void init(
+        DescriptorAllocatorGrowable& descriptorAllocator,
+        VkDescriptorSetLayout uiSamplerDescriptorLayout,
+        VkDescriptorSetLayout uiImageDescriptorLayout, VkSampler uiSampler,
+        glm::ivec2 windowDimensions
+    );
+    void cleanup();
     void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
     void draw();
     void resize(const glm::ivec2 windowDimensions);
 
 private:
+    static const std::string s_textureFilePath;
+
     std::array<int, 96> m_charWidths;
     int m_maxCharSize[2];
 
@@ -50,18 +58,22 @@ private:
     int m_numVertices;
     int m_vertexBufferSize;
 
+    VkSampler m_sampler;
     AllocatedImage m_fontImage;
-    VkDescriptorSetLayout m_luminanceDescriptorSetLayout;
-    VkDescriptorSet m_luminanceDescriptors;
-    VkPipelineLayout m_luminancePipelineLayout;
-    VkPipeline m_luminancePipeline;
+    VkDescriptorSet m_imageDescriptors;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_pipeline;
     FontPushConstants m_pushConstants;
 
     void createDescriptors(
-        DescriptorAllocatorGrowable& descriptorAllocator, VkImageView srcImageView,
-        VkSampler sampler
+        DescriptorAllocatorGrowable& descriptorAllocator,
+        VkDescriptorSetLayout uiSamplerDescriptorLayout,
+        VkDescriptorSetLayout uiImageDescriptorLayout
     );
-    void createPipeline();
+    void createPipeline(
+        VkDescriptorSetLayout uiSamplerDescriptorLayout,
+        VkDescriptorSetLayout uiImageDescriptorLayout
+    );
     void calculateCharWidths(const std::string& textureFilePath);
 };
 
