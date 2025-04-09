@@ -31,7 +31,7 @@ namespace lonelycube::client {
 
 Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     m_renderScale(renderScale), m_minimised(false), m_autoExposure(m_vulkanEngine),
-    m_bloom(m_vulkanEngine)
+    m_bloom(m_vulkanEngine), m_font(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -54,6 +54,10 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     loadTextures();
     createDescriptors();
     createPipelines();
+    m_font.init(
+        m_globalDescriptorAllocator, m_uiSamplerDescriptorLayout, m_uiImageDescriptorLayout,
+        m_uiSampler, { m_drawImageExtent.width, m_drawImageExtent.height }
+    );
 }
 
 Renderer::~Renderer()
@@ -62,6 +66,7 @@ Renderer::~Renderer()
 
     m_autoExposure.cleanup();
     m_bloom.cleanup();
+    m_font.cleanup();
 
     cleanupPipelines();
     cleanupDescriptors();
@@ -323,12 +328,28 @@ void Renderer::createCrosshairDescriptors()
     writer.updateSet(m_vulkanEngine.getDevice(), m_crosshairDescriptors);
 }
 
+void Renderer::createUiDescriptors()
+{
+    DescriptorLayoutBuilder builder;
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLER);
+    m_uiSamplerDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+
+    builder.clear();
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    m_uiImageDescriptorLayout = builder.build(
+        m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
+    );
+}
+
 void Renderer::createDescriptors()
 {
     createSkyDescriptors();
     createWorldDescriptors();
     createToneMapDescriptors();
     createCrosshairDescriptors();
+    createUiDescriptors();
 }
 
 void Renderer::cleanupDescriptors()
@@ -342,6 +363,8 @@ void Renderer::cleanupDescriptors()
     );
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_toneMapDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_crosshairDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_uiImageDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_vulkanEngine.getDevice(), m_uiSamplerDescriptorLayout, nullptr);
 }
 
 void Renderer::createSkyPipeline()

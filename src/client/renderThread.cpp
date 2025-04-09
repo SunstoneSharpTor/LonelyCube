@@ -137,6 +137,8 @@ void renderThread() {
     );
     mainWorld.doRenderThreadJobs();
 
+    // glfwSetCharCallback(window, characterCallback);
+
     //set up game loop
     float exposure = 0.0;
     float toneMapTimeByDTs = 0.0;
@@ -349,6 +351,3 @@ void renderThread() {
 }
 
 }  // namespace lonelycube::client
-
-        // Font font("res/resourcePack/gui/font.png", reinterpret_cast<uint32_t*>(windowDimensions));
-        // // glfwSetCharCallback(window, characterCallback);
