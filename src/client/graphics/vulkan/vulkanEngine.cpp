@@ -1164,17 +1164,17 @@ GPUDynamicBuffer VulkanEngine::allocateDynamicBuffer(uint32_t maxBufferSize)
 }
 
 void VulkanEngine::updateDynamicBuffer(
-    VkCommandBuffer command, GPUDynamicBuffer& mesh, uint32_t size
+    VkCommandBuffer command, GPUDynamicBuffer& buffer, uint32_t size
 ) {
     if (size > 0)
     {
         updateHostVisibleAndDeviceLocalBuffer(
-            command, mesh.buffer, size, VK_ACCESS_SHADER_READ_BIT,
+            command, buffer.buffer, size, VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
         );
     }
 
-    mesh.size = size;
+    buffer.size = size;
 }
 
 AllocatedImage VulkanEngine::createImage(

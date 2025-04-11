@@ -36,13 +36,12 @@ class Font
 public:
     Font(VulkanEngine& vulkanEngine);
     void init(
-        DescriptorAllocatorGrowable& descriptorAllocator,
-        VkDescriptorSetLayout uiSamplerDescriptorLayout,
-        VkDescriptorSetLayout uiImageDescriptorLayout, VkSampler uiSampler,
-        glm::ivec2 windowDimensions
+        DescriptorAllocatorGrowable& descriptorAllocator, VkPipelineLayout uiPipelineLayout,
+        VkDescriptorSetLayout uiImageDescriptorLayout, glm::ivec2 windowDimensions
     );
     void cleanup();
     void queue(const std::string& text, glm::ivec2 position, int size, const glm::vec3& colour);
+    void uploadMesh();
     void draw();
     void resize(const glm::ivec2 windowDimensions);
 
@@ -55,11 +54,10 @@ private:
     VulkanEngine& m_vulkanEngine;
 
     std::vector<GPUDynamicBuffer> m_vertexBuffers;
-    int m_numVertices;
     int m_vertexBufferSize;
 
-    VkSampler m_sampler;
     AllocatedImage m_fontImage;
+    VkDescriptorSet m_samplerDescriptors;
     VkDescriptorSet m_imageDescriptors;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_pipeline;
@@ -67,13 +65,9 @@ private:
 
     void createDescriptors(
         DescriptorAllocatorGrowable& descriptorAllocator,
-        VkDescriptorSetLayout uiSamplerDescriptorLayout,
         VkDescriptorSetLayout uiImageDescriptorLayout
     );
-    void createPipeline(
-        VkDescriptorSetLayout uiSamplerDescriptorLayout,
-        VkDescriptorSetLayout uiImageDescriptorLayout
-    );
+    void createPipeline();
     void calculateCharWidths(const std::string& textureFilePath);
 };
 

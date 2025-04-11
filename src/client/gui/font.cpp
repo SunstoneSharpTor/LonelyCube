@@ -23,7 +23,6 @@
 
 #include "client/graphics/vulkan/pipelines.h"
 #include "client/graphics/vulkan/shaders.h"
-#include "client/graphics/vulkan/utils.h"
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "core/log.h"
 
@@ -34,11 +33,10 @@ const std::string Font::s_textureFilePath = "res/resourcePack/gui/font.png";
 Font::Font(VulkanEngine& vulkanEngine) : m_vulkanEngine(vulkanEngine) {}
 
 void Font::init(
-    DescriptorAllocatorGrowable& descriptorAllocator,
-    VkDescriptorSetLayout uiSamplerDescriptorLayout, VkDescriptorSetLayout uiImageDescriptorLayout,
-    VkSampler uiSampler, glm::ivec2 windowDimensions
+    DescriptorAllocatorGrowable& descriptorAllocator, VkPipelineLayout uiPipelineLayout,
+    VkDescriptorSetLayout uiImageDescriptorLayout, glm::ivec2 windowDimensions
 ) {
-    m_sampler = uiSampler;
+    m_pipelineLayout = uiPipelineLayout;
 
     m_vertexBuffers.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < VulkanEngine::MAX_FRAMES_IN_FLIGHT; i++)
@@ -53,8 +51,8 @@ void Font::init(
     );
     calculateCharWidths(s_textureFilePath);
     stbi_image_free(buffer);
-    createDescriptors(descriptorAllocator, uiSamplerDescriptorLayout, uiImageDescriptorLayout);
-    createPipeline(uiSamplerDescriptorLayout, uiImageDescriptorLayout);
+    createDescriptors(descriptorAllocator, uiImageDescriptorLayout);
+    createPipeline();
 
     resize(windowDimensions);
 }
@@ -62,7 +60,6 @@ void Font::init(
 void Font::cleanup()
 {
     vkDestroyPipeline(m_vulkanEngine.getDevice(), m_pipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_pipelineLayout, nullptr);
     m_vulkanEngine.destroyImage(m_fontImage);
     for (GPUDynamicBuffer buffer : m_vertexBuffers)
         m_vulkanEngine.destroyHostVisibleAndDeviceLocalBuffer(buffer.buffer);
@@ -74,57 +71,6 @@ void Font::resize(const glm::ivec2 windowDimensions)
         0.0f, static_cast<float>(windowDimensions.x), 0.0f, static_cast<float>(windowDimensions.y),
         0.0f, 1.0f
     );
-}
-
-void Font::queue(const std::string& text, glm::ivec2 position, int size,
-    const glm::vec3& colour)
-{
-    const int spacing = std::max(size, 1);
-
-    float* vertices = static_cast<float*>(
-        m_vertexBuffers[ m_vulkanEngine.getFrameDataIndex()].buffer.mappedData
-    );
-
-    for (char c : text)
-    {
-        int row = 7 - c / 16;
-        int col = c % 16;
-
-        // Screen coordinates
-        int charWidth = size * m_charWidths[c - 32];
-        vertices[m_vertexBufferSize] = position.x;
-        vertices[m_vertexBufferSize + 1] = position.y;
-        vertices[m_vertexBufferSize + 7] = position.x;
-        vertices[m_vertexBufferSize + 8] = position.y + m_maxCharSize[1] * size;
-        vertices[m_vertexBufferSize + 14] = position.x + charWidth;
-        vertices[m_vertexBufferSize + 15] = position.y + m_maxCharSize[1] * size;
-        vertices[m_vertexBufferSize + 21] = position.x + charWidth;
-        vertices[m_vertexBufferSize + 22] = position.y;
-
-        // Texture coordinates
-        float charTextureWidth = static_cast<float>(m_charWidths[c - 32]) / m_maxCharSize[0] / 16;
-        vertices[m_vertexBufferSize + 2] = static_cast<float>(col) / 16;
-        vertices[m_vertexBufferSize + 3] = static_cast<float>(row) / 6;
-        vertices[m_vertexBufferSize + 9] = static_cast<float>(col) / 16;
-        vertices[m_vertexBufferSize + 10] = static_cast<float>(row) / 6 + 1.0f / 6;
-        vertices[m_vertexBufferSize + 16] = static_cast<float>(col) / 16 + charTextureWidth;
-        vertices[m_vertexBufferSize + 17] = static_cast<float>(row) / 6 + 1.0f / 6;
-        vertices[m_vertexBufferSize + 23] = static_cast<float>(col) / 16 + charTextureWidth;
-        vertices[m_vertexBufferSize + 24] = static_cast<float>(row) / 6;
-
-        // Colour data
-        for (int i = 0; i < 3; i++)
-        {
-            vertices[m_vertexBufferSize + 4 + i] = colour[i];
-            vertices[m_vertexBufferSize + 11 + i] = colour[i];
-            vertices[m_vertexBufferSize + 18 + i] = colour[i];
-            vertices[m_vertexBufferSize + 25 + i] = colour[i];
-        }
-
-        m_vertexBufferSize += 28;
-        m_numVertices += 4;
-        position.x += charWidth + spacing;
-    }
 }
 
 void Font::calculateCharWidths(const std::string& textureFilePath)
@@ -172,8 +118,7 @@ void Font::calculateCharWidths(const std::string& textureFilePath)
 }
 
 void Font::createDescriptors(
-    DescriptorAllocatorGrowable& descriptorAllocator,
-    VkDescriptorSetLayout uiSamplerDescriptorLayout, VkDescriptorSetLayout uiImageDescriptorLayout
+    DescriptorAllocatorGrowable& descriptorAllocator, VkDescriptorSetLayout uiImageDescriptorLayout
 ) {
     DescriptorWriter writer;
 
@@ -188,28 +133,8 @@ void Font::createDescriptors(
     writer.updateSet(m_vulkanEngine.getDevice(), m_imageDescriptors);
 }
 
-void Font::createPipeline(
-    VkDescriptorSetLayout uiSamplerDescriptorLayout,
-    VkDescriptorSetLayout uiImageDescriptorLayout
-) {
-    VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(FontPushConstants);
-    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-    std::array<VkDescriptorSetLayout, 2> setLayouts = {
-        uiSamplerDescriptorLayout, uiImageDescriptorLayout
-    };
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
-    pipelineLayoutInfo.setLayoutCount = 2;
-    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
-
-    VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout
-    ));
-
+void Font::createPipeline()
+{
     VkShaderModule vertexShader;
     if (!createShaderModule(
         m_vulkanEngine.getDevice(), "res/shaders/font.vert.spv", vertexShader)
@@ -241,18 +166,93 @@ void Font::createPipeline(
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fragmentShader, nullptr);
 }
 
+void Font::queue(const std::string& text, glm::ivec2 position, int size,
+    const glm::vec3& colour)
+{
+    const int spacing = std::max(size, 1);
+
+    float* vertices = static_cast<float*>(
+        m_vertexBuffers[m_vulkanEngine.getFrameDataIndex()].buffer.mappedData
+    );
+
+    for (char c : text)
+    {
+        int row = 7 - c / 16;
+        int col = c % 16;
+
+        // Screen coordinates
+        int charWidth = size * m_charWidths[c - 32];
+        vertices[m_vertexBufferSize] = position.x;
+        vertices[m_vertexBufferSize + 1] = position.y;
+        vertices[m_vertexBufferSize + 7] = position.x;
+        vertices[m_vertexBufferSize + 8] = position.y + m_maxCharSize[1] * size;
+        vertices[m_vertexBufferSize + 14] = position.x + charWidth;
+        vertices[m_vertexBufferSize + 15] = position.y + m_maxCharSize[1] * size;
+        vertices[m_vertexBufferSize + 21] = position.x + charWidth;
+        vertices[m_vertexBufferSize + 22] = position.y;
+
+        // Texture coordinates
+        float charTextureWidth = static_cast<float>(m_charWidths[c - 32]) / m_maxCharSize[0] / 16;
+        vertices[m_vertexBufferSize + 2] = static_cast<float>(col) / 16;
+        vertices[m_vertexBufferSize + 3] = 1.0f - static_cast<float>(row) / 6 - 1.0f / 6;
+        vertices[m_vertexBufferSize + 9] = static_cast<float>(col) / 16;
+        vertices[m_vertexBufferSize + 10] = 1.0f - static_cast<float>(row) / 6;
+        vertices[m_vertexBufferSize + 16] = static_cast<float>(col) / 16 + charTextureWidth;
+        vertices[m_vertexBufferSize + 17] = 1.0f - static_cast<float>(row) / 6;
+        vertices[m_vertexBufferSize + 23] = static_cast<float>(col) / 16 + charTextureWidth;
+        vertices[m_vertexBufferSize + 24] = 1.0f - static_cast<float>(row) / 6 - 1.0f / 6;
+
+        // Colour data
+        for (int i = 0; i < 3; i++)
+        {
+            vertices[m_vertexBufferSize + 4 + i] = colour[i];
+            vertices[m_vertexBufferSize + 11 + i] = colour[i];
+            vertices[m_vertexBufferSize + 18 + i] = colour[i];
+            vertices[m_vertexBufferSize + 25 + i] = colour[i];
+        }
+
+        m_vertexBufferSize += 28;
+        position.x += charWidth + spacing;
+    }
+}
+
+void Font::uploadMesh()
+{
+    if (m_vertexBufferSize == 0)
+        return;
+
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    m_vulkanEngine.updateDynamicBuffer(
+        command, m_vertexBuffers[m_vulkanEngine.getFrameDataIndex()],
+        m_vertexBufferSize * sizeof(float)
+    );
+}
+
 void Font::draw()
 {
-    // if (vertices.empty())
-    //     return;
-    //
-    // m_vertexBuffer.update(&vertices.front(), vertices.size() * sizeof(float));
-    // m_indexBuffer.update(&m_indices.front(), m_indices.size());
-    // vertices.clear();
-    // m_indices.clear();
-    // m_texture.bind();
-    // renderer.draw(m_vertexArray, m_indexBuffer, m_shader);
-    m_numVertices = m_vertexBufferSize = 0;
+    if (m_vertexBufferSize == 0)
+        return;
+
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1, &m_imageDescriptors,
+        0, nullptr
+    );
+
+    m_pushConstants.vertices = m_vertexBuffers[m_vulkanEngine.getFrameDataIndex()].bufferAddress;
+    vkCmdPushConstants(
+        command, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(FontPushConstants),
+        &m_pushConstants
+    );
+
+    vkCmdDraw(command, m_vertexBufferSize / 28 * 6, 1, 0, 0);
+    m_vertexBufferSize = 0;
 }
 
 }  // namespace lonelycube::client

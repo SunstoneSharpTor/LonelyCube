@@ -31,7 +31,7 @@ namespace lonelycube::client {
 
 Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     m_renderScale(renderScale), m_minimised(false), m_autoExposure(m_vulkanEngine),
-    m_bloom(m_vulkanEngine), m_font(m_vulkanEngine)
+    m_bloom(m_vulkanEngine), font(m_vulkanEngine)
 {
     m_vulkanEngine.init();
 
@@ -54,9 +54,9 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     loadTextures();
     createDescriptors();
     createPipelines();
-    m_font.init(
-        m_globalDescriptorAllocator, m_uiSamplerDescriptorLayout, m_uiImageDescriptorLayout,
-        m_uiSampler, { m_drawImageExtent.width, m_drawImageExtent.height }
+    font.init(
+        m_globalDescriptorAllocator, m_uiPipelineLayout, m_uiImageDescriptorLayout,
+        { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
     );
 }
 
@@ -66,7 +66,7 @@ Renderer::~Renderer()
 
     m_autoExposure.cleanup();
     m_bloom.cleanup();
-    m_font.cleanup();
+    font.cleanup();
 
     cleanupPipelines();
     cleanupDescriptors();
@@ -331,10 +331,18 @@ void Renderer::createCrosshairDescriptors()
 void Renderer::createUiDescriptors()
 {
     DescriptorLayoutBuilder builder;
+    DescriptorWriter writer;
+
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLER);
     m_uiSamplerDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
+
+    m_uiSamplerDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_uiSamplerDescriptorLayout
+    );
+    writer.writeImage(0, nullptr, m_uiSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+    writer.updateSet(m_vulkanEngine.getDevice(), m_uiSamplerDescriptors);
 
     builder.clear();
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
@@ -676,6 +684,32 @@ void Renderer::cleanupToneMapPipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_toneMapPipelineLayout, nullptr);
 }
 
+void Renderer::createUiPipelineLayout()
+{
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(FontPushConstants);
+    bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    std::array<VkDescriptorSetLayout, 2> setLayouts = {
+        m_uiSamplerDescriptorLayout, m_uiImageDescriptorLayout
+    };
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+    pipelineLayoutInfo.setLayoutCount = 2;
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_uiPipelineLayout
+    ));
+}
+
+void Renderer::cleanupUiPipelineLayout()
+{
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_uiPipelineLayout, nullptr);
+}
+
 void Renderer::createCrosshairPipeline()
 {
     VkPushConstantRange bufferRange{};
@@ -737,6 +771,7 @@ void Renderer::createPipelines()
     createWorldPipelines();
     createBlockOutlinePipeline();
     createToneMapPipeline();
+    createUiPipelineLayout();
     createCrosshairPipeline();
 }
 
@@ -747,6 +782,7 @@ void Renderer::cleanupPipelines()
     cleanupWorldPipelines();
     cleanupBlockOutlinePipeline();
     cleanupToneMapPipeline();
+    cleanupUiPipelineLayout();
     cleanupCrosshairPipeline();
 }
 
@@ -1134,6 +1170,26 @@ void Renderer::drawCrosshair()
         &size
     );
     vkCmdDraw(command, 6, 1, 0, 0);
+}
+
+void Renderer::drawFont()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_uiPipelineLayout, 0, 1, &m_uiSamplerDescriptors,
+        0, nullptr
+    );
+
+    font.draw();
+}
+
+void Renderer::submitFrame()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
     vkCmdEndRendering(command);
 
     transitionImage(
@@ -1142,12 +1198,6 @@ void Renderer::drawCrosshair()
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
-}
-
-void Renderer::submitFrame()
-{
-    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
 
     VK_CHECK(vkEndCommandBuffer(command));
     m_vulkanEngine.submitFrame();
@@ -1173,6 +1223,9 @@ void Renderer::resize()
     m_toneMapPushConstants.drawImageTexelSize.x = 1.0f / m_vulkanEngine.getSwapchainExtent().width;
     m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_vulkanEngine.getSwapchainExtent().height;
     m_bloom.updateSrcImage(m_globalDescriptorAllocator, m_drawImage);
+    font.resize(
+        { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
+    );
 }
 
 }  // namespace lonelycube::client

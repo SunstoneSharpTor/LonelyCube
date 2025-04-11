@@ -20,7 +20,6 @@
 
 #include <GLFW/glfw3.h>
 #include <enet/enet.h>
-#include <iterator>
 #include "glm/fwd.hpp"
 #include "glm/matrix.hpp"
 #include "stb_image.h"
@@ -100,7 +99,6 @@ void renderThread() {
     );
 
     bool running = true;
-    GLFWwindow* window;
 
     bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
     std::fill(
@@ -137,7 +135,7 @@ void renderThread() {
     );
     mainWorld.doRenderThreadJobs();
 
-    // glfwSetCharCallback(window, characterCallback);
+    glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), characterCallback);
 
     //set up game loop
     float exposure = 0.0;
@@ -312,11 +310,17 @@ void renderThread() {
                 renderer.finishDrawingGeometry();
                 renderer.renderBloom();
                 renderer.calculateAutoExposure(actualDT);
+
+                renderer.font.queue(
+                    testText,
+                    glm::ivec2(10, renderer.getVulkanEngine().getSwapchainExtent().height - 30),
+                    3, glm::vec3(1.0f, 1.0f, 1.0f)
+                );
+                renderer.font.uploadMesh();
+
                 renderer.applyToneMap();
                 renderer.drawCrosshair();
-
-                // font.queue(testText, glm::ivec2(100, 100), 3, glm::vec3(1.0f, 1.0f, 1.0f));
-                // font.draw(mainRenderer);
+                renderer.drawFont();
 
                 renderer.submitFrame();
             }

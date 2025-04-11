@@ -149,7 +149,7 @@ public:
     );
     GPUDynamicBuffer allocateDynamicBuffer(uint32_t maxBufferSize);
     void updateDynamicBuffer(
-        VkCommandBuffer command, GPUDynamicBuffer& mesh, uint32_t size
+        VkCommandBuffer command, GPUDynamicBuffer& buffer, uint32_t size
     );
 
     // Images
