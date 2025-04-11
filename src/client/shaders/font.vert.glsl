@@ -37,20 +37,21 @@ const uint vertexOrder[6] = uint[](0, 3, 1, 1, 3, 2);
 
 void main()
 {
-    uint vertexIndex = gl_VertexIndex / 6 + vertexOrder[gl_VertexIndex % 6];
+    const uint vertexSize = 7;
+    uint vertexIndex = (gl_VertexIndex / 6 * 4 + vertexOrder[gl_VertexIndex % 6]) * vertexSize;
     vec2 position = vec2(
-        vertexBuffer.vertices[vertexIndex * 7], vertexBuffer.vertices[vertexIndex * 7 + 1]
+        vertexBuffer.vertices[vertexIndex], vertexBuffer.vertices[vertexIndex + 1]
     );
     vec2 texCoord = vec2(
-        vertexBuffer.vertices[vertexIndex * 7 + 2], vertexBuffer.vertices[vertexIndex * 7 + 3]
+        vertexBuffer.vertices[vertexIndex + 2], vertexBuffer.vertices[vertexIndex + 3]
     );
     vec3 colour = vec3(
-        vertexBuffer.vertices[vertexIndex * 7 + 3],
-        vertexBuffer.vertices[vertexIndex * 7 + 4],
-        vertexBuffer.vertices[vertexIndex * 7 + 5]
+        vertexBuffer.vertices[vertexIndex + 4],
+        vertexBuffer.vertices[vertexIndex + 5],
+        vertexBuffer.vertices[vertexIndex + 6]
     );
 
-    gl_Position = mvp * vec4(position, 0.0, 0.0);
+    gl_Position = mvp * vec4(position, 0.0, 1.0);
     outTexCoord = texCoord;
     outColour = colour;
 }

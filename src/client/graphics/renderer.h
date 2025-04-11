@@ -61,6 +61,7 @@ class Renderer
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
+    Font font;
 
     Renderer(VkSampleCountFlagBits numSamples, float renderScale);
     ~Renderer();
@@ -79,6 +80,7 @@ public:
     void calculateAutoExposure(double DT);
     void applyToneMap();
     void drawCrosshair();
+    void drawFont();
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()
@@ -131,13 +133,14 @@ private:
 
     AutoExposure m_autoExposure;
     Bloom m_bloom;
-    Font m_font;
 
     VkDescriptorSetLayout m_toneMapDescriptorLayout;
     VkDescriptorSet m_toneMapDescriptors;
     VkPipelineLayout m_toneMapPipelineLayout;
     VkPipeline m_toneMapPipeline;
     ToneMapPushConstants m_toneMapPushConstants;
+
+    VkPipelineLayout m_uiPipelineLayout;
 
     VkDescriptorSetLayout m_crosshairDescriptorLayout;
     VkDescriptorSet m_crosshairDescriptors;
@@ -146,6 +149,7 @@ private:
 
     VkDescriptorSetLayout m_uiImageDescriptorLayout;
     VkDescriptorSetLayout m_uiSamplerDescriptorLayout;
+    VkDescriptorSet m_uiSamplerDescriptors;
 
     AllocatedImage m_worldTextures;
     AllocatedImage m_crosshairTexture;
@@ -165,6 +169,8 @@ private:
     void cleanupBlockOutlinePipeline();
     void createToneMapPipeline();
     void cleanupToneMapPipeline();
+    void createUiPipelineLayout();
+    void cleanupUiPipelineLayout();
     void createCrosshairPipeline();
     void cleanupCrosshairPipeline();
     void createPipelines();
