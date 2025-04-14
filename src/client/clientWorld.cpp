@@ -154,7 +154,6 @@ void ClientWorld::renderWorld(
     // Render Blocks
     m_renderer.beginDrawingBlocks();
     int prevChunkDistance = -1;
-    float numSwaps = 0;
     for (std::size_t i = 0; i < m_meshes.size(); i++) {
         IVec3 chunkCoordinates = m_meshes[i].chunkPosition * constants::CHUNK_SIZE - playerBlockPos;
         if (m_meshes[i].blockMesh.indexCount > 0) {
@@ -178,9 +177,10 @@ void ClientWorld::renderWorld(
             const MeshData temp = m_meshes[i - 1];
             m_meshes[i - 1] = m_meshes[i];
             m_meshes[i] = temp;
-            m_meshArrayIndices[m_meshes[i - 1].chunkPosition] = i - 1;
-            m_meshArrayIndices[m_meshes[i].chunkPosition] = i;
-            numSwaps++;
+            if (m_meshArrayIndices.contains(m_meshes[i - 1].chunkPosition))
+                m_meshArrayIndices.at(m_meshes[i - 1].chunkPosition) = i - 1;
+            if (m_meshArrayIndices.contains(m_meshes[i].chunkPosition))
+                m_meshArrayIndices.at(m_meshes[i].chunkPosition) = i;
         }
         prevChunkDistance = chunkDistance;
     }
@@ -217,7 +217,7 @@ void ClientWorld::renderWorld(
         }
     }
 
-    // LOG(std::to_string(m_meshes.size()));
+    // LOG(std::to_string(m_meshes.size()) + ", " + std::to_string(m_meshArrayIndices.size()));
 
     m_renderingFrame = false;
 }
@@ -520,22 +520,20 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     std::lock_guard<std::mutex> lock(m_meshUpdatesMtx);
     m_renderThreadWaitingForMeshUpdates = false;
     m_renderThreadWaitingForMeshUpdatesMtx.unlock();
-    auto it = m_meshUpdates.find(m_chunkPosition[threadNum]);
-    if (it != m_meshUpdates.end())
+
+    m_meshUpdates.erase(m_chunkPosition[threadNum]);
+    auto meshArrayIndicesItr = m_meshArrayIndices.find(m_chunkPosition[threadNum]);
+    if (meshArrayIndicesItr != m_meshArrayIndices.end())
     {
-        m_meshUpdates.erase(it);
-        auto it = m_meshArrayIndices.find(m_chunkPosition[threadNum]);
-        if (it != m_meshArrayIndices.end())
-        {
-            m_meshesToUnload[
-                (m_renderer.getVulkanEngine().getFrameDataIndex() +
-                VulkanEngine::MAX_FRAMES_IN_FLIGHT - !m_renderingFrame) %
-                VulkanEngine::MAX_FRAMES_IN_FLIGHT
-            ].push_back(m_meshes[it->second]);
-            m_meshes[it->second] = newMesh;
-            return;
-        }
+        m_meshesToUnload[
+            (m_renderer.getVulkanEngine().getFrameDataIndex() +
+            VulkanEngine::MAX_FRAMES_IN_FLIGHT - !m_renderingFrame) %
+            VulkanEngine::MAX_FRAMES_IN_FLIGHT
+        ].push_back(m_meshes[meshArrayIndicesItr->second]);
+        m_meshes[meshArrayIndicesItr->second] = newMesh;
+        return;
     }
+
     m_meshArrayIndices[m_chunkPosition[threadNum]] = m_meshes.size();
     m_meshes.push_back(newMesh);
 }
