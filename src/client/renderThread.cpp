@@ -85,7 +85,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
+    Renderer renderer(VK_SAMPLE_COUNT_8_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -135,7 +135,7 @@ void renderThread() {
     );
     mainWorld.doRenderThreadJobs();
 
-    glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), characterCallback);
+    // glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), characterCallback);
 
     //set up game loop
     float exposure = 0.0;
@@ -311,11 +311,11 @@ void renderThread() {
                 renderer.renderBloom();
                 renderer.calculateAutoExposure(actualDT);
 
-                renderer.font.queue(
-                    testText,
-                    glm::ivec2(10, renderer.getVulkanEngine().getSwapchainExtent().height - 30),
-                    3, glm::vec3(1.0f, 1.0f, 1.0f)
-                );
+                // renderer.font.queue(
+                //     testText,
+                //     glm::ivec2(10, renderer.getVulkanEngine().getSwapchainExtent().height - 30),
+                //     3, glm::vec3(1.0f, 1.0f, 1.0f)
+                // );
                 renderer.font.uploadMesh();
 
                 renderer.applyToneMap();
