@@ -247,12 +247,22 @@ void Font::draw()
 
     m_pushConstants.vertices = m_vertexBuffers[m_vulkanEngine.getFrameDataIndex()].bufferAddress;
     vkCmdPushConstants(
-        command, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(FontPushConstants),
+        command, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UiPushConstants),
         &m_pushConstants
     );
 
     vkCmdDraw(command, m_vertexBufferSize / 28 * 6, 1, 0, 0);
     m_vertexBufferSize = 0;
+}
+
+int Font::getStringWidth(const std::string& text)
+{
+    int width = 0;
+    for (auto c : text)
+        width += m_charWidths[c - 32] + 1;
+    width -= 1 * (width > 0);
+
+    return width;
 }
 
 }  // namespace lonelycube::client

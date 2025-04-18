@@ -1229,8 +1229,7 @@ AllocatedImage VulkanEngine::createImage(
     VkSampleCountFlagBits numSamples
 ) {
     AllocatedImage newImage = createImage(
-        size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        mipLevels, numSamples
+        size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT, mipLevels, numSamples
     );
 
     std::vector<AllocatedBuffer> stagingBuffers(mipLevels);

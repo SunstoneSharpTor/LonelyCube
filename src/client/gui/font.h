@@ -25,7 +25,7 @@
 
 namespace lonelycube::client {
 
-struct FontPushConstants
+struct UiPushConstants
 {
     glm::mat4 mvp;
     VkDeviceAddress vertices;
@@ -44,6 +44,7 @@ public:
     void uploadMesh();
     void draw();
     void resize(const glm::ivec2 windowDimensions);
+    int getStringWidth(const std::string& text);
 
 private:
     static const std::string s_textureFilePath;
@@ -61,7 +62,7 @@ private:
     VkDescriptorSet m_imageDescriptors;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_pipeline;
-    FontPushConstants m_pushConstants;
+    UiPushConstants m_pushConstants;
 
     void createDescriptors(
         DescriptorAllocatorGrowable& descriptorAllocator,
