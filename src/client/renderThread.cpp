@@ -18,10 +18,8 @@
 
 #include "client/renderThread.h"
 
-#include <GLFW/glfw3.h>
 #include <enet/enet.h>
 #include "glm/fwd.hpp"
-#include "glm/matrix.hpp"
 #include "stb_image.h"
 
 #include "core/pch.h"
@@ -85,7 +83,7 @@ void renderThread() {
         }
     }
 
-    Renderer renderer(VK_SAMPLE_COUNT_8_BIT, 1.0f);
+    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -320,7 +318,13 @@ void renderThread() {
 
                 renderer.applyToneMap();
                 renderer.drawCrosshair();
-                renderer.drawFont();
+                renderer.beginDrawingUi();
+                Menu menu;
+                menu.setScale(std::max(1u, renderer.getVulkanEngine().getSwapchainExtent().height / 217));
+                menu.addButton(160, { 0.5f, 0.5f }, { -80, -7 }, "Lonely Cube");
+                renderer.menuRenderer.queue(menu);
+                renderer.menuRenderer.draw();
+                renderer.font.draw();
 
                 renderer.submitFrame();
             }

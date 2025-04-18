@@ -27,6 +27,7 @@
 #include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/vulkan/descriptors.h"
 #include "client/gui/font.h"
+#include "client/gui/menuRenderer.h"
 
 namespace lonelycube::client {
 
@@ -62,6 +63,7 @@ public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
     Font font;
+    MenuRenderer menuRenderer;
 
     Renderer(VkSampleCountFlagBits numSamples, float renderScale);
     ~Renderer();
@@ -80,7 +82,7 @@ public:
     void calculateAutoExposure(double DT);
     void applyToneMap();
     void drawCrosshair();
-    void drawFont();
+    void beginDrawingUi();
     void submitFrame();
 
     inline VulkanEngine& getVulkanEngine()

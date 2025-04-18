@@ -31,7 +31,7 @@ namespace lonelycube::client {
 
 Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     m_renderScale(renderScale), m_minimised(false), m_autoExposure(m_vulkanEngine),
-    m_bloom(m_vulkanEngine), font(m_vulkanEngine)
+    m_bloom(m_vulkanEngine), font(m_vulkanEngine), menuRenderer(m_vulkanEngine, font)
 {
     m_vulkanEngine.init();
 
@@ -58,6 +58,10 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
         m_globalDescriptorAllocator, m_uiPipelineLayout, m_uiImageDescriptorLayout,
         { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
     );
+    menuRenderer.init(
+        m_globalDescriptorAllocator, m_uiPipelineLayout, m_uiImageDescriptorLayout,
+        { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
+    );
 }
 
 Renderer::~Renderer()
@@ -66,6 +70,7 @@ Renderer::~Renderer()
 
     m_autoExposure.cleanup();
     m_bloom.cleanup();
+    menuRenderer.cleanup();
     font.cleanup();
 
     cleanupPipelines();
@@ -170,8 +175,9 @@ void Renderer::createSamplers()
     samplerInfo.minFilter = VK_FILTER_NEAREST;
     // samplerInfo.anisotropyEnable =
     //     m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy != 0.0f;
-    // samplerInfo.maxAnisotropy =
-    //     m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy;
+    // samplerInfo.maxAnisotropy = std::min(
+    //     8.0f, m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy
+    // );
 
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.minLod = 0.0f;
@@ -687,7 +693,7 @@ void Renderer::cleanupToneMapPipeline()
 void Renderer::createUiPipelineLayout()
 {
     VkPushConstantRange bufferRange{};
-    bufferRange.size = sizeof(FontPushConstants);
+    bufferRange.size = sizeof(UiPushConstants);
     bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     std::array<VkDescriptorSetLayout, 2> setLayouts = {
@@ -1172,7 +1178,7 @@ void Renderer::drawCrosshair()
     vkCmdDraw(command, 6, 1, 0, 0);
 }
 
-void Renderer::drawFont()
+void Renderer::beginDrawingUi()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -1181,8 +1187,6 @@ void Renderer::drawFont()
         command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_uiPipelineLayout, 0, 1, &m_uiSamplerDescriptors,
         0, nullptr
     );
-
-    font.draw();
 }
 
 void Renderer::submitFrame()
@@ -1224,6 +1228,9 @@ void Renderer::resize()
     m_toneMapPushConstants.drawImageTexelSize.y = 1.0f / m_vulkanEngine.getSwapchainExtent().height;
     m_bloom.updateSrcImage(m_globalDescriptorAllocator, m_drawImage);
     font.resize(
+        { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
+    );
+    menuRenderer.resize(
         { m_vulkanEngine.getSwapchainExtent().width, m_vulkanEngine.getSwapchainExtent().height }
     );
 }
