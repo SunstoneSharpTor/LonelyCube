@@ -162,6 +162,9 @@ void MenuRenderer::queue(const Menu& menu)
             glm::ivec2 textPos = position + glm::ivec2(
                 (element.buttonData.width - m_font.getStringWidth(element.text)) / 2, 4
             ) * menu.getScale();
+            textPos += glm::ivec2(menu.getScale(), menu.getScale());
+            m_font.queue(element.text, textPos, menu.getScale(), { 0.1f, 0.1f, 0.1f });
+            textPos -= glm::ivec2(menu.getScale(), menu.getScale());
             m_font.queue(element.text, textPos, menu.getScale(), { 1.0f, 1.0f, 1.0f });
 
             break;
