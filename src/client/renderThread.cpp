@@ -20,6 +20,7 @@
 
 #include <enet/enet.h>
 #include "client/applicationStateManager.h"
+#include "client/game.h"
 #include "glm/fwd.hpp"
 #include "stb_image.h"
 
@@ -76,39 +77,14 @@ void renderThread() {
     ApplicationStateManager applicationStateManager;
 
     Config settings("res/settings.txt");
-
-    bool multiplayer = settings.getMultiplayer();
-
-    ClientNetworking networking;
-
-    if (multiplayer) {
-        if (!networking.establishConnection(settings.getServerIP(), settings.getRenderDistance())) {
-            multiplayer = false;
-        }
-    }
-
-    uint32_t worldSeed = std::time(0);
-    int playerSpawnPoint[3] = { 0, 200, 0 };
-    ClientWorld mainWorld(
-        settings.getRenderDistance(), worldSeed, !multiplayer, playerSpawnPoint,
-        multiplayer ? networking.getPeer() : nullptr, networking.getMutex(), renderer
-    );
+    uint32_t worldSeed = std::time(nullptr);
     LOG("World Seed: " + std::to_string(worldSeed));
-    ClientPlayer mainPlayer(
-        playerSpawnPoint, &mainWorld, mainWorld.integratedServer.getResourcePack()
+    Game game(
+        renderer, settings.getMultiplayer(), settings.getServerIP(), settings.getRenderDistance(),
+        worldSeed
     );
 
     bool running = true;
-
-    std::vector<bool> chunkLoaderThreadsRunning(mainWorld.getNumChunkLoaderThreads());
-    std::fill(
-        chunkLoaderThreadsRunning.begin(), chunkLoaderThreadsRunning.end(), true
-    );
-
-    LogicThread logicThread(
-        mainWorld, chunkLoaderThreadsRunning, mainPlayer, networking, settings, multiplayer
-    );
-    std::thread logicWorker(&LogicThread::go, logicThread, std::ref(running));
 
     bool windowLastFocus = false;
     bool windowFullScreen = false;
@@ -125,15 +101,6 @@ void renderThread() {
     );
     const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-    mainWorld.updatePlayerPos(mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0]));
-
-    double time;
-    mainPlayer.processUserInput(
-        renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus, time,
-        networking
-    );
-    mainWorld.doRenderThreadJobs();
-
     // glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), characterCallback);
 
     //set up game loop
@@ -144,8 +111,7 @@ void renderThread() {
     uint64_t lastFrameRateFrames = 0;
     auto start = std::chrono::steady_clock::now();
     auto end = start;
-    time = (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000;
-    double frameStart = time - DT;
+    double frameStart = -DT;
     float lastFrameRateTime = frameStart + DT;
     while (running) {
         glfwPollEvents();
@@ -191,134 +157,26 @@ void renderThread() {
                 );
                 LOG(
                     std::to_string(
-                        mainPlayer.viewCamera.position[0] + mainPlayer.cameraBlockPosition[0]
+                        game.getPlayer().viewCamera.position[0] + game.getPlayer().cameraBlockPosition[0]
                     ) + ", " + std::to_string(
-                        mainPlayer.viewCamera.position[1] + mainPlayer.cameraBlockPosition[1]
+                        game.getPlayer().viewCamera.position[1] + game.getPlayer().cameraBlockPosition[1]
                     ) + ", " + std::to_string(
-                        mainPlayer.viewCamera.position[2] + mainPlayer.cameraBlockPosition[2]
+                        game.getPlayer().viewCamera.position[2] + game.getPlayer().cameraBlockPosition[2]
                     )
                 );
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
             }
             //update frame rate limiter
-            if ((currentTime - DT) < (frameStart + DT)) {
+            if ((currentTime - DT) < (frameStart + DT))
                 frameStart += DT;
-            }
-            else {
+            else
                 frameStart = currentTime;
-            }
-
-            mainPlayer.processUserInput(
-                renderer.getVulkanEngine().getWindow(), windowDimensions, &windowLastFocus,
-                currentTime, networking
-            );
-            mainWorld.updateMeshes();
-            mainWorld.updatePlayerPos(
-                mainPlayer.cameraBlockPosition, &(mainPlayer.viewCamera.position[0])
-            );
-
-            //create model view projection matrix for the world
-            float fov = 60.0f;
-            fov = fov - fov * (2.0f / 3) * mainPlayer.zoom;
-            glm::mat4 projection = glm::perspective(
-                glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]), 0.1f,
-                (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)
-            );
-            glm::mat4 projectionReversedDepth = glm::perspective(
-                glm::radians(fov), ((float)windowDimensions[0] / windowDimensions[1]),
-                (float)((mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE), 0.1f
-            );
-            glm::mat4 view;
-            mainPlayer.viewCamera.getViewMatrix(&view);
-            glm::mat4 viewProjection = projectionReversedDepth * view;
-
-            uint32_t timeOfDay =
-                (mainWorld.integratedServer.getTickNum() + constants::DAY_LENGTH / 4) %
-                constants::DAY_LENGTH;
-            float groundLuminance = calculateBrightness(
-                constants::GROUND_LUMINANCE, constants::NUM_GROUND_LUMINANCE_POINTS, timeOfDay
-            );
-            // LOG(std::to_string(timeOfDay) + ": " + std::to_string(groundLuminance));
-
-            glm::vec3 sunDirection(glm::cos((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), glm::sin((float)((timeOfDay + constants::DAY_LENGTH * 3 / 4) % constants::DAY_LENGTH) /
-                constants::DAY_LENGTH * glm::pi<float>() * 2), 0.0f);
-            renderer.skyRenderInfo.sunDir = sunDirection;
-            renderer.skyRenderInfo.inverseViewProjection = glm::inverse(
-                projection * glm::lookAt(
-                    glm::vec3(0.0f), mainPlayer.viewCamera.front, -mainPlayer.viewCamera.up
-            ));
-            renderer.skyRenderInfo.brightness = groundLuminance;
-            renderer.skyRenderInfo.sunGlowColour = glm::vec3(1.7f, 0.67f, 0.13f);
-            renderer.skyRenderInfo.sunGlowAmount = std::pow(
-                std::abs(glm::dot(sunDirection, glm::vec3(1.0f, 0.0f, 0.0f))), 64.0f
-            );
 
             renderer.beginRenderingFrame();
             if (!renderer.isMinimised())
             {
-                renderer.drawSky();
-                mainWorld.buildEntityMesh(mainPlayer.cameraBlockPosition);
-                renderer.beginDrawingGeometry();
-                renderer.blitSky();
-
-                // Render the world geometry
-                float cameraSubBlockPos[3];
-                mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
-                FrameData& currentFrameData = renderer.getVulkanEngine().getCurrentFrameData();
-                VkCommandBuffer command = currentFrameData.commandBuffer;
-                #ifdef TIMESTAMPS
-                vkCmdWriteTimestamp(
-                    command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 0
-                );
-                #endif
-                mainWorld.renderWorld(
-                    viewProjection, mainPlayer.cameraBlockPosition,
-                    glm::vec3(cameraSubBlockPos[0], cameraSubBlockPos[1], cameraSubBlockPos[2]),
-                    (float)windowDimensions[0] / (float)windowDimensions[1], fov, groundLuminance,
-                    actualDT
-                );
-                #ifdef TIMESTAMPS
-                vkCmdWriteTimestamp(
-                    command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 1
-                );
-                #endif
-
-                // //auto tp2 = std::chrono::high_resolution_clock::now();
-                // //LOG(std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us");
-
-                // Draw the block outline
-                int breakBlockCoords[3];
-                int placeBlockCoords[3];
-                uint8_t lookingAtBlock = mainWorld.shootRay(mainPlayer.viewCamera.position,
-                    mainPlayer.cameraBlockPosition, mainPlayer.viewCamera.front,
-                    breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
-                    //create the model view projection matrix for the outline
-                    glm::vec3 offset;
-                    for (uint8_t i = 0; i < 3; i++)
-                        offset[i] = breakBlockCoords[i] - mainPlayer.cameraBlockPosition[i];
-                    offset += glm::vec3(0.5f, 0.5f, 0.5f);
-                    renderer.drawBlockOutline(
-                        viewProjection, offset,
-                        mainWorld.integratedServer.getResourcePack().getBlockData(
-                            lookingAtBlock).model->boundingBoxVertices
-                    );
-                }
-
-                renderer.finishDrawingGeometry();
-                renderer.renderBloom();
-                renderer.calculateAutoExposure(actualDT);
-
-                // renderer.font.queue(
-                //     testText,
-                //     glm::ivec2(10, renderer.getVulkanEngine().getSwapchainExtent().height - 30),
-                //     3, glm::vec3(1.0f, 1.0f, 1.0f)
-                // );
-                renderer.font.uploadMesh();
-
-                renderer.applyToneMap();
-                renderer.drawCrosshair();
+                game.renderFrame(currentTime, actualDT);
                 renderer.beginDrawingUi();
 
                 Menu menu({
@@ -342,30 +200,11 @@ void renderThread() {
                 renderer.submitFrame();
             }
         }
-        mainWorld.doRenderThreadJobs();
+
+        game.getWorld().doRenderThreadJobs();
 
         if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
-        {
-            do
-            {
-                running = false;
-                for (int8_t i = 0; i < mainWorld.getNumChunkLoaderThreads(); i++) {
-                    running |= chunkLoaderThreadsRunning[i];
-                }
-                mainWorld.doRenderThreadJobs();
-            } while (running);
-        }
-    }
-
-    vkDeviceWaitIdle(renderer.getVulkanEngine().getDevice());
-    mainWorld.unloadAllMeshes();
-    mainWorld.freeEntityMeshes();
-
-    logicWorker.join();
-
-    if (multiplayer) {
-        networking.disconnect(mainWorld);
-        enet_deinitialize();
+            running = false;
     }
 }
 

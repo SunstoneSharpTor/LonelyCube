@@ -23,7 +23,6 @@
 #include "client/clientNetworking.h"
 #include "client/clientPlayer.h"
 #include "client/clientWorld.h"
-#include "core/config.h"
 
 namespace lonelycube::client {
 
@@ -34,16 +33,14 @@ private:
     std::vector<bool>& m_chunkLoaderThreadsRunning;
     ClientPlayer& m_mainPlayer;
     ClientNetworking& m_networking;
-    Config& m_settings;
     bool& m_multiplayer;
 
 public:
     LogicThread(ClientWorld& mainWorld, std::vector<bool>& chunkLoaderThreadsRunning, ClientPlayer&
-        mainPlayer, ClientNetworking& networking, Config& settings, bool&
+        mainPlayer, ClientNetworking& networking, bool&
         multiplayer
     ) : m_mainWorld(mainWorld), m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning),
-        m_mainPlayer(mainPlayer), m_networking(networking), m_settings(settings),
-        m_multiplayer(multiplayer) {}
+        m_mainPlayer(mainPlayer), m_networking(networking), m_multiplayer(multiplayer) {}
 
     void go(bool& running);
 };

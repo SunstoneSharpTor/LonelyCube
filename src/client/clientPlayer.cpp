@@ -44,8 +44,10 @@ const int ClientPlayer::m_directions[18] = { 1, 0, 0,
                                        0, 0, 1,
                                        0, 0,-1 };
 
-ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& resourcePack) :
-    m_mainWorld(mainWorld), m_resourcePack(resourcePack) {
+ClientPlayer::ClientPlayer(
+    const IVec3& playerPos, ClientWorld* mainWorld, ResourcePack& resourcePack
+) : m_mainWorld(mainWorld), m_resourcePack(resourcePack)
+{
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
@@ -54,7 +56,7 @@ ClientPlayer::ClientPlayer(int* position, ClientWorld* mainWorld, ResourcePack& 
 
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     for (uint8_t i = 0; i < 3; i++) {
-        m_hitboxMinBlock[i] = position[i];
+        m_hitboxMinBlock[i] = playerPos[i];
     }
     m_hitboxMinOffset = glm::vec3(0.5f, 0.5f, 0.5f);
 

@@ -33,7 +33,7 @@ private:
     ENetPeer* m_peer;
     std::mutex m_hostMtx;
 public:
-    bool establishConnection(std::string& serverIP, uint16_t renderDistance);
+    bool establishConnection(const std::string& serverIP, uint16_t renderDistance);
     void disconnect(ClientWorld& mainWorld);
     void receivePacket(ENetPacket* packet, ClientWorld& mainWorld);
     bool receiveEvents(ClientWorld& mainWorld);
