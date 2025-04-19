@@ -77,7 +77,7 @@ public:
 
     uint16_t m_blockHolding;
 
-    ClientPlayer(int* position, ClientWorld* newWorld, ResourcePack& resourcePack);
+    ClientPlayer(const IVec3& playerPos, ClientWorld* newWorld, ResourcePack& resourcePack);
 
     void processUserInput(
         GLFWwindow* window, int* windowDimensions, bool* windowLastFocus, double currentTime,

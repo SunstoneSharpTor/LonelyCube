@@ -53,6 +53,7 @@ set(CLIENT_SOURCE_FILES
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
     src/client/clientWorld.cpp
+    src/client/game.cpp
     src/client/graphics/bloom.cpp
     src/client/graphics/camera.cpp
     src/client/graphics/entityMeshManager.cpp

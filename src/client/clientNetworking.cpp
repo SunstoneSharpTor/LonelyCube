@@ -28,7 +28,7 @@
 
 namespace lonelycube::client {
 
-bool ClientNetworking::establishConnection(std::string& serverIP, uint16_t renderDistance) {
+bool ClientNetworking::establishConnection(const std::string& serverIP, uint16_t renderDistance) {
     std::lock_guard<std::mutex> lock(m_hostMtx);
     if (enet_initialize() != 0) {
         return EXIT_FAILURE;
