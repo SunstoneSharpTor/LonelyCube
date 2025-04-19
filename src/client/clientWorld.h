@@ -84,8 +84,8 @@ private:
     std::vector<std::vector<uint32_t>> m_chunkWaterIndices;
 
     //communication
-    std::mutex m_chunkMeshReadyMtx;
-    std::condition_variable m_chunkMeshReadyCV;
+    std::unique_ptr<std::mutex[]> m_chunkMeshReadyMtx;
+    std::unique_ptr<std::condition_variable[]> m_chunkMeshReadyCV;
     std::mutex m_unmeshNeededMtx;
     std::condition_variable m_unmeshNeededCV;
     std::mutex m_meshesToUpdateMtx;
