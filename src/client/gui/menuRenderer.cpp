@@ -150,14 +150,28 @@ void MenuRenderer::queue(const Menu& menu)
             vertices[m_vertexBufferSize + 13] = position.y;
 
             // Texture coordinates
-            vertices[m_vertexBufferSize + 2] = 0.0f;
-            vertices[m_vertexBufferSize + 3] = 0.0f;
-            vertices[m_vertexBufferSize + 6] = 0.0f;
-            vertices[m_vertexBufferSize + 7] = 14.0f / 256;
-            vertices[m_vertexBufferSize + 10] = 160.0f / 256;
-            vertices[m_vertexBufferSize + 11] = 14.0f / 256;
-            vertices[m_vertexBufferSize + 14] = 160.0f / 256;
-            vertices[m_vertexBufferSize + 15] = 0.0f;
+            if (element.buttonData.mouseOver)
+            {
+                vertices[m_vertexBufferSize + 2] = 0.0f;
+                vertices[m_vertexBufferSize + 3] = 14.0f / 512;
+                vertices[m_vertexBufferSize + 6] = 0.0f;
+                vertices[m_vertexBufferSize + 7] = 28.0f / 512;
+                vertices[m_vertexBufferSize + 10] = 160.0f / 512;
+                vertices[m_vertexBufferSize + 11] = 28.0f / 512;
+                vertices[m_vertexBufferSize + 14] = 160.0f / 512;
+                vertices[m_vertexBufferSize + 15] = 14.0f / 512;
+            }
+            else
+            {
+                vertices[m_vertexBufferSize + 2] = 0.0f;
+                vertices[m_vertexBufferSize + 3] = 0.0f;
+                vertices[m_vertexBufferSize + 6] = 0.0f;
+                vertices[m_vertexBufferSize + 7] = 14.0f / 512;
+                vertices[m_vertexBufferSize + 10] = 160.0f / 512;
+                vertices[m_vertexBufferSize + 11] = 14.0f / 512;
+                vertices[m_vertexBufferSize + 14] = 160.0f / 512;
+                vertices[m_vertexBufferSize + 15] = 0.0f;
+            }
 
             glm::ivec2 textPos = position + glm::ivec2(
                 (element.buttonData.width - m_font.getStringWidth(element.text)) / 2, 4

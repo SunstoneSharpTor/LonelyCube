@@ -19,6 +19,7 @@
 #include "client/renderThread.h"
 
 #include <enet/enet.h>
+#include "client/applicationStateManager.h"
 #include "glm/fwd.hpp"
 #include "stb_image.h"
 
@@ -71,6 +72,9 @@ void characterCallback(GLFWwindow* window, unsigned int codepoint)
 }
 
 void renderThread() {
+    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
+    ApplicationStateManager applicationStateManager;
+
     Config settings("res/settings.txt");
 
     bool multiplayer = settings.getMultiplayer();
@@ -82,8 +86,6 @@ void renderThread() {
             multiplayer = false;
         }
     }
-
-    Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
 
     uint32_t worldSeed = std::time(0);
     int playerSpawnPoint[3] = { 0, 200, 0 };
@@ -98,10 +100,9 @@ void renderThread() {
 
     bool running = true;
 
-    bool* chunkLoaderThreadsRunning = new bool[mainWorld.getNumChunkLoaderThreads()];
+    std::vector<bool> chunkLoaderThreadsRunning(mainWorld.getNumChunkLoaderThreads());
     std::fill(
-        chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + mainWorld.getNumChunkLoaderThreads(),
-        true
+        chunkLoaderThreadsRunning.begin(), chunkLoaderThreadsRunning.end(), true
     );
 
     LogicThread logicThread(
@@ -319,9 +320,21 @@ void renderThread() {
                 renderer.applyToneMap();
                 renderer.drawCrosshair();
                 renderer.beginDrawingUi();
-                Menu menu;
+
+                Menu menu({
+                    renderer.getVulkanEngine().getSwapchainExtent().width,
+                    renderer.getVulkanEngine().getSwapchainExtent().height
+                });
                 menu.setScale(std::max(1u, renderer.getVulkanEngine().getSwapchainExtent().height / 217));
                 menu.addButton(160, { 0.5f, 0.5f }, { -80, -7 }, "Lonely Cube");
+
+                double xPos, yPos;
+                glfwGetCursorPos(renderer.getVulkanEngine().getWindow(), &xPos, &yPos);
+                bool mousePressed = glfwGetMouseButton(
+                    renderer.getVulkanEngine().getWindow(), GLFW_MOUSE_BUTTON_LEFT
+                ) == GLFW_PRESS;
+
+                menu.update(glm::ivec2(std::floor(xPos), std::floor(yPos)));
                 renderer.menuRenderer.queue(menu);
                 renderer.menuRenderer.draw();
                 renderer.font.draw();
@@ -349,8 +362,6 @@ void renderThread() {
     mainWorld.freeEntityMeshes();
 
     logicWorker.join();
-
-    delete[] chunkLoaderThreadsRunning;
 
     if (multiplayer) {
         networking.disconnect(mainWorld);

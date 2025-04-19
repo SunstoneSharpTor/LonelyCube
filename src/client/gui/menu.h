@@ -27,7 +27,6 @@ namespace lonelycube::client {
 class Menu
 {
 public:
-
     enum ElementType
     {
         Button
@@ -49,7 +48,10 @@ public:
         std::string text;
     };
 
-    void addButton(
+    Menu(const glm::ivec2 windowDimensions);
+    void update(glm::ivec2 cursorPos);
+    void resize(const glm::ivec2 windowDimensions);
+    Element& addButton(
         int width, glm::vec2 screenAlignment, glm::ivec2 offset, const std::string& text
     );
 
@@ -68,6 +70,7 @@ public:
 
 private:
     int m_scale;
+    glm::vec2 m_windowDimensions;
     std::vector<Element> m_elements;
 };
 

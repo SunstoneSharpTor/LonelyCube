@@ -62,7 +62,7 @@ private:
     std::mutex m_chunksBeingLoadedMtx;
     std::mutex& m_networkingMtx;
     bool m_threadsWait;
-    bool* m_threadWaiting;
+    std::vector<bool> m_threadWaiting;
 
 public:
     ServerWorld(uint64_t seed, std::mutex& networkingMtx);
@@ -113,8 +113,8 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
     m_players.reserve(32);
 
     m_numChunkLoadingThreads = std::max(1u, std::min(32u, std::thread::hardware_concurrency()));
-    m_threadWaiting = new bool[m_numChunkLoadingThreads];
-    std::fill(m_threadWaiting, m_threadWaiting + m_numChunkLoadingThreads, false);
+    m_threadWaiting.resize(m_numChunkLoadingThreads);
+    std::fill(m_threadWaiting.begin(), m_threadWaiting.end(), false);
 }
 
 template<bool integrated>

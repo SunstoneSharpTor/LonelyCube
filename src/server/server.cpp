@@ -66,15 +66,14 @@ int main (int argc, char** argv) {
     LOG("World Seed: " + std::to_string(worldSeed));
 
     uint8_t numChunkLoaderThreads = mainWorld.getNumChunkLoaderThreads();
-    bool* chunkLoaderThreadsRunning = new bool[numChunkLoaderThreads];
-    std::fill(chunkLoaderThreadsRunning, chunkLoaderThreadsRunning + numChunkLoaderThreads, true);
+    std::vector<bool> chunkLoaderThreadsRunning(numChunkLoaderThreads);
+    std::fill(chunkLoaderThreadsRunning.begin(), chunkLoaderThreadsRunning.end(), true);
 
     bool running = true;
 
-    std::thread* chunkLoaderThreads = new std::thread[numChunkLoaderThreads];
-    for (int8_t threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++) {
-        chunkLoaderThreads[threadNum] = std::thread(chunkLoaderThread, &mainWorld, &running, threadNum);
-    }
+    std::vector<std::thread> chunkLoaderThreads;
+    for (int8_t threadNum = 0; threadNum < numChunkLoaderThreads; threadNum++)
+        chunkLoaderThreads.emplace_back(chunkLoaderThread, &mainWorld, &running, threadNum);
 
     // Gameloop
     std::thread(receiveCommands, &running).detach();

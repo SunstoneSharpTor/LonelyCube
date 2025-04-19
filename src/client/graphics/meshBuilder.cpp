@@ -33,12 +33,12 @@ const int MeshBuilder::s_neighbouringBlocksY[7] = { -1, 0, 0, 0, 0, 1,  0 };
 
 const int MeshBuilder::s_neighbouringBlocksZ[7] = { 0, -1, 0, 0, 1, 0,  0 };
 
-MeshBuilder::MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t* numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
-    uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices)
-    : m_chunk(chunk), m_serverWorld(serverWorld), m_vertices(vertices),
-    m_numVertices(numVertices), m_indices(indices), m_numIndices(numIndices),
-    m_waterVertices(waterVertices), m_numWaterVertices(numWaterVertices),
-    m_waterIndices(waterIndices), m_numWaterIndices(numWaterIndices)
+MeshBuilder::MeshBuilder(
+    Chunk& chunk, ServerWorld<true>& serverWorld, std::vector<float>& vertices,
+    std::vector<uint32_t>& indices, std::vector<float>& waterVertices,
+    std::vector<uint32_t>& waterIndices
+) : m_chunk(chunk), m_serverWorld(serverWorld), m_vertices(vertices), m_indices(indices),
+    m_waterVertices(waterVertices), m_waterIndices(waterIndices)
 {
     m_chunk.getPosition(m_chunkPosition);
     m_chunkWorldCoords[0] = m_chunkPosition[0] * constants::CHUNK_SIZE;
@@ -69,28 +69,28 @@ void MeshBuilder::addFaceToMesh(uint32_t block, int blockType, int faceNum)
         {
             for (int element = 0; element < 3; element++)
             {
-                m_waterVertices[*m_numWaterVertices] = faceData.coords[vertex * 3 + element] +
-                    blockCoords[element] + 0.5f;
-                (*m_numWaterVertices)++;
+                m_waterVertices.push_back(
+                    faceData.coords[vertex * 3 + element] + blockCoords[element] + 0.5f
+                );
             }
-            m_waterVertices[*m_numWaterVertices] = texCoords[vertex * 2];
-            m_waterVertices[*m_numWaterVertices + 1] = texCoords[vertex * 2 + 1];
-            m_waterVertices[*m_numWaterVertices + 2] = getSmoothSkyLight(worldBlockPos,
-                faceData.coords + vertex * 3, faceData.lightingBlock);
-            m_waterVertices[*m_numWaterVertices + 3] = getSmoothBlockLight(worldBlockPos,
-                faceData.coords + vertex * 3, faceData.lightingBlock);
-            (*m_numWaterVertices) += 4;
+            m_waterVertices.push_back(texCoords[vertex * 2]);
+            m_waterVertices.push_back(texCoords[vertex * 2 + 1]);
+            m_waterVertices.push_back(getSmoothSkyLight(
+                worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock
+            ));
+            m_waterVertices.push_back(getSmoothBlockLight(
+                worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock
+            ));
         }
 
         //index buffer
-        int trueNumVertices = *m_numWaterVertices / 7;
-        m_waterIndices[*m_numWaterIndices] = trueNumVertices - 4;
-        m_waterIndices[*m_numWaterIndices + 1] = trueNumVertices - 3;
-        m_waterIndices[*m_numWaterIndices + 2] = trueNumVertices - 2;
-        m_waterIndices[*m_numWaterIndices + 4] = trueNumVertices - 2;
-        m_waterIndices[*m_numWaterIndices + 5] = trueNumVertices - 1;
-        m_waterIndices[*m_numWaterIndices + 3] = trueNumVertices - 4;
-        *m_numWaterIndices += 6;
+        int trueNumVertices = m_waterVertices.size() / 7;
+        m_waterIndices.push_back(trueNumVertices - 4);
+        m_waterIndices.push_back(trueNumVertices - 3);
+        m_waterIndices.push_back(trueNumVertices - 2);
+        m_waterIndices.push_back(trueNumVertices - 2);
+        m_waterIndices.push_back(trueNumVertices - 1);
+        m_waterIndices.push_back(trueNumVertices - 4);
     }
     else
     {
@@ -102,8 +102,9 @@ void MeshBuilder::addFaceToMesh(uint32_t block, int blockType, int faceNum)
         {
             for (int element = 0; element < 3; element++)
             {
-                m_vertices[*m_numVertices] = faceData.coords[vertex * 3 + element] +
-                    blockCoords[element] + 0.5f;
+                m_vertices.push_back(
+                    faceData.coords[vertex * 3 + element] + blockCoords[element] + 0.5f
+                );
                 // float sub = m_vertices[*m_numVertices] - (int)m_vertices[*m_numVertices];
                 // if (sub > 0)
                 // {
@@ -119,28 +120,27 @@ void MeshBuilder::addFaceToMesh(uint32_t block, int blockType, int faceNum)
                 //      // std::cout << element << "\n";
                 //     }
                 // }
-                (*m_numVertices)++;
             }
-            m_vertices[*m_numVertices] = texCoords[vertex * 2];
-            m_vertices[*m_numVertices + 1] = texCoords[vertex * 2 + 1];
+            m_vertices.push_back(texCoords[vertex * 2]);
+            m_vertices.push_back(texCoords[vertex * 2 + 1]);
             float ambientOcclusion = getAmbientOcclusion(worldBlockPos, faceData.coords + vertex *
                 3, faceData.lightingBlock);
-            m_vertices[*m_numVertices + 2] = getSmoothSkyLight(worldBlockPos, faceData.coords +
-                vertex * 3, faceData.lightingBlock) * ambientOcclusion;
-            m_vertices[*m_numVertices + 3] = getSmoothBlockLight(worldBlockPos, faceData.coords +
-                vertex * 3, faceData.lightingBlock) * ambientOcclusion;
-            (*m_numVertices) += 4;
+            m_vertices.push_back(getSmoothSkyLight(
+                worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock
+            ) * ambientOcclusion);
+            m_vertices.push_back(getSmoothBlockLight(
+                worldBlockPos, faceData.coords + vertex * 3, faceData.lightingBlock
+            ) * ambientOcclusion);
         }
 
         //index buffer
-        int trueNumVertices = *m_numVertices / 7;
-        m_indices[*m_numIndices] = trueNumVertices - 4;
-        m_indices[*m_numIndices + 1] = trueNumVertices - 3;
-        m_indices[*m_numIndices + 2] = trueNumVertices - 2;
-        m_indices[*m_numIndices + 4] = trueNumVertices - 2;
-        m_indices[*m_numIndices + 5] = trueNumVertices - 1;
-        m_indices[*m_numIndices + 3] = trueNumVertices - 4;
-        (*m_numIndices) += 6;
+        int trueNumVertices = m_vertices.size() / 7;
+        m_indices.push_back(trueNumVertices - 4);
+        m_indices.push_back(trueNumVertices - 3);
+        m_indices.push_back(trueNumVertices - 2);
+        m_indices.push_back(trueNumVertices - 2);
+        m_indices.push_back(trueNumVertices - 1);
+        m_indices.push_back(trueNumVertices - 4);
     }
 }
 
@@ -297,7 +297,11 @@ float MeshBuilder::getAmbientOcclusion(int* blockCoords, float* pointCoords, int
 
 void MeshBuilder::buildMesh()
 {
-    *m_numVertices = *m_numIndices = *m_numWaterVertices = *m_numWaterIndices = 0;
+    m_vertices.clear();
+    m_indices.clear();
+    m_waterVertices.clear();
+    m_waterIndices.clear();
+
     int chunkPosition[3];
     m_chunk.getPosition(chunkPosition);
     int blockPos[3];
