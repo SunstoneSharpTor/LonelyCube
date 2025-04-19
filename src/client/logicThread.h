@@ -31,14 +31,14 @@ class LogicThread
 {
 private:
     ClientWorld& m_mainWorld;
-    bool* m_chunkLoaderThreadsRunning;
+    std::vector<bool>& m_chunkLoaderThreadsRunning;
     ClientPlayer& m_mainPlayer;
     ClientNetworking& m_networking;
     Config& m_settings;
     bool& m_multiplayer;
 
 public:
-    LogicThread(ClientWorld& mainWorld, bool* chunkLoaderThreadsRunning, ClientPlayer&
+    LogicThread(ClientWorld& mainWorld, std::vector<bool>& chunkLoaderThreadsRunning, ClientPlayer&
         mainPlayer, ClientNetworking& networking, Config& settings, bool&
         multiplayer
     ) : m_mainWorld(mainWorld), m_chunkLoaderThreadsRunning(chunkLoaderThreadsRunning),

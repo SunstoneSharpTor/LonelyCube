@@ -20,10 +20,39 @@
 
 namespace lonelycube::client {
 
-void Menu::addButton(
+Menu::Menu(const glm::ivec2 windowDimensions)
+{
+    resize(windowDimensions);
+}
+
+void Menu::update(glm::ivec2 cursorPos)
+{
+    for (auto& element : m_elements)
+    {
+        if (element.type == Button)
+        {
+            glm::ivec2 position = element.buttonData.screenAlignment * m_windowDimensions +
+                glm::vec2(element.buttonData.pixelOffset * m_scale);
+            glm::ivec2 size(element.buttonData.width * m_scale, 14.0f * m_scale);
+            element.buttonData.mouseOver = cursorPos.x >= position.x
+                                        && cursorPos.x < position.x + size.x
+                                        && cursorPos.y >= position.y
+                                        && cursorPos.y < position.y + size.y;
+        }
+    }
+}
+
+void Menu::resize(const glm::ivec2 windowDimensions)
+{
+    m_windowDimensions = windowDimensions;
+}
+
+Menu::Element& Menu::addButton(
     int width, glm::vec2 screenAlignment, glm::ivec2 offset, const std::string& text
 ) {
     m_elements.push_back({ Button, { false, width, screenAlignment, offset}, text });
+
+    return m_elements.back();
 }
 
 }  // namespace lonelycube::client

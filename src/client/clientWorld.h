@@ -74,21 +74,18 @@ private:
     std::unordered_set<IVec3> m_meshesToUpdate;
     std::array<std::vector<MeshData>, VulkanEngine::MAX_FRAMES_IN_FLIGHT> m_meshesToUnload;
     std::deque<IVec3> m_recentChunksBuilt;
-    //mesh building data - this is stored at class-level because it allows it to be
-    //accessed from multiple threads
-    uint32_t* m_numChunkVertices; //array to allow for each mesh-building thread to have its own value
-    uint32_t* m_numChunkWaterVertices; //array to allow for each mesh-building thread to have its own value
-    uint32_t* m_numChunkIndices; //array to allow for each mesh-building thread to have its own value
-    uint32_t* m_numChunkWaterIndices; //array to allow for each mesh-building thread to have its own value
-    IVec3* m_chunkPosition; //array to allow for each mesh-building thread to have its own value
-    float** m_chunkVertices; //2d array to allow for each mesh-building thread to have its own array
-    uint32_t** m_chunkIndices; //2d array to allow for each mesh-building thread to have its own array
-    float** m_chunkWaterVertices; //2d array to allow for each mesh-building thread to have its own array
-    uint32_t** m_chunkWaterIndices; //2d array to allow for each mesh-building thread to have its own array
+    // Mesh building data - this is stored at class-level because it allows it to be
+    // accessed from multiple threads
+    // Vectors to allow for each mesh-building thread to have its own value
+    std::vector<IVec3> m_chunkPosition;
+    std::vector<std::vector<float>> m_chunkVertices;
+    std::vector<std::vector<uint32_t>> m_chunkIndices;
+    std::vector<std::vector<float>> m_chunkWaterVertices;
+    std::vector<std::vector<uint32_t>> m_chunkWaterIndices;
 
     //communication
-    std::mutex* m_chunkMeshReadyMtx;
-    std::condition_variable* m_chunkMeshReadyCV;
+    std::mutex m_chunkMeshReadyMtx;
+    std::condition_variable m_chunkMeshReadyCV;
     std::mutex m_unmeshNeededMtx;
     std::condition_variable m_unmeshNeededCV;
     std::mutex m_meshesToUpdateMtx;
@@ -96,10 +93,9 @@ private:
     std::mutex m_renderThreadWaitingForMeshUpdatesMtx;
     std::mutex m_unmeshedChunksMtx;
     bool m_renderThreadWaitingForMeshUpdates;
-    bool* m_chunkMeshReady;
+    std::vector<bool> m_chunkMeshReady;
     bool m_unmeshNeeded;
-    bool* m_unmeshOccurred;
-    bool* m_threadWaiting;
+    std::vector<bool> m_threadWaiting;
     int m_numRelights;
 
     ENetPeer* m_peer;

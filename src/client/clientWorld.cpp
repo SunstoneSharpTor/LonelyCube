@@ -65,19 +65,13 @@ ClientWorld::ClientWorld(
 
     //allocate arrays on the heap for the mesh to be built
     //do this now so that the same array can be reused for each chunk
-    m_numChunkVertices = new uint32_t[m_numChunkLoadingThreads];
-    m_numChunkIndices = new uint32_t[m_numChunkLoadingThreads];
-    m_numChunkWaterVertices = new uint32_t[m_numChunkLoadingThreads];
-    m_numChunkWaterIndices = new uint32_t[m_numChunkLoadingThreads];
-    m_chunkVertices = new float*[m_numChunkLoadingThreads];
-    m_chunkIndices = new uint32_t*[m_numChunkLoadingThreads];
-    m_chunkWaterVertices = new float*[m_numChunkLoadingThreads];
-    m_chunkWaterIndices = new uint32_t*[m_numChunkLoadingThreads];
-    m_chunkPosition = new IVec3[m_numChunkLoadingThreads];
-    m_chunkMeshReady = new bool[m_numChunkLoadingThreads];
-    m_chunkMeshReadyCV = new std::condition_variable[m_numChunkLoadingThreads];
-    m_chunkMeshReadyMtx = new std::mutex[m_numChunkLoadingThreads];
-    m_threadWaiting = new bool[m_numChunkLoadingThreads];
+    m_chunkVertices.resize(m_numChunkLoadingThreads);
+    m_chunkIndices.resize(m_numChunkLoadingThreads);
+    m_chunkWaterVertices.resize(m_numChunkLoadingThreads);
+    m_chunkWaterIndices.resize(m_numChunkLoadingThreads);
+    m_chunkPosition.resize(m_numChunkLoadingThreads);
+    m_chunkMeshReady.resize(m_numChunkLoadingThreads);
+    m_threadWaiting.resize(m_numChunkLoadingThreads);
     m_unmeshNeeded = false;
 
     m_entityMeshes.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
@@ -89,10 +83,18 @@ ClientWorld::ClientWorld(
     }
 
     for (int i = 0; i < m_numChunkLoadingThreads; i++) {
-        m_chunkVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkIndices[i] = new uint32_t[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkWaterVertices[i] = new float[12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
-        m_chunkWaterIndices[i] = new uint32_t[18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE];
+        m_chunkVertices[i].reserve(
+            12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        );
+        m_chunkIndices[i].reserve(
+            18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        );
+        m_chunkWaterVertices[i].reserve(
+            12 * 6 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        );
+        m_chunkWaterIndices[i].reserve(
+            18 * constants::CHUNK_SIZE * constants::CHUNK_SIZE * constants::CHUNK_SIZE
+        );
         m_chunkMeshReady[i] = false;
         m_threadWaiting[i] = false;
     }
@@ -228,11 +230,11 @@ void ClientWorld::doRenderThreadJobs()
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
             // lock release 
-            std::lock_guard<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
+            std::lock_guard<std::mutex> lock(m_chunkMeshReadyMtx);
             chunkMeshUploaded[threadNum] = true;
             m_chunkMeshReady[threadNum] = false;
             // notify consumer when done 
-            m_chunkMeshReadyCV[threadNum].notify_one();
+            m_chunkMeshReadyCV.notify_all();
         }
     }
 }
@@ -436,20 +438,13 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
 
     //generate the mesh
     MeshBuilder(
-        integratedServer.chunkManager.getChunk(chunkPosition),
-        integratedServer,
-        m_chunkVertices[threadNum],
-        &m_numChunkVertices[threadNum],
-        m_chunkIndices[threadNum],
-        &m_numChunkIndices[threadNum],
-        m_chunkWaterVertices[threadNum],
-        &m_numChunkWaterVertices[threadNum],
-        m_chunkWaterIndices[threadNum],
-        &m_numChunkWaterIndices[threadNum]
+        integratedServer.chunkManager.getChunk(chunkPosition), integratedServer,
+        m_chunkVertices[threadNum], m_chunkIndices[threadNum], m_chunkWaterVertices[threadNum],
+        m_chunkWaterIndices[threadNum]
     ).buildMesh();
 
     //if the mesh is empty dont upload it to save interrupting the render thread
-    if ((m_numChunkIndices[threadNum] == 0) && (m_numChunkWaterIndices[threadNum] == 0)) {
+    if ((m_chunkIndices[threadNum].size() == 0) && (m_chunkWaterIndices[threadNum].size() == 0)) {
         m_meshUpdatesMtx.lock();
         while (m_renderThreadWaitingForMeshUpdates) {
             m_meshUpdatesMtx.unlock();
@@ -480,10 +475,10 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     }
 
     // locking
-    std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
+    std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx);
     // waiting
     while (!chunkMeshUploaded[threadNum]) {
-        m_chunkMeshReadyCV[threadNum].wait(lock);
+        m_chunkMeshReadyCV.wait(lock);
     }
 }
 
@@ -491,11 +486,10 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     MeshData newMesh;
     newMesh.chunkPosition = m_chunkPosition[threadNum];
 
-    if (m_numChunkIndices[threadNum] > 0)
+    if (m_chunkIndices[threadNum].size() > 0)
     {
         newMesh.blockMesh = m_renderer.getVulkanEngine().uploadMesh(
-            std::span{ m_chunkVertices[threadNum], m_numChunkVertices[threadNum] },
-            std::span{ m_chunkIndices[threadNum], m_numChunkIndices[threadNum] }
+            m_chunkVertices[threadNum], m_chunkIndices[threadNum]
         );
     }
     else
@@ -503,11 +497,10 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
         newMesh.blockMesh.indexCount = 0;
     }
 
-    if (m_numChunkWaterVertices[threadNum] > 0)
+    if (m_chunkWaterVertices[threadNum].size() > 0)
     {
         newMesh.waterMesh = m_renderer.getVulkanEngine().uploadMesh(
-            std::span{ m_chunkWaterVertices[threadNum], m_numChunkWaterVertices[threadNum] },
-            std::span{ m_chunkWaterIndices[threadNum], m_numChunkWaterIndices[threadNum] }
+            m_chunkWaterVertices[threadNum], m_chunkWaterIndices[threadNum]
         );
     }
     else

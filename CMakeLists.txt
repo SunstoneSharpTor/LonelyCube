@@ -48,6 +48,7 @@ FetchContent_MakeAvailable(glfw enet glm stb volk VulkanMemoryAllocator)
 add_subdirectory(tests)
 
 set(CLIENT_SOURCE_FILES
+    src/client/applicationStateManager.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp

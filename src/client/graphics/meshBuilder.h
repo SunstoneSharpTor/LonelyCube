@@ -31,14 +31,10 @@ class MeshBuilder {
 private:
     Chunk& m_chunk;
     ServerWorld<true>& m_serverWorld;
-    float* m_vertices;
-    uint32_t* m_numVertices;
-    uint32_t* m_indices;
-    uint32_t* m_numIndices;
-    float* m_waterVertices;
-    uint32_t* m_numWaterVertices;
-    uint32_t* m_waterIndices;
-    uint32_t* m_numWaterIndices;
+    std::vector<float>& m_vertices;
+    std::vector<uint32_t>& m_indices;
+    std::vector<float>& m_waterVertices;
+    std::vector<uint32_t>& m_waterIndices;
     int m_chunkPosition[3];
     int m_chunkWorldCoords[3];
 
@@ -61,9 +57,11 @@ private:
     }
 
 public:
-    MeshBuilder(Chunk& chunk, ServerWorld<true>& serverWorld, float* vertices, uint32_t*
-        numVertices, uint32_t* indices, uint32_t* numIndices, float* waterVertices,
-        uint32_t* numWaterVertices, uint32_t* waterIndices, uint32_t* numWaterIndices);
+    MeshBuilder(
+        Chunk& chunk, ServerWorld<true>& serverWorld, std::vector<float>& vertices,
+        std::vector<uint32_t>& indices, std::vector<float>& waterVertices,
+        std::vector<uint32_t>& waterIndices
+    );
 
     void buildMesh();
 };
