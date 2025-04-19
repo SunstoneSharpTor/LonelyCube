@@ -80,6 +80,7 @@ public:
     void finishDrawingGeometry();
     void renderBloom();
     void calculateAutoExposure(double DT);
+    void beginRenderingToSwapchainImage();
     void applyToneMap();
     void drawCrosshair();
     void beginDrawingUi();

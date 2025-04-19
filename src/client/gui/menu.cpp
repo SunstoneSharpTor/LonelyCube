@@ -47,12 +47,13 @@ void Menu::resize(const glm::ivec2 windowDimensions)
     m_windowDimensions = windowDimensions;
 }
 
-Menu::Element& Menu::addButton(
+std::size_t Menu::addButton(
     int width, glm::vec2 screenAlignment, glm::ivec2 offset, const std::string& text
 ) {
+    std::size_t index = m_elements.size();
     m_elements.push_back({ Button, { false, width, screenAlignment, offset}, text });
 
-    return m_elements.back();
+    return index;
 }
 
 }  // namespace lonelycube::client

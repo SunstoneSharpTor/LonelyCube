@@ -68,6 +68,7 @@ set(CLIENT_SOURCE_FILES
     src/client/gui/font.cpp
     src/client/gui/menu.cpp
     src/client/gui/menuRenderer.cpp
+    src/client/gui/startMenu.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp
     src/core/chunk.cpp

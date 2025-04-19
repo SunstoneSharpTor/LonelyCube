@@ -51,7 +51,7 @@ public:
     Menu(const glm::ivec2 windowDimensions);
     void update(glm::ivec2 cursorPos);
     void resize(const glm::ivec2 windowDimensions);
-    Element& addButton(
+    std::size_t addButton(
         int width, glm::vec2 screenAlignment, glm::ivec2 offset, const std::string& text
     );
 
@@ -66,6 +66,10 @@ public:
     inline const std::vector<Element>& getElements() const
     {
         return m_elements;
+    }
+    inline const Element& getElement(std::size_t index) const
+    {
+        return m_elements[index];
     }
 
 private:

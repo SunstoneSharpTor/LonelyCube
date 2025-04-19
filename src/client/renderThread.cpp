@@ -18,52 +18,19 @@
 
 #include "client/renderThread.h"
 
-#include <enet/enet.h>
-#include "client/applicationStateManager.h"
-#include "client/game.h"
-#include "glm/fwd.hpp"
-#include "stb_image.h"
+#include "glm/glm.hpp"
 
 #include "core/pch.h"
 
-#include "client/logicThread.h"
-#include "client/clientNetworking.h"
+#include "client/applicationStateManager.h"
+#include "client/game.h"
 #include "client/graphics/renderer.h"
-#include "client/graphics/vulkan/vulkanEngine.h"
-#include "client/graphics/camera.h"
-#include "client/clientWorld.h"
-#include "client/clientPlayer.h"
+#include "client/gui/menuUpdateInfo.h"
+#include "client/gui/startMenu.h"
 #include "core/config.h"
-#include "core/constants.h"
 #include "core/log.h"
 
-#include "glm/glm.hpp"
-
 namespace lonelycube::client {
-
-static float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
-    uint32_t preceedingPoint = numPoints * 2 - 2;
-    uint32_t succeedingPoint = 0;
-    if (time < points[numPoints * 2 - 2]) {
-        int i = 0;
-        while (i < numPoints * 2 && points[i] < time) {
-            i += 2;
-            preceedingPoint = i - 2;
-            succeedingPoint = i;
-        }
-    }
-    float preceedingTime = points[preceedingPoint];
-    float succeedingTime = points[succeedingPoint];
-    if (succeedingTime < preceedingTime) {
-        float offset = (float)constants::DAY_LENGTH - preceedingTime;
-        preceedingTime = 0;
-        time = (time + (int)offset) % constants::DAY_LENGTH;
-        succeedingTime += offset;
-    }
-    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
-
-    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
-}
 
 static std::string testText;
 
@@ -72,7 +39,8 @@ void characterCallback(GLFWwindow* window, unsigned int codepoint)
     testText = testText + (char)codepoint;
 }
 
-void renderThread() {
+void renderThread()
+{
     Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
     ApplicationStateManager applicationStateManager;
 
@@ -84,6 +52,11 @@ void renderThread() {
         worldSeed
     );
 
+    StartMenu startMenu({
+        renderer.getVulkanEngine().getSwapchainExtent().width,
+        renderer.getVulkanEngine().getSwapchainExtent().height
+    });
+
     bool running = true;
 
     bool windowLastFocus = false;
@@ -93,6 +66,7 @@ void renderThread() {
     int windowRestoredSize[2];
     int windowRestoredPos[2];
     bool lastF11 = false;
+    bool lastMousePressed = true;
     int windowDimensions[2];
     int smallScreenWindowDimensions[2];
     int smallScreenWindowPos[2];
@@ -167,7 +141,7 @@ void renderThread() {
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
             }
-            //update frame rate limiter
+            // Update frame rate limiter
             if ((currentTime - DT) < (frameStart + DT))
                 frameStart += DT;
             else
@@ -176,24 +150,65 @@ void renderThread() {
             renderer.beginRenderingFrame();
             if (!renderer.isMinimised())
             {
-                game.renderFrame(currentTime, actualDT);
-                renderer.beginDrawingUi();
-
-                Menu menu({
-                    renderer.getVulkanEngine().getSwapchainExtent().width,
-                    renderer.getVulkanEngine().getSwapchainExtent().height
-                });
-                menu.setScale(std::max(1u, renderer.getVulkanEngine().getSwapchainExtent().height / 217));
-                menu.addButton(160, { 0.5f, 0.5f }, { -80, -7 }, "Lonely Cube");
-
+                // Update GUI
                 double xPos, yPos;
                 glfwGetCursorPos(renderer.getVulkanEngine().getWindow(), &xPos, &yPos);
-                bool mousePressed = glfwGetMouseButton(
+                int mousePressed = glfwGetMouseButton(
                     renderer.getVulkanEngine().getWindow(), GLFW_MOUSE_BUTTON_LEFT
-                ) == GLFW_PRESS;
+                );
+                MenuUnpdateInfo menuUpdateInfo {
+                    .applicationStateManager = applicationStateManager,
+                    .game = game
+                };
+                menuUpdateInfo.mouseClicked = mousePressed == GLFW_PRESS && !lastMousePressed;
+                lastMousePressed = mousePressed == GLFW_PRESS;
+                menuUpdateInfo.guiScale = std::max(
+                    1,
+                    static_cast<int>(renderer.getVulkanEngine().getSwapchainExtent().height) / 217
+                );
+                menuUpdateInfo.windowSize = glm::ivec2(
+                    renderer.getVulkanEngine().getSwapchainExtent().width,
+                    renderer.getVulkanEngine().getSwapchainExtent().height
+                );
+                menuUpdateInfo.cursorPos = glm::ivec2(std::floor(xPos), std::floor(yPos));
 
-                menu.update(glm::ivec2(std::floor(xPos), std::floor(yPos)));
-                renderer.menuRenderer.queue(menu);
+                switch (applicationStateManager.getState().back())
+                {
+                case ApplicationStateManager::StartMenu:
+                    startMenu.update(menuUpdateInfo);
+                    break;
+
+                default:
+                    break;
+                }
+                if (applicationStateManager.getState().empty())
+                    break;
+
+                // Update and draw game
+                if (std::find(
+                        applicationStateManager.getState().begin(),
+                        applicationStateManager.getState().end(), ApplicationStateManager::Gameplay
+                    ) != applicationStateManager.getState().end()
+                ) {
+                    game.renderFrame(currentTime, actualDT);
+                }
+                else
+                {
+                    renderer.beginRenderingToSwapchainImage();
+                }
+
+                // Draw GUI
+                switch (applicationStateManager.getState().back())
+                {
+                case ApplicationStateManager::StartMenu:
+                    renderer.menuRenderer.queue(startMenu.getMenu());
+                    break;
+
+                default:
+                    break;
+                }
+
+                renderer.beginDrawingUi();
                 renderer.menuRenderer.draw();
                 renderer.font.draw();
 
