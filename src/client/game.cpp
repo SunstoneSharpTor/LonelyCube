@@ -19,14 +19,11 @@
 #include "client/game.h"
 
 #include <enet/enet.h>
-#include <functional>
-#include "client/applicationStateManager.h"
 #include "glm/fwd.hpp"
 
 #include "core/pch.h"
 
 #include "client/logicThread.h"
-#include "client/graphics/vulkan/vulkanEngine.h"
 #include "client/graphics/camera.h"
 #include "core/constants.h"
 #include "core/log.h"
@@ -58,8 +55,6 @@ static float calculateBrightness(const float* points, uint32_t numPoints, uint32
 
     return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
 }
-
-static std::string testText;
 
 Game::Game(
     Renderer& renderer, bool multiplayer, const std::string& serverIP, int renderDistance,
@@ -203,14 +198,7 @@ void Game::renderFrame(double currentTime, double dt)
     m_renderer.finishDrawingGeometry();
     m_renderer.renderBloom();
     m_renderer.calculateAutoExposure(dt);
-
-    // m_renderer.font.queue(
-    //     testText,
-    //     glm::ivec2(10, m_renderer.getVulkanEngine().getSwapchainExtent().height - 30),
-    //     3, glm::vec3(1.0f, 1.0f, 1.0f)
-    // );
-    m_renderer.font.uploadMesh();
-
+    m_renderer.beginRenderingToSwapchainImage();
     m_renderer.applyToneMap();
     m_renderer.drawCrosshair();
 }

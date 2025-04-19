@@ -20,7 +20,7 @@
 
 namespace lonelycube::client {
 
-ApplicationStateManager::ApplicationStateManager() : m_state(StartMenu)
+ApplicationStateManager::ApplicationStateManager() : m_state({ StartMenu })
 {
 }
 

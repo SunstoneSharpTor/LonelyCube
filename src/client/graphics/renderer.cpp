@@ -1088,7 +1088,7 @@ void Renderer::calculateAutoExposure(double DT)
     m_autoExposure.calculate(renderAreaFraction, DT);
 }
 
-void Renderer::applyToneMap()
+void Renderer::beginRenderingToSwapchainImage()
 {
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
@@ -1128,6 +1128,12 @@ void Renderer::applyToneMap()
 
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
+}
+
+void Renderer::applyToneMap()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
 
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMapPipelineLayout,
