@@ -359,9 +359,15 @@ void ClientPlayer::processUserInput(
             glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         }
     else if ((!m_playing) && tempLastPlaying) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
+        unfocus(window, windowDimensions, windowLastFocus);
     }
+}
+
+void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus)
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
+    m_playing = m_lastPlaying = false;
 }
 
 void ClientPlayer::resolveHitboxCollisions(float DT) {

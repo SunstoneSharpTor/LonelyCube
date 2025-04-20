@@ -33,7 +33,9 @@ public:
         uint64_t seed
     );
     ~Game();
-    void renderFrame(double currentTime, double dt);
+    void processInput(double currentTime);
+    void unfocus();
+    void renderFrame(double dt);
 
     inline ClientWorld& getWorld()
     {

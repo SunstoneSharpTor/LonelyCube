@@ -83,6 +83,7 @@ public:
         GLFWwindow* window, int* windowDimensions, bool* windowLastFocus, double currentTime,
         ClientNetworking& networking
     );
+    void unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus);
 };
 
 }  // namespace lonelycube::client

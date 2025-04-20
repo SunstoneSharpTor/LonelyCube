@@ -98,13 +98,26 @@ Game::Game(
     m_startTime = std::chrono::steady_clock::now();
 }
 
-void Game::renderFrame(double currentTime, double dt)
+void Game::processInput(double currentTime)
 {
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
     m_mainPlayer.processUserInput(
         m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width),
         &m_windowLastFocus, currentTime, m_networking
     );
+}
+
+void Game::unfocus()
+{
+    VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
+    m_mainPlayer.unfocus(
+        m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width),
+        &m_windowLastFocus
+    );
+}
+
+void Game::renderFrame(double dt)
+{
     m_mainWorld.updateMeshes();
     m_mainWorld.updatePlayerPos(
         m_mainPlayer.cameraBlockPosition, &(m_mainPlayer.viewCamera.position[0])
@@ -113,6 +126,7 @@ void Game::renderFrame(double currentTime, double dt)
     //create model view projection matrix for the world
     float fov = 60.0f;
     fov = fov - fov * (2.0f / 3) * m_mainPlayer.zoom;
+    VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
     glm::mat4 projection = glm::perspective(
         glm::radians(fov), ((float)windowDimensions.width / windowDimensions.height), 0.1f,
         (float)((m_mainWorld.getRenderDistance() - 1) * constants::CHUNK_SIZE)

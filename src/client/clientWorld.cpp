@@ -31,8 +31,7 @@
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
 #include "glm/ext/matrix_transform.hpp"
-#include <condition_variable>
-#include <thread>
+#include <mutex>
 
 namespace lonelycube::client {
 
@@ -232,9 +231,10 @@ void ClientWorld::doRenderThreadJobs()
     for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
-            std::lock_guard<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
+            std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
             chunkMeshUploaded[threadNum] = true;
             m_chunkMeshReady[threadNum] = false;
+            lock.unlock();
             m_chunkMeshReadyCV[threadNum].notify_all();
         }
     }
@@ -275,24 +275,25 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
         m_updatingPlayerChunkPosition[i] = m_newPlayerChunkPosition[i];
     }
 
-    bool readyToRelable = false;
-    while (m_unmeshNeeded && (!readyToRelable)) {
+    bool waitingForChunkLoaderThreads = true;
+    while (m_unmeshNeeded && waitingForChunkLoaderThreads) {
         doRenderThreadJobs();
-        //wait for all the mesh builder threads to finish their jobs
+        // Wait for all the chunk loader threads to finish their jobs
+        waitingForChunkLoaderThreads = false;
         for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
-            readyToRelable |= !m_threadWaiting[threadNum];
+            waitingForChunkLoaderThreads |= !m_threadWaiting[threadNum];
         }
-        readyToRelable = !readyToRelable;
     }
 
     integratedServer.updatePlayerPos(0, playerBlockCoords, playerSubBlockCoords, m_unmeshNeeded);
 
     if (m_unmeshNeeded) {
         unmeshChunks();
+        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
         unmeshCompleted = true;
         m_unmeshNeeded = false;
         m_chunkRequestScheduled = true;
-        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
+        lock.unlock();
         m_unmeshNeededCV.notify_all();
     }
 }

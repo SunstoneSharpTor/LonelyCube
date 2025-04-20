@@ -107,11 +107,10 @@ void renderThread()
             windowFullScreen = !windowFullScreen;
         }
 
-        if (windowDimensions[0] != renderer.getVulkanEngine().getSwapchainExtent().width
-            || windowDimensions[1] != renderer.getVulkanEngine().getSwapchainExtent().height
-        ) {
-            windowDimensions[0] = renderer.getVulkanEngine().getSwapchainExtent().width;
-            windowDimensions[1] = renderer.getVulkanEngine().getSwapchainExtent().height;
+        glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
+        if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y) {
+            windowDimensions[0] = windowSize.x;
+            windowDimensions[1] = windowSize.y;
         }
         lastLastWindowFullScreen = lastWindowFullScreen;
         lastWindowFullScreen = windowFullScreen;
@@ -174,6 +173,7 @@ void renderThread()
                     && input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE))
                 ) {
                     applicationState.pushState(ApplicationState::PauseMenu);
+                    game.unfocus();
                 }
 
                 switch (applicationState.getState().back())
@@ -193,12 +193,15 @@ void renderThread()
                     break;
 
                 // Update and draw game
+                if (applicationState.getState().back() == ApplicationState::Gameplay)
+                    game.processInput(currentTime);
+
                 if (std::find(
                         applicationState.getState().begin(),
                         applicationState.getState().end(), ApplicationState::Gameplay
                     ) != applicationState.getState().end()
                 ) {
-                    game.renderFrame(currentTime, actualDT);
+                    game.renderFrame(actualDT);
                 }
                 else
                 {
