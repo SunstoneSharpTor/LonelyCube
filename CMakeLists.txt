@@ -48,7 +48,7 @@ FetchContent_MakeAvailable(glfw enet glm stb volk VulkanMemoryAllocator)
 add_subdirectory(tests)
 
 set(CLIENT_SOURCE_FILES
-    src/client/applicationStateManager.cpp
+    src/client/applicationState.cpp
     src/client/client.cpp
     src/client/clientNetworking.cpp
     src/client/clientPlayer.cpp
@@ -66,8 +66,10 @@ set(CLIENT_SOURCE_FILES
     src/client/graphics/vulkan/vulkanEngine.cpp
     src/client/graphics/vulkan/images.cpp
     src/client/gui/font.cpp
+    src/client/input.cpp
     src/client/gui/menu.cpp
     src/client/gui/menuRenderer.cpp
+    src/client/gui/pauseMenu.cpp
     src/client/gui/startMenu.cpp
     src/client/logicThread.cpp
     src/client/renderThread.cpp

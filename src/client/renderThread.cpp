@@ -18,31 +18,27 @@
 
 #include "client/renderThread.h"
 
+#include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 
 #include "core/pch.h"
 
-#include "client/applicationStateManager.h"
+#include "client/applicationState.h"
 #include "client/game.h"
 #include "client/graphics/renderer.h"
 #include "client/gui/menuUpdateInfo.h"
+#include "client/gui/pauseMenu.h"
 #include "client/gui/startMenu.h"
+#include "client/input.h"
 #include "core/config.h"
 #include "core/log.h"
 
 namespace lonelycube::client {
 
-static std::string testText;
-
-void characterCallback(GLFWwindow* window, unsigned int codepoint)
-{
-    testText = testText + (char)codepoint;
-}
-
 void renderThread()
 {
     Renderer renderer(VK_SAMPLE_COUNT_4_BIT, 1.0f);
-    ApplicationStateManager applicationStateManager;
+    ApplicationState applicationState;
 
     Config settings("res/settings.txt");
     uint32_t worldSeed = std::time(nullptr);
@@ -52,10 +48,12 @@ void renderThread()
         worldSeed
     );
 
-    StartMenu startMenu({
+    glm::ivec2 windowSize({
         renderer.getVulkanEngine().getSwapchainExtent().width,
         renderer.getVulkanEngine().getSwapchainExtent().height
     });
+    StartMenu startMenu(windowSize);
+    PauseMenu pauseMenu(windowSize);
 
     bool running = true;
 
@@ -65,8 +63,6 @@ void renderThread()
     bool lastLastWindowFullScreen = false;
     int windowRestoredSize[2];
     int windowRestoredPos[2];
-    bool lastF11 = false;
-    bool lastMousePressed = true;
     int windowDimensions[2];
     int smallScreenWindowDimensions[2];
     int smallScreenWindowPos[2];
@@ -75,7 +71,9 @@ void renderThread()
     );
     const GLFWvidmode* displayMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-    // glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), characterCallback);
+    // glfwSetCharCallback(renderer.getVulkanEngine().getWindow(), input::characterCallback);
+    glfwSetKeyCallback(renderer.getVulkanEngine().getWindow(), input::keyCallback);
+    glfwSetMouseButtonCallback(renderer.getVulkanEngine().getWindow(), input::mouseButtonCallback);
 
     //set up game loop
     float exposure = 0.0;
@@ -90,7 +88,8 @@ void renderThread()
     while (running) {
         glfwPollEvents();
         //toggle fullscreen if F11 pressed
-        if (glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS && (!lastF11)) {
+        if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_F11)))
+        {
             if (windowFullScreen) {
                 glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
                     smallScreenWindowPos[0], smallScreenWindowPos[1],
@@ -107,12 +106,12 @@ void renderThread()
 
             windowFullScreen = !windowFullScreen;
         }
-        lastF11 = glfwGetKey(renderer.getVulkanEngine().getWindow(), GLFW_KEY_F11) == GLFW_PRESS;
-        int windowSize[2];
-        glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize[0], &windowSize[1]);
-        if (windowDimensions[0] != windowSize[0] || windowDimensions[1] != windowSize[1]) {
-            windowDimensions[0] = windowSize[0];
-            windowDimensions[1] = windowSize[1];
+
+        if (windowDimensions[0] != renderer.getVulkanEngine().getSwapchainExtent().width
+            || windowDimensions[1] != renderer.getVulkanEngine().getSwapchainExtent().height
+        ) {
+            windowDimensions[0] = renderer.getVulkanEngine().getSwapchainExtent().width;
+            windowDimensions[1] = renderer.getVulkanEngine().getSwapchainExtent().height;
         }
         lastLastWindowFullScreen = lastWindowFullScreen;
         lastWindowFullScreen = windowFullScreen;
@@ -151,17 +150,16 @@ void renderThread()
             if (!renderer.isMinimised())
             {
                 // Update GUI
+                input::swapBuffers();
                 double xPos, yPos;
                 glfwGetCursorPos(renderer.getVulkanEngine().getWindow(), &xPos, &yPos);
                 int mousePressed = glfwGetMouseButton(
                     renderer.getVulkanEngine().getWindow(), GLFW_MOUSE_BUTTON_LEFT
                 );
                 MenuUnpdateInfo menuUpdateInfo {
-                    .applicationStateManager = applicationStateManager,
+                    .applicationState = applicationState,
                     .game = game
                 };
-                menuUpdateInfo.mouseClicked = mousePressed == GLFW_PRESS && !lastMousePressed;
-                lastMousePressed = mousePressed == GLFW_PRESS;
                 menuUpdateInfo.guiScale = std::max(
                     1,
                     static_cast<int>(renderer.getVulkanEngine().getSwapchainExtent().height) / 217
@@ -172,23 +170,33 @@ void renderThread()
                 );
                 menuUpdateInfo.cursorPos = glm::ivec2(std::floor(xPos), std::floor(yPos));
 
-                switch (applicationStateManager.getState().back())
+                if (applicationState.getState().back() == ApplicationState::Gameplay
+                    && input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE))
+                ) {
+                    applicationState.pushState(ApplicationState::PauseMenu);
+                }
+
+                switch (applicationState.getState().back())
                 {
-                case ApplicationStateManager::StartMenu:
+                case ApplicationState::StartMenu:
                     startMenu.update(menuUpdateInfo);
+                    break;
+                case ApplicationState::PauseMenu:
+                    pauseMenu.update(menuUpdateInfo);
                     break;
 
                 default:
                     break;
                 }
-                if (applicationStateManager.getState().empty())
+
+                if (applicationState.getState().empty())
                     break;
 
                 // Update and draw game
                 if (std::find(
-                        applicationStateManager.getState().begin(),
-                        applicationStateManager.getState().end(), ApplicationStateManager::Gameplay
-                    ) != applicationStateManager.getState().end()
+                        applicationState.getState().begin(),
+                        applicationState.getState().end(), ApplicationState::Gameplay
+                    ) != applicationState.getState().end()
                 ) {
                     game.renderFrame(currentTime, actualDT);
                 }
@@ -198,10 +206,13 @@ void renderThread()
                 }
 
                 // Draw GUI
-                switch (applicationStateManager.getState().back())
+                switch (applicationState.getState().back())
                 {
-                case ApplicationStateManager::StartMenu:
+                case ApplicationState::StartMenu:
                     renderer.menuRenderer.queue(startMenu.getMenu());
+                    break;
+                case ApplicationState::PauseMenu:
+                    renderer.menuRenderer.queue(pauseMenu.getMenu());
                     break;
 
                 default:

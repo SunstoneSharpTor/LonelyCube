@@ -18,18 +18,17 @@
 
 #pragma once
 
-#include "client/applicationStateManager.h"
+#include "client/applicationState.h"
 #include "client/game.h"
 
 namespace lonelycube::client {
 
 struct MenuUnpdateInfo
 {
-    bool mouseClicked;
     int guiScale;
     glm::ivec2 windowSize;
     glm::ivec2 cursorPos;
-    ApplicationStateManager& applicationStateManager;
+    ApplicationState& applicationState;
     Game& game;
 };
 

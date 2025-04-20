@@ -18,6 +18,8 @@
 
 #include "client/gui/startMenu.h"
 
+#include "client/input.h"
+
 namespace lonelycube::client {
 
 StartMenu::StartMenu(const glm::ivec2 windowDimensions) 
@@ -32,16 +34,16 @@ bool StartMenu::update(MenuUnpdateInfo& info)
     m_menu.setScale(info.guiScale);
     m_menu.resize(info.windowSize);
     m_menu.update(info.cursorPos);
-    if (info.mouseClicked)
+    if (input::leftMouseButtonPressed())
     {
         if (m_menu.getElement(m_singleplayerButton).buttonData.mouseOver)
         {
-            info.applicationStateManager.pushState(ApplicationStateManager::Gameplay);
+            info.applicationState.pushState(ApplicationState::Gameplay);
             return true;
         }
         if (m_menu.getElement(m_quitGameButton).buttonData.mouseOver)
         {
-            info.applicationStateManager.popState();
+            info.applicationState.popState();
             return true;
         }
     }

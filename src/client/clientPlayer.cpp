@@ -131,9 +131,9 @@ void ClientPlayer::processUserInput(
 
     //break / place blocks
     if (m_lastPlaying) {
-        m_pauseMouseState &= 2 | (1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS));
-        m_pauseMouseState &= 1 | (2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS));
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !(m_pauseMouseState & 1)) {
+        m_pauseMouseState &= 2 | (1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)));
+        m_pauseMouseState &= 1 | (2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)));
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && !(m_pauseMouseState & 1)) {
             if (m_timeSinceBlockBreak >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -161,7 +161,7 @@ void ClientPlayer::processUserInput(
         else {
             m_timeSinceBlockBreak = 0.2f;
         }
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !(m_pauseMouseState & 2)) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) && !(m_pauseMouseState & 2)) {
             if (m_timeSinceBlockPlace >= 0.2f) {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
@@ -206,7 +206,7 @@ void ClientPlayer::processUserInput(
             movementSpeed = 100.0f;
             swimSpeed = 100.0f;
             sprintSpeed = 100.0f;
-            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)) {
                 sprintSpeed = 1200.0f;
                 sprint = true;
             }
@@ -216,7 +216,7 @@ void ClientPlayer::processUserInput(
             movementSpeed = 42.5f;
             swimSpeed = 70.0f;
             sprintSpeed = 42.5f;
-            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)) {
                 sprintSpeed = 58.0f;
                 sprint = true;
             }
@@ -224,7 +224,7 @@ void ClientPlayer::processUserInput(
             sprintSpeed = std::max(std::abs(m_velocity[1] * 1.5f), sprintSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
         }
         //keyboard input
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_W)) {
             if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D)) {
                 float fac;
                 if (sprint) {
@@ -273,36 +273,36 @@ void ClientPlayer::processUserInput(
             }
         } else {
             m_lastSpace = false;
-        } if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
             if (m_fly) {
                 force -= sprintSpeed * viewCamera.worldUp;
             }
             else {
                 m_crouch = true;
             }
-        } if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_1)) {
             m_blockHolding = 1;
-        } if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_2)) {
             m_blockHolding = 2;
-        } if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_3)) {
             m_blockHolding = 3;
-        } if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_4)) {
             m_blockHolding = 4;
-        } if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_5)) {
             m_blockHolding = 5;
-        } if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_6)) {
             m_blockHolding = 6;
-        } if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_7)) {
             m_blockHolding = 7;
-        } if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_8)) {
             m_blockHolding = 8;
-        } if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_9)) {
             m_blockHolding = 9;
-        } if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_C)) {
             zoom = true;
         } else {
             zoom = false;
-        } if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        } if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
             m_playing = false;
         }
 
@@ -339,14 +339,14 @@ void ClientPlayer::processUserInput(
     bool tempLastPlaying = m_lastPlaying;
     m_lastPlaying = m_playing;
     if (
-        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !m_playing
-        || glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !m_playing
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && !m_playing
+        || glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) && !m_playing
     ) {
         m_playing = true;
         m_pauseMouseState = 0;
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
             m_pauseMouseState = 1;
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT))
             m_pauseMouseState |= 2;
     }
 
