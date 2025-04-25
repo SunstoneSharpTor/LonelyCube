@@ -146,12 +146,22 @@ void Renderer::loadTextures()
         buffer, extent, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
+
+    buffer = stbi_load(
+        "res/resourcePack/gui/startMenuBackground.png", &size[0], &size[1], &channels, 4
+    );
+    extent = { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    m_startMenuBackgroundTexture = m_vulkanEngine.createImage(
+        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT
+    );
+    stbi_image_free(buffer);
 }
 
 void Renderer::cleanupTextures()
 {
     m_vulkanEngine.destroyImage(m_worldTextures);
     m_vulkanEngine.destroyImage(m_crosshairTexture);
+    m_vulkanEngine.destroyImage(m_startMenuBackgroundTexture);
 }
 
 void Renderer::createSamplers()
@@ -440,7 +450,7 @@ void Renderer::createSkyBlitPipeline()
     pipelineLayoutInfo.pSetLayouts = &m_skyBackgroundDescriptorLayout;
 
     VK_CHECK(vkCreatePipelineLayout(
-        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_fullscreenBlitPipelineLayout
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_fullscreenCopyPipelineLayout
     ));
 
     VkShaderModule fullscreenVertexShader;
@@ -451,13 +461,13 @@ void Renderer::createSkyBlitPipeline()
     }
     VkShaderModule blitFragmentShader;
     if (!createShaderModule(
-        m_vulkanEngine.getDevice(), "res/shaders/blit.frag.spv", blitFragmentShader)
+        m_vulkanEngine.getDevice(), "res/shaders/copy.frag.spv", blitFragmentShader)
     ) {
-        LOG("Failed to find shader \"res/shaders/blit.frag.spv\"");
+        LOG("Failed to find shader \"res/shaders/copy.frag.spv\"");
     }
 
     PipelineBuilder pipelineBuilder;
-    pipelineBuilder.pipelineLayout = m_fullscreenBlitPipelineLayout;
+    pipelineBuilder.pipelineLayout = m_fullscreenCopyPipelineLayout;
     pipelineBuilder.setShaders(fullscreenVertexShader, blitFragmentShader);
     pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
@@ -476,7 +486,7 @@ void Renderer::createSkyBlitPipeline()
         pipelineBuilder.setMultisampling(m_numSamples);
     }
 
-    m_skyBlitPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+    m_skyCopyPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
 
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
     vkDestroyShaderModule(m_vulkanEngine.getDevice(), blitFragmentShader, nullptr);
@@ -484,8 +494,8 @@ void Renderer::createSkyBlitPipeline()
 
 void Renderer::cleanupSkyBlitPipeline()
 {
-    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyBlitPipeline, nullptr);
-    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_fullscreenBlitPipelineLayout, nullptr);
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_skyCopyPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_fullscreenCopyPipelineLayout, nullptr);
 }
 
 void Renderer::createWorldPipelines()
@@ -944,7 +954,7 @@ void Renderer::blitSky()
     FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
 
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_skyBlitPipeline);
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_skyCopyPipeline);
 
     VkViewport viewport{};
     viewport.width = m_drawImageExtent.width;
@@ -960,7 +970,7 @@ void Renderer::blitSky()
     vkCmdSetScissor(command, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(
-        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_fullscreenBlitPipelineLayout,
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_fullscreenCopyPipelineLayout,
         0, 1, &m_skyBackgroundDescriptors,
         0, nullptr
     );

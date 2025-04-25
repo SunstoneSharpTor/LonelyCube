@@ -1,5 +1,5 @@
 glslangValidator -V src/client/shaders/sky.comp.glsl -o res/shaders/sky.comp.spv
-glslangValidator -V src/client/shaders/blit.frag.glsl -o res/shaders/blit.frag.spv
+glslangValidator -V src/client/shaders/copy.frag.glsl -o res/shaders/copy.frag.spv
 glslangValidator -V src/client/shaders/block.vert.glsl -o res/shaders/block.vert.spv
 glslangValidator -V src/client/shaders/block.frag.glsl -o res/shaders/block.frag.spv
 glslangValidator -V src/client/shaders/water.vert.glsl -o res/shaders/water.vert.spv
@@ -19,3 +19,4 @@ glslangValidator -V src/client/shaders/menu.vert.glsl -o res/shaders/menu.vert.s
 glslangValidator -V src/client/shaders/menu.frag.glsl -o res/shaders/menu.frag.spv
 glslangValidator -V src/client/shaders/font.vert.glsl -o res/shaders/font.vert.spv
 glslangValidator -V src/client/shaders/font.frag.glsl -o res/shaders/font.frag.spv
+glslangValidator -V src/client/shaders/fullscreenBlit.comp.glsl -o res/shaders/fullscreenBlit.comp.glsl

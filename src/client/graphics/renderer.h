@@ -117,8 +117,8 @@ private:
 
     VkDescriptorSetLayout m_skyBackgroundDescriptorLayout;
     VkDescriptorSet m_skyBackgroundDescriptors;
-    VkPipelineLayout m_fullscreenBlitPipelineLayout;
-    VkPipeline m_skyBlitPipeline;
+    VkPipelineLayout m_fullscreenCopyPipelineLayout;
+    VkPipeline m_skyCopyPipeline;
 
     VkDescriptorSetLayout m_drawImageDescriptorLayout;
     VkDescriptorSet m_drawImageDescriptors;
@@ -143,6 +143,11 @@ private:
     VkPipeline m_toneMapPipeline;
     ToneMapPushConstants m_toneMapPushConstants;
 
+    VkDescriptorSetLayout m_fullscreenBlitDescriptorSetLayout;
+    VkDescriptorSet m_startMenuBackgroundBlitDescriptors;
+    VkPipelineLayout m_fullscreenBlitPipelineLayout;
+    VkPipeline m_fullscreenBlitPipeline;
+
     VkPipelineLayout m_uiPipelineLayout;
 
     VkDescriptorSetLayout m_crosshairDescriptorLayout;
@@ -156,6 +161,7 @@ private:
 
     AllocatedImage m_worldTextures;
     AllocatedImage m_crosshairTexture;
+    AllocatedImage m_startMenuBackgroundTexture;
 
     VkSampler m_worldTexturesSampler;
     VkSampler m_linearFullscreenSampler;
