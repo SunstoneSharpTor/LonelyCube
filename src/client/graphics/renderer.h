@@ -57,6 +57,12 @@ struct ToneMapPushConstants
     VkDeviceAddress luminanceBuffer;
 };
 
+struct FullscreenBlitPushConstants
+{
+    glm::vec2 scale;
+    glm::vec2 offset;
+};
+
 class Renderer
 {
 public:
@@ -83,6 +89,7 @@ public:
     void beginRenderingToSwapchainImage();
     void applyToneMap();
     void drawCrosshair();
+    void drawBackgroundImage();
     void beginDrawingUi();
     void submitFrame();
 
@@ -143,17 +150,17 @@ private:
     VkPipeline m_toneMapPipeline;
     ToneMapPushConstants m_toneMapPushConstants;
 
-    VkDescriptorSetLayout m_fullscreenBlitDescriptorSetLayout;
-    VkDescriptorSet m_startMenuBackgroundBlitDescriptors;
-    VkPipelineLayout m_fullscreenBlitPipelineLayout;
-    VkPipeline m_fullscreenBlitPipeline;
-
     VkPipelineLayout m_uiPipelineLayout;
 
     VkDescriptorSetLayout m_crosshairDescriptorLayout;
     VkDescriptorSet m_crosshairDescriptors;
     VkPipelineLayout m_crosshairPipelineLayout;
     VkPipeline m_crosshairPipeline;
+
+    VkDescriptorSet m_repeatingLinearSamplerDescriptors;
+    VkDescriptorSet m_startMenuBackgroundImageDescriptors;
+    VkPipelineLayout m_fullscreenBlitPipelineLayout;
+    VkPipeline m_fullscreenBlitPipeline;
 
     VkDescriptorSetLayout m_uiImageDescriptorLayout;
     VkDescriptorSetLayout m_uiSamplerDescriptorLayout;
@@ -167,6 +174,7 @@ private:
     VkSampler m_linearFullscreenSampler;
     VkSampler m_nearestFullscreenSampler;
     VkSampler m_uiSampler;
+    VkSampler m_repeatingLinearSampler;
 
     void createSkyPipeline();
     void cleanupSkyPipeline();
@@ -178,10 +186,12 @@ private:
     void cleanupBlockOutlinePipeline();
     void createToneMapPipeline();
     void cleanupToneMapPipeline();
-    void createUiPipelineLayout();
-    void cleanupUiPipelineLayout();
+    void createUiPipelines();
+    void cleanupUiPipelines();
     void createCrosshairPipeline();
     void cleanupCrosshairPipeline();
+    void createFullscreenBlitPipeline();
+    void cleanupFullscreenBlitPipeline();
     void createPipelines();
     void cleanupPipelines();
 

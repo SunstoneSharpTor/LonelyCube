@@ -181,6 +181,14 @@ void Renderer::createSamplers()
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_linearFullscreenSampler);
 
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+
+    vkCreateSampler(
+        m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_repeatingLinearSampler
+    );
+
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_NEAREST;
     // samplerInfo.anisotropyEnable =
@@ -210,6 +218,7 @@ void Renderer::cleanupSamplers()
 {
     vkDestroySampler(m_vulkanEngine.getDevice(), m_nearestFullscreenSampler, nullptr);
     vkDestroySampler(m_vulkanEngine.getDevice(), m_linearFullscreenSampler, nullptr);
+    vkDestroySampler(m_vulkanEngine.getDevice(), m_repeatingLinearSampler, nullptr);
 
     vkDestroySampler(m_vulkanEngine.getDevice(), m_worldTexturesSampler, nullptr);
     vkDestroySampler(m_vulkanEngine.getDevice(), m_uiSampler, nullptr);
@@ -365,6 +374,23 @@ void Renderer::createUiDescriptors()
     m_uiImageDescriptorLayout = builder.build(
         m_vulkanEngine.getDevice(), VK_SHADER_STAGE_FRAGMENT_BIT
     );
+
+    m_repeatingLinearSamplerDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_uiSamplerDescriptorLayout
+    );
+    writer.clear();
+    writer.writeImage(0, nullptr, m_repeatingLinearSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+    writer.updateSet(m_vulkanEngine.getDevice(), m_repeatingLinearSamplerDescriptors);
+
+    m_startMenuBackgroundImageDescriptors = m_globalDescriptorAllocator.allocate(
+        m_vulkanEngine.getDevice(), m_uiImageDescriptorLayout
+    );
+    writer.clear();
+    writer.writeImage(
+        0, m_startMenuBackgroundTexture.imageView, nullptr, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    writer.updateSet(m_vulkanEngine.getDevice(), m_startMenuBackgroundImageDescriptors);
 }
 
 void Renderer::createDescriptors()
@@ -700,7 +726,7 @@ void Renderer::cleanupToneMapPipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_toneMapPipelineLayout, nullptr);
 }
 
-void Renderer::createUiPipelineLayout()
+void Renderer::createUiPipelines()
 {
     VkPushConstantRange bufferRange{};
     bufferRange.size = sizeof(UiPushConstants);
@@ -719,10 +745,16 @@ void Renderer::createUiPipelineLayout()
     VK_CHECK(vkCreatePipelineLayout(
         m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_uiPipelineLayout
     ));
+
+    createCrosshairPipeline();
+    createFullscreenBlitPipeline();
 }
 
-void Renderer::cleanupUiPipelineLayout()
+void Renderer::cleanupUiPipelines()
 {
+    cleanupCrosshairPipeline();
+    cleanupFullscreenBlitPipeline();
+
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_uiPipelineLayout, nullptr);
 }
 
@@ -780,6 +812,63 @@ void Renderer::cleanupCrosshairPipeline()
     vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_crosshairPipelineLayout, nullptr);
 }
 
+void Renderer::createFullscreenBlitPipeline()
+{
+    VkPushConstantRange bufferRange{};
+    bufferRange.size = sizeof(FullscreenBlitPushConstants);
+    bufferRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayout, 2> setLayouts = {
+        m_uiSamplerDescriptorLayout, m_uiImageDescriptorLayout
+    };
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &bufferRange;
+    pipelineLayoutInfo.setLayoutCount = 2;
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+
+    VK_CHECK(vkCreatePipelineLayout(
+        m_vulkanEngine.getDevice(), &pipelineLayoutInfo, nullptr, &m_fullscreenBlitPipelineLayout
+    ));
+
+    VkShaderModule fullscreenVertexShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/fullscreen.vert.spv", fullscreenVertexShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/fullscreen.vert.spv\"");
+    }
+    VkShaderModule blitFragmentShader;
+    if (!createShaderModule(
+        m_vulkanEngine.getDevice(), "res/shaders/fullscreenBlit.frag.spv", blitFragmentShader)
+    ) {
+        LOG("Failed to find shader \"res/shaders/fullscreenBlit.frag.spv\"");
+    }
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_fullscreenBlitPipelineLayout;
+    pipelineBuilder.setShaders(fullscreenVertexShader, blitFragmentShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultisamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.disableDepthTest();
+    pipelineBuilder.setColourAttachmentFormat(m_vulkanEngine.getSwapchainImageFormat());
+    pipelineBuilder.setDepthAttachmentFormat(VK_FORMAT_UNDEFINED);
+
+    m_fullscreenBlitPipeline = pipelineBuilder.buildPipeline(m_vulkanEngine.getDevice());
+
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), fullscreenVertexShader, nullptr);
+    vkDestroyShaderModule(m_vulkanEngine.getDevice(), blitFragmentShader, nullptr);
+}
+
+void Renderer::cleanupFullscreenBlitPipeline()
+{
+    vkDestroyPipeline(m_vulkanEngine.getDevice(), m_fullscreenBlitPipeline, nullptr);
+    vkDestroyPipelineLayout(m_vulkanEngine.getDevice(), m_fullscreenBlitPipelineLayout, nullptr);
+}
+
 void Renderer::createPipelines()
 {
     createSkyPipeline();
@@ -787,8 +876,7 @@ void Renderer::createPipelines()
     createWorldPipelines();
     createBlockOutlinePipeline();
     createToneMapPipeline();
-    createUiPipelineLayout();
-    createCrosshairPipeline();
+    createUiPipelines();
 }
 
 void Renderer::cleanupPipelines()
@@ -798,8 +886,7 @@ void Renderer::cleanupPipelines()
     cleanupWorldPipelines();
     cleanupBlockOutlinePipeline();
     cleanupToneMapPipeline();
-    cleanupUiPipelineLayout();
-    cleanupCrosshairPipeline();
+    cleanupUiPipelines();
 }
 
 void Renderer::beginRenderingFrame()
@@ -1124,6 +1211,13 @@ void Renderer::beginRenderingToSwapchainImage()
     renderingInfo.pColorAttachments = &colourAttachment;
 
     vkCmdBeginRendering(command, &renderingInfo);
+}
+
+void Renderer::applyToneMap()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
     vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMapPipeline);
 
     VkViewport viewport{};
@@ -1138,12 +1232,6 @@ void Renderer::beginRenderingToSwapchainImage()
 
     vkCmdSetViewport(command, 0, 1, &viewport);
     vkCmdSetScissor(command, 0, 1, &scissor);
-}
-
-void Renderer::applyToneMap()
-{
-    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
 
     vkCmdBindDescriptorSets(
         command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMapPipelineLayout,
@@ -1192,6 +1280,54 @@ void Renderer::drawCrosshair()
         &size
     );
     vkCmdDraw(command, 6, 1, 0, 0);
+}
+
+void Renderer::drawBackgroundImage()
+{
+    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
+    VkCommandBuffer command = currentFrameData.commandBuffer;
+
+    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_fullscreenBlitPipeline);
+
+    VkViewport viewport{};
+    viewport.width = m_vulkanEngine.getSwapchainExtent().width;
+    viewport.height = m_vulkanEngine.getSwapchainExtent().height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent.width = m_vulkanEngine.getSwapchainExtent().width;
+    scissor.extent.height = m_vulkanEngine.getSwapchainExtent().height;
+
+    vkCmdSetViewport(command, 0, 1, &viewport);
+    vkCmdSetScissor(command, 0, 1, &scissor);
+
+    std::array<VkDescriptorSet, 2> descriptors = {
+        m_repeatingLinearSamplerDescriptors, m_startMenuBackgroundImageDescriptors
+    };
+
+    vkCmdBindDescriptorSets(
+        command, VK_PIPELINE_BIND_POINT_GRAPHICS, m_fullscreenBlitPipelineLayout, 0, 2,
+        descriptors.data(), 0, nullptr
+    );
+
+    float ratio = static_cast<float>(m_startMenuBackgroundTexture.imageExtent.height) /
+        m_vulkanEngine.getSwapchainExtent().height;
+    FullscreenBlitPushConstants pushConstants;
+    pushConstants.scale = {
+        ratio / m_startMenuBackgroundTexture.imageExtent.width,
+        ratio / m_startMenuBackgroundTexture.imageExtent.height,
+    };
+    pushConstants.offset = {
+        (1.0f - m_vulkanEngine.getSwapchainExtent().width * pushConstants.scale.x) * 0.5f, 0.0f
+    };
+
+    vkCmdPushConstants(
+        command, m_fullscreenBlitPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+        sizeof(FullscreenBlitPushConstants), &pushConstants
+    );
+
+    vkCmdDraw(command, 3, 1, 0, 0);
 }
 
 void Renderer::beginDrawingUi()

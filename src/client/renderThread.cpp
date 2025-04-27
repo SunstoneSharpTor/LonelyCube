@@ -206,6 +206,7 @@ void renderThread()
                 else
                 {
                     renderer.beginRenderingToSwapchainImage();
+                    renderer.drawBackgroundImage();
                 }
 
                 // Draw GUI

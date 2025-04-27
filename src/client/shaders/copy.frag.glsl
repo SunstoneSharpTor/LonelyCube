@@ -17,7 +17,6 @@
 */
 
 #version 460
-#extension GL_EXT_samplerless_texture_functions : require
 
 layout (location = 0) out vec4 outColour;
 

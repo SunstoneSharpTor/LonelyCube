@@ -19,4 +19,4 @@ glslangValidator -V src/client/shaders/menu.vert.glsl -o res/shaders/menu.vert.s
 glslangValidator -V src/client/shaders/menu.frag.glsl -o res/shaders/menu.frag.spv
 glslangValidator -V src/client/shaders/font.vert.glsl -o res/shaders/font.vert.spv
 glslangValidator -V src/client/shaders/font.frag.glsl -o res/shaders/font.frag.spv
-glslangValidator -V src/client/shaders/fullscreenBlit.comp.glsl -o res/shaders/fullscreenBlit.comp.glsl
+glslangValidator -V src/client/shaders/fullscreenBlit.frag.glsl -o res/shaders/fullscreenBlit.frag.spv
