@@ -84,6 +84,7 @@ public:
         ClientNetworking& networking
     );
     void unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus);
+    void focus(GLFWwindow* window);
 };
 
 }  // namespace lonelycube::client

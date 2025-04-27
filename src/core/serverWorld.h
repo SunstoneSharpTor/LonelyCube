@@ -20,6 +20,7 @@
 
 #include "core/pch.h"
 
+#include "core/utils/iVec3.h"
 #include "enet/enet.h"
 
 #include "core/block.h"
@@ -83,6 +84,7 @@ public:
     bool loadNextChunk(IVec3* chunkPosition);
     void loadChunkFromPacket(Packet<uint8_t, 9 * constants::CHUNK_SIZE *
         constants::CHUNK_SIZE * constants::CHUNK_SIZE>& payload, IVec3& chunkPosition);
+    bool isChunkLoaded(IVec3 chunkPosition);
     void broadcastBlockReplaced(int* blockCoords, int blockType, int originalPlayerID);
     float getTimeSinceLastTick();
     inline int8_t getNumChunkLoaderThreads() {
@@ -152,8 +154,8 @@ void ServerWorld<integrated>::updatePlayerPos(
 template<bool integrated>
 void ServerWorld<integrated>::findChunksToLoad() {
     std::lock_guard<std::mutex> lock1(m_playersMtx);
-    std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
-    std::lock_guard<std::mutex> lock3(chunkManager.mutex);
+    std::lock_guard<std::mutex> lock2(chunkManager.mutex);
+    std::lock_guard<std::mutex> lock3(m_chunksBeingLoadedMtx);
     for (auto& [playerID, player] : m_players) {
         if (player.updateNextUnloadedChunk() && (player.wantsMoreChunks() || integrated)) {
             int chunkPosition[3];
@@ -372,6 +374,19 @@ void ServerWorld<integrated>::tick() {
     }
 
     m_gameTick++;
+}
+
+template<bool integrated>
+bool ServerWorld<integrated>::isChunkLoaded(IVec3 chunkPosition)
+{
+    std::lock_guard<std::mutex> lock1(chunkManager.mutex);
+    if (chunkManager.chunkLoaded(chunkPosition))
+    {
+        std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
+        return !m_chunksBeingLoaded.contains(chunkPosition);
+    }
+
+    return false;
 }
 
 template<bool integrated>

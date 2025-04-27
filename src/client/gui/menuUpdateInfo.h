@@ -29,7 +29,7 @@ struct MenuUnpdateInfo
     glm::ivec2 windowSize;
     glm::ivec2 cursorPos;
     ApplicationState& applicationState;
-    Game& game;
+    Game* game;
 };
 
 }  // namespace lonelycube::client

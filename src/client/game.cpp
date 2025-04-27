@@ -107,6 +107,11 @@ void Game::processInput(double currentTime)
     );
 }
 
+void Game::focus()
+{
+    m_mainPlayer.focus(m_renderer.getVulkanEngine().getWindow());
+}
+
 void Game::unfocus()
 {
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
@@ -194,10 +199,12 @@ void Game::renderFrame(double dt)
     // Draw the block outline
     int breakBlockCoords[3];
     int placeBlockCoords[3];
-    uint8_t lookingAtBlock = m_mainWorld.shootRay(m_mainPlayer.viewCamera.position,
-        m_mainPlayer.cameraBlockPosition, m_mainPlayer.viewCamera.front,
-        breakBlockCoords, placeBlockCoords); if (lookingAtBlock) {
-        //create the model view projection matrix for the outline
+    uint8_t lookingAtBlock = m_mainWorld.shootRay(
+        m_mainPlayer.viewCamera.position, m_mainPlayer.cameraBlockPosition,
+        m_mainPlayer.viewCamera.front, breakBlockCoords, placeBlockCoords
+    );
+    if (lookingAtBlock)
+    {
         glm::vec3 offset;
         for (uint8_t i = 0; i < 3; i++)
             offset[i] = breakBlockCoords[i] - m_mainPlayer.cameraBlockPosition[i];

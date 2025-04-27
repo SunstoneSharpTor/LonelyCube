@@ -26,6 +26,7 @@
 #include "client/graphics/vulkan/utils.h"
 #include "core/log.h"
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 
 namespace lonelycube::client {
 
@@ -131,28 +132,29 @@ void Renderer::cleanupRenderImages()
 
 void Renderer::loadTextures()
 {
-    int size[2];
+    glm::ivec2 size;
     int channels;
-    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size[0], &size[1], &channels, 4);
-    VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size.x, &size.y, &channels, 4);
+    VkExtent3D extent { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
     m_worldTextures = m_vulkanEngine.createImage(
         buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
     );
     stbi_image_free(buffer);
 
-    buffer = stbi_load("res/resourcePack/gui/crosshair.png", &size[0], &size[1], &channels, 1);
-    extent = { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    buffer = stbi_load("res/resourcePack/gui/crosshair.png", &size.x, &size.y, &channels, 1);
+    extent = { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
     m_crosshairTexture = m_vulkanEngine.createImage(
         buffer, extent, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
 
     buffer = stbi_load(
-        "res/resourcePack/gui/startMenuBackground.png", &size[0], &size[1], &channels, 4
+        "res/resourcePack/gui/startMenuBackground.png", &size.x, &size.y, &channels, 4
     );
-    extent = { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
+    extent = { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
+    uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(size.x, size.y)))) + 1;
     m_startMenuBackgroundTexture = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT
+        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, mipLevels
     );
     stbi_image_free(buffer);
 }
@@ -184,6 +186,10 @@ void Renderer::createSamplers()
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+    samplerInfo.mipLodBias = 0.0f;
 
     vkCreateSampler(
         m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_repeatingLinearSampler
@@ -196,11 +202,6 @@ void Renderer::createSamplers()
     // samplerInfo.maxAnisotropy = std::min(
     //     8.0f, m_vulkanEngine.getPhysicalDeviceProperties().properties.limits.maxSamplerAnisotropy
     // );
-
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
-    samplerInfo.mipLodBias = -0.0f;
 
     vkCreateSampler(m_vulkanEngine.getDevice(), &samplerInfo, nullptr, &m_worldTexturesSampler);
 

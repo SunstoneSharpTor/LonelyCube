@@ -462,6 +462,7 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
 
     //wait for the render thread to upload the mesh to the GPU
     m_chunkPosition[threadNum] = chunkPosition;
+    std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
     m_chunkMeshReady[threadNum] = true;
     chunkMeshUploaded[threadNum] = false;
 
@@ -474,7 +475,6 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
         (chunkPosition.z - m_playerChunkPosition[2]);
     }
 
-    std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
     while (!chunkMeshUploaded[threadNum]) {
         m_chunkMeshReadyCV[threadNum].wait(lock);
     }
@@ -595,6 +595,9 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
         for (uint8_t ii = 0; ii < 3; ii++) {
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
         }
+        if (!integratedServer.isChunkLoaded(Chunk::getChunkCoords(blockPos)))
+            return 0;
+
         uint8_t blockType = integratedServer.chunkManager.getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
             bool hit = true;

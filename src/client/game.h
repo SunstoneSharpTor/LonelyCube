@@ -34,6 +34,7 @@ public:
     );
     ~Game();
     void processInput(double currentTime);
+    void focus();
     void unfocus();
     void renderFrame(double dt);
 

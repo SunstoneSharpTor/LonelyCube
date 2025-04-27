@@ -302,8 +302,6 @@ void ClientPlayer::processUserInput(
             zoom = true;
         } else {
             zoom = false;
-        } if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
-            m_playing = false;
         }
 
         while (m_time < currentTime - DT) {
@@ -336,31 +334,10 @@ void ClientPlayer::processUserInput(
         m_time += DT;
     }
 
-    bool tempLastPlaying = m_lastPlaying;
-    m_lastPlaying = m_playing;
-    if (
-        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && !m_playing
-        || glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) && !m_playing
-    ) {
-        m_playing = true;
-        m_pauseMouseState = 0;
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
-            m_pauseMouseState = 1;
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT))
-            m_pauseMouseState |= 2;
-    }
-
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
         m_playing = false;
-    }
-    if (m_playing && !tempLastPlaying) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        if (glfwRawMouseMotionSupported())
-            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        }
-    else if ((!m_playing) && tempLastPlaying) {
-        unfocus(window, windowDimensions, windowLastFocus);
-    }
+
+    m_lastPlaying = m_playing;
 }
 
 void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus)
@@ -368,6 +345,21 @@ void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions, bool* wind
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
     m_playing = m_lastPlaying = false;
+}
+
+void ClientPlayer::focus(GLFWwindow* window)
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    if (glfwRawMouseMotionSupported())
+        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
+    m_pauseMouseState = 0;
+    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
+        m_pauseMouseState = 1;
+    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT))
+        m_pauseMouseState |= 2;
+
+    m_playing = true;
 }
 
 void ClientPlayer::resolveHitboxCollisions(float DT) {

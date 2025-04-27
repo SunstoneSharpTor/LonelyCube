@@ -41,12 +41,8 @@ void renderThread()
     ApplicationState applicationState;
 
     Config settings("res/settings.txt");
-    uint32_t worldSeed = std::time(nullptr);
-    LOG("World Seed: " + std::to_string(worldSeed));
-    Game game(
-        renderer, settings.getMultiplayer(), settings.getServerIP(), settings.getRenderDistance(),
-        worldSeed
-    );
+    uint32_t worldSeed;
+    Game* game = nullptr;
 
     glm::ivec2 windowSize({
         renderer.getVulkanEngine().getSwapchainExtent().width,
@@ -122,20 +118,26 @@ void renderThread()
         if (currentTime > frameStart + DT) {
             double actualDT = currentTime - frameStart;
             if (currentTime - lastFrameRateTime > 1) {
-                LOG(
-                    std::to_string(
-                        renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
-                    ) + " FPS"
-                );
-                LOG(
-                    std::to_string(
-                        game.getPlayer().viewCamera.position[0] + game.getPlayer().cameraBlockPosition[0]
-                    ) + ", " + std::to_string(
-                        game.getPlayer().viewCamera.position[1] + game.getPlayer().cameraBlockPosition[1]
-                    ) + ", " + std::to_string(
-                        game.getPlayer().viewCamera.position[2] + game.getPlayer().cameraBlockPosition[2]
-                    )
-                );
+                if (std::find(
+                        applicationState.getState().begin(),
+                        applicationState.getState().end(), ApplicationState::Gameplay
+                    ) != applicationState.getState().end()
+                ) {
+                    LOG(
+                        std::to_string(
+                            renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
+                        ) + " FPS"
+                    );
+                    LOG(
+                        std::to_string(
+                            game->getPlayer().viewCamera.position[0] + game->getPlayer().cameraBlockPosition[0]
+                        ) + ", " + std::to_string(
+                            game->getPlayer().viewCamera.position[1] + game->getPlayer().cameraBlockPosition[1]
+                        ) + ", " + std::to_string(
+                            game->getPlayer().viewCamera.position[2] + game->getPlayer().cameraBlockPosition[2]
+                        )
+                    );
+                }
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
             }
@@ -172,17 +174,30 @@ void renderThread()
                 if (applicationState.getState().back() == ApplicationState::Gameplay
                     && input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE))
                 ) {
+                    game->unfocus();
                     applicationState.pushState(ApplicationState::PauseMenu);
-                    game.unfocus();
+                    input::swapBuffers();
                 }
 
                 switch (applicationState.getState().back())
                 {
                 case ApplicationState::StartMenu:
-                    startMenu.update(menuUpdateInfo);
+                    if (startMenu.update(menuUpdateInfo)
+                        && applicationState.getState().back() == ApplicationState::Gameplay)
+                    {
+                        worldSeed = std::time(nullptr);
+                        LOG("World Seed: " + std::to_string(worldSeed));
+                        game = new Game(
+                            renderer, settings.getMultiplayer(), settings.getServerIP(),
+                            settings.getRenderDistance(), worldSeed
+                        );
+                        game->focus();
+                    }
+                    input::swapBuffers();
                     break;
                 case ApplicationState::PauseMenu:
                     pauseMenu.update(menuUpdateInfo);
+                    input::swapBuffers();
                     break;
 
                 default:
@@ -194,14 +209,13 @@ void renderThread()
 
                 // Update and draw game
                 if (applicationState.getState().back() == ApplicationState::Gameplay)
-                    game.processInput(currentTime);
+                    game->processInput(currentTime);
 
-                if (std::find(
+                if (std::count(
                         applicationState.getState().begin(),
                         applicationState.getState().end(), ApplicationState::Gameplay
-                    ) != applicationState.getState().end()
-                ) {
-                    game.renderFrame(actualDT);
+                )) {
+                    game->renderFrame(actualDT);
                 }
                 else
                 {
@@ -231,10 +245,20 @@ void renderThread()
             }
         }
 
-        game.getWorld().doRenderThreadJobs();
+        if (std::count(
+                applicationState.getState().begin(),
+                applicationState.getState().end(), ApplicationState::Gameplay
+        )) {
+            game->getWorld().doRenderThreadJobs();
+        }
 
         if (glfwWindowShouldClose(renderer.getVulkanEngine().getWindow()))
+        {
+            if (game != nullptr)
+                delete game;
+
             running = false;
+        }
     }
 }
 

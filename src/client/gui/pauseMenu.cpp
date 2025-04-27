@@ -33,19 +33,29 @@ bool PauseMenu::update(MenuUnpdateInfo& info)
     m_menu.setScale(info.guiScale);
     m_menu.resize(info.windowSize);
     m_menu.update(info.cursorPos);
+
     if (input::leftMouseButtonPressed())
     {
         if (m_menu.getElement(m_backToGameButton).buttonData.mouseOver)
         {
             info.applicationState.popState();
+            info.game->focus();
             return true;
         }
-        if (m_menu.getElement(m_leaveWorldButton).buttonData.mouseOver)
+        else if (m_menu.getElement(m_leaveWorldButton).buttonData.mouseOver)
         {
             info.applicationState.popState();
             info.applicationState.popState();
+            delete info.game;
             return true;
         }
+    }
+
+    if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE)))
+    {
+        info.applicationState.popState();
+        info.game->focus();
+        return true;
     }
 
     return false;
