@@ -83,33 +83,6 @@ void renderThread()
     float lastFrameRateTime = frameStart + DT;
     while (running) {
         glfwPollEvents();
-        //toggle fullscreen if F11 pressed
-        if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_F11)))
-        {
-            if (windowFullScreen) {
-                glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
-                    smallScreenWindowPos[0], smallScreenWindowPos[1],
-                    smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
-                    displayMode->refreshRate );
-            }
-            else {
-                smallScreenWindowDimensions[0] = windowDimensions[0];
-                smallScreenWindowDimensions[1] = windowDimensions[1];
-                glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
-                glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
-                    0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
-            }
-
-            windowFullScreen = !windowFullScreen;
-        }
-
-        glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
-        if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y) {
-            windowDimensions[0] = windowSize.x;
-            windowDimensions[1] = windowSize.y;
-        }
-        lastLastWindowFullScreen = lastWindowFullScreen;
-        lastWindowFullScreen = windowFullScreen;
 
         // Render if a frame is needed
         end = std::chrono::steady_clock::now();
@@ -152,6 +125,35 @@ void renderThread()
             {
                 // Update GUI
                 input::swapBuffers();
+
+                //toggle fullscreen if F11 pressed
+                if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_F11)))
+                {
+                    if (windowFullScreen) {
+                        glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
+                            smallScreenWindowPos[0], smallScreenWindowPos[1],
+                            smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
+                            displayMode->refreshRate );
+                    }
+                    else {
+                        smallScreenWindowDimensions[0] = windowDimensions[0];
+                        smallScreenWindowDimensions[1] = windowDimensions[1];
+                        glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
+                        glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
+                            0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
+                    }
+
+                    windowFullScreen = !windowFullScreen;
+                }
+
+                glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
+                if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y) {
+                    windowDimensions[0] = windowSize.x;
+                    windowDimensions[1] = windowSize.y;
+                }
+                lastLastWindowFullScreen = lastWindowFullScreen;
+                lastWindowFullScreen = windowFullScreen;
+
                 double xPos, yPos;
                 glfwGetCursorPos(renderer.getVulkanEngine().getWindow(), &xPos, &yPos);
                 int mousePressed = glfwGetMouseButton(
@@ -176,7 +178,7 @@ void renderThread()
                 ) {
                     game->unfocus();
                     applicationState.pushState(ApplicationState::PauseMenu);
-                    input::swapBuffers();
+                    input::clearCurrentBuffer();
                 }
 
                 switch (applicationState.getState().back())
@@ -193,11 +195,11 @@ void renderThread()
                         );
                         game->focus();
                     }
-                    input::swapBuffers();
+                    input::clearCurrentBuffer();
                     break;
                 case ApplicationState::PauseMenu:
                     pauseMenu.update(menuUpdateInfo);
-                    input::swapBuffers();
+                    input::clearCurrentBuffer();
                     break;
 
                 default:

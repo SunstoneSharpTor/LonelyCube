@@ -26,6 +26,7 @@ void characterCallback(GLFWwindow* window, unsigned int codepoint);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void swapBuffers();
+void clearCurrentBuffer();
 bool buttonPressed(int scancode);
 bool buttonDown(int scancode);
 bool leftMouseButtonPressed();

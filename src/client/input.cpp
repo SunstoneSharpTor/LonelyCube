@@ -65,6 +65,11 @@ void swapBuffers()
     pressedButtonsIndex = !pressedButtonsIndex;
 }
 
+void clearCurrentBuffer()
+{
+    pressedButtons[pressedButtonsIndex].clear();
+}
+
 bool buttonPressed(int scancode)
 {
     return std::count(
