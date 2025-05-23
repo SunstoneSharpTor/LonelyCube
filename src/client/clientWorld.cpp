@@ -280,6 +280,7 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
         doRenderThreadJobs();
         // Wait for all the chunk loader threads to finish their jobs
         waitingForChunkLoaderThreads = false;
+        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
         for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
             waitingForChunkLoaderThreads |= !m_threadWaiting[threadNum];
         }
@@ -301,8 +302,8 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
 void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum)
 {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        m_threadWaiting[threadNum] = true;
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+        m_threadWaiting[threadNum] = true;
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
@@ -321,8 +322,8 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum)
 bool ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum)
 {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        m_threadWaiting[threadNum] = true;
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+        m_threadWaiting[threadNum] = true;
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
@@ -662,8 +663,8 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType)
 void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value)
 {
     while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        m_threadWaiting[threadNum] = true;
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+        m_threadWaiting[threadNum] = true;
         m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
         m_threadWaiting[threadNum] = false;
     }
