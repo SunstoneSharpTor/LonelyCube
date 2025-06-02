@@ -97,4 +97,14 @@ bool leftMouseButtonPressed()
     return buttonPressed(-2 - GLFW_MOUSE_BUTTON_LEFT);
 }
 
+bool anyMouseButtonPressed()
+{
+    for (int i = -2 - 0; i > -2 - 8; i--)
+    {
+        if (buttonPressed(i))
+            return true;
+    }
+    return false;
+}
+
 }  // namespace lonelycube::client

@@ -16,6 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "client/input.h"
 #include "core/pch.h"
 
 #include "client/clientPlayer.h"
@@ -51,6 +52,7 @@ ClientPlayer::ClientPlayer(
     m_lastMousePos[0] = m_lastMousePos[1] = 0;
     m_playing = false;
     m_lastPlaying = false;
+    m_paused = true;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -96,30 +98,34 @@ void ClientPlayer::processUserInput(
 ) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
-    if (m_playing) {
+    if (!m_playing)  // Refocus the window if it has just been clicked
+    {
+        if (input::anyMouseButtonPressed())
+            focus(window);
+    }
+    if (!m_paused)
+    {
         m_timeSinceBlockBreak += actualDT;
         m_timeSinceBlockPlace += actualDT;
         m_timeSinceLastJump += actualDT;
         m_timeSinceLastSpace += actualDT;
     }
 
-    glfwPollEvents();
     double localCursorPosition[2];
     glfwGetCursorPos(window, &localCursorPosition[0], &localCursorPosition[1]);
     glm::ivec2 windowSize;
     glfwGetWindowSize(window, &windowSize.x, &windowSize.y);
 
-    // Update camera view
-    if (m_playing) {
-        if (m_lastPlaying && windowSize == m_lastWindowSize) {
+    if (m_playing)  // Update camera view
+    {
+        if (m_lastPlaying && windowSize == m_lastWindowSize)
+        {
             m_yaw += (localCursorPosition[0] - m_lastMousePos[0]) * 0.05f;
             m_pitch -= (localCursorPosition[1] - m_lastMousePos[1]) * 0.05f;
-            if (m_pitch <= -90.0f) {
+            if (m_pitch <= -90.0f)
                 m_pitch = -89.999f;
-            }
-            else if (m_pitch >= 90.0f) {
+            else if (m_pitch >= 90.0f)
                 m_pitch = 89.999f;
-            }
 
             viewCamera.updateRotationVectors(m_yaw, m_pitch);
         }
@@ -129,26 +135,32 @@ void ClientPlayer::processUserInput(
     }
     m_mainWorld->updateViewCamera(viewCamera);
 
-    //break / place blocks
-    if (m_lastPlaying) {
+    //  Break / place blocks
+    if (m_lastPlaying)
+    {
         m_pauseMouseState &= 2 | (1 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)));
         m_pauseMouseState &= 1 | (2 * (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)));
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && !(m_pauseMouseState & 1)) {
-            if (m_timeSinceBlockBreak >= 0.2f) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && !(m_pauseMouseState & 1))
+        {
+            if (m_timeSinceBlockBreak >= 0.2f)
+            {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords)) {
+                if (m_mainWorld->shootRay(
+                    viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords,
+                    placeBlockCoords
+                )) {
                     m_timeSinceBlockBreak = 0.0f;
                     uint8_t itemType = m_mainWorld->integratedServer.chunkManager.getBlock(breakBlockCoords);
                     m_mainWorld->replaceBlock(breakBlockCoords, 0);
                     m_mainWorld->integratedServer.getEntityManager().addItem(
                         itemType, breakBlockCoords, Vec3(0.5f, 0.5f, 0.5f)
                     );
-                    if (!m_mainWorld->isSinglePlayer()) {
+                    if (!m_mainWorld->isSinglePlayer())
+                    {
                         Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
-                        for (int i = 0; i < 3; i++) {
+                        for (int i = 0; i < 3; i++)
                             payload[i] = breakBlockCoords[i];
-                        }
                         payload[3] = 0;
                         networking.getMutex().lock();
                         ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
@@ -158,24 +170,31 @@ void ClientPlayer::processUserInput(
                 }
             }
         }
-        else {
+        else
+        {
             m_timeSinceBlockBreak = 0.2f;
         }
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) && !(m_pauseMouseState & 2)) {
-            if (m_timeSinceBlockPlace >= 0.2f) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) && !(m_pauseMouseState & 2))
+        {
+            if (m_timeSinceBlockPlace >= 0.2f)
+            {
                 int breakBlockCoords[3];
                 int placeBlockCoords[3];
-                if (m_mainWorld->shootRay(viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords, placeBlockCoords) != 0) {
-                    if ((!intersectingBlock(placeBlockCoords)) || (!m_resourcePack.getBlockData(m_blockHolding).collidable)) {
+                if (m_mainWorld->shootRay(
+                    viewCamera.position, cameraBlockPosition, viewCamera.front, breakBlockCoords,
+                    placeBlockCoords) != 0)
+                {
+                    if ((!intersectingBlock(placeBlockCoords)) || (!m_resourcePack.getBlockData(m_blockHolding).collidable))
+                    {
                         //TODO:
                         //(investigate) fix the replace block function to scan the unmeshed chunks too
                         m_timeSinceBlockPlace = 0.0f;
                         m_mainWorld->replaceBlock(placeBlockCoords, m_blockHolding);
-                        if (!m_mainWorld->isSinglePlayer()) {
+                        if (!m_mainWorld->isSinglePlayer())
+                        {
                             Packet<int, 4> payload(m_mainWorld->getClientID(), PacketType::BlockReplaced, 4);
-                            for (int i = 0; i < 3; i++) {
+                            for (int i = 0; i < 3; i++)
                                 payload[i] = placeBlockCoords[i];
-                            }
                             payload[3] = m_blockHolding;
                             networking.getMutex().lock();
                             ENetPacket* packet = enet_packet_create((const void*)(&payload), payload.getSize(), ENET_PACKET_FLAG_RELIABLE);
@@ -186,61 +205,72 @@ void ClientPlayer::processUserInput(
                 }
             }
         }
-        else {
+        else
+        {
             m_timeSinceBlockPlace = 0.2f;
         }
+    }
 
-        float movementSpeed;
-        float swimSpeed;
-        float sprintSpeed;
-        glm::vec3 force = { 0.0f, 0.0f, 0.0f };
-        bool sprint = false;
-        m_crouch = false;
-
-        if (m_touchGround && m_fly) {
+    // Movement
+    glm::vec3 force(0);
+    float movementSpeed;
+    float swimSpeed;
+    float sprintSpeed;
+    bool sprint = false;
+    m_crouch = false;
+    if (!m_paused)
+    {
+        if (m_touchGround && m_fly)
             m_fly = false;
-        }
+
         m_timeSinceTouchGround = (m_timeSinceTouchGround + actualDT) * (!m_touchGround);
         m_timeSinceTouchWater = (m_timeSinceTouchWater + actualDT) * (!m_touchWater);
-        if (m_fly) {
+        if (m_fly)
+        {
             movementSpeed = 100.0f;
             swimSpeed = 100.0f;
             sprintSpeed = 100.0f;
-            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))
+            {
                 sprintSpeed = 1200.0f;
                 sprint = true;
             }
         }
-        else {
+        else
+        {
             force[1] -= 28.0;
             movementSpeed = 42.5f;
             swimSpeed = 70.0f;
             sprintSpeed = 42.5f;
-            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))
+            {
                 sprintSpeed = 58.0f;
                 sprint = true;
             }
             movementSpeed = std::max(abs(m_velocity[1] * 1.5f), movementSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
             sprintSpeed = std::max(std::abs(m_velocity[1] * 1.5f), sprintSpeed - std::min(m_timeSinceTouchGround, m_timeSinceTouchWater) * 16);
         }
+    }
+    if (m_lastPlaying)
+    {
         //keyboard input
-        if (glfwGetKey(window, GLFW_KEY_W)) {
-            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D)) {
+        if (glfwGetKey(window, GLFW_KEY_W))
+        {
+            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D))
+            {
                 float fac;
-                if (sprint) {
+                if (sprint)
                     fac = sprintSpeed / std::sqrt(sprintSpeed * sprintSpeed + movementSpeed * movementSpeed);
-                }
-                else {
+                else
                     fac = 0.707107f;
-                }
                 sprintSpeed *= fac;
                 movementSpeed *= fac;
             }
             force -= sprintSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
-        } if (glfwGetKey(window, GLFW_KEY_S)) {
-            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D)) {
+        }
+        if (glfwGetKey(window, GLFW_KEY_S)) {
+            if (glfwGetKey(window, GLFW_KEY_A) != glfwGetKey(window, GLFW_KEY_D))
                 movementSpeed *= 0.707107f;
-            }
             force += movementSpeed * glm::normalize(glm::cross(viewCamera.right, viewCamera.worldUp));
         } if (glfwGetKey(window, GLFW_KEY_A)) {
             force -= movementSpeed * viewCamera.right;
@@ -259,9 +289,8 @@ void ClientPlayer::processUserInput(
             m_lastSpace = true;
 
             if (!m_fly) {
-                if (m_touchWater) {
+                if (m_touchWater)
                     force[1] += swimSpeed;
-                }
                 else if (m_touchGround) {
                     m_velocity[1] = 8.0f * viewCamera.worldUp[1];
                     force[1] = 0.0f;
@@ -274,12 +303,10 @@ void ClientPlayer::processUserInput(
         } else {
             m_lastSpace = false;
         } if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
-            if (m_fly) {
+            if (m_fly)
                 force -= sprintSpeed * viewCamera.worldUp;
-            }
-            else {
+            else
                 m_crouch = true;
-            }
         } if (glfwGetKey(window, GLFW_KEY_1)) {
             m_blockHolding = 1;
         } if (glfwGetKey(window, GLFW_KEY_2)) {
@@ -303,9 +330,11 @@ void ClientPlayer::processUserInput(
         } else {
             zoom = false;
         }
-
-        while (m_time < currentTime - DT) {
-
+    }
+    if (!m_paused)
+    {
+        while (m_time < currentTime - DT)
+        {
             //calculate friction
             glm::vec3 friction = (m_velocity) * -10.0f * (m_touchWater * (!m_fly) * 0.8f + 1.0f);
             friction[1] *= m_fly || m_touchWater;
@@ -314,7 +343,8 @@ void ClientPlayer::processUserInput(
             resolveHitboxCollisions(DT);
 
             //update camera position
-            for (uint8_t i = 0; i < 3; i++) {
+            for (uint8_t i = 0; i < 3; i++)
+            {
                 cameraBlockPosition[i] = m_hitboxMinBlock[i];
                 viewCamera.position[i] = m_hitboxMinOffset[i] + 0.3f;
             }
@@ -322,7 +352,8 @@ void ClientPlayer::processUserInput(
             viewCamera.position[1] += 1.32f;
 
             int roundedPos;
-            for (uint8_t i = 0; i < 3; i++) {
+            for (uint8_t i = 0; i < 3; i++)
+            {
                 roundedPos = viewCamera.position[i];
                 cameraBlockPosition[i] += roundedPos;
                 viewCamera.position[i] -= roundedPos;
@@ -330,25 +361,32 @@ void ClientPlayer::processUserInput(
             m_time += DT;
         }
     }
-    while (m_time < currentTime - DT) {
+    while (m_time < currentTime - DT)
         m_time += DT;
-    }
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
-        m_playing = false;
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED) && m_playing)
+    {
+        LOG("Tab out");
+        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        m_playing = m_lastPlaying = false;
+    }
 
     m_lastPlaying = m_playing;
 }
 
 void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus)
 {
+    LOG("Unfocus");
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
     m_playing = m_lastPlaying = false;
+    m_paused = true;
 }
 
 void ClientPlayer::focus(GLFWwindow* window)
 {
+    LOG("Focus");
+    glfwSetCursorPos(window, 0, 0);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if (glfwRawMouseMotionSupported())
         glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -360,6 +398,7 @@ void ClientPlayer::focus(GLFWwindow* window)
         m_pauseMouseState |= 2;
 
     m_playing = true;
+    m_paused = false;
 }
 
 void ClientPlayer::resolveHitboxCollisions(float DT) {

@@ -88,9 +88,11 @@ void renderThread()
         end = std::chrono::steady_clock::now();
         double currentTime = (double)std::chrono::duration_cast<std::chrono::microseconds>
             (end - start).count() / 1000000;
-        if (currentTime > frameStart + DT) {
+        if (currentTime > frameStart + DT)
+        {
             double actualDT = currentTime - frameStart;
-            if (currentTime - lastFrameRateTime > 1) {
+            if (currentTime - lastFrameRateTime > 1)
+            {
                 if (std::find(
                         applicationState.getState().begin(),
                         applicationState.getState().end(), ApplicationState::Gameplay
@@ -147,7 +149,8 @@ void renderThread()
                 }
 
                 glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
-                if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y) {
+                if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y)
+                {
                     windowDimensions[0] = windowSize.x;
                     windowDimensions[1] = windowSize.y;
                 }
@@ -210,13 +213,11 @@ void renderThread()
                     break;
 
                 // Update and draw game
-                if (applicationState.getState().back() == ApplicationState::Gameplay)
-                    game->processInput(currentTime);
-
                 if (std::count(
                         applicationState.getState().begin(),
                         applicationState.getState().end(), ApplicationState::Gameplay
                 )) {
+                    game->processInput(currentTime);
                     game->renderFrame(actualDT);
                 }
                 else
