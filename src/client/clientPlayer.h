@@ -40,6 +40,8 @@ private:
     bool m_lastPlaying;
     int m_pauseMouseState;
     bool m_paused;
+    bool m_cursorNeedsReleasing;
+    bool m_lastCursorInWindow;
 
     float m_timeSinceBlockPlace;
     float m_timeSinceBlockBreak;
@@ -81,11 +83,10 @@ public:
     ClientPlayer(const IVec3& playerPos, ClientWorld* newWorld, ResourcePack& resourcePack);
 
     void processUserInput(
-        GLFWwindow* window, int* windowDimensions, bool* windowLastFocus, double currentTime,
-        ClientNetworking& networking
+        GLFWwindow* window, int* windowDimensions, double currentTime, ClientNetworking& networking
     );
-    void unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus);
-    void focus(GLFWwindow* window);
+    void unfocus(GLFWwindow* window, int* windowDimensions);
+    void focus(GLFWwindow* window, int* windowDimensions);
 
     inline bool gamePaused()
     {

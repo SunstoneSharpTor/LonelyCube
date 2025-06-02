@@ -131,13 +131,13 @@ void LogicThread::go(bool& running)
             m_mainWorld.loadChunksAroundPlayerSingleplayer(0);
 
             auto currentTime = std::chrono::steady_clock::now();
-            // if (m_mainPlayer.gamePaused())
-            // {
-            //     if (!lastPaused)
-            //         pauseStart = currentTime;
-            // }
-            // else
-            // {
+            if (m_mainPlayer.gamePaused())
+            {
+                if (!lastPaused)
+                    pauseStart = currentTime;
+            }
+            else
+            {
                 if (lastPaused)
                     nextTick += currentTime - pauseStart;
                 if (currentTime >= nextTick)
@@ -147,7 +147,7 @@ void LogicThread::go(bool& running)
                     m_mainWorld.integratedServer.tick();
                     nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
                 }
-            // }
+            }
             lastPaused = m_mainPlayer.gamePaused();
         }
     }
