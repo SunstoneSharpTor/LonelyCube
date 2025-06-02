@@ -90,8 +90,7 @@ Game::Game(
     int windowDimensions[2];
     double time;
     m_mainPlayer.processUserInput(
-        renderer.getVulkanEngine().getWindow(), windowDimensions, &m_windowLastFocus, time,
-        m_networking
+        renderer.getVulkanEngine().getWindow(), windowDimensions, time, m_networking
     );
     m_mainWorld.doRenderThreadJobs();
 
@@ -103,21 +102,23 @@ void Game::processInput(double currentTime)
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
     m_mainPlayer.processUserInput(
         m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width),
-        &m_windowLastFocus, currentTime, m_networking
+        currentTime, m_networking
     );
 }
 
 void Game::focus()
 {
-    m_mainPlayer.focus(m_renderer.getVulkanEngine().getWindow());
+    VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
+    m_mainPlayer.focus(
+        m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width)
+    );
 }
 
 void Game::unfocus()
 {
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
     m_mainPlayer.unfocus(
-        m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width),
-        &m_windowLastFocus
+        m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width)
     );
 }
 
@@ -128,7 +129,7 @@ void Game::renderFrame(double dt)
         m_mainPlayer.cameraBlockPosition, &(m_mainPlayer.viewCamera.position[0])
     );
 
-    //create model view projection matrix for the world
+    // Create model view projection matrices for the world
     float fov = 60.0f;
     fov = fov - fov * (2.0f / 3) * m_mainPlayer.zoom;
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();

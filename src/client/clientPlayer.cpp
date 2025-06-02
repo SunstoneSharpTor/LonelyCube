@@ -53,6 +53,7 @@ ClientPlayer::ClientPlayer(
     m_playing = false;
     m_lastPlaying = false;
     m_paused = true;
+    m_cursorNeedsReleasing = false;
 
     viewCamera = Camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -93,15 +94,14 @@ ClientPlayer::ClientPlayer(
 }
 
 void ClientPlayer::processUserInput(
-    GLFWwindow* window, int* windowDimensions, bool* windowLastFocus, double currentTime,
-    ClientNetworking& networking
+    GLFWwindow* window, int* windowDimensions, double currentTime, ClientNetworking& networking
 ) {
     float DT = 1.0f/(float)constants::visualTPS;
     float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
     if (!m_playing)  // Refocus the window if it has just been clicked
     {
         if (input::anyMouseButtonPressed())
-            focus(window);
+            focus(window, windowDimensions);
     }
     if (!m_paused)
     {
@@ -364,29 +364,39 @@ void ClientPlayer::processUserInput(
     while (m_time < currentTime - DT)
         m_time += DT;
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED) && m_playing)
+    // Handle window losing focus
+    bool windowFocus = glfwGetWindowAttrib(window, GLFW_FOCUSED);
+    if (!windowFocus && m_playing)
     {
-        LOG("Tab out");
-        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         m_playing = m_lastPlaying = false;
+        m_cursorNeedsReleasing = true;
+    }
+    bool cursorInWindow = glfwGetWindowAttrib(window, GLFW_HOVERED);
+    LOG(std::to_string(m_lastPlaying));
+    if (
+        windowFocus && m_cursorNeedsReleasing
+        || !m_lastPlaying && cursorInWindow && !m_lastCursorInWindow && m_cursorNeedsReleasing)
+    {
+        LOG("Releasing cursor");
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        m_cursorNeedsReleasing = false;
     }
 
+    m_lastCursorInWindow = cursorInWindow;
     m_lastPlaying = m_playing;
 }
 
-void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus)
+void ClientPlayer::unfocus(GLFWwindow* window, int* windowDimensions)
 {
-    LOG("Unfocus");
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
     m_playing = m_lastPlaying = false;
     m_paused = true;
 }
 
-void ClientPlayer::focus(GLFWwindow* window)
+void ClientPlayer::focus(GLFWwindow* window, int* windowDimensions)
 {
-    LOG("Focus");
-    glfwSetCursorPos(window, 0, 0);
+    glfwSetCursorPos(window, (double)windowDimensions[0] / 2, (double)windowDimensions[1] / 2);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if (glfwRawMouseMotionSupported())
         glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
