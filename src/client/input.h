@@ -30,5 +30,6 @@ void clearCurrentBuffer();
 bool buttonPressed(int scancode);
 bool buttonDown(int scancode);
 bool leftMouseButtonPressed();
+bool anyMouseButtonPressed();
 
 }  // namespace lonelycube::client

@@ -39,6 +39,7 @@ private:
     bool m_playing;
     bool m_lastPlaying;
     int m_pauseMouseState;
+    bool m_paused;
 
     float m_timeSinceBlockPlace;
     float m_timeSinceBlockBreak;
@@ -85,6 +86,11 @@ public:
     );
     void unfocus(GLFWwindow* window, int* windowDimensions, bool* windowLastFocus);
     void focus(GLFWwindow* window);
+
+    inline bool gamePaused()
+    {
+        return m_paused;
+    }
 };
 
 }  // namespace lonelycube::client

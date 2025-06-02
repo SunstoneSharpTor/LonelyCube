@@ -18,6 +18,7 @@
 
 #include "client/logicThread.h"
 
+#include <chrono>
 #include <enet/enet.h>
 
 #include "client/clientNetworking.h"
@@ -32,8 +33,10 @@ namespace lonelycube::client {
 static void chunkLoaderThreadSingleplayer(
     ClientWorld& mainWorld, bool& running, int8_t threadNum, int& numThreadsBeingUsed
 ) {
-    while (running) {
-        while (threadNum >= numThreadsBeingUsed && running) {
+    while (running)
+    {
+        while (threadNum >= numThreadsBeingUsed && running)
+        {
             mainWorld.setThreadWaiting(threadNum, true);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
             mainWorld.setThreadWaiting(threadNum, false);
@@ -48,8 +51,10 @@ static void chunkLoaderThreadMultiplayer(
 ) {
     std::chrono::time_point<std::chrono::steady_clock> timeStartedWaiting = 
         std::chrono::steady_clock::now();
-    while (running) {
-        while (threadNum >= numThreadsBeingUsed && running) {
+    while (running)
+    {
+        while (threadNum >= numThreadsBeingUsed && running)
+        {
             mainWorld.setThreadWaiting(threadNum, true);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
             mainWorld.setThreadWaiting(threadNum, false);
@@ -66,27 +71,34 @@ static void chunkLoaderThreadMultiplayer(
 void LogicThread::go(bool& running)
 {
     ThreadManager threadManager(m_mainWorld.getNumChunkLoaderThreads());
-    for (int8_t threadNum = 1; threadNum < threadManager.getNumThreads(); threadNum++) {
-        if (m_multiplayer) {
+    for (int8_t threadNum = 1; threadNum < threadManager.getNumThreads(); threadNum++)
+    {
+        if (m_multiplayer)
+        {
             threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadMultiplayer,
                 std::ref(m_mainWorld), std::ref(m_networking), std::ref(running), threadNum,
                 std::ref(threadManager.getNumThreadsBeingUsed()));
         }
-        else {
+        else
+        {
             threadManager.getThread(threadNum) = std::thread(chunkLoaderThreadSingleplayer,
                 std::ref(m_mainWorld), std::ref(running), threadNum,
                 std::ref(threadManager.getNumThreadsBeingUsed()));
         }
     }
 
-    if (m_multiplayer) {
-        auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
-        while (running) {
+    if (m_multiplayer)
+    {
+        auto nextTick = std::chrono::steady_clock::now() +
+            std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
+        while (running)
+        {
             m_mainWorld.loadChunksAroundPlayerMultiplayer(0);
             m_networking.receiveEvents(m_mainWorld);
 
             auto currentTime = std::chrono::steady_clock::now();
-            if (currentTime >= nextTick) {
+            if (currentTime >= nextTick)
+            {
                 if (m_mainWorld.integratedServer.getTickNum() % 4 == 0)
                     threadManager.throttleThreads();
 
@@ -109,26 +121,41 @@ void LogicThread::go(bool& running)
             }
         }
     }
-    else {  // Singleplayer
+    else  // Singleplayer
+    {
         auto nextTick = std::chrono::steady_clock::now() + std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
-        while (running) {
+        bool lastPaused = false;
+        std::chrono::time_point<std::chrono::steady_clock> pauseStart;
+        while (running)
+        {
             m_mainWorld.loadChunksAroundPlayerSingleplayer(0);
 
             auto currentTime = std::chrono::steady_clock::now();
-            if (currentTime >= nextTick) {
-                if (m_mainWorld.integratedServer.getTickNum() % 4 == 0)
-                    threadManager.throttleThreads();
-                m_mainWorld.integratedServer.tick();
-                nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
-            }
+            // if (m_mainPlayer.gamePaused())
+            // {
+            //     if (!lastPaused)
+            //         pauseStart = currentTime;
+            // }
+            // else
+            // {
+                if (lastPaused)
+                    nextTick += currentTime - pauseStart;
+                if (currentTime >= nextTick)
+                {
+                    if (m_mainWorld.integratedServer.getTickNum() % 4 == 0)
+                        threadManager.throttleThreads();
+                    m_mainWorld.integratedServer.tick();
+                    nextTick += std::chrono::nanoseconds(1000000000 / constants::TICKS_PER_SECOND);
+                }
+            // }
+            lastPaused = m_mainPlayer.gamePaused();
         }
     }
     m_chunkLoaderThreadsRunning[0] = false;
 
     threadManager.joinThreads();
-    for (int8_t threadNum = 1; threadNum < m_mainWorld.getNumChunkLoaderThreads(); threadNum++) {
+    for (int8_t threadNum = 1; threadNum < m_mainWorld.getNumChunkLoaderThreads(); threadNum++)
         m_chunkLoaderThreadsRunning[threadNum] = false;
-    }
 }
 
 }  // namespace lonelycube::client
