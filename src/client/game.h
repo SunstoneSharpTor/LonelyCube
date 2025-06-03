@@ -33,7 +33,7 @@ public:
         uint64_t seed
     );
     ~Game();
-    void processInput(double currentTime);
+    void processInput(double dt);
     void focus();
     void unfocus();
     void renderFrame(double dt);
@@ -59,7 +59,6 @@ private:
 
     float m_exposure = 0.0;
     float m_toneMapTimeByDTs = 0.0;
-    std::chrono::time_point<std::chrono::steady_clock> m_startTime; 
     bool m_windowLastFocus = false;
 };
 

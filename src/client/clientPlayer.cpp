@@ -90,25 +90,49 @@ ClientPlayer::ClientPlayer(
 
     m_blockHolding = 1;
 
-    m_time = 0.0;
+    m_time = m_physicsTime = 0.0;
 }
 
 void ClientPlayer::processUserInput(
-    GLFWwindow* window, int* windowDimensions, double currentTime, ClientNetworking& networking
+    GLFWwindow* window, int* windowDimensions, double dt, ClientNetworking& networking
 ) {
-    float DT = 1.0f/(float)constants::visualTPS;
-    float actualDT = floor((currentTime - m_time) / DT) * DT * (m_time != 0.0);
-    if (!m_playing)  // Refocus the window if it has just been clicked
+    // Handle window losing focus
+    bool windowFocus = glfwGetWindowAttrib(window, GLFW_FOCUSED);
+    if (!windowFocus && m_playing)
+    {
+        m_playing = m_lastPlaying = false;
+        m_cursorLeftWindow = false;
+        m_cursorNeedsReleasing = true;
+    }
+    bool cursorInWindow = glfwGetWindowAttrib(window, GLFW_HOVERED);
+    if (m_cursorNeedsReleasing)
+    {
+        if (!m_cursorLeftWindow && !cursorInWindow)
+            m_cursorLeftWindow = true;
+
+        if (windowFocus || cursorInWindow && m_cursorLeftWindow)
+        {
+            LOG("Releasing cursor");
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            m_cursorNeedsReleasing = false;
+            cursorInWindow = glfwGetWindowAttrib(window, GLFW_HOVERED);
+        }
+    }
+
+    // Refocus the window if it has just been clicked
+    if (!m_playing)
     {
         if (input::anyMouseButtonPressed())
+        {
             focus(window, windowDimensions);
+        }
     }
     if (!m_paused)
     {
-        m_timeSinceBlockBreak += actualDT;
-        m_timeSinceBlockPlace += actualDT;
-        m_timeSinceLastJump += actualDT;
-        m_timeSinceLastSpace += actualDT;
+        m_timeSinceBlockBreak += dt;
+        m_timeSinceBlockPlace += dt;
+        m_timeSinceLastJump += dt;
+        m_timeSinceLastSpace += dt;
     }
 
     double localCursorPosition[2];
@@ -223,8 +247,8 @@ void ClientPlayer::processUserInput(
         if (m_touchGround && m_fly)
             m_fly = false;
 
-        m_timeSinceTouchGround = (m_timeSinceTouchGround + actualDT) * (!m_touchGround);
-        m_timeSinceTouchWater = (m_timeSinceTouchWater + actualDT) * (!m_touchWater);
+        m_timeSinceTouchGround = (m_timeSinceTouchGround + dt) * (!m_touchGround);
+        m_timeSinceTouchWater = (m_timeSinceTouchWater + dt) * (!m_touchWater);
         if (m_fly)
         {
             movementSpeed = 100.0f;
@@ -333,14 +357,15 @@ void ClientPlayer::processUserInput(
     }
     if (!m_paused)
     {
-        while (m_time < currentTime - DT)
+        m_physicsTime += dt;
+        while (m_time < m_physicsTime - constants::visualTickTime)
         {
             //calculate friction
             glm::vec3 friction = (m_velocity) * -10.0f * (m_touchWater * (!m_fly) * 0.8f + 1.0f);
             friction[1] *= m_fly || m_touchWater;
-            m_velocity += (force + friction) * DT;
+            m_velocity += (force + friction) * constants::visualTickTime;
 
-            resolveHitboxCollisions(DT);
+            resolveHitboxCollisions(constants::visualTickTime);
 
             //update camera position
             for (uint8_t i = 0; i < 3; i++)
@@ -358,31 +383,10 @@ void ClientPlayer::processUserInput(
                 cameraBlockPosition[i] += roundedPos;
                 viewCamera.position[i] -= roundedPos;
             }
-            m_time += DT;
+            m_time += constants::visualTickTime;
         }
     }
-    while (m_time < currentTime - DT)
-        m_time += DT;
 
-    // Handle window losing focus
-    bool windowFocus = glfwGetWindowAttrib(window, GLFW_FOCUSED);
-    if (!windowFocus && m_playing)
-    {
-        m_playing = m_lastPlaying = false;
-        m_cursorNeedsReleasing = true;
-    }
-    bool cursorInWindow = glfwGetWindowAttrib(window, GLFW_HOVERED);
-    LOG(std::to_string(m_lastPlaying));
-    if (
-        windowFocus && m_cursorNeedsReleasing
-        || !m_lastPlaying && cursorInWindow && !m_lastCursorInWindow && m_cursorNeedsReleasing)
-    {
-        LOG("Releasing cursor");
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        m_cursorNeedsReleasing = false;
-    }
-
-    m_lastCursorInWindow = cursorInWindow;
     m_lastPlaying = m_playing;
 }
 
