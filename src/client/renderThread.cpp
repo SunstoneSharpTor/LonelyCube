@@ -180,6 +180,7 @@ void renderThread()
                     && input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE))
                 ) {
                     game->unfocus();
+                    renderer.setGameBrightness(0.25f);
                     applicationState.pushState(ApplicationState::PauseMenu);
                     input::clearCurrentBuffer();
                 }
@@ -197,11 +198,16 @@ void renderThread()
                             settings.getRenderDistance(), worldSeed
                         );
                         game->focus();
+                        renderer.setGameBrightness(1.0f);
                     }
                     input::clearCurrentBuffer();
                     break;
                 case ApplicationState::PauseMenu:
-                    pauseMenu.update(menuUpdateInfo);
+                    if (pauseMenu.update(menuUpdateInfo)
+                        && applicationState.getState().back() == ApplicationState::Gameplay)
+                    {
+                        renderer.setGameBrightness(1.0f);
+                    }
                     input::clearCurrentBuffer();
                     break;
 

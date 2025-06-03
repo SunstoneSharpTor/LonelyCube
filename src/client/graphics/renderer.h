@@ -55,6 +55,7 @@ struct ToneMapPushConstants
 {
     glm::vec2 drawImageTexelSize;
     VkDeviceAddress luminanceBuffer;
+    float brightness;
 };
 
 struct FullscreenBlitPushConstants
@@ -65,6 +66,9 @@ struct FullscreenBlitPushConstants
 
 class Renderer
 {
+private:
+    ToneMapPushConstants m_toneMapPushConstants;
+
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
@@ -100,6 +104,10 @@ public:
     inline bool isMinimised()
     {
         return m_minimised;
+    }
+    inline void setGameBrightness(float brightness)
+    {
+        m_toneMapPushConstants.brightness = brightness;
     }
 
 private:
@@ -148,7 +156,6 @@ private:
     VkDescriptorSet m_toneMapDescriptors;
     VkPipelineLayout m_toneMapPipelineLayout;
     VkPipeline m_toneMapPipeline;
-    ToneMapPushConstants m_toneMapPushConstants;
 
     VkPipelineLayout m_uiPipelineLayout;
 

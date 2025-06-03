@@ -216,7 +216,8 @@ void Game::renderFrame(double dt)
 
     m_renderer.finishDrawingGeometry();
     m_renderer.renderBloom();
-    m_renderer.calculateAutoExposure(dt);
+    if (!m_mainPlayer.gamePaused())
+        m_renderer.calculateAutoExposure(dt);
     m_renderer.beginRenderingToSwapchainImage();
     m_renderer.applyToneMap();
     m_renderer.drawCrosshair();
