@@ -1165,12 +1165,6 @@ void Renderer::renderBloom()
     );
 
     m_bloom.render(4.0f, 0.007f);
-}
-
-void Renderer::calculateAutoExposure(double DT)
-{
-    FrameData& currentFrameData = m_vulkanEngine.getCurrentFrameData();
-    VkCommandBuffer command = currentFrameData.commandBuffer;
 
     transitionImage(
         command, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL,
@@ -1178,7 +1172,10 @@ void Renderer::calculateAutoExposure(double DT)
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
+}
 
+void Renderer::calculateAutoExposure(double DT)
+{
     glm::vec2 renderAreaFraction(
         static_cast<float>(m_drawImageExtent.width) / m_drawImageExtent.width,
          static_cast<float>(m_drawImageExtent.height) / m_drawImageExtent.height

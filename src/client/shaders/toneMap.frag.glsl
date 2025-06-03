@@ -32,6 +32,7 @@ layout (push_constant, std430) uniform constants
 {
     vec2 drawImageTexelSize;
     LuminanceBuffer luminanceBuffer;
+    float brightness;
 };
 
 //
@@ -128,5 +129,5 @@ void main() {
     // const float gamma = 2.2;
     // mapped = pow(mapped, vec3(1.0 / gamma));
 
-    outColour = vec4(mapped, 1.0);
+    outColour = vec4(mapped * brightness, 1.0);
 }
