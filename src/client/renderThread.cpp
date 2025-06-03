@@ -217,7 +217,7 @@ void renderThread()
                         applicationState.getState().begin(),
                         applicationState.getState().end(), ApplicationState::Gameplay
                 )) {
-                    game->processInput(currentTime);
+                    game->processInput(actualDT);
                     game->renderFrame(actualDT);
                 }
                 else

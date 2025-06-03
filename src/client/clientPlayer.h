@@ -33,6 +33,7 @@ private:
     static const int m_directions[18];
 
     double m_time;
+    double m_physicsTime;
 
     double m_lastMousePos[2];
     glm::ivec2 m_lastWindowSize;
@@ -41,7 +42,7 @@ private:
     int m_pauseMouseState;
     bool m_paused;
     bool m_cursorNeedsReleasing;
-    bool m_lastCursorInWindow;
+    bool m_cursorLeftWindow;
 
     float m_timeSinceBlockPlace;
     float m_timeSinceBlockBreak;
@@ -83,7 +84,7 @@ public:
     ClientPlayer(const IVec3& playerPos, ClientWorld* newWorld, ResourcePack& resourcePack);
 
     void processUserInput(
-        GLFWwindow* window, int* windowDimensions, double currentTime, ClientNetworking& networking
+        GLFWwindow* window, int* windowDimensions, double dt, ClientNetworking& networking
     );
     void unfocus(GLFWwindow* window, int* windowDimensions);
     void focus(GLFWwindow* window, int* windowDimensions);

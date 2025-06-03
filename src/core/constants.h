@@ -37,6 +37,7 @@ constexpr uint8_t skyLightMaxValue{ 31 };
 constexpr uint8_t blockLightMaxValue{ 15 };
 
 constexpr int visualTPS{ 240 };
+constexpr float visualTickTime{ 1.0 / visualTPS };
 
 constexpr uint32_t DAY_LENGTH{ 24000 };
 

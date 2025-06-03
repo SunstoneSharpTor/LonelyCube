@@ -88,21 +88,18 @@ Game::Game(
     );
 
     int windowDimensions[2];
-    double time;
     m_mainPlayer.processUserInput(
-        renderer.getVulkanEngine().getWindow(), windowDimensions, time, m_networking
+        renderer.getVulkanEngine().getWindow(), windowDimensions, 0.0, m_networking
     );
     m_mainWorld.doRenderThreadJobs();
-
-    m_startTime = std::chrono::steady_clock::now();
 }
 
-void Game::processInput(double currentTime)
+void Game::processInput(double dt)
 {
     VkExtent2D windowDimensions = m_renderer.getVulkanEngine().getSwapchainExtent();
     m_mainPlayer.processUserInput(
         m_renderer.getVulkanEngine().getWindow(), reinterpret_cast<int*>(&windowDimensions.width),
-        currentTime, m_networking
+        dt, m_networking
     );
 }
 
