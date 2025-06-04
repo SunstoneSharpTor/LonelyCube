@@ -18,6 +18,7 @@
 
 #include "client/game.h"
 
+#include <chrono>
 #include <enet/enet.h>
 #include "glm/fwd.hpp"
 
@@ -121,6 +122,7 @@ void Game::unfocus()
 
 void Game::renderFrame(double dt)
 {
+    auto tp1 = std::chrono::high_resolution_clock::now();
     m_mainWorld.updateMeshes();
     m_mainWorld.updatePlayerPos(
         m_mainPlayer.cameraBlockPosition, &(m_mainPlayer.viewCamera.position[0])
@@ -172,9 +174,9 @@ void Game::renderFrame(double dt)
     // Render the world geometry
     float cameraSubBlockPos[3];
     m_mainPlayer.viewCamera.getPosition(cameraSubBlockPos);
+    #ifdef TIMESTAMPS
     FrameData& currentFrameData = m_renderer.getVulkanEngine().getCurrentFrameData();
     VkCommandBuffer command = currentFrameData.commandBuffer;
-    #ifdef TIMESTAMPS
     vkCmdWriteTimestamp(
         command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, renderer.getVulkanEngine().getCurrentTimestampQueryPool(), 0
     );
@@ -221,6 +223,9 @@ void Game::renderFrame(double dt)
     m_renderer.beginRenderingToSwapchainImage();
     m_renderer.applyToneMap();
     m_renderer.drawCrosshair();
+    auto tp2 = std::chrono::high_resolution_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count() > 10)
+        LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count()) + "ms for frame to render");
 }
 
 Game::~Game()

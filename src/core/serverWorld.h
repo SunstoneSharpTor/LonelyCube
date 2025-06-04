@@ -35,6 +35,7 @@
 #include "core/resourcePack.h"
 #include "core/serverPlayer.h"
 #include "core/terrainGen.h"
+#include <chrono>
 
 namespace lonelycube {
 
@@ -54,6 +55,7 @@ private:
     std::unordered_map<uint32_t, ServerPlayer> m_players;
     std::queue<IVec3> m_chunksToBeLoaded;
     std::unordered_set<IVec3> m_chunksBeingLoaded;
+    std::unordered_set<uint32_t> m_playersUnloadingChunks;
 
     EntityManager m_entityManager;
 
@@ -68,9 +70,17 @@ private:
 public:
     ServerWorld(uint64_t seed, std::mutex& networkingMtx);
     void tick();
-    void addPlayer(int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer);
-    uint32_t addPlayer(int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer);
-    void updatePlayerPos(uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded);
+    void addPlayer(
+        int* blockPosition, float* subBlockPosition, int renderDistance, bool multiplayer
+    );
+    uint32_t addPlayer(
+        int* blockPosition, float* subBlockPosition, int renderDistance, ENetPeer* peer
+    );
+    void updatePlayerPos(
+        uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition,
+        bool playerMovedChunk
+    );
+    void unloadChunksOutOfRange();
     ServerPlayer& getPlayer(uint32_t playerID) {
         return m_players.at(playerID);
     }
@@ -100,6 +110,10 @@ public:
     {
         return m_entityManager;
     }
+    inline bool playerUnloadingChunks(int playerID)
+    {
+        return m_playersUnloadingChunks.contains(playerID);
+    }
     void setPlayerChunkLoadingTarget(int playerID, uint64_t chunkRequestNum, int target, int bufferSize);
     bool updateClientChunkLoadingTarget();
     void disconnectPlayer(uint32_t playerID);
@@ -121,34 +135,52 @@ ServerWorld<integrated>::ServerWorld(uint64_t seed, std::mutex& networkingMtx)
 
 template<bool integrated>
 void ServerWorld<integrated>::updatePlayerPos(
-    uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition, bool unloadNeeded
+    uint32_t playerID, const IVec3& blockPosition, const Vec3& subBlockPosition,
+    bool playerMovedChunk
 ) {
-    std::lock_guard<std::mutex> lock(m_playersMtx);
+    // LOG("r waiting for mutex");
+    // std::lock_guard<std::mutex> lock(m_playersMtx);
+    // LOG("r aquired mutex");
     ServerPlayer& player = m_players.at(playerID);
     player.updatePlayerPos(blockPosition, subBlockPosition);
-    if (unloadNeeded) {
-        chunkManager.mutex.lock();
-        m_chunksToBeLoadedMtx.lock();
-        m_chunksBeingLoadedMtx.lock();
+    if (playerMovedChunk)
+    {
         // If the player has moved chunk, remove all the chunks that are out of
         // render distance from the set of loaded chunks
-        IVec3 chunkPosition;
-        bool chunkOutOfRange;
-        player.beginUnloadingChunks();
-        while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange)) {
-            if (chunkOutOfRange) {
-                auto it = chunkManager.getWorldChunks().find(chunkPosition);
-                it->second.decrementPlayerCount();
-                if (it->second.hasNoPlayers()) {
-                    it->second.unload();
-                    chunkManager.getWorldChunks().erase(it);
+        m_playersUnloadingChunks.insert(playerID);
+    }
+}
+
+template<bool integrated>
+void ServerWorld<integrated>::unloadChunksOutOfRange()
+{
+    IVec3 chunkPosition;
+    bool chunkOutOfRange;
+    m_playersMtx.lock();
+    auto itr = m_playersUnloadingChunks.begin();
+    auto startTime = std::chrono::steady_clock::now();
+    while (itr != m_playersUnloadingChunks.end())
+    {
+        ServerPlayer& player = m_players.at(*itr);
+        player.beginUnloadingChunksOutOfRange();
+        m_playersMtx.unlock();
+        while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange))
+        {
+            if (chunkOutOfRange)
+            {
+                auto itr = chunkManager.getWorldChunks().find(chunkPosition);
+                itr->second.decrementPlayerCount();
+                if (itr->second.hasNoPlayers())
+                {
+                    itr->second.unload();
+                    chunkManager.getWorldChunks().erase(itr);
                 }
             }
         }
-        m_chunksBeingLoadedMtx.unlock();
-        m_chunksToBeLoadedMtx.unlock();
-        chunkManager.mutex.unlock();
+        m_playersMtx.lock();
+        itr = m_playersUnloadingChunks.erase(itr);
     }
+    m_playersMtx.unlock();
 }
 
 template<bool integrated>
@@ -301,7 +333,7 @@ void ServerWorld<integrated>::disconnectPlayer(uint32_t playerID) {
     IVec3 chunkPosition;
     bool chunkOutOfRange;
     int i = 0;
-    player.beginUnloadingChunks();
+    player.beginUnloadingChunksOutOfRange();
     while (player.checkIfNextChunkShouldUnload(&chunkPosition, &chunkOutOfRange))
     {
         if (chunkManager.chunkLoaded(chunkPosition)) {

@@ -25,34 +25,32 @@
 
 namespace lonelycube {
 
-void ServerPlayer::initChunks() {
-    m_minUnloadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);
+void ServerPlayer::calculateMaxNumChunks() {
+    m_maxLoadedChunkDistance = (m_renderDistance + 1) * (m_renderDistance + 1);
     m_maxNumChunks = 0;
     for (int x = -m_renderDistance; x <= m_renderDistance; x++) {
         for (int y = -m_renderDistance; y <= m_renderDistance; y++) {
             for (int z = -m_renderDistance; z <= m_renderDistance; z++) {
-                if (x * x + y * y + z * z < m_minUnloadedChunkDistance) {
+                if (x * x + y * y + z * z < m_maxLoadedChunkDistance) {
                     m_maxNumChunks++;
                 }
             }
         }
     }
-    m_unloadedChunks = std::make_unique<IVec3[]>(m_maxNumChunks);
+    m_chunkLoadingOrder.reserve(m_maxNumChunks);
 }
 
-void ServerPlayer::initChunkPositions() {
-    int i = 0;
+void ServerPlayer::initChunkLoadingOrder() {
     for (int x = -m_renderDistance; x <= m_renderDistance; x++) {
         for (int y = -m_renderDistance; y <= m_renderDistance; y++) {
             for (int z = -m_renderDistance; z <= m_renderDistance; z++) {
-                if (x * x + y * y + z * z < m_minUnloadedChunkDistance) {
-                    m_unloadedChunks[i] = IVec3(x, y, z);
-                    i++;
+                if (x * x + y * y + z * z < m_maxLoadedChunkDistance) {
+                    m_chunkLoadingOrder.emplace_back(x, y, z);
                 }
             }
         }
     }
-    std::sort(&(m_unloadedChunks[0]), &(m_unloadedChunks[0]) + i,
+    std::sort(m_chunkLoadingOrder.begin(), m_chunkLoadingOrder.end(),
         [](IVec3 a, IVec3 b) {
             int aDistance = a.x * a.x + a.y * a.y + a.z * a.z;
             int bDistance = b.x * b.x + b.y * b.y + b.z * b.z;
@@ -72,70 +70,72 @@ void ServerPlayer::initChunkPositions() {
                 return aDistance < bDistance;
         }
     );
+    for (const auto& pos : m_chunkLoadingOrder)
+        m_chunkDistances.push_back(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+
     m_nextUnloadedChunk = 0;
 }
 
 // The constructor used by the physical server
 ServerPlayer::ServerPlayer(
-    uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
-    ENetPeer* peer, uint32_t gameTick
+    uint32_t playerID, int* blockPos, float* subBlockPos, int renderDistance, ENetPeer* peer,
+    uint64_t gameTick
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
     m_targetBufferSize(0), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID),
     m_peer(peer), m_lastPacketTick(gameTick)
 {
-    m_blockPosition[0] = blockPosition[0];
-    m_blockPosition[1] = blockPosition[1];
-    m_blockPosition[2] = blockPosition[2];
-    m_subBlockPosition[0] = subBlockPosition[0];
-    m_subBlockPosition[1] = subBlockPosition[1];
-    m_subBlockPosition[2] = subBlockPosition[2];
-    IVec3 playerChunkPosition = Chunk::getChunkCoords(blockPosition);
-    m_playerChunkPosition[0] = playerChunkPosition.x;
-    m_playerChunkPosition[1] = playerChunkPosition.y;
-    m_playerChunkPosition[2] = playerChunkPosition.z;
-    initChunks();
-    initChunkPositions();
+    m_blockPos[0] = blockPos[0];
+    m_blockPos[1] = blockPos[1];
+    m_blockPos[2] = blockPos[2];
+    m_subBlockPos[0] = subBlockPos[0];
+    m_subBlockPos[1] = subBlockPos[1];
+    m_subBlockPos[2] = subBlockPos[2];
+    IVec3 playerChunkPos= Chunk::getChunkCoords(blockPos);
+    m_playerChunkPos[0] = playerChunkPos.x;
+    m_playerChunkPos[1] = playerChunkPos.y;
+    m_playerChunkPos[2] = playerChunkPos.z;
+    calculateMaxNumChunks();
+    initChunkLoadingOrder();
 }
 
 // The constructor used by the integrated server
 ServerPlayer::ServerPlayer(
-    uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
-    bool multiplayer
+    uint32_t playerID, int* blockPos, float* subBlockPos, int renderDistance, bool multiplayer
 ) : m_renderDistance(renderDistance), m_renderDiameter(renderDistance * 2 + 1),
     m_targetBufferSize(90), m_currentNumLoadedChunks(0), m_numChunkRequests(0), m_playerID(playerID)
 {
-    m_blockPosition[0] = blockPosition[0];
-    m_blockPosition[1] = blockPosition[1];
-    m_blockPosition[2] = blockPosition[2];
-    m_subBlockPosition[0] = subBlockPosition[0];
-    m_subBlockPosition[1] = subBlockPosition[1];
-    m_subBlockPosition[2] = subBlockPosition[2];
-    IVec3 playerChunkPosition = Chunk::getChunkCoords(blockPosition);
-    m_playerChunkPosition[0] = playerChunkPosition.x;
-    m_playerChunkPosition[1] = playerChunkPosition.y;
-    m_playerChunkPosition[2] = playerChunkPosition.z;
-    initChunks();
-    initChunkPositions();
+    m_blockPos[0] = blockPos[0];
+    m_blockPos[1] = blockPos[1];
+    m_blockPos[2] = blockPos[2];
+    m_subBlockPos[0] = subBlockPos[0];
+    m_subBlockPos[1] = subBlockPos[1];
+    m_subBlockPos[2] = subBlockPos[2];
+    IVec3 playerChunkPos= Chunk::getChunkCoords(blockPos);
+    m_playerChunkPos[0] = playerChunkPos.x;
+    m_playerChunkPos[1] = playerChunkPos.y;
+    m_playerChunkPos[2] = playerChunkPos.z;
+    calculateMaxNumChunks();
+    initChunkLoadingOrder();
 }
 
-void ServerPlayer::updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition) {
-    m_blockPosition[0] = blockPosition[0];
-    m_blockPosition[1] = blockPosition[1];
-    m_blockPosition[2] = blockPosition[2];
-    m_subBlockPosition[0] = subBlockPosition[0];
-    m_subBlockPosition[1] = subBlockPosition[1];
-    m_subBlockPosition[2] = subBlockPosition[2];
-    IVec3 playerChunkCoords = Chunk::getChunkCoords(blockPosition);
-    m_playerChunkPosition[0] = playerChunkCoords[0];
-    m_playerChunkPosition[1] = playerChunkCoords[1];
-    m_playerChunkPosition[2] = playerChunkCoords[2];
+void ServerPlayer::updatePlayerPos(const IVec3& blockPos, const Vec3& subBlockPos) {
+    m_blockPos[0] = blockPos[0];
+    m_blockPos[1] = blockPos[1];
+    m_blockPos[2] = blockPos[2];
+    m_subBlockPos[0] = subBlockPos[0];
+    m_subBlockPos[1] = subBlockPos[1];
+    m_subBlockPos[2] = subBlockPos[2];
+    IVec3 playerChunkPos = Chunk::getChunkCoords(blockPos);
+    m_playerChunkPos[0] = playerChunkPos[0];
+    m_playerChunkPos[1] = playerChunkPos[1];
+    m_playerChunkPos[2] = playerChunkPos[2];
 }
 
 bool ServerPlayer::updateNextUnloadedChunk()
 {
     while (
         (m_nextUnloadedChunk < m_maxNumChunks)
-        && (m_loadedChunks.contains(m_unloadedChunks[m_nextUnloadedChunk] + m_playerChunkPosition)))
+        && (m_loadedChunks.contains(m_chunkLoadingOrder[m_nextUnloadedChunk] + m_playerChunkPos)))
     {
         m_nextUnloadedChunk++;
     }
@@ -144,14 +144,14 @@ bool ServerPlayer::updateNextUnloadedChunk()
 
 void ServerPlayer::getNextChunkCoords(int* chunkCoords, uint64_t currentGameTick)
 {
-    chunkCoords[0] = m_unloadedChunks[m_nextUnloadedChunk].x + m_playerChunkPosition[0];
-    chunkCoords[1] = m_unloadedChunks[m_nextUnloadedChunk].y + m_playerChunkPosition[1];
-    chunkCoords[2] = m_unloadedChunks[m_nextUnloadedChunk].z + m_playerChunkPosition[2];
+    chunkCoords[0] = m_chunkLoadingOrder[m_nextUnloadedChunk].x + m_playerChunkPos[0];
+    chunkCoords[1] = m_chunkLoadingOrder[m_nextUnloadedChunk].y + m_playerChunkPos[1];
+    chunkCoords[2] = m_chunkLoadingOrder[m_nextUnloadedChunk].z + m_playerChunkPos[2];
     m_loadedChunks[chunkCoords] = currentGameTick;
     m_nextUnloadedChunk++;
 }
 
-void ServerPlayer::beginUnloadingChunks()
+void ServerPlayer::beginUnloadingChunksOutOfRange()
 {
     m_processedChunk = m_loadedChunks.begin();
 }
@@ -165,10 +165,10 @@ bool ServerPlayer::checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chun
         return false;
     }
 
-    int a = m_processedChunk->first.x - m_playerChunkPosition[0];
-    int b = m_processedChunk->first.y - m_playerChunkPosition[1];
-    int c = m_processedChunk->first.z - m_playerChunkPosition[2];
-    *chunkOutOfRange = a * a + b * b + c * c > m_minUnloadedChunkDistance - 0.001f;
+    int a = m_processedChunk->first.x - m_playerChunkPos[0];
+    int b = m_processedChunk->first.y - m_playerChunkPos[1];
+    int c = m_processedChunk->first.z - m_playerChunkPos[2];
+    *chunkOutOfRange = a * a + b * b + c * c >= m_maxLoadedChunkDistance;
     if (*chunkOutOfRange) {
         *chunkPosition = m_processedChunk->first;
         m_processedChunk = m_loadedChunks.erase(m_processedChunk);
@@ -199,7 +199,7 @@ void ServerPlayer::setChunkLoadingTarget(int target, uint64_t currentTickNum)
 
     // If the server thinks the target chunk was already sent to the client
     // a long time ago, resend it because the client has probably unloaded it
-    auto it = m_loadedChunks.find(m_unloadedChunks[target] + m_playerChunkPosition);
+    auto it = m_loadedChunks.find(m_chunkLoadingOrder[target] + m_playerChunkPos);
     if (it != m_loadedChunks.end() && it->second + constants::TICKS_PER_SECOND < currentTickNum)
     {
         LOG("Resending " + std::to_string(target));

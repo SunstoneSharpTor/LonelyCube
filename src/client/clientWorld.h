@@ -28,6 +28,8 @@
 #include "core/packet.h"
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
+#include <atomic>
+#include <condition_variable>
 
 namespace lonelycube::client {
 
@@ -95,6 +97,10 @@ private:
     bool m_renderThreadWaitingForMeshUpdates;
     std::vector<bool> m_chunkMeshReady;
     bool m_unmeshNeeded;
+    bool m_readyForChunkUnload;
+    bool m_unloadingChunks;
+    std::condition_variable m_readyForChunkUnloadCV;
+    std::mutex m_readyForChunkUnloadMtx;
     std::vector<bool> m_threadWaiting;
     int m_numRelights;
 
@@ -111,10 +117,11 @@ private:
     // Adds chunks to the vector if the modified block is in or bordering the chunk
     void addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IVec3& modifiedBlockPos,
         const IVec3& modifiedBlockChunk);
-    void addChunkMesh(const IVec3& chunkPosition, int8_t threadNum);
-    void uploadChunkMesh(int8_t threadNum);
+    void addChunkMesh(const IVec3& chunkPosition, int threadNum);
+    void uploadChunkMesh(int threadNum);
     void unmeshChunks();
     void unloadMeshes();
+    void waitIfMeshesNeedUnloading(int threadNum);
 
 public:
     ClientWorld(
@@ -125,20 +132,21 @@ public:
         const glm::mat4& viewProj, const int* playerBlockPos, const glm::vec3& playerSubBlockPos,
         float aspectRatio, float fov, float skyLightIntensity, double DT
     );
-    void loadChunksAroundPlayerSingleplayer(int8_t threadNum);
-    bool loadChunksAroundPlayerMultiplayer(int8_t threadNum);
-    bool buildMeshesForNewChunksWithNeighbours(int8_t threadNum);
+    void loadChunksAroundPlayerSingleplayer(int threadNum);
+    bool loadChunksAroundPlayerMultiplayer(int threadNum);
+    bool buildMeshesForNewChunksWithNeighbours(int threadNum);
     uint8_t shootRay(glm::vec3 startSubBlockPos, int* startBlockPosition, glm::vec3 direction, int* breakBlockCoords, int* placeBlockCoords);
     void replaceBlock(const IVec3& blockCoords, uint8_t blockType);
     inline int getRenderDistance() {
         return m_renderDistance;
     }
-    inline int8_t getNumChunkLoaderThreads() {
+    inline int getNumChunkLoaderThreads() {
         return m_numChunkLoadingThreads;
     }
     void doRenderThreadJobs();
     void updateMeshes();
     void updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCoords);
+    void unloadOutOfRangeMeshesIfNeeded();
     void unloadAllMeshes();
     void buildEntityMesh(const IVec3& playerBlockPos);
     void freeEntityMeshes();
@@ -153,7 +161,7 @@ public:
     inline bool isSinglePlayer() {
         return m_singleplayer;
     }
-    void setThreadWaiting(uint8_t threadNum, bool value);
+    void setThreadWaiting(uint threadNum, bool value);
     inline void updateViewCamera(const Camera& camera)
     {
         m_viewCamera = camera;

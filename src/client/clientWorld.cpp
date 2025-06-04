@@ -35,11 +35,6 @@
 
 namespace lonelycube::client {
 
-static bool chunkMeshUploaded[32] = { false, false, false, false, false, false, false, false,
-    false, false, false, false, false, false, false, false, false, false, false, false, false,
-    false, false, false, false, false, false, false, false, false, false, false };
-static bool unmeshCompleted = true;
-
 ClientWorld::ClientWorld(
     int renderDistance, uint64_t seed, bool singleplayer, const IVec3& playerPos,
     ENetPeer* peer, std::mutex& networkingMutex, Renderer& renderer
@@ -75,6 +70,7 @@ ClientWorld::ClientWorld(
     m_chunkMeshReadyCV = std::make_unique<std::condition_variable[]>(m_numChunkLoadingThreads);
     m_threadWaiting.resize(m_numChunkLoadingThreads);
     m_unmeshNeeded = false;
+    m_readyForChunkUnload = false;
 
     m_entityMeshes.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < VulkanEngine::MAX_FRAMES_IN_FLIGHT; i++)
@@ -228,11 +224,10 @@ void ClientWorld::renderWorld(
 
 void ClientWorld::doRenderThreadJobs()
 {
-    for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+    for (int threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
         if (m_chunkMeshReady[threadNum]) {
             uploadChunkMesh(threadNum);
             std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
-            chunkMeshUploaded[threadNum] = true;
             m_chunkMeshReady[threadNum] = false;
             lock.unlock();
             m_chunkMeshReadyCV[threadNum].notify_all();
@@ -266,48 +261,94 @@ void ClientWorld::updatePlayerPos(IVec3 playerBlockCoords, Vec3 playerSubBlockCo
     m_newPlayerChunkPosition[1] = newPlayerChunkPosition.y;
     m_newPlayerChunkPosition[2] = newPlayerChunkPosition.z;
 
-    unmeshCompleted = (m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
+    m_unmeshNeeded = !((m_playerChunkPosition[0] == m_newPlayerChunkPosition[0])
         && (m_playerChunkPosition[1] == m_newPlayerChunkPosition[1])
-        && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]);
-    m_unmeshNeeded = !unmeshCompleted;
+        && (m_playerChunkPosition[2] == m_newPlayerChunkPosition[2]));
 
-    for (int8_t i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
         m_updatingPlayerChunkPosition[i] = m_newPlayerChunkPosition[i];
-    }
-
-    bool waitingForChunkLoaderThreads = true;
-    while (m_unmeshNeeded && waitingForChunkLoaderThreads) {
-        doRenderThreadJobs();
-        // Wait for all the chunk loader threads to finish their jobs
-        waitingForChunkLoaderThreads = false;
-        std::lock_guard<std::mutex> lock(m_unmeshNeededMtx);
-        for (int8_t threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
-            waitingForChunkLoaderThreads |= !m_threadWaiting[threadNum];
-        }
     }
 
     integratedServer.updatePlayerPos(0, playerBlockCoords, playerSubBlockCoords, m_unmeshNeeded);
 
-    if (m_unmeshNeeded) {
+    if (m_unmeshNeeded)
+    {
+        std::lock_guard<std::mutex> lock(m_readyForChunkUnloadMtx);
+        m_readyForChunkUnload = true;
+        m_readyForChunkUnloadCV.notify_one();
+    }
+}
+
+void ClientWorld::unloadOutOfRangeMeshesIfNeeded()
+{
+    m_readyForChunkUnloadMtx.lock();
+    if (m_unmeshNeeded && !(m_readyForChunkUnload || m_unloadingChunks))
+    {
+        m_readyForChunkUnloadMtx.unlock();
+        auto tp1 = std::chrono::high_resolution_clock::now();
         unmeshChunks();
         std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        unmeshCompleted = true;
         m_unmeshNeeded = false;
         m_chunkRequestScheduled = true;
         lock.unlock();
         m_unmeshNeededCV.notify_all();
+        m_readyForChunkUnloadCV.notify_one();
+        auto tp2 = std::chrono::high_resolution_clock::now();
+        LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count()) + "us for mesh unloads to be queued");
+    }
+    else
+        m_readyForChunkUnloadMtx.unlock();
+}
+
+void ClientWorld::waitIfMeshesNeedUnloading(int threadNum)
+{
+    while (m_unmeshNeeded && (m_meshUpdates.size() == 0))
+    {
+        m_threadWaiting[threadNum] = true;
+        if (threadNum == 0)
+        {
+            // Wait to unload chunks
+            std::unique_lock<std::mutex> lock(m_readyForChunkUnloadMtx);
+            while (!m_readyForChunkUnload)
+                m_readyForChunkUnloadCV.wait(lock);
+
+            m_unloadingChunks = true;
+            m_readyForChunkUnload = false;
+            lock.unlock();
+
+            // Wait for all the chunk loader threads to finish their jobs
+            bool waitingForChunkLoaderThreads = true;
+            while (m_unmeshNeeded && waitingForChunkLoaderThreads) {
+                waitingForChunkLoaderThreads = false;
+                for (int threadNum = 0; threadNum < m_numChunkLoadingThreads; threadNum++) {
+                    waitingForChunkLoaderThreads |= !m_threadWaiting[threadNum];
+                }
+            }
+
+            integratedServer.unloadChunksOutOfRange();
+
+            // Wait for chunks to be unmeshed
+            lock.lock();
+            m_unloadingChunks = false;
+            while (m_unmeshNeeded && !m_readyForChunkUnload)
+                m_readyForChunkUnloadCV.wait(lock);
+        }
+        else
+        {
+            // Wait for chunks to be unmeshed
+            std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
+            while(m_unmeshNeeded)
+                m_unmeshNeededCV.wait(lock);
+            m_threadWaiting[threadNum] = false;
+        }
     }
 }
 
-void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum)
+void ClientWorld::loadChunksAroundPlayerSingleplayer(int threadNum)
 {
-    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        m_threadWaiting[threadNum] = true;
-        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
-        m_threadWaiting[threadNum] = false;
-    }
-    if (m_meshUpdates.empty()) {
+    waitIfMeshesNeedUnloading(threadNum);
+    if (m_meshUpdates.empty())
+    {
         IVec3 chunkPosition;
         if (integratedServer.loadNextChunk(&chunkPosition)) {
             m_unmeshedChunksMtx.lock();
@@ -319,14 +360,9 @@ void ClientWorld::loadChunksAroundPlayerSingleplayer(int8_t threadNum)
     buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
-bool ClientWorld::loadChunksAroundPlayerMultiplayer(int8_t threadNum)
+bool ClientWorld::loadChunksAroundPlayerMultiplayer(int threadNum)
 {
-    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        m_threadWaiting[threadNum] = true;
-        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
-        m_threadWaiting[threadNum] = false;
-    }
+    waitIfMeshesNeedUnloading(threadNum);
     return buildMeshesForNewChunksWithNeighbours(threadNum);
 }
 
@@ -387,7 +423,7 @@ void ClientWorld::unmeshChunks() {
 }
 
 bool ClientWorld::chunkHasNeighbours(const IVec3& chunkPosition) {
-    for (uint8_t i = 0; i < 27; i++) {
+    for (uint i = 0; i < 27; i++) {
         if (!(integratedServer.chunkManager.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
             return false;
         }
@@ -434,7 +470,7 @@ void ClientWorld::unloadMesh(MeshData& mesh)
     }
 }
 
-void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
+void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int threadNum) {
     int chunkCoords[3] = { chunkPosition.x, chunkPosition.y, chunkPosition.z };
 
     //generate the mesh
@@ -465,7 +501,6 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
     m_chunkPosition[threadNum] = chunkPosition;
     std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
     m_chunkMeshReady[threadNum] = true;
-    chunkMeshUploaded[threadNum] = false;
 
     if (!m_meshArrayIndices.contains(chunkPosition)) {
         m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) *
@@ -476,12 +511,11 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int8_t threadNum) {
         (chunkPosition.z - m_playerChunkPosition[2]);
     }
 
-    while (!chunkMeshUploaded[threadNum]) {
+    while (m_chunkMeshReady[threadNum])
         m_chunkMeshReadyCV[threadNum].wait(lock);
-    }
 }
 
-void ClientWorld::uploadChunkMesh(int8_t threadNum) {
+void ClientWorld::uploadChunkMesh(int threadNum) {
     MeshData newMesh;
     newMesh.chunkPosition = m_chunkPosition[threadNum];
 
@@ -530,7 +564,7 @@ void ClientWorld::uploadChunkMesh(int8_t threadNum) {
     m_meshes.push_back(newMesh);
 }
 
-bool ClientWorld::buildMeshesForNewChunksWithNeighbours(int8_t threadNum)
+bool ClientWorld::buildMeshesForNewChunksWithNeighbours(int threadNum)
 {
     bool meshBuilt = false;
     if (m_recentChunksBuilt.size() > 0) {
@@ -593,7 +627,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
     int steps = 0;
     while (steps < 180) {
         rayPos += direction * 0.025f;
-        for (uint8_t ii = 0; ii < 3; ii++) {
+        for (uint ii = 0; ii < 3; ii++) {
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
         }
         if (!integratedServer.isChunkLoaded(Chunk::getChunkCoords(blockPos)))
@@ -602,7 +636,7 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
         uint8_t blockType = integratedServer.chunkManager.getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
             bool hit = true;
-            for (uint8_t ii = 0; ii < 3; ii++) {
+            for (uint ii = 0; ii < 3; ii++) {
                 if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().getBlockData(blockType).model
                     ->boundingBoxVertices[ii] + 0.5f || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().
                     getBlockData(blockType).model->boundingBoxVertices[ii + 15] + 0.5f) {
@@ -610,20 +644,20 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
                 }
             }
             if (hit) {
-                for (uint8_t ii = 0; ii < 3; ii++) {
+                for (uint ii = 0; ii < 3; ii++) {
                     breakBlockCoords[ii] = blockPos[ii];
                 }
 
                 bool equal = true;
                 while (equal) {
                     rayPos -= direction * 0.025f;
-                    for (uint8_t ii = 0; ii < 3; ii++) {
+                    for (uint ii = 0; ii < 3; ii++) {
                         placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
                         equal &= placeBlockCoords[ii] == blockPos[ii];
                     }
                 }
 
-                for (uint8_t ii = 0; ii < 3; ii++) {
+                for (uint ii = 0; ii < 3; ii++) {
                     placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
                 }
                 return blockType;
@@ -660,14 +694,9 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType)
     }
 }
 
-void ClientWorld::setThreadWaiting(uint8_t threadNum, bool value)
+void ClientWorld::setThreadWaiting(uint threadNum, bool value)
 {
-    while (m_unmeshNeeded && (m_meshUpdates.size() == 0)) {
-        std::unique_lock<std::mutex> lock(m_unmeshNeededMtx);
-        m_threadWaiting[threadNum] = true;
-        m_unmeshNeededCV.wait(lock, [] { return unmeshCompleted; });
-        m_threadWaiting[threadNum] = false;
-    }
+    waitIfMeshesNeedUnloading(threadNum);
     m_threadWaiting[threadNum] = value;
 }
 
