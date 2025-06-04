@@ -32,30 +32,34 @@ class ServerPlayer {
 private:
     int m_renderDistance;
     int m_renderDiameter;
-    float m_minUnloadedChunkDistance;
+    int m_maxLoadedChunkDistance;
     uint32_t m_maxNumChunks;  // The max number of chunks in the player's render distance
-    int m_blockPosition[3];
-    float m_subBlockPosition[3];
-    std::unique_ptr<IVec3[]> m_unloadedChunks;
-    int m_playerChunkPosition[3];
+    int m_blockPos[3];
+    float m_subBlockPos[3];
+    std::vector<IVec3> m_chunkLoadingOrder;
+    std::vector<int> m_chunkDistances;
+    int m_playerChunkPos[3];
+    IVec3 m_lastChunkOffset;
+    IVec3 m_lastPlayerChunkPos;
+    int m_distanceToPrevChunk;
     int m_nextUnloadedChunk;
     int m_targetBufferSize;
     int m_currentNumLoadedChunks;
     int64_t m_numChunkRequests;
     uint32_t m_playerID;
     ENetPeer* m_peer;
-    uint32_t m_lastPacketTick;
+    uint64_t m_lastPacketTick;
     std::map<IVec3, uint64_t> m_loadedChunks;
     std::map<IVec3, uint64_t>::iterator m_processedChunk;
 
-    void initChunkPositions();
-    void initChunks();
+    void initChunkLoadingOrder();
+    void calculateMaxNumChunks();
 
 public:
     ServerPlayer() {};
     ServerPlayer(
         uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
-        ENetPeer* peer, uint32_t gameTick
+        ENetPeer* peer, uint64_t gameTick
     );
     ServerPlayer(
         uint32_t playerID, int* blockPosition, float* subBlockPosition, int renderDistance,
@@ -64,7 +68,7 @@ public:
     void updatePlayerPos(const IVec3& blockPosition, const Vec3& subBlockPosition);
     bool updateNextUnloadedChunk();
     void getNextChunkCoords(int* chunkCoords, uint64_t currentGameTick);
-    void beginUnloadingChunks();
+    void beginUnloadingChunksOutOfRange();
     bool checkIfNextChunkShouldUnload(IVec3* chunkPosition, bool* chunkOutOfRange);
     bool updateChunkLoadingTarget();
     void setChunkLoadingTarget(int target, uint64_t currentTickNum);
@@ -83,25 +87,25 @@ public:
     }
 
     inline void getChunkPosition(int* position) {
-        position[0] = m_playerChunkPosition[0];
-        position[1] = m_playerChunkPosition[1];
-        position[2] = m_playerChunkPosition[2];
+        position[0] = m_playerChunkPos[0];
+        position[1] = m_playerChunkPos[1];
+        position[2] = m_playerChunkPos[2];
     }
 
     inline IVec3 getChunkPosition()
     {
-        return { m_playerChunkPosition[0], m_playerChunkPosition[1], m_playerChunkPosition[2] };
+        return { m_playerChunkPos[0], m_playerChunkPos[1], m_playerChunkPos[2] };
     }
 
     inline bool hasChunkLoaded(const IVec3& chunkPosition) {
         return m_loadedChunks.contains(chunkPosition);
     }
 
-    inline void packetReceived(uint32_t gameTick) {
+    inline void packetReceived(uint64_t gameTick) {
         m_lastPacketTick = gameTick;
     }
 
-    inline uint32_t getLastPacketTick() const {
+    inline uint64_t getLastPacketTick() const {
         return m_lastPacketTick;
     }
 
@@ -110,9 +114,9 @@ public:
     }
 
     inline void getBlockPosition(int* blockPosition) {
-        blockPosition[0] = m_blockPosition[0];
-        blockPosition[1] = m_blockPosition[1];
-        blockPosition[2] = m_blockPosition[2];
+        blockPosition[0] = m_blockPos[0];
+        blockPosition[1] = m_blockPos[1];
+        blockPosition[2] = m_blockPos[2];
     }
     inline int getChunkLoadingTarget() const
     {

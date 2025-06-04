@@ -255,9 +255,10 @@ void renderThread()
         }
 
         if (std::count(
-                applicationState.getState().begin(),
-                applicationState.getState().end(), ApplicationState::Gameplay
-        )) {
+            applicationState.getState().begin(),
+            applicationState.getState().end(), ApplicationState::Gameplay))
+        {
+            game->getWorld().unloadOutOfRangeMeshesIfNeeded();
             game->getWorld().doRenderThreadJobs();
         }
 

@@ -189,7 +189,7 @@ float PhysicsEngine::findPenetrationDepthIntoWorld(
 void PhysicsEngine::extrapolateTransforms(const float DT)
 {
     std::lock_guard<std::mutex> lock1(m_ecs.mutex);
-    std::lock_guard<std::mutex> lock2(m_chunkManager.mutex);
+    // std::lock_guard<std::mutex> lock2(m_chunkManager.mutex);
     for (EntityId entity : ECSView<TransformComponent, PhysicsComponent>(m_ecs))
     {
         TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
