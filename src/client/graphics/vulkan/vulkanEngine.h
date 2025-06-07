@@ -250,7 +250,7 @@ private:
     void createSwapchainImageViews();
     void createFrameData();
     void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-    void createSyncObjects(int frameNum);
+    void createSyncObjects(int frameDataNum);
     void createAllocator();
     void initImmediateSubmit();
     void createTimestampQueryPools();

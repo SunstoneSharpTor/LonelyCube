@@ -41,6 +41,7 @@ void Font::init(
     m_vertexBuffers.reserve(VulkanEngine::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < VulkanEngine::MAX_FRAMES_IN_FLIGHT; i++)
         m_vertexBuffers.push_back(m_vulkanEngine.allocateDynamicBuffer(65536));
+    m_vertexBufferSize = 0;
 
     int size[2];
     int channels;

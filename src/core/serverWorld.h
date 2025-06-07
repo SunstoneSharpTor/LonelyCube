@@ -411,10 +411,10 @@ void ServerWorld<integrated>::tick() {
 template<bool integrated>
 bool ServerWorld<integrated>::isChunkLoaded(IVec3 chunkPosition)
 {
-    std::lock_guard<std::mutex> lock1(chunkManager.mutex);
+    // std::lock_guard<std::mutex> lock1(chunkManager.mutex);
     if (chunkManager.chunkLoaded(chunkPosition))
     {
-        std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
+        // std::lock_guard<std::mutex> lock2(m_chunksBeingLoadedMtx);
         return !m_chunksBeingLoaded.contains(chunkPosition);
     }
 

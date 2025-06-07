@@ -31,7 +31,6 @@
 #include "core/serverWorld.h"
 #include "core/utils/iVec3.h"
 #include "glm/ext/matrix_transform.hpp"
-#include <mutex>
 
 namespace lonelycube::client {
 
@@ -377,13 +376,15 @@ void ClientWorld::loadChunkFromPacket(
     m_recentChunksBuilt.push_back(chunkPosition);
 }
 
-void ClientWorld::unmeshChunks() {
+void ClientWorld::unmeshChunks()
+{
     m_updatingPlayerChunkPosition[0] = m_newPlayerChunkPosition[0];
     m_updatingPlayerChunkPosition[1] = m_newPlayerChunkPosition[1];
     m_updatingPlayerChunkPosition[2] = m_newPlayerChunkPosition[2];
     //unload any meshes and chunks that are out of render distance
     m_unmeshedChunksMtx.lock();
-    for (std::size_t i = 0; i < m_meshes.size(); i++) {
+    for (std::size_t i = 0; i < m_meshes.size(); i++)
+    {
         if (m_meshes[i].blockMesh.indexCount == 0 && m_meshes[i].waterMesh.indexCount == 0)
             continue;
 
@@ -407,12 +408,12 @@ void ClientWorld::unmeshChunks() {
         }
     }
     // Remove any chunks from unmeshedChunks that have just been unloaded
-    for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); ) {
-        if (!integratedServer.chunkManager.chunkLoaded(*it)) {
+    for (auto it = m_unmeshedChunks.begin(); it != m_unmeshedChunks.end(); )
+    {
+        if (!integratedServer.chunkManager.chunkLoaded(*it))
             it = m_unmeshedChunks.erase(it);
-        } else {
+        else
             ++it;
-        }
     }
     m_unmeshedChunksMtx.unlock();
 
@@ -423,36 +424,33 @@ void ClientWorld::unmeshChunks() {
 }
 
 bool ClientWorld::chunkHasNeighbours(const IVec3& chunkPosition) {
-    for (uint i = 0; i < 27; i++) {
-        if (!(integratedServer.chunkManager.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i]))) {
+    for (uint i = 0; i < 27; i++)
+    {
+        if (!(integratedServer.chunkManager.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i])))
             return false;
-        }
     }
     return true;
 }
 
 void ClientWorld::addChunksToRemesh(std::vector<IVec3>& chunksToRemesh, const IVec3&
-    modifiedBlockPos, const IVec3& modifiedBlockChunk) {
+    modifiedBlockPos, const IVec3& modifiedBlockChunk)
+{
     chunksToRemesh.push_back(modifiedBlockChunk);
     IVec3 blockPosInChunk = modifiedBlockPos - modifiedBlockChunk * constants::CHUNK_SIZE;
-    if (blockPosInChunk.x == 0) {
+    if (blockPosInChunk.x == 0)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(-1, 0, 0));
-    }
-    else if (blockPosInChunk.x == constants::CHUNK_SIZE - 1) {
+    else if (blockPosInChunk.x == constants::CHUNK_SIZE - 1)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(1, 0, 0));
-    }
-    if (blockPosInChunk.y == 0) {
+
+    if (blockPosInChunk.y == 0)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, -1, 0));
-    }
-    else if (blockPosInChunk.y == constants::CHUNK_SIZE - 1) {
+    else if (blockPosInChunk.y == constants::CHUNK_SIZE - 1)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 1, 0));
-    }
-    if (blockPosInChunk.z == 0) {
+
+    if (blockPosInChunk.z == 0)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, -1));
-    }
-    else if (blockPosInChunk.z == constants::CHUNK_SIZE - 1) {
+    else if (blockPosInChunk.z == constants::CHUNK_SIZE - 1)
         chunksToRemesh.emplace_back(modifiedBlockChunk + IVec3(0, 0, 1));
-    }
 }
 
 void ClientWorld::unloadMesh(MeshData& mesh)
@@ -481,18 +479,19 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int threadNum) {
     ).buildMesh();
 
     //if the mesh is empty dont upload it to save interrupting the render thread
-    if ((m_chunkIndices[threadNum].size() == 0) && (m_chunkWaterIndices[threadNum].size() == 0)) {
+    if ((m_chunkIndices[threadNum].size() == 0) && (m_chunkWaterIndices[threadNum].size() == 0))
+    {
         m_meshUpdatesMtx.lock();
-        while (m_renderThreadWaitingForMeshUpdates) {
+        while (m_renderThreadWaitingForMeshUpdates)
+        {
             m_meshUpdatesMtx.unlock();
             m_renderThreadWaitingForMeshUpdatesMtx.lock();
             m_meshUpdatesMtx.lock();
             m_renderThreadWaitingForMeshUpdatesMtx.unlock();
         }
         auto it = m_meshUpdates.find(chunkPosition);
-        if (it != m_meshUpdates.end()) {
+        if (it != m_meshUpdates.end())
             m_meshUpdates.erase(it);
-        }
         m_meshUpdatesMtx.unlock();
         return;
     }
@@ -502,7 +501,8 @@ void ClientWorld::addChunkMesh(const IVec3& chunkPosition, int threadNum) {
     std::unique_lock<std::mutex> lock(m_chunkMeshReadyMtx[threadNum]);
     m_chunkMeshReady[threadNum] = true;
 
-    if (!m_meshArrayIndices.contains(chunkPosition)) {
+    if (!m_meshArrayIndices.contains(chunkPosition))
+    {
         m_meshedChunksDistance = (chunkPosition.x - m_playerChunkPosition[0]) *
         (chunkPosition.x - m_playerChunkPosition[0]) +
         (chunkPosition.y - m_playerChunkPosition[1]) *

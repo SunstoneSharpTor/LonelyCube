@@ -770,23 +770,23 @@ float VulkanEngine::getDeltaTimestamp(int firstTimeStampIndex, int secondTimeSta
 }
 #endif
 
-void VulkanEngine::createSyncObjects(int frameNum)
+void VulkanEngine::createSyncObjects(int frameDataNum)
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     VK_CHECK(vkCreateSemaphore(
-        m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].imageAvailableSemaphore)
+        m_device, &semaphoreInfo, nullptr, &m_frameData[frameDataNum].imageAvailableSemaphore)
     );
     VK_CHECK(vkCreateSemaphore(
-        m_device, &semaphoreInfo, nullptr, &m_frameData[frameNum].renderFinishedSemaphore)
+        m_device, &semaphoreInfo, nullptr, &m_frameData[frameDataNum].renderFinishedSemaphore)
     );
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameNum].inFlightFence));
+    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameDataNum].inFlightFence));
 }
 
 void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
@@ -795,9 +795,10 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
 
     VK_CHECK(vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX));
 
+    LOG("Starting frame " + std::to_string(m_currentFrame));
     VkResult result = vkAcquireNextImageKHR(
-        m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore,
-        VK_NULL_HANDLE, &m_currentSwapchainIndex
+        m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore, VK_NULL_HANDLE,
+        &m_currentSwapchainIndex
     );
 
     // Check for resizing
@@ -808,7 +809,7 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     }
     else if (result != VK_SUBOPTIMAL_KHR)
     {
-        assert(result == VK_SUCCESS);
+        assert(result == VK_SUCCESS && "Failed to acquire swapchain image!");
     }
     else if (m_swapchainExtent.width + m_swapchainExtent.height == 0)
     {

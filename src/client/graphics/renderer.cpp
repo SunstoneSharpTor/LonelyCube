@@ -39,7 +39,9 @@ Renderer::Renderer(VkSampleCountFlagBits numSamples, float renderScale) :
     std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> sizes =
     {
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1}
     };
     m_globalDescriptorAllocator.init(m_vulkanEngine.getDevice(), 10, sizes);
 
