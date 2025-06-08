@@ -795,7 +795,6 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
 
     VK_CHECK(vkWaitForFences(m_device, 1, &currentFrameData.inFlightFence, VK_TRUE, UINT64_MAX));
 
-    LOG("Starting frame " + std::to_string(m_currentFrame));
     VkResult result = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, currentFrameData.imageAvailableSemaphore, VK_NULL_HANDLE,
         &m_currentSwapchainIndex

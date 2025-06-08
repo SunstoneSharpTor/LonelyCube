@@ -1,35 +1,44 @@
 # Lonely Cube
 
-Lonely Cube is a voxel game written in C++. The end goal of this
-project is to create a sandbox survival game, inspired mostly by
-Minecraft Beta. The goal is not to copy Minecraft, but to create a
-minimalist game that focuses on creativity, cool terrain generation
-and the calm, lonely sort of feeling that Minecraft Beta has.
+Lonely Cube is a 3D voxel game, inspired mostly by Minecraft Beta. The
+concept for this game is basically "Minecraft but how I imagined it",
+which for me means:
 
-## Aims
+* Minimalistic - Like the early versions of Minecraft, Lonely Cube
+doesn't have many types of blocks. Instead it tries to foster
+creativity by presenting a simple block palette that leaves the
+creative power with the player rather than a texture artist.
 
-* The primary goal of this project is to create an immersive sandbox
-game that supports both singleplayer and multiplayer.
+* Cool Terrain Generation - The world should provide inspiration for
+the player to build in it. This means beautiful natural blocky
+landscapes, containing fancy trees and natural structures.
 
-* The game should remain simple, only adding blocks that have a
-unique purpose, with intuitive game mechanics and zero bloat.
+* Visuals - Lonely Cube has a large render distance and uses HDR
+rendering to provide modern graphics and immersive gameplay.
 
-* The graphics of the game are a big focus, as the game should be
-beautiful to look at. This will make playing the game much more
-enjoyable and immersive.
+* Performance - Lonely Cube is written in C++ and uses Vulkan 1.3 for
+great performance even on old systems.
 
-* I want the performance to remain very good which allows massive
-render distances, enhancing the feeling of being in a completely open
-world. The game should also perform well on low end hardware.
+* Multiplayer - Like Minecraft, Lonely Cube supports both singleplayer
+and multiplayer worlds.
+
+The game is named Lonely Cube because it strives to recreate the
+lonely feeling often felt when playing old Minecraft. No pregenerated
+structures, no villagers, just you and your friends in an infinite
+sandbox with no predefined goals or limits.
 
 ## Building
 
-The game currently supports building on Linux and Windows using
-CMake and GCC. Download the repo, then navigate to the top-level
-folder in a terminal and run the following commands to build the
-project:
+The game currently supports building on Linux and Windows using CMake.
+Please ensure Git is installed as the CMake setup uses FetchContent to
+download the git repositories of dependencies.
 
 ### Linux
+
+To compile the project on Linux you need to have the X11, Wayland and
+xkbcommon development packages installed (in order to build GLFW). On
+some systems a few other packages are also required. For full details
+see the [GLFW Compilation Guide](https://www.glfw.org/docs/latest/compile.html#compile_deps_wayland).
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -42,3 +51,12 @@ cmake --build build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
 cmake --build build
 ```
+
+#### Notes
+The CMake setup supports the 4 default build types:
+* `Release`: Full compiler optimisations and no debug information.
+* `Debug`: Very few compiler optimisations and full debug information.
+* `RelWithDebInfo`: Many compiler optimisations and enough debug
+information to be able to get a backtrace.
+* `MinSizeRel`: Same as release but optimising for binary size rather
+than speed.

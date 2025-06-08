@@ -66,9 +66,6 @@ struct FullscreenBlitPushConstants
 
 class Renderer
 {
-private:
-    ToneMapPushConstants m_toneMapPushConstants;
-
 public:
     SkyPushConstants skyRenderInfo;
     BlockPushConstants blockRenderInfo;
@@ -156,6 +153,7 @@ private:
     VkDescriptorSet m_toneMapDescriptors;
     VkPipelineLayout m_toneMapPipelineLayout;
     VkPipeline m_toneMapPipeline;
+    ToneMapPushConstants m_toneMapPushConstants;
 
     VkPipelineLayout m_uiPipelineLayout;
 

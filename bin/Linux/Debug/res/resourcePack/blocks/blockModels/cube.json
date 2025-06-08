@@ -1,0 +1,48 @@
+{
+    "boundingBox": [-8,-8,-8, 8,8,8],
+    "faces":
+    [
+        {
+            "coordinates": [-8,-8,-8, 8,-8,-8, 8,-8,8, -8,-8,8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "negY",
+            "cullFace": "negY"
+        },
+        {
+            "coordinates": [-8,8,8, 8,8,8, 8,8,-8, -8,8,-8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "posY",
+            "cullFace": "posY"
+        },
+        {
+            "coordinates": [-8,-8,-8, -8,-8,8, -8,8,8, -8,8,-8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "negX",
+            "cullFace": "negX"
+        },
+        {
+            "coordinates": [8,-8,8, 8,-8,-8, 8,8,-8, 8,8,8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "posX",
+            "cullFace": "posX"
+        },
+        {
+            "coordinates": [8,-8,-8, -8,-8,-8, -8,8,-8, 8,8,-8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "negZ",
+            "cullFace": "negZ"
+        },
+        {
+            "coordinates": [-8,-8,8, 8,-8,8, 8,8,8, -8,8,8],
+            "uv": [0,0, 16,16],
+            "ambientOcclusion": true,
+            "lighting": "posZ",
+            "cullFace": "posZ"
+        }
+    ]
+}

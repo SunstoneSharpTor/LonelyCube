@@ -149,6 +149,9 @@ endif()
 
 target_precompile_headers(server REUSE_FROM client)
 
+# target_compile_options(client PRIVATE -fsanitize=undefined)
+# target_link_options(client PRIVATE -fsanitize=undefined)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "-static")
     if (NOT ${CMAKE_BUILD_TYPE} MATCHES Release)
