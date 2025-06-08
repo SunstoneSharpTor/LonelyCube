@@ -1198,7 +1198,7 @@ void Renderer::beginRenderingToSwapchainImage()
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainImageView();
+    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainData().imageView;
     colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1253,7 +1253,7 @@ void Renderer::drawCrosshair()
 
     VkRenderingAttachmentInfo colourAttachment{};
     colourAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainImageView();
+    colourAttachment.imageView = m_vulkanEngine.getCurrentSwapchainData().imageView;
     colourAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

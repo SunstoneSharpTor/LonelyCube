@@ -21,6 +21,7 @@
 // #define TIMESTAMPS
 
 #include <volk.h>
+#include <vulkan/vulkan_core.h>
 #include "GLFW/glfw3.h"
 #include "vk_mem_alloc.h"
 
@@ -47,8 +48,15 @@ struct FrameData
 {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-    VkSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
+    VkSemaphore imageAvailableSemaphore;
     VkFence inFlightFence;
+};
+
+struct SwapchainImageData
+{
+    VkImage image;
+    VkImageView imageView;
+    VkSemaphore renderFinishedSemaphore;
 };
 
 struct AllocatedImage
@@ -195,7 +203,7 @@ private:
     std::vector<VkImage> m_swapchainImages;
     VkFormat m_swapchainImageFormat;
     VkExtent2D m_swapchainExtent;
-    std::vector<VkImageView> m_swapchainImageViews;
+    std::vector<SwapchainImageData> m_swapchainImageData;
     uint32_t m_currentSwapchainIndex;
 
     // Rendering
@@ -247,10 +255,10 @@ private:
     );
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapchain();
-    void createSwapchainImageViews();
+    void createSwapchainData();
     void createFrameData();
+    void createFrameDataSyncObjects(int frameDataNum);
     void createCommandBuffer(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-    void createSyncObjects(int frameDataNum);
     void createAllocator();
     void initImmediateSubmit();
     void createTimestampQueryPools();
@@ -306,9 +314,9 @@ public:
     {
         return m_swapchainImages[m_currentSwapchainIndex];
     }
-    inline VkImageView getCurrentSwapchainImageView()
+    inline SwapchainImageData& getCurrentSwapchainData()
     {
-        return m_swapchainImageViews[m_currentSwapchainIndex];
+        return m_swapchainImageData[m_currentSwapchainIndex];
     }
     inline VkExtent2D getSwapchainExtent()
     {
