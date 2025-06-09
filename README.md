@@ -51,6 +51,10 @@ than speed.
 <a id="build-prerequisites"></a>
 ### Build Prerequisites
 
+There is some software that you will need to have installed in order
+to build the game. See below to install it depending on your operating
+system:
+
 #### Linux
 
 ##### Debian / Ubuntu
@@ -65,10 +69,11 @@ sudo dnf -y install cmake git gcc make glibc-gconv-extra vulkan-loader-devel way
 
 ##### Arch
 ```sh
-pac
+sudo pacman -S cmake git base-devel vulkan-devel wayland libxkbcommon
+```
 
-### Windows
+#### Windows
 
 To build the project on Windows, you will need to install the
 [Vulkan SKD](https://www.lunarg.com/vulkan-sdk/) in addition to a C++
-compiler, CMake and git.
+compiler, CMake, a build system and git.
