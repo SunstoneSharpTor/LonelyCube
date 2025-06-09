@@ -424,7 +424,7 @@ void ClientWorld::unmeshChunks()
 }
 
 bool ClientWorld::chunkHasNeighbours(const IVec3& chunkPosition) {
-    for (uint i = 0; i < 27; i++)
+    for (int i = 0; i < 27; i++)
     {
         if (!(integratedServer.chunkManager.chunkLoaded(chunkPosition + m_neighbouringChunkIncludingDiaganalOffsets[i])))
             return false;
@@ -627,16 +627,15 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
     int steps = 0;
     while (steps < 180) {
         rayPos += direction * 0.025f;
-        for (uint ii = 0; ii < 3; ii++) {
+        for (int ii = 0; ii < 3; ii++)
             blockPos[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
-        }
         if (!integratedServer.isChunkLoaded(Chunk::getChunkCoords(blockPos)))
             return 0;
 
         uint8_t blockType = integratedServer.chunkManager.getBlock(blockPos);
         if ((blockType != 0) && (blockType != 4)) {
             bool hit = true;
-            for (uint ii = 0; ii < 3; ii++) {
+            for (int ii = 0; ii < 3; ii++) {
                 if (rayPos[ii] < blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().getBlockData(blockType).model
                     ->boundingBoxVertices[ii] + 0.5f || rayPos[ii] > blockPos[ii] - startBlockPosition[ii] + integratedServer.getResourcePack().
                     getBlockData(blockType).model->boundingBoxVertices[ii + 15] + 0.5f) {
@@ -644,22 +643,21 @@ uint8_t ClientWorld::shootRay(glm::vec3 startSubBlockPos, int* startBlockPositio
                 }
             }
             if (hit) {
-                for (uint ii = 0; ii < 3; ii++) {
+                for (int ii = 0; ii < 3; ii++)
                     breakBlockCoords[ii] = blockPos[ii];
-                }
 
                 bool equal = true;
                 while (equal) {
                     rayPos -= direction * 0.025f;
-                    for (uint ii = 0; ii < 3; ii++) {
+                    for (int ii = 0; ii < 3; ii++) {
                         placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
                         equal &= placeBlockCoords[ii] == blockPos[ii];
                     }
                 }
 
-                for (uint ii = 0; ii < 3; ii++) {
+                for (int ii = 0; ii < 3; ii++)
                     placeBlockCoords[ii] = floor(rayPos[ii]) + startBlockPosition[ii];
-                }
+
                 return blockType;
             }
         }
@@ -694,7 +692,7 @@ void ClientWorld::replaceBlock(const IVec3& blockCoords, uint8_t blockType)
     }
 }
 
-void ClientWorld::setThreadWaiting(uint threadNum, bool value)
+void ClientWorld::setThreadWaiting(int threadNum, bool value)
 {
     waitIfMeshesNeedUnloading(threadNum);
     m_threadWaiting[threadNum] = value;

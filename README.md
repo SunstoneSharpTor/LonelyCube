@@ -30,22 +30,9 @@ sandbox with no predefined goals or limits.
 ## Building
 
 The game currently supports building on Linux and Windows using CMake.
-Please ensure Git is installed as the CMake setup uses FetchContent to
-download the git repositories of dependencies.
-
-### Linux
-
-To compile the project on Linux you need to have the X11, Wayland and
-xkbcommon development packages installed (in order to build GLFW). On
-some systems a few other packages are also required. For full details
-see the [GLFW Compilation Guide](https://www.glfw.org/docs/latest/compile.html#compile_deps_wayland).
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-```
-
-### Windows
+Download the source code and ensure you have installed the
+[build prerequisites](#build-prerequisites) then run the following
+commands:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
@@ -60,3 +47,28 @@ The CMake setup supports the 4 default build types:
 information to be able to get a backtrace.
 * `MinSizeRel`: Same as release but optimising for binary size rather
 than speed.
+
+<a id="build-prerequisites"></a>
+### Build Prerequisites
+
+#### Linux
+
+##### Debian / Ubuntu
+```sh
+sudo apt install cmake git build-essential libvulkan-dev libwayland-dev libxkbcommon-dev xorg-dev
+```
+
+##### RHEL / Fedora
+```sh
+sudo dnf -y install cmake git gcc make glibc-gconv-extra vulkan-loader-devel wayland-devel libxkbcommon-devel libXcursor-devel libXi-devel libXinerama-devel libXrandr-devel
+```
+
+##### Arch
+```sh
+pac
+
+### Windows
+
+To build the project on Windows, you will need to install the
+[Vulkan SKD](https://www.lunarg.com/vulkan-sdk/) in addition to a C++
+compiler, CMake and git.

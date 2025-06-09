@@ -161,7 +161,7 @@ public:
     inline bool isSinglePlayer() {
         return m_singleplayer;
     }
-    void setThreadWaiting(uint threadNum, bool value);
+    void setThreadWaiting(int threadNum, bool value);
     inline void updateViewCamera(const Camera& camera)
     {
         m_viewCamera = camera;
