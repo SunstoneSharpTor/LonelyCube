@@ -22,7 +22,7 @@
 
 namespace lonelycube {
 
-MeshComponent::MeshComponent(const Model* model, const uint16_t* faceTextureIndices)
+MeshComponent::MeshComponent(const Model* model, const std::vector<uint16_t>& faceTextureIndices)
     : model(model), faceTextureIndices(faceTextureIndices) {}
 
 }  // namespace lonelycube

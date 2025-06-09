@@ -22,8 +22,6 @@
 
 namespace lonelycube {
 
-const uint8_t maxNumFaces = 6;
-
 struct Face {
     int8_t lightingBlock;
     int8_t cullFace;
@@ -33,16 +31,15 @@ struct Face {
 };
 
 struct Model {
-    uint8_t numFaces;
     std::string name;
-    Face faces[maxNumFaces];
+    std::vector<Face> faces;
     float boundingBoxVertices[24];
 };
 
 struct BlockData {
     std::string name;
     Model* model;
-    uint16_t faceTextureIndices[maxNumFaces];
+    std::vector<uint16_t> faceTextureIndices;
     uint8_t blockLight;
     bool transparent;
     bool dimsLight;
@@ -52,8 +49,8 @@ struct BlockData {
 
 class ResourcePack {
 private:
-    Model m_blockModels[256];
-    BlockData m_blockData[256];
+    std::vector<Model> m_blockModels;
+    std::array<BlockData, 256> m_blockData;
 
     bool isTrue(std::basic_istream<char>& stream) const;
 public:

@@ -22,6 +22,7 @@
 
 #include "core/constants.h"
 #include "core/utils/iVec3.h"
+#include <atomic>
 
 namespace lonelycube {
 
@@ -35,22 +36,10 @@ private:
     std::array<uint32_t, constants::CHUNK_SIZE> m_layerBlockLightValues;
     bool m_skyLightUpToDate;
     bool m_blockLightUpToDate;
-    uint16_t m_playerCount; // The number of players that are rendering this chunk
-    IVec3 m_position; //the chunks position in chunk coordinates (multiply by chunk size to get world coordinates)
+    uint16_t m_playerCount;  // The number of players that are rendering this chunk
+    IVec3 m_position;  // The position in chunk coordinates (multiply by chunk size to get world coordinates)
     bool m_skyLightBeingRelit;
     bool m_blockLightBeingRelit;
-
-    static const int16_t m_neighbouringBlocksX[6];
-    static const int16_t m_neighbouringBlocksY[6];
-    static const int16_t m_neighbouringBlocksZ[6];
-    static const float m_cubeTextureCoordinates[48];
-    static const float m_xTextureCoordinates[32];
-    static const int16_t m_blockIdToTextureNum[48];
-    static const int m_neighbouringChunkBlockOffsets[6];
-    static const int16_t m_adjacentBlocksToFaceOffests[48];
-    static const int16_t m_adjacentBlocksToFaceOffestsX[48];
-    static const int16_t m_adjacentBlocksToFaceOffestsY[48];
-    static const int16_t m_adjacentBlocksToFaceOffestsZ[48];
 
     inline void findBlockCoordsInWorld(int* blockPos, uint32_t block) {
         int chunkCoords[3];
@@ -60,7 +49,7 @@ private:
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE + chunkCoords[2] * constants::CHUNK_SIZE;
     }
 
-    inline static void findBlockCoordsInChunk(float* blockPos, uint32_t block) {
+    inline static void findBlockCoordsInChunk(int* blockPos, uint32_t block) {
         blockPos[0] = block % constants::CHUNK_SIZE;
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
@@ -71,8 +60,6 @@ private:
         blockPos[1] = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         blockPos[2] = block / constants::CHUNK_SIZE % constants::CHUNK_SIZE;
     }
-
-    void getTextureCoordinates(float* coords, int16_t textureNum);
 
 public:
     static std::mutex s_checkingNeighbourSkyRelightsMtx;
@@ -112,7 +99,7 @@ public:
 
     void unload();
 
-    inline uint8_t getBlock(const uint32_t block) const {
+    inline uint32_t getBlock(const uint32_t block) const {
         uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         if (m_layerBlockTypes[layerNum] == 256) {
             return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
@@ -120,14 +107,14 @@ public:
         return m_layerBlockTypes[layerNum];
     }
 
-    inline uint8_t getBlockUnchecked(uint32_t block) {
+    inline uint32_t getBlockUnchecked(uint32_t block) {
         uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         return m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)];
     }
 
-    void setBlock(uint32_t block, uint8_t blockType);
+    void setBlock(uint32_t block, uint32_t blockType);
 
-    inline void setBlockUnchecked(uint32_t block, uint8_t blockType) {
+    inline void setBlockUnchecked(uint32_t block, uint32_t blockType) {
         uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         m_blocks[layerNum][block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE)] = blockType;
     }
@@ -138,12 +125,14 @@ public:
             std::size_t blockNumInLayer = block % (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
             std::size_t index = blockNumInLayer * 5 / 8;
             std::size_t offset = blockNumInLayer * 5 % 8;
-            return *reinterpret_cast<uint32_t*>(&m_skyLight[layerNum][index]) >> offset & 0b11111;
+            uint32_t firstByte = m_skyLight[layerNum][index];
+            uint32_t secondByte =  m_skyLight[layerNum][index + 1];
+            return ((firstByte + (secondByte << 8)) >> offset) & 0b11111;
         }
         return m_layerSkyLightValues[layerNum];
     }
 
-    inline uint8_t getBlockLight(const uint32_t block) const {
+    inline uint32_t getBlockLight(const uint32_t block) const {
         uint32_t layerNum = block / (constants::CHUNK_SIZE * constants::CHUNK_SIZE);
         if (m_layerBlockLightValues[layerNum] == constants::blockLightMaxValue + 1) {
             return (m_blockLight[layerNum][block % (constants::CHUNK_SIZE *
@@ -152,9 +141,9 @@ public:
         return m_layerBlockLightValues[layerNum];
     }
 
-    void setSkyLight(const uint32_t block, const uint8_t value);
+    void setSkyLight(const uint32_t block, const uint32_t value);
 
-    void setBlockLight(const uint32_t block, const uint8_t value);
+    void setBlockLight(const uint32_t block, const uint32_t value);
 
     inline void setSkyLightToBeOutdated() {
         m_skyLightUpToDate = false;

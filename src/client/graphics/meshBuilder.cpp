@@ -324,6 +324,8 @@ void MeshBuilder::buildMesh()
             for (blockPos[0] = chunkPosition[0] * constants::CHUNK_SIZE; blockPos[0] < (chunkPosition[0] + 1) * constants::CHUNK_SIZE; blockPos[0]++)
             {
                 int blockType = m_chunk.getBlock(blockNum);
+                if (blockType > 9)
+                    LOG("Block type does not exist");
                 if (blockType == 0)
                 {
                     blockNum++;
@@ -332,7 +334,7 @@ void MeshBuilder::buildMesh()
                 if (blockType == 4)
                 {
                     for (int faceNum = 0; faceNum < m_serverWorld.getResourcePack().
-                        getBlockData(blockType).model->numFaces; faceNum++)
+                        getBlockData(blockType).model->faces.size(); faceNum++)
                     {
                         int cullFace = m_serverWorld.getResourcePack().getBlockData(blockType).
                             model->faces[faceNum].cullFace;
@@ -349,11 +351,15 @@ void MeshBuilder::buildMesh()
                 }
                 else
                 {
+                    auto& blockData = m_serverWorld.getResourcePack().getBlockData(blockType);
+                    LOG(std::to_string(blockType));
+                    LOG(blockData.name);
+                    LOG(blockData.model->name);
                     for (int faceNum = 0; faceNum < m_serverWorld.getResourcePack().
-                        getBlockData(blockType).model->numFaces; faceNum++)
+                        getBlockData(blockType).model->faces.size(); faceNum++)
                     {
                         int cullFace = m_serverWorld.getResourcePack().getBlockData(blockType).
-                            model->faces[faceNum].cullFace;
+                            model->faces.at(faceNum).cullFace;
                         neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[cullFace];
                         neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
                         neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];

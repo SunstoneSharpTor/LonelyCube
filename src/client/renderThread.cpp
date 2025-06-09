@@ -188,7 +188,7 @@ void renderThread()
                 switch (applicationState.getState().back())
                 {
                 case ApplicationState::StartMenu:
-                    if (startMenu.update(menuUpdateInfo)
+                    if (startMenu.update(menuUpdateInfo) && !applicationState.getState().empty()
                         && applicationState.getState().back() == ApplicationState::Gameplay)
                     {
                         worldSeed = std::time(nullptr);

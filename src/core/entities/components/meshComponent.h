@@ -27,9 +27,9 @@ namespace lonelycube {
 // copy of the untranslated vertices
 struct MeshComponent {
     const Model* model;
-    const uint16_t* faceTextureIndices;
+    const std::vector<uint16_t>& faceTextureIndices;
 
-    MeshComponent(const Model* model, const uint16_t* faceTextureIndices);
+    MeshComponent(const Model* model, const std::vector<uint16_t>& faceTextureIndices);
 };
 
 }  // namespace lonelycube

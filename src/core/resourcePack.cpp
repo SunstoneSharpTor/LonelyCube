@@ -18,6 +18,7 @@
 
 #include "core/resourcePack.h"
 
+#include "core/log.h"
 #include "core/pch.h"
 
 namespace lonelycube {
@@ -58,15 +59,12 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             continue;
         }
         // Set defaults
-        m_blockData[blockID].model = m_blockModels;
+        m_blockData[blockID].model = nullptr;
         m_blockData[blockID].blockLight = 0;
         m_blockData[blockID].transparent = false;
         m_blockData[blockID].dimsLight = false;
         m_blockData[blockID].collidable = true;
         m_blockData[blockID].castsAmbientOcclusion = true;
-        for (int i = 0; i < maxNumFaces; i++) {
-            m_blockData[blockID].faceTextureIndices[i] = 0;
-        }
 
         std::ifstream stream(resourcePackPath/"blocks/blockData"/(m_blockData[blockID].name +
             ".json"));
@@ -80,40 +78,38 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             if (field == "transparrent") {
                 m_blockData[blockID].transparent = isTrue(stream);
             }
-            if (field == "dimsLight") {
+            else if (field == "dimsLight") {
                 m_blockData[blockID].dimsLight = isTrue(stream);
             }
-            if (field == "castsAmbientOcclusion") {
+            else if (field == "castsAmbientOcclusion") {
                 m_blockData[blockID].castsAmbientOcclusion = isTrue(stream);
             }
-            if (field == "collidable") {
+            else if (field == "collidable") {
                 m_blockData[blockID].collidable = isTrue(stream);
             }
-            if (field == "model") {
+            else if (field == "model") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                 std::getline(stream, value, '"');
                 // Find the index of the block model
                 int modelID = 0;
-                while (modelID < 255 && m_blockModels[modelID].name != value) {
-                    if (m_blockModels[modelID].name.length() == 0) {
-                        m_blockModels[modelID].name = value;
-                        break;
-                    }
+                while (modelID < m_blockModels.size() && m_blockModels[modelID].name != value) {
                     modelID++;
                 }
-                m_blockData[blockID].model = m_blockModels + modelID;
+                if (modelID == m_blockModels.size()) {
+                    m_blockModels.push_back(Model());
+                    m_blockModels.back().name = value;
+                }
+                m_blockData[blockID].model = &(m_blockModels[modelID]);
             }
-            if (field == "textureIndices") {
+            else if (field == "textureIndices") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
                 std::getline(stream, value, ']');
                 std::stringstream line(value);
-                int i = 0;
-                while (i < maxNumFaces && std::getline(line, value, ',')) {
-                    m_blockData[blockID].faceTextureIndices[i] = std::stoi(value);
-                    i++;
+                while (std::getline(line, value, ',')) {
+                    m_blockData[blockID].faceTextureIndices.push_back(std::stoi(value));
                 }
             }
-            if (field == "blockLight") {
+            else if (field == "blockLight") {
                 std::getline(stream, value, '\n');
                 value.erase(std::remove_if(value.begin(), value.end(), [](char c) { return !isdigit(c); }),
                     value.end());
@@ -125,15 +121,8 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     }
 
     // Parse block models
-    for (int modelID = 0; modelID < 255; modelID++) {
-        if (m_blockModels[modelID].name.size() == 0) {
-            continue;
-        }
-        // Set defaults
-        m_blockModels[modelID].numFaces = 0;
-
-        std::ifstream stream(resourcePackPath/"blocks/blockModels"/(m_blockModels[modelID].name +
-            ".json"));
+    for (auto& model : m_blockModels) {
+        std::ifstream stream(resourcePackPath/"blocks/blockModels"/(model.name + ".json"));
         if (!stream.is_open()) {
             continue;
         }
@@ -154,75 +143,75 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                 if (i < 6) {
                     continue;
                 }
-                int boundIndices[24] = {0,1,2,3,1,2,3,1,5,0,1,5,0,4,5,3,4,5,3,4,2,0,4,2};
+                const int boundIndices[24] = { 0,1,2,3,1,2,3,1,5,0,1,5,0,4,5,3,4,5,3,4,2,0,4,2 };
                 for (int i = 0; i < 24; i++) {
-                    m_blockModels[modelID].boundingBoxVertices[i] = bounds[boundIndices[i]];
+                    model.boundingBoxVertices[i] = bounds[boundIndices[i]];
                 }
             }
             if (field == "faces") {
-                int faceNum = 0;
                 while (true) {  // Runs once per face
                     // Set defaults
-                    m_blockModels[modelID].faces[faceNum].lightingBlock = 6;
-                    m_blockModels[modelID].faces[faceNum].cullFace = -1;
-                    m_blockModels[modelID].faces[faceNum].ambientOcclusion = true;
+                    model.faces.push_back(Face());
+                    Face& face = model.faces.back();
+                    face.lightingBlock = 6;
+                    face.cullFace = -1;
+                    face.ambientOcclusion = true;
 
                     stream.ignore(std::numeric_limits<std::streamsize>::max(), '{');
-                    std::string face;
-                    std::getline(stream, face, '}');
-                    std::stringstream faceStream(face);
+                    std::string faceString;
+                    std::getline(stream, faceString, '}');
+                    std::stringstream faceStream(faceString);
                     faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                     while (!faceStream.eof()) {
                         std::getline(faceStream, field, '"');
                         if (field == "ambientOcclusion") {
-                            m_blockModels[modelID].faces[faceNum].ambientOcclusion =
-                                isTrue(faceStream);
+                            face.ambientOcclusion = isTrue(faceStream);
                         }
                         if (field == "lighting") {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                             std::getline(faceStream, value, '"');
                             if (value == "posY") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 5;
+                                face.lightingBlock = 5;
                             }
                             else if (value == "posZ") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 4;
+                                face.lightingBlock = 4;
                             }
                             else if (value == "posX") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 3;
+                                face.lightingBlock = 3;
                             }
                             else if (value == "negX") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 2;
+                                face.lightingBlock = 2;
                             }
                             else if (value == "negZ") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 1;
+                                face.lightingBlock = 1;
                             }
                             else if (value == "negY") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 0;
+                                face.lightingBlock = 0;
                             }
                             else if (value == "this") {
-                                m_blockModels[modelID].faces[faceNum].lightingBlock = 6;
+                                face.lightingBlock = 6;
                             }
                         }
                         if (field == "cullFace") {
                             faceStream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                             std::getline(faceStream, value, '"');
                             if (value == "negY") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 0;
+                                face.cullFace = 0;
                             }
                             else if (value == "negZ") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 1;
+                                face.cullFace = 1;
                             }
                             else if (value == "negX") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 2;
+                                face.cullFace = 2;
                             }
                             else if (value == "posX") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 3;
+                                face.cullFace = 3;
                             }
                             else if (value == "posZ") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 4;
+                                face.cullFace = 4;
                             }
                             else if (value == "posY") {
-                                m_blockModels[modelID].faces[faceNum].cullFace = 5;
+                                face.cullFace = 5;
                             }
                         }
                         if (field == "coordinates") {
@@ -231,7 +220,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             std::stringstream line(value);
                             int i = 0;
                             while (i < 12 && std::getline(line, value, ',')) {
-                                m_blockModels[modelID].faces[faceNum].coords[i] =
+                                face.coords[i] =
                                     static_cast<float>(std::stoi(value)) / 16;
                                 i++;
                             }
@@ -245,7 +234,7 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             std::stringstream line(value);
                             int i = 0;
                             while (i < 4 && std::getline(line, value, ',')) {
-                                m_blockModels[modelID].faces[faceNum].UVcoords[i] = (float)std::stoi(value) / 16;
+                                face.UVcoords[i] = (float)std::stoi(value) / 16;
                                 i++;
                             }
                             if (i < 4) {
@@ -253,12 +242,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
                             }
                         }
                     }
-                    faceNum++;
                     if (stream.get() != ',') {
                         break;
                     }
                 }
-                m_blockModels[modelID].numFaces = faceNum;
             }
             stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
         }
