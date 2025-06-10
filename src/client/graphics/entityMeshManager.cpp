@@ -39,8 +39,7 @@ void EntityMeshManager::createBatch(
     for (EntityId entity : ECSView<MeshComponent>(m_ecs))
     {
         const Model* model = m_ecs.get<MeshComponent>(entity).model;
-        const std::vector<uint16_t>& textureIndices =
-            m_ecs.get<MeshComponent>(entity).faceTextureIndices;
+        const uint16_t* textureIndices = m_ecs.get<MeshComponent>(entity).faceTextureIndices;
         const TransformComponent& transform = m_ecs.get<TransformComponent>(entity);
         float entitySkyLight = interpolateSkyLight(transform.blockCoords, transform.subBlockCoords);
         float entityBlockLight = interpolateBlockLight(transform.blockCoords,

@@ -31,7 +31,6 @@ struct Face {
 };
 
 struct Model {
-    std::string name;
     std::vector<Face> faces;
     float boundingBoxVertices[24];
 };
@@ -53,13 +52,19 @@ private:
     std::array<BlockData, 256> m_blockData;
 
     bool isTrue(std::basic_istream<char>& stream) const;
+
 public:
-    static void getTextureCoordinates(float* coords, const float* textureBox, const int
-        textureNum);
+    static void getTextureCoordinates(
+        float* coords, const float* textureBox, const int textureNum);
 
     ResourcePack(std::filesystem::path resourcePackPath);
-    const BlockData& getBlockData(uint8_t blockType) const {
+    const BlockData& getBlockData(int blockType) const
+    {
         return m_blockData[blockType];
+    }
+    const Model& getModel(std::size_t modelIndex) const
+    {
+        return m_blockModels.at(modelIndex);
     }
 };
 

@@ -16,10 +16,11 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "core/resourcePack.h"
+#include "core/pch.h"
 
 #include "core/log.h"
-#include "core/pch.h"
+#include <unordered_map>
+#include "core/resourcePack.h"
 
 namespace lonelycube {
 
@@ -53,13 +54,16 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     }
     stream.close();
 
+    std::vector<std::string> modelNames;
+    std::array<int, 256> modelIndices;
+
     // Parse block data
-    for (int blockID = 0; blockID < 255; blockID++) {
+    for (int blockID = 0; blockID < 256; blockID++) {
         if (m_blockData[blockID].name.size() == 0) {
             continue;
         }
         // Set defaults
-        m_blockData[blockID].model = nullptr;
+        modelIndices[blockID] = -1;
         m_blockData[blockID].blockLight = 0;
         m_blockData[blockID].transparent = false;
         m_blockData[blockID].dimsLight = false;
@@ -90,16 +94,14 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             else if (field == "model") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
                 std::getline(stream, value, '"');
-                // Find the index of the block model
-                int modelID = 0;
-                while (modelID < m_blockModels.size() && m_blockModels[modelID].name != value) {
-                    modelID++;
+                auto itr = std::find(modelNames.begin(), modelNames.end(), value);
+                if (itr == modelNames.end()) {
+                    modelIndices[blockID] = modelNames.size();
+                    modelNames.push_back(value);
                 }
-                if (modelID == m_blockModels.size()) {
-                    m_blockModels.push_back(Model());
-                    m_blockModels.back().name = value;
+                else {
+                    modelIndices[blockID] = std::distance(modelNames.begin(), itr);
                 }
-                m_blockData[blockID].model = &(m_blockModels[modelID]);
             }
             else if (field == "textureIndices") {
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '[');
@@ -121,8 +123,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
     }
 
     // Parse block models
-    for (auto& model : m_blockModels) {
-        std::ifstream stream(resourcePackPath/"blocks/blockModels"/(model.name + ".json"));
+    for (const auto& name : modelNames) {
+        m_blockModels.push_back(Model());
+        Model& model = m_blockModels.back();
+        std::ifstream stream(resourcePackPath/"blocks/blockModels"/(name + ".json"));
         if (!stream.is_open()) {
             continue;
         }
@@ -250,6 +254,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
             stream.ignore(std::numeric_limits<std::streamsize>::max(), '"');
         }
     }
+
+    // Fill in the block model pointers
+    for (int i = 0; i < 256; i++)
+        m_blockData[i].model = modelIndices[i] == -1 ? nullptr : &m_blockModels[modelIndices[i]];
 }
 
 void ResourcePack::getTextureCoordinates(

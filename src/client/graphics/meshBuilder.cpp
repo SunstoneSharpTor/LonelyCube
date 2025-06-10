@@ -352,22 +352,24 @@ void MeshBuilder::buildMesh()
                 else
                 {
                     auto& blockData = m_serverWorld.getResourcePack().getBlockData(blockType);
-                    LOG(std::to_string(blockType));
-                    LOG(blockData.name);
-                    LOG(blockData.model->name);
                     for (int faceNum = 0; faceNum < m_serverWorld.getResourcePack().
                         getBlockData(blockType).model->faces.size(); faceNum++)
                     {
                         int cullFace = m_serverWorld.getResourcePack().getBlockData(blockType).
                             model->faces.at(faceNum).cullFace;
-                        neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[cullFace];
-                        neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
-                        neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
-                        // TODO: investigate splitting up the line below into multiple lines of code (causes bugs)
-                        if (cullFace < 0 || m_serverWorld.getResourcePack().getBlockData(
-                            m_serverWorld.chunkManager.getBlock(neighbouringBlockPos)).transparent)
-                        {
+                        if (cullFace < 0)
                             addFaceToMesh(blockNum, blockType, faceNum);
+                        else
+                        {
+                            neighbouringBlockPos[0] = blockPos[0] + s_neighbouringBlocksX[cullFace];
+                            neighbouringBlockPos[1] = blockPos[1] + s_neighbouringBlocksY[cullFace];
+                            neighbouringBlockPos[2] = blockPos[2] + s_neighbouringBlocksZ[cullFace];
+                            // TODO: investigate splitting up the line below into multiple lines of code (causes bugs)
+                            if (cullFace < 0 || m_serverWorld.getResourcePack().getBlockData(
+                                m_serverWorld.chunkManager.getBlock(neighbouringBlockPos)).transparent)
+                            {
+                                addFaceToMesh(blockNum, blockType, faceNum);
+                            }
                         }
                     }
                 }
