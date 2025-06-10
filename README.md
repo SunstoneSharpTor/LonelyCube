@@ -35,7 +35,7 @@ Download the source code and ensure you have installed the
 commands:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
