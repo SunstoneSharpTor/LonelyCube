@@ -140,9 +140,12 @@ void renderThread()
                     else {
                         smallScreenWindowDimensions[0] = windowDimensions[0];
                         smallScreenWindowDimensions[1] = windowDimensions[1];
-                        glfwGetWindowPos(renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0], &smallScreenWindowPos[1]);
-                        glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(),
-                            0, 0, displayMode->width, displayMode->height, displayMode->refreshRate );
+                        glfwGetWindowPos(
+                            renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0],
+                            &smallScreenWindowPos[1]);
+                        glfwSetWindowMonitor(
+                            renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(), 0, 0,
+                            displayMode->width, displayMode->height, displayMode->refreshRate);
                     }
 
                     windowFullScreen = !windowFullScreen;

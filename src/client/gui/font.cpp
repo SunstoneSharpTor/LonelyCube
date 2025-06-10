@@ -48,7 +48,7 @@ void Font::init(
     uint8_t* buffer = stbi_load(s_textureFilePath.c_str(), &size[0], &size[1], &channels, 4);
     VkExtent3D extent { static_cast<uint32_t>(size[0]), static_cast<uint32_t>(size[1]), 1 };
     m_fontImage = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
+        buffer, extent, 4, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
     );
     calculateCharWidths(s_textureFilePath);
     stbi_image_free(buffer);

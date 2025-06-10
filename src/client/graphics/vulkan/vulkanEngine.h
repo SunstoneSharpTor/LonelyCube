@@ -166,7 +166,7 @@ public:
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT
     );
     AllocatedImage createImage(
-        void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+        void* data, VkExtent3D size, int bytesPerPixel, VkFormat format, VkImageUsageFlags usage,
         uint32_t mipLevels = 1, VkSampleCountFlagBits numMSAAsamples = VK_SAMPLE_COUNT_1_BIT
     );
     void destroyImage(const AllocatedImage& image);

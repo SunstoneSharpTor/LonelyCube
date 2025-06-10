@@ -139,14 +139,14 @@ void Renderer::loadTextures()
     uint8_t* buffer = stbi_load("res/resourcePack/textures.png", &size.x, &size.y, &channels, 4);
     VkExtent3D extent { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
     m_worldTextures = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
+        buffer, extent, 4, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, 5
     );
     stbi_image_free(buffer);
 
     buffer = stbi_load("res/resourcePack/gui/crosshair.png", &size.x, &size.y, &channels, 1);
     extent = { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
     m_crosshairTexture = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
+        buffer, extent, 1, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT
     );
     stbi_image_free(buffer);
 
@@ -156,7 +156,7 @@ void Renderer::loadTextures()
     extent = { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1 };
     uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(size.x, size.y)))) + 1;
     m_startMenuBackgroundTexture = m_vulkanEngine.createImage(
-        buffer, extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, mipLevels
+        buffer, extent, 4, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, mipLevels
     );
     stbi_image_free(buffer);
 }

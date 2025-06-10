@@ -810,6 +810,7 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
+        LOG("Out of date swapchain");
         recreateSwapchain();
         return;
     }
@@ -888,6 +889,7 @@ void VulkanEngine::submitFrame()
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_windowResized)
     {
         m_windowResized = false;
+        LOG("Resize needed");
         recreateSwapchain();
     }
     else
@@ -1233,8 +1235,8 @@ AllocatedImage VulkanEngine::createImage(
 }
 
 AllocatedImage VulkanEngine::createImage(
-    void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, uint32_t mipLevels,
-    VkSampleCountFlagBits numSamples
+    void* data, VkExtent3D size, int bytesPerPixel, VkFormat format, VkImageUsageFlags usage,
+    uint32_t mipLevels, VkSampleCountFlagBits numSamples
 ) {
     AllocatedImage newImage = createImage(
         size, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT, mipLevels, numSamples
@@ -1254,7 +1256,7 @@ AllocatedImage VulkanEngine::createImage(
             else
                 halfSize = size;
 
-            size_t halfDataSize = halfSize.depth * halfSize.width * halfSize.height * 4;
+            size_t halfDataSize = halfSize.depth * halfSize.width * halfSize.height * bytesPerPixel;
             stagingBuffers[mipLevel] = createBuffer(
                 halfDataSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

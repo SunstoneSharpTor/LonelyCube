@@ -114,6 +114,9 @@ endif()
 target_precompile_headers(client PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_SOURCE_DIR}/src/core/pch.h>)
 
+# target_compile_options(client PRIVATE -fsanitize=address)
+# target_link_options(client PRIVATE -fsanitize=address)
+
 set(SERVER_SOURCE_FILES
     src/core/chunk.cpp
     src/core/chunkManager.cpp
@@ -142,15 +145,12 @@ target_include_directories(server PRIVATE
     ${enet_SOURCE_DIR}/include
 )
 target_link_libraries(server PRIVATE enet glm::glm)
-target_compile_definitions(client PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
+target_compile_definitions(server PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(server PRIVATE RELEASE)
 endif()
 
 target_precompile_headers(server REUSE_FROM client)
-
-target_compile_options(client PRIVATE -fsanitize=undefined)
-target_link_options(client PRIVATE -fsanitize=undefined)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "-static")
