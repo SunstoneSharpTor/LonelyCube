@@ -69,6 +69,7 @@ void renderThread()
     //set up game loop
     float exposure = 0.0;
     float toneMapTimeByDTs = 0.0;
+    int FPS = 0;
     int FPS_CAP = std::numeric_limits<int>::max();
     double DT = 1.0 / FPS_CAP;
     uint64_t lastFrameRateFrames = 0;
@@ -125,28 +126,10 @@ void renderThread()
         if (currentTime > frameStart + DT)
         {
             double actualDT = currentTime - frameStart;
+            // Update FPS counter
             if (currentTime - lastFrameRateTime > 1)
             {
-                if (std::find(
-                        applicationState.getState().begin(),
-                        applicationState.getState().end(), ApplicationState::Gameplay
-                    ) != applicationState.getState().end()
-                ) {
-                    LOG(
-                        std::to_string(
-                            renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames
-                        ) + " FPS"
-                    );
-                    LOG(
-                        std::to_string(
-                            game->getPlayer().viewCamera.position[0] + game->getPlayer().cameraBlockPosition[0]
-                        ) + ", " + std::to_string(
-                            game->getPlayer().viewCamera.position[1] + game->getPlayer().cameraBlockPosition[1]
-                        ) + ", " + std::to_string(
-                            game->getPlayer().viewCamera.position[2] + game->getPlayer().cameraBlockPosition[2]
-                        )
-                    );
-                }
+                FPS = renderer.getVulkanEngine().getCurrentFrame() - lastFrameRateFrames;
                 lastFrameRateTime += 1;
                 lastFrameRateFrames = renderer.getVulkanEngine().getCurrentFrame();
             }
@@ -180,17 +163,22 @@ void renderThread()
                 );
                 menuUpdateInfo.cursorPos = glm::ivec2(std::floor(xPos), std::floor(yPos));
 
-                if (applicationState.getState().back() == ApplicationState::Gameplay
-                    && input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE))
-                ) {
-                    game->unfocus();
-                    renderer.setGameBrightness(0.25f);
-                    applicationState.pushState(ApplicationState::PauseMenu);
-                    input::clearCurrentBuffer();
-                }
-
                 switch (applicationState.getState().back())
                 {
+                case ApplicationState::Gameplay:
+                    if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_ESCAPE)))
+                    {
+                        game->unfocus();
+                        renderer.setGameBrightness(0.25f);
+                        applicationState.pushState(ApplicationState::PauseMenu);
+                        input::clearCurrentBuffer();
+                    }
+                    if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_F3)))
+                    {
+                        applicationState.toggleDebugInfo();
+                    }
+                    break;
+
                 case ApplicationState::StartMenu:
                     if (startMenu.update(menuUpdateInfo) && !applicationState.getState().empty()
                         && applicationState.getState().back() == ApplicationState::Gameplay)
@@ -206,6 +194,7 @@ void renderThread()
                     }
                     input::clearCurrentBuffer();
                     break;
+
                 case ApplicationState::PauseMenu:
                     if (pauseMenu.update(menuUpdateInfo)
                         && applicationState.getState().back() == ApplicationState::Gameplay)
@@ -229,6 +218,9 @@ void renderThread()
                 )) {
                     game->processInput(actualDT);
                     game->renderFrame(actualDT);
+                    bool gameplayFocused = applicationState.getState().back() == ApplicationState::Gameplay;
+                    if (applicationState.isDebugInfoEnabled())
+                        game->queueDebugText(menuUpdateInfo.guiScale, FPS);
                 }
                 else
                 {

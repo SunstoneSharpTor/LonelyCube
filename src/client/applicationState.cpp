@@ -20,8 +20,6 @@
 
 namespace lonelycube::client {
 
-ApplicationState::ApplicationState() : m_state({ StartMenu })
-{
-}
+ApplicationState::ApplicationState() : m_state({ StartMenu }), m_showDebugInfo(false) {}
 
 }  // namespace lonelycube::client

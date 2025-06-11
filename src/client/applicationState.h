@@ -20,10 +20,6 @@
 
 #include "core/pch.h"
 
-#include "glm/glm.hpp"
-
-#include "client/gui/menu.h"
-
 namespace lonelycube::client {
 
 class ApplicationState
@@ -47,9 +43,18 @@ public:
     {
         m_state.pop_back();
     }
+    inline const bool isDebugInfoEnabled()
+    {
+        return m_showDebugInfo;
+    }
+    inline void toggleDebugInfo()
+    {
+        m_showDebugInfo = !m_showDebugInfo;
+    }
 
 private:
     std::vector<State> m_state;
+    bool m_showDebugInfo;
 };
 
 }  // namespace lonelycube::client

@@ -37,6 +37,7 @@ public:
     void focus();
     void unfocus();
     void renderFrame(double dt);
+    void queueDebugText(int guiScale, int FPS);
 
     inline ClientWorld& getWorld()
     {

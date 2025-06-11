@@ -22,6 +22,7 @@
 #include "client/clientWorld.h"
 #include "client/graphics/camera.h"
 #include "core/resourcePack.h"
+#include "core/utils/iVec3.h"
 
 #include <GLFW/glfw3.h>
 
@@ -92,6 +93,12 @@ public:
     inline bool gamePaused()
     {
         return m_paused;
+    }
+    inline Vec3 getPlayerFeetPos()
+    {
+        return Vec3(m_hitboxMinBlock[0] + m_hitboxMinOffset.x + 0.3f,
+                    m_hitboxMinBlock[1] + m_hitboxMinOffset.y,
+                    m_hitboxMinBlock[2] + m_hitboxMinOffset.z + 0.3f);
     }
 };
 

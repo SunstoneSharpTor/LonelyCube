@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <enet/enet.h>
+#include <string>
 #include "glm/fwd.hpp"
 
 #include "core/pch.h"
@@ -32,30 +33,6 @@
 #include "glm/glm.hpp"
 
 namespace lonelycube::client {
-
-static float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time) {
-    uint32_t preceedingPoint = numPoints * 2 - 2;
-    uint32_t succeedingPoint = 0;
-    if (time < points[numPoints * 2 - 2]) {
-        int i = 0;
-        while (i < numPoints * 2 && points[i] < time) {
-            i += 2;
-            preceedingPoint = i - 2;
-            succeedingPoint = i;
-        }
-    }
-    float preceedingTime = points[preceedingPoint];
-    float succeedingTime = points[succeedingPoint];
-    if (succeedingTime < preceedingTime) {
-        float offset = (float)constants::DAY_LENGTH - preceedingTime;
-        preceedingTime = 0;
-        time = (time + (int)offset) % constants::DAY_LENGTH;
-        succeedingTime += offset;
-    }
-    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
-
-    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
-}
 
 Game::Game(
     Renderer& renderer, bool multiplayer, const std::string& serverIP, int renderDistance,
@@ -93,6 +70,54 @@ Game::Game(
         renderer.getVulkanEngine().getWindow(), windowDimensions, 0.0, m_networking
     );
     m_mainWorld.doRenderThreadJobs();
+}
+
+Game::~Game()
+{
+    do
+    {
+        m_running = false;
+        for (int8_t i = 0; i < m_mainWorld.getNumChunkLoaderThreads(); i++) {
+            m_running |= m_chunkLoaderThreadsRunning[i];
+        }
+        m_mainWorld.doRenderThreadJobs();
+    } while (m_running);
+
+    vkDeviceWaitIdle(m_renderer.getVulkanEngine().getDevice());
+    m_mainWorld.unloadAllMeshes();
+    m_mainWorld.freeEntityMeshes();
+
+    m_logicWorker.join();
+
+    if (m_multiplayer) {
+        m_networking.disconnect(m_mainWorld);
+        enet_deinitialize();
+    }
+}
+
+static float calculateBrightness(const float* points, uint32_t numPoints, uint32_t time)
+{
+    uint32_t preceedingPoint = numPoints * 2 - 2;
+    uint32_t succeedingPoint = 0;
+    if (time < points[numPoints * 2 - 2]) {
+        int i = 0;
+        while (i < numPoints * 2 && points[i] < time) {
+            i += 2;
+            preceedingPoint = i - 2;
+            succeedingPoint = i;
+        }
+    }
+    float preceedingTime = points[preceedingPoint];
+    float succeedingTime = points[succeedingPoint];
+    if (succeedingTime < preceedingTime) {
+        float offset = (float)constants::DAY_LENGTH - preceedingTime;
+        preceedingTime = 0;
+        time = (time + (int)offset) % constants::DAY_LENGTH;
+        succeedingTime += offset;
+    }
+    float frac = ((float)time - preceedingTime) / (succeedingTime - preceedingTime);
+
+    return points[succeedingPoint + 1] * frac + points[preceedingPoint + 1] * (1.0f - frac);
 }
 
 void Game::processInput(double dt)
@@ -228,27 +253,18 @@ void Game::renderFrame(double dt)
         LOG("waited " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count()) + "ms for frame to render");
 }
 
-Game::~Game()
+void Game::queueDebugText(int guiScale, int FPS)
 {
-    do
-    {
-        m_running = false;
-        for (int8_t i = 0; i < m_mainWorld.getNumChunkLoaderThreads(); i++) {
-            m_running |= m_chunkLoaderThreadsRunning[i];
-        }
-        m_mainWorld.doRenderThreadJobs();
-    } while (m_running);
-
-    vkDeviceWaitIdle(m_renderer.getVulkanEngine().getDevice());
-    m_mainWorld.unloadAllMeshes();
-    m_mainWorld.freeEntityMeshes();
-
-    m_logicWorker.join();
-
-    if (m_multiplayer) {
-        m_networking.disconnect(m_mainWorld);
-        enet_deinitialize();
-    }
+    glm::vec3 colour = glm::vec3(1.0f, 1.0f, 1.0f) * m_renderer.getGameBrightness();
+    glm::ivec2 textPos(guiScale, guiScale);
+    Vec3 playerPos = m_mainPlayer.getPlayerFeetPos();
+    std::string text = "Position: X=" + std::to_string(playerPos.x) + " Y="
+        + std::to_string(playerPos.y) + " Z=" + std::to_string(playerPos.z);
+    m_renderer.font.queue(text, textPos, guiScale, colour);
+    text = std::to_string(FPS) + " FPS";
+    textPos = glm::ivec2(m_renderer.getVulkanEngine().getSwapchainExtent().width
+        - (m_renderer.font.getStringWidth(text) + 1) * guiScale, guiScale);
+    m_renderer.font.queue(text, textPos, guiScale, colour);
 }
 
 }  // namespace lonelycube::client

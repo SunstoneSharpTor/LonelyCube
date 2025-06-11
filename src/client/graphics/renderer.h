@@ -108,6 +108,10 @@ public:
     {
         m_toneMapPushConstants.brightness = brightness;
     }
+    inline float getGameBrightness()
+    {
+        return m_toneMapPushConstants.brightness;
+    }
 
 private:
     VulkanEngine m_vulkanEngine;
