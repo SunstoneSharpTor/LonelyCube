@@ -53,12 +53,7 @@ void renderThread()
 
     bool running = true;
 
-    bool windowLastFocus = false;
     bool windowFullScreen = false;
-    bool lastWindowFullScreen = false;
-    bool lastLastWindowFullScreen = false;
-    int windowRestoredSize[2];
-    int windowRestoredPos[2];
     int windowDimensions[2];
     int smallScreenWindowDimensions[2];
     int smallScreenWindowPos[2];
@@ -81,8 +76,47 @@ void renderThread()
     auto end = start;
     double frameStart = -DT;
     float lastFrameRateTime = frameStart + DT;
-    while (running) {
+    while (running)
+    {
         glfwPollEvents();
+
+        //toggle fullscreen if F11 pressed
+        if (input::peekAtButtonPressed(glfwGetKeyScancode(GLFW_KEY_F11)))
+        {
+            if (windowFullScreen)
+            {
+                glfwSetWindowMonitor(
+                    renderer.getVulkanEngine().getWindow(), nullptr, smallScreenWindowPos[0],
+                    smallScreenWindowPos[1], smallScreenWindowDimensions[0],
+                    smallScreenWindowDimensions[1], displayMode->refreshRate);
+            }
+            else
+            {
+                smallScreenWindowDimensions[0] = windowDimensions[0];
+                smallScreenWindowDimensions[1] = windowDimensions[1];
+                glfwGetWindowPos(
+                    renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0],
+                    &smallScreenWindowPos[1]);
+                glfwSetWindowMonitor(
+                    renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(), 0, 0,
+                    displayMode->width, displayMode->height, displayMode->refreshRate);
+            }
+
+            windowFullScreen = !windowFullScreen;
+        }
+
+        glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
+        if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y)
+        {
+            windowDimensions[0] = windowSize.x;
+            windowDimensions[1] = windowSize.y;
+        }
+
+        if (renderer.getVulkanEngine().windowResized())
+        {
+            renderer.getVulkanEngine().recreateSwapchain();
+            renderer.resize();
+        }
 
         // Render if a frame is needed
         end = std::chrono::steady_clock::now();
@@ -122,43 +156,10 @@ void renderThread()
             else
                 frameStart = currentTime;
 
-            renderer.beginRenderingFrame();
-            if (!renderer.isMinimised())
+            if (renderer.beginRenderingFrame() && !renderer.isMinimised())
             {
                 // Update GUI
                 input::swapBuffers();
-
-                //toggle fullscreen if F11 pressed
-                if (input::buttonPressed(glfwGetKeyScancode(GLFW_KEY_F11)))
-                {
-                    if (windowFullScreen) {
-                        glfwSetWindowMonitor(renderer.getVulkanEngine().getWindow(), nullptr,
-                            smallScreenWindowPos[0], smallScreenWindowPos[1],
-                            smallScreenWindowDimensions[0], smallScreenWindowDimensions[1],
-                            displayMode->refreshRate );
-                    }
-                    else {
-                        smallScreenWindowDimensions[0] = windowDimensions[0];
-                        smallScreenWindowDimensions[1] = windowDimensions[1];
-                        glfwGetWindowPos(
-                            renderer.getVulkanEngine().getWindow(), &smallScreenWindowPos[0],
-                            &smallScreenWindowPos[1]);
-                        glfwSetWindowMonitor(
-                            renderer.getVulkanEngine().getWindow(), glfwGetPrimaryMonitor(), 0, 0,
-                            displayMode->width, displayMode->height, displayMode->refreshRate);
-                    }
-
-                    windowFullScreen = !windowFullScreen;
-                }
-
-                glfwGetWindowSize(renderer.getVulkanEngine().getWindow(), &windowSize.x, &windowSize.y);
-                if (windowDimensions[0] != windowSize.x || windowDimensions[1] != windowSize.y)
-                {
-                    windowDimensions[0] = windowSize.x;
-                    windowDimensions[1] = windowSize.y;
-                }
-                lastLastWindowFullScreen = lastWindowFullScreen;
-                lastWindowFullScreen = windowFullScreen;
 
                 double xPos, yPos;
                 glfwGetCursorPos(renderer.getVulkanEngine().getWindow(), &xPos, &yPos);

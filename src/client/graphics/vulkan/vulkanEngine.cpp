@@ -23,6 +23,7 @@
 #include "core/log.h"
 
 #include "glm/glm.hpp"
+#include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_BOX
 #include "stb_image.h"
@@ -796,7 +797,7 @@ void VulkanEngine::createFrameDataSyncObjects(int frameDataNum)
     VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameDataNum].inFlightFence));
 }
 
-void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
+bool VulkanEngine::startRenderingFrame()
 {
     FrameData& currentFrameData = getCurrentFrameData();
 
@@ -810,9 +811,8 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        LOG("Out of date swapchain");
-        recreateSwapchain();
-        return;
+        m_windowResized = true;
+        return false;
     }
     else if (result != VK_SUBOPTIMAL_KHR)
     {
@@ -820,7 +820,7 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
     }
     else if (m_swapchainExtent.width + m_swapchainExtent.height == 0)
     {
-        return;
+        return false;
     }
 
     VK_CHECK(vkResetFences(m_device, 1, &currentFrameData.inFlightFence));
@@ -837,7 +837,7 @@ void VulkanEngine::startRenderingFrame(VkExtent2D& swapchainExtent)
 
     VK_CHECK(vkResetCommandBuffer(commandBuffer, 0));
 
-    swapchainExtent = m_swapchainExtent;
+    return true;
 }
 
 void VulkanEngine::submitFrame()
@@ -887,15 +887,9 @@ void VulkanEngine::submitFrame()
 
     // Check for resizing
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_windowResized)
-    {
-        m_windowResized = false;
-        LOG("Resize needed");
-        recreateSwapchain();
-    }
+        m_windowResized = true;
     else
-    {
         assert(result == VK_SUCCESS);
-    }
 
     m_currentFrame++;
     m_frameDataIndex = m_currentFrame % MAX_FRAMES_IN_FLIGHT;
@@ -903,7 +897,7 @@ void VulkanEngine::submitFrame()
 
 void VulkanEngine::recreateSwapchain()
 {
-    vkDeviceWaitIdle(m_device);
+    VK_CHECK(vkDeviceWaitIdle(m_device));
 
     SwapchainSupportDetails swapchainSupport = querySwapchainSupport(m_physicalDevice);
     VkExtent2D extent = chooseSwapExtent(swapchainSupport.capabilities);
@@ -918,7 +912,7 @@ void VulkanEngine::recreateSwapchain()
     createSwapchain();
     createSwapchainData();
 
-    m_renderExtentResized = true;
+    m_windowResized = false;
 }
 
 void VulkanEngine::createAllocator()

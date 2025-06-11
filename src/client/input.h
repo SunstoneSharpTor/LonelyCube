@@ -28,6 +28,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void swapBuffers();
 void clearCurrentBuffer();
 bool buttonPressed(int scancode);
+bool peekAtButtonPressed(int scancode);
 bool buttonDown(int scancode);
 bool leftMouseButtonPressed();
 bool anyMouseButtonPressed();

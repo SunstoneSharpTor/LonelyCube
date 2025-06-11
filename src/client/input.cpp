@@ -76,15 +76,14 @@ bool buttonPressed(int scancode)
         pressedButtons[pressedButtonsIndex].begin(), pressedButtons[pressedButtonsIndex].end(),
         scancode
     );
-    // auto itr = std::find(
-    //     pressedButtons[pressedButtonsIndex].begin(), pressedButtons[pressedButtonsIndex].end(),
-    //     scancode
-    // );
-    // if (itr == pressedButtons[pressedButtonsIndex].end())
-    //     return false;
-    //
-    // pressedButtons[pressedButtonsIndex].erase(itr);
-    // return true;
+}
+
+bool peekAtButtonPressed(int scancode)
+{
+    return std::count(
+        pressedButtons[!pressedButtonsIndex].begin(), pressedButtons[!pressedButtonsIndex].end(),
+        scancode
+    );
 }
 
 bool buttonDown(int scancode)

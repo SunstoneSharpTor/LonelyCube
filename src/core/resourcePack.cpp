@@ -59,9 +59,6 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
 
     // Parse block data
     for (int blockID = 0; blockID < 256; blockID++) {
-        if (m_blockData[blockID].name.size() == 0) {
-            continue;
-        }
         // Set defaults
         modelIndices[blockID] = -1;
         m_blockData[blockID].blockLight = 0;
@@ -69,6 +66,10 @@ ResourcePack::ResourcePack(std::filesystem::path resourcePackPath) {
         m_blockData[blockID].dimsLight = false;
         m_blockData[blockID].collidable = true;
         m_blockData[blockID].castsAmbientOcclusion = true;
+
+        if (m_blockData[blockID].name.size() == 0) {
+            continue;
+        }
 
         std::ifstream stream(resourcePackPath/"blocks/blockData"/(m_blockData[blockID].name +
             ".json"));

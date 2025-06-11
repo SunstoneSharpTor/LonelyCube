@@ -172,7 +172,7 @@ public:
     void destroyImage(const AllocatedImage& image);
 
     // Rendering
-    void startRenderingFrame(VkExtent2D& swapchainExtent);
+    bool startRenderingFrame();
     void submitFrame();
     #ifdef TIMESTAMPS
     float getDeltaTimestamp(int firstTimeStampIndex, int secondTimeStampIndex);
@@ -211,7 +211,6 @@ private:
     uint32_t m_frameDataIndex = 0;
     std::vector<FrameData> m_frameData;
     bool m_windowResized = false;
-    bool m_renderExtentResized = false;
 
     // Immediate Submit
     VkFence m_immediateSubmitFence;
@@ -298,6 +297,10 @@ public:
     {
         m_windowResized = true;
     }
+    inline bool windowResized()
+    {
+        return m_windowResized;
+    }
     inline uint64_t getCurrentFrame()
     {
         return m_currentFrame;
@@ -329,10 +332,6 @@ public:
     inline VkSampleCountFlagBits getMaxSamples() const
     {
         return m_maxSamples;
-    }
-    inline bool resizedSinceLastFrame() const
-    {
-        return m_renderExtentResized;
     }
     #ifdef TIMESTAMPS
     inline VkQueryPool getCurrentTimestampQueryPool()

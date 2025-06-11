@@ -892,18 +892,11 @@ void Renderer::cleanupPipelines()
     cleanupUiPipelines();
 }
 
-void Renderer::beginRenderingFrame()
+bool Renderer::beginRenderingFrame()
 {
     VkExtent2D swapchainExtent;
-    m_vulkanEngine.startRenderingFrame(swapchainExtent);
-    VkExtent2D newRenderExtent;
-    newRenderExtent.width = std::ceil(swapchainExtent.width * m_renderScale);
-    newRenderExtent.height = std::ceil(swapchainExtent.height * m_renderScale);
-    if (newRenderExtent.width != m_drawImageExtent.width ||
-        newRenderExtent.height != m_drawImageExtent.height)
-    {
-        resize();
-    }
+    if (!m_vulkanEngine.startRenderingFrame())
+        return false;
 
     if (m_minimised)
     {
@@ -925,6 +918,8 @@ void Renderer::beginRenderingFrame()
     );
     LOG(std::to_string(m_vulkanEngine.getDeltaTimestamp(0, 1)));
     #endif
+
+    return true;
 }
 
 void Renderer::drawSky()

@@ -74,7 +74,7 @@ public:
 
     Renderer(VkSampleCountFlagBits numSamples, float renderScale);
     ~Renderer();
-    void beginRenderingFrame();
+    bool beginRenderingFrame();
     void drawSky();
     void updateEntityMesh(const EntityMeshManager& entityMeshManager, GPUDynamicMeshBuffers& mesh);
     void beginDrawingGeometry();
@@ -93,6 +93,8 @@ public:
     void drawBackgroundImage();
     void beginDrawingUi();
     void submitFrame();
+
+    void resize();
 
     inline VulkanEngine& getVulkanEngine()
     {
@@ -217,8 +219,6 @@ private:
     void cleanupSamplers();
     void loadTextures();
     void cleanupTextures();
-
-    void resize();
 };
 
 }  // namespace lonelycube::client
