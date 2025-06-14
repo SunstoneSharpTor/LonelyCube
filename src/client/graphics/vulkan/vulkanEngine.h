@@ -48,7 +48,7 @@ struct FrameData
 {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
     VkFence inFlightFence;
 };
 
@@ -56,7 +56,6 @@ struct SwapchainImageData
 {
     VkImage image;
     VkImageView imageView;
-    VkSemaphore renderFinishedSemaphore;
 };
 
 struct AllocatedImage

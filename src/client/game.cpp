@@ -255,16 +255,19 @@ void Game::renderFrame(double dt)
 
 void Game::queueDebugText(int guiScale, int FPS)
 {
-    glm::vec3 colour = glm::vec3(1.0f, 1.0f, 1.0f) * m_renderer.getGameBrightness();
+    glm::vec3 light = glm::vec3(1.0f, 1.0f, 1.0f) * m_renderer.getGameBrightness();
+    glm::vec3 dark = glm::vec3(0.05f, 0.05f, 0.05f) * m_renderer.getGameBrightness();
     glm::ivec2 textPos(guiScale, guiScale);
     Vec3 playerPos = m_mainPlayer.getPlayerFeetPos();
     std::string text = "Position: X=" + std::to_string(playerPos.x) + " Y="
         + std::to_string(playerPos.y) + " Z=" + std::to_string(playerPos.z);
-    m_renderer.font.queue(text, textPos, guiScale, colour);
+    m_renderer.font.queue(text, textPos + glm::ivec2(guiScale, guiScale), guiScale, dark);
+    m_renderer.font.queue(text, textPos, guiScale, light);
     text = std::to_string(FPS) + " FPS";
     textPos = glm::ivec2(m_renderer.getVulkanEngine().getSwapchainExtent().width
         - (m_renderer.font.getStringWidth(text) + 1) * guiScale, guiScale);
-    m_renderer.font.queue(text, textPos, guiScale, colour);
+    m_renderer.font.queue(text, textPos + glm::ivec2(guiScale, guiScale), guiScale, dark);
+    m_renderer.font.queue(text, textPos, guiScale, light);
 }
 
 }  // namespace lonelycube::client

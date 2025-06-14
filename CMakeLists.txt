@@ -9,41 +9,48 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${FullOutputDir}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+
 enable_testing()
 
 include(FetchContent)
 
 FetchContent_Declare(
-    glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG        7b6aead9fb88b3623e3b3725ebb42670cbe4c579  # Version 3.4
-)
-FetchContent_Declare(
     enet
     GIT_REPOSITORY https://github.com/lsalzman/enet.git
-    GIT_TAG        2662c0de09e36f2a2030ccc2c528a3e4c9e8138a  # Version 3.1.8
+    GIT_TAG        v1.3.18
+)
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG        3.4
 )
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG        0af55ccecd98d4e5a8d1fad7de25ba429d60e863  # Version 1.0.1
+    GIT_TAG        1.0.1
 )
 FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG        5c205738c191bcb0abc65c4febfa9bd25ff35234
+    GIT_TAG        f58f558c120e9b32c217290b80bad1a0729fbb2c  # 26/05/2025
+)
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG        v0.12.1
 )
 FetchContent_Declare(
     volk
-    GIT_REPOSITORY https://github.com/zeux/volk
-    GIT_TAG        0b17a763ba5643e32da1b2152f8140461b3b7345  # Version 1.4.304
+    GIT_REPOSITORY https://github.com/zeux/volk.git
+    GIT_TAG        1.4.304
 )
 FetchContent_Declare(
     VulkanMemoryAllocator
-    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-    GIT_TAG        3bab6924988e5f19bf36586a496156cf72f70d9f  # Version 3.2.0
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG        v3.3.0
 )
-FetchContent_MakeAvailable(glfw enet glm stb volk VulkanMemoryAllocator)
+FetchContent_MakeAvailable(enet glfw glm stb tracy volk VulkanMemoryAllocator)
 
 add_subdirectory(tests)
 
@@ -100,12 +107,14 @@ target_include_directories(client PRIVATE
     ${stb_SOURCE_DIR}
 )
 target_link_libraries(client PRIVATE
-    glfw
     enet
+    glfw
     glm::glm
-    volk
     GPUOpen::VulkanMemoryAllocator
+    Tracy::TracyClient
+    volk
 )
+
 target_compile_definitions(client PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(client PRIVATE RELEASE)
@@ -145,6 +154,7 @@ target_include_directories(server PRIVATE
     ${enet_SOURCE_DIR}/include
 )
 target_link_libraries(server PRIVATE enet glm::glm)
+
 target_compile_definitions(server PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
 if (CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(server PRIVATE RELEASE)

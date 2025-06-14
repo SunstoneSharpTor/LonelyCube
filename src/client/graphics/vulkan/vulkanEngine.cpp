@@ -23,6 +23,7 @@
 #include "core/log.h"
 
 #include "glm/glm.hpp"
+#include <thread>
 #include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_BOX
@@ -101,7 +102,6 @@ void VulkanEngine::cleanupSwapchain()
     for (auto& swapchainData : m_swapchainImageData)
     {
         vkDestroyImageView(m_device, swapchainData.imageView, nullptr);
-        vkDestroySemaphore(m_device, swapchainData.renderFinishedSemaphore, nullptr);
     }
 
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
@@ -109,7 +109,7 @@ void VulkanEngine::cleanupSwapchain()
 
 void VulkanEngine::cleanup()
 {
-    vkDeviceWaitIdle(m_device);
+    VK_CHECK(vkDeviceWaitIdle(m_device));
 
     cleanupSwapchain();
     cleanupTimestampQueryPool();
@@ -526,18 +526,25 @@ VkSurfaceFormatKHR VulkanEngine::chooseSwapSurfaceFormat(
 VkPresentModeKHR VulkanEngine::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR>& availablePresentModes
 ) {
-    for (const auto& availablePresentMode : availablePresentModes)
-    {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-            return availablePresentMode;
-    }
+    // for (const auto& availablePresentMode : availablePresentModes)
+    // {
+    //     if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+    //     {
+    //         std::cout << "Mailbox\n";
+    //         return availablePresentMode;
+    //     }
+    // }
 
     for (const auto& availablePresentMode : availablePresentModes)
     {
         if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        {
+            std::cout << "Immediate\n";
             return availablePresentMode;
+        }
     }
 
+    std::cout << "FIFO\n";
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
@@ -644,13 +651,6 @@ void VulkanEngine::createSwapchainData()
 
         VK_CHECK(vkCreateImageView(
             m_device, &createInfo, nullptr, &m_swapchainImageData[i].imageView));
-
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VK_CHECK(vkCreateSemaphore(
-            m_device, &semaphoreInfo, nullptr, &m_swapchainImageData[i].renderFinishedSemaphore
-        ));
     }
 }
 
@@ -688,9 +688,9 @@ void VulkanEngine::cleanupFrameData()
 {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        vkDestroySemaphore(m_device, m_frameData[i].imageAvailableSemaphore, nullptr);
         vkDestroyFence(m_device, m_frameData[i].inFlightFence, nullptr);
-
+        vkDestroySemaphore(m_device, m_frameData[i].imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(m_device, m_frameData[i].renderFinishedSemaphore, nullptr);
         vkDestroyCommandPool(m_device, m_frameData[i].commandPool, nullptr);
     }
 }
@@ -781,20 +781,23 @@ float VulkanEngine::getDeltaTimestamp(int firstTimeStampIndex, int secondTimeSta
 }
 #endif
 
-void VulkanEngine::createFrameDataSyncObjects(int frameDataNum)
+void VulkanEngine::createFrameDataSyncObjects(int i)
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     VK_CHECK(vkCreateSemaphore(
-        m_device, &semaphoreInfo, nullptr, &m_frameData[frameDataNum].imageAvailableSemaphore)
-    );
+        m_device, &semaphoreInfo, nullptr, &m_frameData[i].imageAvailableSemaphore
+    ));
+    VK_CHECK(vkCreateSemaphore(
+        m_device, &semaphoreInfo, nullptr, &m_frameData[i].renderFinishedSemaphore
+    ));
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[frameDataNum].inFlightFence));
+    VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameData[i].inFlightFence));
 }
 
 bool VulkanEngine::startRenderingFrame()
@@ -843,7 +846,6 @@ bool VulkanEngine::startRenderingFrame()
 void VulkanEngine::submitFrame()
 {
     FrameData& currentFrameData = getCurrentFrameData();
-    SwapchainImageData& currentSwapchainImageData = getCurrentSwapchainData();
 
     VkCommandBufferSubmitInfo commandSubmitInfo{};
     commandSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -857,7 +859,7 @@ void VulkanEngine::submitFrame()
 
     VkSemaphoreSubmitInfo signalInfo{};
     signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-    signalInfo.semaphore = currentSwapchainImageData.renderFinishedSemaphore;
+    signalInfo.semaphore = currentFrameData.renderFinishedSemaphore;
     signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
     signalInfo.value = 1;
 
@@ -877,7 +879,7 @@ void VulkanEngine::submitFrame()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &currentSwapchainImageData.renderFinishedSemaphore;
+    presentInfo.pWaitSemaphores = &currentFrameData.renderFinishedSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapchain;
     presentInfo.pImageIndices = &m_currentSwapchainIndex;
