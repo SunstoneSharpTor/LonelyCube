@@ -23,7 +23,6 @@
 #include "core/log.h"
 
 #include "glm/glm.hpp"
-#include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_BOX
 #include "stb_image.h"
